@@ -1,0 +1,49 @@
+.avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 999px;
+  border: 1px solid var(--stroke);
+  background: rgba(255,255,255,0.03);
+  /* allow online dot to sit above the avatar ring */
+  overflow: visible;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  position: relative;
+}
+
+.inner{
+  width: 100%;
+  height: 100%;
+  border-radius: 999px;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+}
+
+.img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.fallback {
+  font-weight: 700;
+  color: var(--text);
+}
+
+.statusDot{
+  position: absolute;
+  right: -1px;
+  bottom: -1px;
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  border: 2px solid rgba(8,12,18,0.95);
+  background: rgba(255,255,255,0.3);
+  z-index: 3;
+}
+
+.statusDotOnline{ background: rgba(77, 223, 124, 0.95); }
+.statusDotOffline{ background: rgba(255,255,255,0.25); }

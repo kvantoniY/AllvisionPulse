@@ -1,0 +1,23 @@
+export const APP_NAME = 'Allvision Pulse';
+
+export const COOKIES = {
+  access: 'av_access',
+  refresh: 'av_refresh',
+} as const;
+
+export const ROUTES = {
+  auth: {
+    login: '/auth/login',
+    register: '/auth/register',
+  },
+  app: {
+    home: '/',
+    feed: '/feed',
+    friends: '/friends',
+    health: '/health',
+    messages: '/messages',
+    profile: (username: string) => `/profile/${username}`,
+    settings: '/settings',
+    game: '/game',
+  },
+} as const;

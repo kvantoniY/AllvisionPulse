@@ -1,0 +1,97 @@
+import { NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
+import { BACKEND_URL } from '@/shared/config/env';
+import { COOKIE_NAMES, cookieOptions } from '@/shared/lib/authCookies';
+
+async function refreshAccess(refreshToken: string): Promise<string | null> {
+  const r = await fetch(`${BACKEND_URL}/api/auth/refresh`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ refresh: refreshToken }),
+  });
+  if (!r.ok) return null;
+  const data = await r.json().catch(() => null);
+  const access = data?.tokens?.access;
+  return typeof access === 'string' ? access : null;
+}
+
+async function forward(req: Request, path: string[]) {
+  const c = cookies();
+  const refresh = c.get(COOKIE_NAMES.refresh)?.value;
+  let access = c.get(COOKIE_NAMES.access)?.value;
+
+  const url = `${BACKEND_URL}/api/${path.join('/')}${new URL(req.url).search}`;
+
+  const headers = new Headers(req.headers);
+  headers.delete('host');
+  headers.delete('connection');
+  headers.delete('content-length');
+
+  if (access) headers.set('authorization', `Bearer ${access}`);
+
+  const method = req.method.toUpperCase();
+  const hasBody = !['GET', 'HEAD'].includes(method);
+  const body = hasBody ? await req.arrayBuffer() : undefined;
+
+  const doFetch = (token?: string) =>
+    fetch(url, {
+      method,
+      headers: token ? new Headers({ ...Object.fromEntries(headers), authorization: `Bearer ${token}` }) : headers,
+      body: hasBody ? body : undefined,
+    });
+
+  let r: Response;
+  try {
+    r = await doFetch();
+  } catch (e: any) {
+    return NextResponse.json(
+      { message: 'Backend fetch failed', detail: String(e?.message ?? e) },
+      { status: 502 },
+    );
+  }
+
+  if (r.status === 401 && refresh) {
+    const nextAccess = await refreshAccess(refresh);
+    if (nextAccess) {
+      access = nextAccess;
+      c.set(COOKIE_NAMES.access, access, cookieOptions);
+      try {
+        r = await doFetch(access);
+      } catch (e: any) {
+        return NextResponse.json(
+          { message: 'Backend fetch failed after refresh', detail: String(e?.message ?? e) },
+          { status: 502 },
+        );
+      }
+    } else {
+      // refresh invalid — clear cookies
+      c.set(COOKIE_NAMES.access, '', { ...cookieOptions, maxAge: 0 });
+      c.set(COOKIE_NAMES.refresh, '', { ...cookieOptions, maxAge: 0 });
+    }
+  }
+
+  const contentType = r.headers.get('content-type') ?? '';
+  if (contentType.includes('application/json')) {
+    const data = await r.json().catch(() => ({}));
+    return NextResponse.json(data, { status: r.status });
+  }
+
+  const blob = await r.blob();
+  return new NextResponse(blob, { status: r.status, headers: { 'content-type': contentType } });
+}
+
+export async function GET(req: Request, { params }: { params: { path: string[] } }) {
+  return forward(req, params.path);
+}
+export async function POST(req: Request, { params }: { params: { path: string[] } }) {
+  return forward(req, params.path);
+}
+export async function PUT(req: Request, { params }: { params: { path: string[] } }) {
+  return forward(req, params.path);
+}
+export async function PATCH(req: Request, { params }: { params: { path: string[] } }) {
+  return forward(req, params.path);
+}
+export async function DELETE(req: Request, { params }: { params: { path: string[] } }) {
+  return forward(req, params.path);
+}

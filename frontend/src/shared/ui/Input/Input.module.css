@@ -1,0 +1,13 @@
+.field { display: grid; gap: 6px; }
+.label { color: var(--muted); font-size: 12px; }
+.input {
+  width: 100%;
+  padding: 11px 12px;
+  border-radius: 14px;
+  border: 1px solid var(--stroke);
+  background: rgba(255,255,255,0.03);
+  color: var(--text);
+  outline: none;
+}
+.input:focus { border-color: rgba(123,97,255,0.7); box-shadow: 0 0 0 3px rgba(123,97,255,0.18); }
+.error { color: var(--danger); font-size: 12px; }

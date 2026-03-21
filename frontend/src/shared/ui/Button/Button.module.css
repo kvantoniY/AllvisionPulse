@@ -1,0 +1,45 @@
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: 14px;
+  padding: 10px 14px;
+  border: 1px solid var(--stroke);
+  background: rgba(255,255,255,0.03);
+  color: var(--text);
+  cursor: pointer;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.btn:hover {
+  background: rgba(255,255,255,0.06);
+}
+
+.primary {
+  background: var(--accent);
+  border-color: rgba(123,97,255,0.6);
+}
+
+.primary:hover {
+  background: var(--accent2);
+}
+
+.full {
+  width: 100%;
+}
+
+.small {
+  padding: 8px 12px;
+  border-radius: 12px;
+  font-size: 13px;
+}
+
+.ghost {
+  background: transparent;
+}
+
+.ghost:hover {
+  background: rgba(255,255,255,0.04);
+}

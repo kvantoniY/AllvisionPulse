@@ -1,0 +1,906 @@
+.callWrap {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  background:
+    radial-gradient(circle at top left, rgba(74, 115, 255, 0.18), transparent 32%),
+    radial-gradient(circle at bottom right, rgba(28, 199, 160, 0.16), transparent 24%),
+    #070a11;
+  color: #f7f8fb;
+}
+
+.topBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 20px;
+  background: linear-gradient(180deg, rgba(5, 8, 14, 0.92), rgba(5, 8, 14, 0.54));
+  backdrop-filter: blur(18px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.topMeta {
+  min-width: 0;
+}
+
+.topTitleRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.topTitle {
+  font-size: 18px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.topBadge {
+  flex: 0 0 auto;
+  padding: 4px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.06);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.topSub {
+  margin-top: 4px;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 13px;
+}
+
+.topActions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.topGhostBtn {
+  height: 40px;
+  padding: 0 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.05);
+  color: #f7f8fb;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.stage {
+  position: relative;
+  min-height: 0;
+}
+
+.gridStage,
+.mainStage {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.grid {
+  height: 100%;
+  padding: 18px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+}
+
+.mainVideo {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: rgba(5, 9, 18, 0.94);
+}
+
+.mainVideoEl {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background: #02040a;
+}
+
+.mainPlaceholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent),
+    #090d16;
+}
+
+.mainLabel {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.mainSubLabel {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.66);
+}
+
+.mainOverlay {
+  position: absolute;
+  left: 18px;
+  bottom: 18px;
+  display: grid;
+  gap: 6px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: rgba(4, 7, 12, 0.52);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(14px);
+}
+
+.mainOverlayName {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.mainOverlayMeta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: rgba(255, 255, 255, 0.74);
+  font-size: 12px;
+  flex-wrap: wrap;
+}
+
+.pip {
+  position: absolute;
+  right: 18px;
+  bottom: 18px;
+  width: 180px;
+  height: 228px;
+  border-radius: 20px;
+  overflow: hidden;
+  background: #000;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+}
+
+.pipVideo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.pipPlaceholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.05), transparent), #0d121d;
+}
+
+.pipName {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.railDock {
+  position: absolute;
+  left: 18px;
+  right: 18px;
+  bottom: 18px;
+  display: grid;
+  gap: 8px;
+  z-index: 3;
+}
+
+.railDockFloating {
+  left: auto;
+  right: auto;
+  bottom: auto;
+  width: min(320px, calc(100vw - 24px));
+}
+
+.railHandle {
+  width: fit-content;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(7, 10, 17, 0.78);
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 12px;
+  cursor: grab;
+}
+
+.railList {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+}
+
+.tile {
+  position: relative;
+  min-height: 210px;
+  padding: 0;
+  overflow: hidden;
+  border-radius: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.01)), #0d1118;
+  cursor: pointer;
+  transition:
+    transform 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.tile:hover {
+  transform: translateY(-2px);
+  border-color: rgba(255, 255, 255, 0.14);
+}
+
+.tileCompact {
+  min-width: 176px;
+  min-height: 118px;
+  border-radius: 18px;
+}
+
+.tileActive {
+  box-shadow: 0 0 0 2px rgba(89, 132, 255, 0.92);
+}
+
+.tileSpeaking {
+  box-shadow: 0 0 0 2px rgba(55, 212, 134, 0.94);
+}
+
+.tileVideo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background: #000;
+}
+
+.tileVideoRing {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.tileVideoHidden {
+  display: none;
+}
+
+.hiddenVideoForRing {
+  position: absolute;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.tilePlaceholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.tileName {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.84);
+}
+
+.tileFooter {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 10px;
+  border-radius: 14px;
+  background: rgba(5, 8, 14, 0.58);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(12px);
+}
+
+.tileFooterText {
+  min-width: 0;
+  flex: 1;
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tileIconBadge,
+.mainMediaFlag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border-radius: 999px;
+  background: rgba(255, 87, 87, 0.18);
+  color: #ff8f8f;
+}
+
+.mainMediaFlag {
+  width: 26px;
+  height: 26px;
+}
+
+.statusIcon {
+  width: 13px;
+  height: 13px;
+}
+
+.tileBadge,
+.tileBadgePrimary {
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.tileBadge {
+  background: rgba(255, 87, 87, 0.18);
+  color: #ff8f8f;
+}
+
+.tileBadgePrimary {
+  background: rgba(89, 132, 255, 0.18);
+  color: #a9c0ff;
+}
+
+.stDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+}
+
+.stOnline {
+  background: #29cf83;
+}
+
+.stOffline {
+  background: #ff5c63;
+}
+
+.stFailed {
+  background: #ff5c63;
+}
+
+.stConnecting {
+  background: #f1bb43;
+}
+
+.bottomBar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 14px 18px 18px;
+  background: linear-gradient(180deg, rgba(5, 8, 14, 0.44), rgba(5, 8, 14, 0.86));
+  backdrop-filter: blur(18px);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.ctrlIcon {
+  min-width: 84px;
+  height: 58px;
+  padding: 0 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.05);
+  color: #f7f8fb;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.ctrlBtn {
+  height: 42px;
+  padding: 0 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.06);
+  color: #f7f8fb;
+}
+
+.ctrlDanger {
+  background: rgba(255, 87, 87, 0.2);
+  border-color: rgba(255, 87, 87, 0.48);
+}
+
+.ctrlPrimary {
+  background: rgba(89, 132, 255, 0.22);
+  border-color: rgba(89, 132, 255, 0.48);
+}
+
+.ctrlHang {
+  background: rgba(255, 87, 87, 0.28);
+  border-color: rgba(255, 87, 87, 0.6);
+}
+
+.ctrlSvg {
+  width: 22px;
+  height: 22px;
+}
+
+.ctrlLabel {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.toast {
+  position: fixed;
+  top: 86px;
+  left: 50%;
+  right: auto;
+  transform: translateX(-50%);
+  display: inline-flex;
+  align-items: center;
+  max-width: min(420px, calc(100vw - 36px));
+  width: auto;
+  padding: 10px 14px;
+  border-radius: 14px;
+  background: rgba(5, 8, 14, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(14px);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.22);
+  font-size: 13px;
+  line-height: 1.35;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+  z-index: 8;
+}
+
+.sidePanel {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(380px, 92vw);
+  background: rgba(8, 11, 18, 0.92);
+  border-left: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(18px);
+  z-index: 5;
+}
+
+.incomingWrap {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 18px;
+  z-index: 2100;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.incomingCard {
+  width: min(560px, calc(100vw - 24px));
+  padding: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  border-radius: 22px;
+  background: rgba(8, 11, 18, 0.94);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(18px);
+  pointer-events: all;
+}
+
+.incomingLeft {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+
+.incomingMeta {
+  min-width: 0;
+}
+
+.incomingTitle {
+  font-size: 15px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.incomingSub {
+  margin-top: 4px;
+  color: rgba(255, 255, 255, 0.68);
+  font-size: 12px;
+}
+
+.incomingParticipants {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.incomingParticipant,
+.incomingMore {
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 11px;
+}
+
+.incomingActions {
+  display: flex;
+  gap: 10px;
+}
+
+.ctrlAccept {
+  background: rgba(41, 207, 131, 0.2);
+  border-color: rgba(41, 207, 131, 0.5);
+}
+
+.confirmWrap {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.58);
+  z-index: 2200;
+}
+
+.confirmCard {
+  width: min(440px, calc(100vw - 24px));
+  padding: 18px;
+  border-radius: 22px;
+  background: rgba(8, 11, 18, 0.96);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.confirmTitle {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.confirmText {
+  margin-top: 8px;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 13px;
+}
+
+.confirmActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.callChat {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  width: 100%;
+  height: 100%;
+}
+
+.callChatHeader {
+  height: 56px;
+  display: flex;
+  align-items: center;
+  padding: 0 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  font-weight: 700;
+}
+
+.callChatList {
+  min-height: 0;
+  overflow: auto;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.callChatMsg {
+  max-width: 88%;
+  padding: 10px 12px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.callChatMine {
+  align-self: flex-end;
+  background: rgba(89, 132, 255, 0.16);
+}
+
+.callChatTheir {
+  align-self: flex-start;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.callChatName {
+  margin-bottom: 4px;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.62);
+}
+
+.callChatText {
+  font-size: 13px;
+  white-space: pre-wrap;
+}
+
+.callChatComposer {
+  display: flex;
+  gap: 10px;
+  padding: 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.callChatInput {
+  flex: 1;
+  min-height: 42px;
+  max-height: 120px;
+  padding: 10px 12px;
+  resize: none;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.05);
+  color: #f7f8fb;
+}
+
+.callChatActionBtn {
+  height: 42px;
+  width: 42px;
+  padding: 0;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.06);
+  color: #f7f8fb;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.callChatActionBtn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.callChatActionBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.callChatSend {
+  height: 42px;
+  padding: 0 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(89, 132, 255, 0.45);
+  background: rgba(89, 132, 255, 0.18);
+  color: #f7f8fb;
+}
+
+@media (max-width: 900px) {
+  .topBar {
+    padding: 14px 14px 12px;
+  }
+
+  .grid {
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    padding: 12px;
+  }
+
+  .pip {
+    width: 136px;
+    height: 176px;
+  }
+
+  .railDock {
+    left: 12px;
+    right: 12px;
+    bottom: 12px;
+  }
+}
+
+@media (max-width: 640px) {
+  .callWrap {
+    grid-template-rows: auto 1fr auto;
+  }
+
+  .topTitle {
+    font-size: 16px;
+  }
+
+  .topBadge {
+    display: none;
+  }
+
+  .topGhostBtn span,
+  .ctrlLabel {
+    display: none;
+  }
+
+  .incomingCard {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .incomingActions {
+    width: 100%;
+  }
+
+  .incomingActions .ctrlBtn {
+    flex: 1;
+  }
+
+  .bottomBar {
+    gap: 10px;
+    padding: 12px;
+  }
+
+  .ctrlIcon {
+    min-width: 56px;
+    width: 56px;
+    padding: 0;
+    border-radius: 16px;
+  }
+
+  .grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .tile {
+    min-height: 164px;
+    border-radius: 18px;
+  }
+
+  .tileCompact {
+    min-width: 132px;
+    min-height: 92px;
+  }
+
+  .railDockFloating {
+    width: min(280px, calc(100vw - 16px));
+  }
+
+  .sidePanel {
+    width: 100vw;
+  }
+}
+
+.hiddenAudio {
+  position: absolute;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.banner {
+  position: fixed;
+  top: 86px;
+  left: 50%;
+  right: auto;
+  transform: translateX(-50%);
+  z-index: 8;
+  display: inline-flex;
+  align-items: center;
+  width: auto;
+  max-width: min(420px, calc(100vw - 36px));
+  padding: 10px 14px;
+  border-radius: 14px;
+  font-size: 13px;
+  line-height: 1.35;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+  border: 1px solid rgba(255,255,255,0.08);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.22);
+}
+
+.bannerInfo {
+  background: rgba(89,132,255,0.16);
+  border-color: rgba(89,132,255,0.35);
+}
+
+.bannerWarning {
+  background: rgba(255,179,71,0.14);
+  border-color: rgba(255,179,71,0.34);
+}
+
+.bannerError {
+  background: rgba(255,92,92,0.14);
+  border-color: rgba(255,92,92,0.34);
+}
+
+.deviceHint {
+  position: fixed;
+  top: 132px;
+  left: 50%;
+  right: auto;
+  transform: translateX(-50%);
+  display: inline-flex;
+  align-items: center;
+  z-index: 8;
+  max-width: min(460px, calc(100vw - 36px));
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: rgba(5, 8, 14, 0.74);
+  border: 1px solid rgba(255,255,255,0.08);
+  font-size: 12px;
+  color: rgba(255,255,255,0.8);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+}
+
+.settingsPanel {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  z-index: 6;
+  width: min(360px, calc(100vw - 36px));
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 18px;
+  background: rgba(7, 10, 17, 0.92);
+  border: 1px solid rgba(255,255,255,0.1);
+  box-shadow: 0 20px 50px rgba(0,0,0,0.35);
+}
+
+.settingsTitle {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.fieldLabel {
+  display: grid;
+  gap: 6px;
+  font-size: 12px;
+  color: rgba(255,255,255,0.75);
+}
+
+.select {
+  width: 100%;
+  height: 42px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.06);
+  color: #f7f8fb;
+  padding: 0 12px;
+}
+
+

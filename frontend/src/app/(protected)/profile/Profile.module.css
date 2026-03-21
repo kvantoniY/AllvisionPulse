@@ -1,0 +1,177 @@
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+@media (max-width: 780px) {
+  .header { flex-direction: column; align-items: stretch; }
+}
+
+.user {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+}
+
+.name {
+  font-size: 28px;
+  font-weight: 900;
+}
+
+.handle {
+  color: var(--muted);
+  margin-top: 4px;
+}
+
+.statusRow{
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.dot{
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.25);
+}
+
+.dotOnline{ background: rgba(77, 223, 124, 0.95); }
+.dotOffline{ background: rgba(255,255,255,0.25); }
+
+.bio {
+  color: var(--muted);
+  margin-top: 6px;
+  max-width: 560px;
+}
+
+.counts {
+  display: flex;
+  gap: 18px;
+  margin-top: 10px;
+}
+
+.countItem {
+  display: grid;
+  gap: 2px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+}
+
+.countItem:disabled {
+  opacity: 0.8;
+}
+
+.countItem:not(:disabled) {
+  cursor: pointer;
+}
+
+.countValue {
+  font-size: 20px;
+  font-weight: 900;
+}
+
+.countLabel {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.stats {
+  display: flex;
+  gap: 22px;
+  margin-top: 10px;
+}
+
+.stat {
+  display: grid;
+  gap: 2px;
+  cursor: default;
+}
+
+.statClickable {
+  cursor: pointer;
+}
+
+.statValue {
+  font-weight: 900;
+  font-size: 18px;
+}
+
+.statLabel {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.sectionRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 18px 0 10px;
+}
+
+.sectionTitle {
+  font-weight: 800;
+}
+
+.sectionAction {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.widgets {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+
+@media (max-width: 780px) {
+  .widgets { grid-template-columns: 1fr; }
+}
+
+.widget {
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  text-align: center;
+}
+
+.widgetValue {
+  font-size: 28px;
+  font-weight: 900;
+}
+
+.widgetLabel {
+  color: var(--muted);
+  font-size: 12px;
+  margin-top: 6px;
+}
+
+.editCard { margin-bottom: 14px; }
+.editBody { display: grid; gap: 12px; }
+.textarea {
+  width: 100%;
+  padding: 12px;
+  border-radius: 16px;
+  border: 1px solid var(--stroke);
+  background: rgba(255,255,255,0.03);
+  color: var(--text);
+  outline: none;
+}
+.textarea:focus { border-color: rgba(123,97,255,0.7); box-shadow: 0 0 0 3px rgba(123,97,255,0.18); }
+.editActions { display: flex; gap: 10px; justify-content: flex-end; }

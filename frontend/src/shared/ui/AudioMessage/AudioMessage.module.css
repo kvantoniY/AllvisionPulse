@@ -1,0 +1,160 @@
+.audioMessage {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: min(100%, 360px);
+  padding: 12px;
+  border-radius: 22px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background:
+    radial-gradient(circle at top right, rgba(89, 132, 255, 0.18), transparent 34%),
+    linear-gradient(145deg, rgba(13, 18, 30, 0.94), rgba(9, 12, 20, 0.96));
+  box-shadow:
+    0 16px 36px rgba(0, 0, 0, 0.26),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  overflow: hidden;
+}
+
+.playButton {
+  position: relative;
+  z-index: 1;
+  flex: 0 0 46px;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  border: none;
+  background: linear-gradient(135deg, #6d8cff 0%, #42d4a0 100%);
+  color: white;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  box-shadow: 0 10px 24px rgba(89, 132, 255, 0.32);
+}
+
+.playButton svg {
+  width: 18px;
+  height: 18px;
+}
+
+.body {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+
+.header,
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.title {
+  font-size: 12px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.duration,
+.currentTime,
+.metaLabel {
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.duration {
+  color: rgba(255, 255, 255, 0.62);
+}
+
+.currentTime {
+  color: #c1d0ff;
+}
+
+.metaLabel {
+  color: rgba(255, 255, 255, 0.46);
+}
+
+.waveformTrack {
+  position: relative;
+  height: 44px;
+  cursor: pointer;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.waveformBars {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2px;
+  padding: 6px 10px;
+}
+
+.waveBar {
+  position: relative;
+  z-index: 1;
+  width: 4px;
+  min-height: 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.18);
+  transition: background 0.18s ease, transform 0.18s ease;
+}
+
+.waveBarActive {
+  background: rgba(203, 223, 255, 0.95);
+  box-shadow: 0 0 16px rgba(89, 132, 255, 0.22);
+}
+
+.progressFill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: linear-gradient(90deg, rgba(89, 132, 255, 0.25), rgba(55, 212, 134, 0.18));
+}
+
+.progressThumb {
+  position: absolute;
+  top: 50%;
+  width: 10px;
+  height: 10px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: white;
+  box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.14);
+}
+
+@media (max-width: 640px) {
+  .audioMessage {
+    width: min(100%, 320px);
+    padding: 10px;
+  }
+
+  .playButton {
+    width: 42px;
+    height: 42px;
+    flex-basis: 42px;
+  }
+
+  .waveformTrack {
+    height: 40px;
+  }
+
+  .waveBar {
+    width: 3px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .waveBar,
+  .playButton {
+    transition: none;
+  }
+}
