@@ -1,0 +1,483 @@
+'use client';
+
+import { useEffect, useMemo, useState } from 'react';
+import { Avatar } from '@/shared/ui/Avatar/Avatar';
+import { Button } from '@/shared/ui/Button/Button';
+import {
+  useCancelGameSessionMutation,
+  useCreateGameSessionMutation,
+  useGetGameSessionQuery,
+  useGetGameSessionsQuery,
+  useJoinGameSessionMutation,
+  useLeaveGameSessionMutation,
+  usePokerActionMutation,
+  useStartGameSessionMutation,
+  useUpdateGameSessionConfigMutation,
+} from '@/shared/api/gamesApi';
+import { gameLabel, gameStatusLabel } from '@/shared/lib/gameMessages';
+import { logApiError } from '@/shared/lib/apiError';
+import type { Chat } from '@/shared/types/chat';
+import type { GameKey, GameSession, PokerPlayer } from '@/shared/types/game';
+import styles from './GameSessionPanel.module.css';
+
+const GAME_CATALOG: { key: GameKey; title: string; icon: string; description: string; dev?: boolean }[] = [
+  { key: 'POKER', title: 'Покер', icon: '🂡', description: 'Техасский холдем с лобби, ролями, банком и итогами.' },
+  { key: 'QUIZ', title: 'Своя игра', icon: '🧠', description: 'Шаблоны вопросов, кастомные темы и турниры.', dev: true },
+  { key: 'CHECKERS', title: 'Шашки', icon: '♟️', description: 'Партии 1v1 и режим наблюдателя.', dev: true },
+];
+
+function getName(chat: Chat | undefined, userId: string) {
+  const member = chat?.members?.find((item) => item.userId === userId)?.user;
+  return member?.username ?? 'Игрок';
+}
+
+function getAvatar(chat: Chat | undefined, userId: string) {
+  const member = chat?.members?.find((item) => item.userId === userId)?.user;
+  return member?.avatarUrl ?? null;
+}
+
+function formatStage(stage?: string | null) {
+  const map: Record<string, string> = {
+    waiting: 'Ожидание',
+    preflop: 'Префлоп',
+    flop: 'Флоп',
+    turn: 'Тёрн',
+    river: 'Ривер',
+    showdown: 'Шоудаун',
+    finished: 'Завершена',
+  };
+  return stage ? map[stage] ?? stage : '—';
+}
+
+function suitLabel(card: string) {
+  const suit = card[1];
+  if (suit === 'h') return '♥';
+  if (suit === 'd') return '♦';
+  if (suit === 'c') return '♣';
+  if (suit === 's') return '♠';
+  return '•';
+}
+
+function isRed(card: string) {
+  return card[1] === 'h' || card[1] === 'd';
+}
+
+function CardFace({ card, compact = false }: { card: string; compact?: boolean }) {
+  if (card === '??') return <div className={[styles.card, compact ? styles.cardCompact : '', styles.cardBack].join(' ')}>AV</div>;
+  return (
+    <div className={[styles.card, compact ? styles.cardCompact : '', isRed(card) ? styles.cardRed : ''].join(' ')}>
+      <div className={styles.cardSmall}>
+        {card[0]}
+        <br />
+        {suitLabel(card)}
+      </div>
+      <div className={styles.cardSuit}>{suitLabel(card)}</div>
+    </div>
+  );
+}
+
+function getSeatClass(index: number) {
+  return styles[`seat${index}` as keyof typeof styles] ?? styles.seat0;
+}
+
+function ResultBoard({ session, chat }: { session: GameSession; chat?: Chat }) {
+  if (!session.result) return null;
+  return (
+    <div className={styles.resultBoard}>
+      <div className={styles.sectionTitle}>Результат</div>
+      <div className={styles.resultLead}>
+        {session.result.reason === 'cancelled'
+          ? 'Сессия была остановлена вручную.'
+          : session.result.reason === 'everyone_left'
+            ? 'Игра завершилась, потому что все игроки вышли.'
+            : `Победитель: ${session.result.winners.map((id) => getName(chat, id)).join(', ')}`}
+      </div>
+      {session.result.placements?.length ? (
+        <div className={styles.resultList}>
+          {session.result.placements.map((placement, index) => (
+            <div key={`${placement.userId}-${index}`} className={styles.resultItem}>
+              <span>{index + 1}. {getName(chat, placement.userId)}</span>
+              <span>{placement.amount} · {placement.handLabel ?? '—'}</span>
+            </div>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function PlayerSeat({ player, chat, activeUserId }: { player: PokerPlayer; chat?: Chat; activeUserId?: string | null }) {
+  const turned = activeUserId === player.userId;
+  return (
+    <div
+      className={[
+        styles.playSeat,
+        getSeatClass(player.seat),
+        turned ? styles.playSeatTurn : '',
+        player.folded ? styles.playSeatFolded : '',
+        player.allIn ? styles.playSeatAllIn : '',
+      ].filter(Boolean).join(' ')}
+    >
+      <div className={styles.seatHeader}>
+        <Avatar url={getAvatar(chat, player.userId) ?? undefined} name={getName(chat, player.userId)} size={36} />
+        <div className={styles.seatMeta}>
+          <div className={styles.seatName}>{getName(chat, player.userId)}</div>
+          <div className={styles.seatStack}>Stack {player.stack} · В банке {player.handBet}</div>
+        </div>
+      </div>
+      <div className={styles.seatCards}>
+        {player.cards.map((card, index) => <CardFace key={`${player.userId}-${index}`} card={card} compact />)}
+      </div>
+      <div className={styles.seatChips}>
+        <span className={styles.badge}>{player.roundBet ? `Ставка ${player.roundBet}` : 'Ход не сделан'}</span>
+        {player.folded ? <span className={styles.badgeMuted}>Fold</span> : null}
+        {player.allIn ? <span className={styles.badgeAccent}>All-in</span> : null}
+      </div>
+    </div>
+  );
+}
+
+function PokerTable({ session, meId, chat }: { session: GameSession; meId: string; chat?: Chat }) {
+  const poker = session.poker;
+  const [amount, setAmount] = useState(Math.max(Number(session.config?.bigBlind ?? 20), Number(session.config?.bigBlind ?? 20) * 2));
+  const [act, { isLoading: acting }] = usePokerActionMutation();
+
+  useEffect(() => {
+    setAmount((prev) => Math.max(prev, Number(session.config?.bigBlind ?? 20)));
+  }, [session.config?.bigBlind]);
+
+  if (!poker) return null;
+
+  const mePlayer = poker.players.find((item) => item.userId === meId) ?? null;
+  const toCall = mePlayer ? Math.max(0, poker.currentBet - mePlayer.roundBet) : 0;
+  const myTurn = poker.turnUserId === meId;
+  const canBet = poker.currentBet === 0;
+  const canRaise = poker.currentBet > 0;
+
+  const submitAction = async (type: 'fold' | 'check' | 'call' | 'bet' | 'raise', nextAmount?: number) => {
+    await act({ sessionId: session.sessionId, type, amount: nextAmount }).unwrap().catch(() => null);
+  };
+
+  return (
+    <div className={styles.tableWrap}>
+      <div className={styles.tableHero}>
+        <div>
+          <div className={styles.sectionTitle}>Игровой стол</div>
+          <div className={styles.subline}>Стадия: {formatStage(poker.stage)} · Ход: {poker.turnUserId ? getName(chat, poker.turnUserId) : '—'}</div>
+        </div>
+        <div className={styles.heroStats}>
+          <div className={styles.statCard}><div className={styles.statLabel}>Банк</div><div className={styles.statValue}>{poker.pot}</div></div>
+          <div className={styles.statCard}><div className={styles.statLabel}>Текущая ставка</div><div className={styles.statValue}>{poker.currentBet}</div></div>
+          <div className={styles.statCard}><div className={styles.statLabel}>Игроков</div><div className={styles.statValue}>{poker.players.filter((item) => !item.folded).length}</div></div>
+        </div>
+      </div>
+
+      <div className={styles.communityRow}>
+        {(poker.communityCards.length ? poker.communityCards : ['??', '??', '??', '??', '??']).map((card, index) => (
+          <CardFace key={`${card}-${index}`} card={card} />
+        ))}
+      </div>
+
+      <div className={styles.table}>
+        <div className={styles.tableCenter}>
+          <strong>{gameLabel(session.gameKey)}</strong>
+          <span>{formatStage(poker.stage)}</span>
+          <div className={styles.centerPot}>Pot {poker.pot}</div>
+        </div>
+        {poker.players.map((player) => <PlayerSeat key={player.userId} player={player} chat={chat} activeUserId={poker.turnUserId} />)}
+      </div>
+
+      <div className={styles.actionDock}>
+        <div className={styles.actionSummary}>
+          <div className={styles.sectionTitle}>Ваше действие</div>
+          <div className={styles.subline}>
+            {session.status !== 'ACTIVE'
+              ? 'Игра уже завершена.'
+              : mePlayer
+                ? myTurn
+                  ? 'Ваш ход прямо сейчас.'
+                  : `Ожидаем ${poker.turnUserId ? getName(chat, poker.turnUserId) : 'другого игрока'}.`
+                : 'Вы наблюдатель и можете следить за сессией.'}
+          </div>
+          {mePlayer ? (
+            <div className={styles.badges}>
+              <span className={styles.badge}>Stack: {mePlayer.stack}</span>
+              <span className={styles.badge}>{toCall > 0 ? `До колла ${toCall}` : 'Можно чекать'}</span>
+              {mePlayer.folded ? <span className={styles.badgeMuted}>Fold</span> : null}
+            </div>
+          ) : null}
+        </div>
+
+        {session.status === 'ACTIVE' && mePlayer ? (
+          <div className={styles.inlineActions}>
+            <Button disabled={!myTurn || acting} onClick={() => submitAction('fold')}>Fold</Button>
+            <Button disabled={!myTurn || acting || toCall > 0} onClick={() => submitAction('check')}>Check</Button>
+            <Button disabled={!myTurn || acting || toCall <= 0} onClick={() => submitAction('call')}>Call {toCall > 0 ? toCall : ''}</Button>
+            <div className={styles.amountControl}>
+              <input className={[styles.input, styles.amountInput].join(' ')} type="number" value={amount} min={Number(session.config?.bigBlind ?? 20)} onChange={(e) => setAmount(Number(e.target.value || 0))} />
+              <Button variant="primary" disabled={!myTurn || acting || amount <= 0} onClick={() => submitAction(canBet ? 'bet' : 'raise', amount)}>
+                {canRaise ? 'Raise' : 'Bet'}
+              </Button>
+            </div>
+          </div>
+        ) : null}
+      </div>
+
+      {session.result ? <ResultBoard session={session} chat={chat} /> : null}
+
+      <div className={styles.logSection}>
+        <div className={styles.sectionTitle}>Лента действий</div>
+        <div className={styles.logList}>
+          {poker.actionLog.length ? poker.actionLog.map((item) => (
+            <div key={item.id} className={styles.logItem}>
+              <strong>{getName(chat, item.userId)}</strong>
+              <span>{item.note ? item.note : item.type}{item.amount ? ` · ${item.amount}` : ''}</span>
+            </div>
+          )) : <div className={styles.emptyInline}>Действий пока нет.</div>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function GameSessionPanel({ chat, meId, embedded = false }: { chat?: Chat; meId: string; embedded?: boolean }) {
+  const chatId = chat?.id ?? '';
+  const { data: sessionsRes } = useGetGameSessionsQuery({ chatId }, { skip: !chatId, pollingInterval: embedded ? 3000 : 2200, refetchOnMountOrArgChange: true });
+  const sessions = sessionsRes?.items ?? [];
+
+  const [selectedGame, setSelectedGame] = useState<GameKey>('POKER');
+  const [selectedSessionId, setSelectedSessionId] = useState('');
+  const [draftTitle, setDraftTitle] = useState('High Stakes Lobby');
+  const [buyIn, setBuyIn] = useState(1000);
+  const [smallBlind, setSmallBlind] = useState(10);
+  const [bigBlind, setBigBlind] = useState(20);
+  const [timerSec, setTimerSec] = useState(25);
+  const [maxPlayers, setMaxPlayers] = useState(6);
+  const [selectedPlayers, setSelectedPlayers] = useState<string[]>([]);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [lobbyDirty, setLobbyDirty] = useState(false);
+
+  const [createSession, { isLoading: creating }] = useCreateGameSessionMutation();
+  const [updateSession, { isLoading: savingConfig }] = useUpdateGameSessionConfigMutation();
+  const [joinSession, { isLoading: joining }] = useJoinGameSessionMutation();
+  const [leaveSession, { isLoading: leaving }] = useLeaveGameSessionMutation();
+  const [startSession, { isLoading: starting }] = useStartGameSessionMutation();
+  const [cancelSession, { isLoading: cancelling }] = useCancelGameSessionMutation();
+
+  const selectedSession = useMemo(() => sessions.find((item) => item.sessionId === selectedSessionId) ?? sessions[0] ?? null, [selectedSessionId, sessions]);
+  const activeSessionId = selectedSession?.sessionId ?? '';
+  const { data: sessionRes } = useGetGameSessionQuery({ sessionId: activeSessionId }, { skip: !activeSessionId, pollingInterval: 1800, refetchOnMountOrArgChange: true });
+  const detailedSession = sessionRes?.session ?? selectedSession;
+
+  useEffect(() => {
+    if (!chat) return;
+    setSelectedPlayers(chat.members.map((item) => item.userId));
+  }, [chat?.id]);
+
+  useEffect(() => {
+    if (!selectedSession && sessions[0]) setSelectedSessionId(sessions[0].sessionId);
+  }, [selectedSession, sessions]);
+
+  useEffect(() => {
+    if (!detailedSession || detailedSession.status !== 'CONFIG') return;
+    setDraftTitle(detailedSession.title);
+    setSelectedPlayers(detailedSession.members.filter((item) => item.role === 'player').map((item) => item.userId));
+    setBuyIn(Number(detailedSession.config?.buyIn ?? 1000));
+    setSmallBlind(Number(detailedSession.config?.smallBlind ?? 10));
+    setBigBlind(Number(detailedSession.config?.bigBlind ?? 20));
+    setTimerSec(Number(detailedSession.config?.timerSec ?? 25));
+    setMaxPlayers(Number(detailedSession.config?.maxPlayers ?? 6));
+    setLobbyDirty(false);
+  }, [detailedSession?.sessionId, detailedSession?.updatedAt, detailedSession?.status]);
+
+  const currentMember = detailedSession?.members.find((item) => item.userId === meId) ?? null;
+  const isCreator = detailedSession?.createdBy === meId;
+  const activePlayersCount = detailedSession?.members.filter((item) => item.role === 'player' && item.status !== 'left').length ?? 0;
+  const observersCount = detailedSession?.members.filter((item) => item.role === 'observer' && item.status !== 'left').length ?? 0;
+
+  const onTogglePlayer = (userId: string) => {
+    setLobbyDirty(true);
+    setSelectedPlayers((current) => (current.includes(userId) ? current.filter((item) => item !== userId) : [...current, userId]));
+  };
+
+  const createPoker = async () => {
+    setSubmitError(null);
+    try {
+      const result = await createSession({
+        chatId,
+        gameKey: selectedGame,
+        title: draftTitle,
+        participantUserIds: selectedPlayers,
+        config: { buyIn, smallBlind, bigBlind, timerSec, maxPlayers, allowObservers: true },
+      }).unwrap();
+      if (result?.session?.sessionId) setSelectedSessionId(result.session.sessionId);
+      setLobbyDirty(false);
+    } catch (error) {
+      const normalized = logApiError('create-game-session', error, { chatId, selectedGame, selectedPlayers });
+      setSubmitError(normalized.message);
+    }
+  };
+
+  const saveLobby = async () => {
+    if (!detailedSession) return;
+    setSubmitError(null);
+    try {
+      await updateSession({
+        sessionId: detailedSession.sessionId,
+        title: draftTitle,
+        participantUserIds: selectedPlayers,
+        config: { buyIn, smallBlind, bigBlind, timerSec, maxPlayers, allowObservers: true },
+      }).unwrap();
+      setLobbyDirty(false);
+    } catch (error) {
+      const normalized = logApiError('update-game-session', error, { sessionId: detailedSession.sessionId });
+      setSubmitError(normalized.message);
+    }
+  };
+
+  return (
+    <div className={[styles.shell, embedded ? styles.shellEmbedded : ''].filter(Boolean).join(' ')}>
+      <div className={styles.headerRow}>
+        <div>
+          <div className={styles.eyebrow}>Games Hub</div>
+          <div className={styles.headline}>Игры в чате</div>
+          <div className={styles.subline}>Лобби, наблюдатели, переподключение и полноценная игровая сцена без потери контекста чата.</div>
+        </div>
+        {detailedSession ? <div className={styles.badgeAccent}>{gameStatusLabel(detailedSession.status)}</div> : null}
+      </div>
+
+      <div className={styles.layout}>
+        <aside className={styles.leftColumn}>
+          <section className={styles.panel}>
+            <div className={styles.sectionTitle}>Каталог игр</div>
+            <div className={styles.catalog}>
+              {GAME_CATALOG.map((game) => (
+                <button
+                  key={game.key}
+                  type="button"
+                  className={[styles.catalogCard, selectedGame === game.key ? styles.catalogCardActive : '', game.dev ? styles.catalogCardMuted : ''].filter(Boolean).join(' ')}
+                  onClick={() => setSelectedGame(game.key)}
+                >
+                  <div className={styles.catalogTitle}><span className={styles.gameIcon}>{game.icon}</span><span>{game.title}</span></div>
+                  <div className={styles.catalogText}>{game.description}</div>
+                  {game.dev ? <span className={styles.badgeMuted}>Следующий этап</span> : null}
+                </button>
+              ))}
+            </div>
+          </section>
+
+          <section className={styles.panel}>
+            <div className={styles.sectionTitle}>Новая сессия</div>
+            <input className={styles.input} value={draftTitle} onChange={(e) => { setDraftTitle(e.target.value); setLobbyDirty(true); }} placeholder="Название сессии" />
+            <div className={styles.formGrid}>
+              <label className={styles.field}><span className={styles.label}>Buy-in</span><input className={styles.input} type="number" value={buyIn} onChange={(e) => { setBuyIn(Number(e.target.value || 0)); setLobbyDirty(true); }} /></label>
+              <label className={styles.field}><span className={styles.label}>Max players</span><input className={styles.input} type="number" min={2} max={8} value={maxPlayers} onChange={(e) => { setMaxPlayers(Number(e.target.value || 0)); setLobbyDirty(true); }} /></label>
+              <label className={styles.field}><span className={styles.label}>Small blind</span><input className={styles.input} type="number" value={smallBlind} onChange={(e) => { setSmallBlind(Number(e.target.value || 0)); setLobbyDirty(true); }} /></label>
+              <label className={styles.field}><span className={styles.label}>Big blind</span><input className={styles.input} type="number" value={bigBlind} onChange={(e) => { setBigBlind(Number(e.target.value || 0)); setLobbyDirty(true); }} /></label>
+              <label className={styles.field}><span className={styles.label}>Turn timer</span><input className={styles.input} type="number" value={timerSec} onChange={(e) => { setTimerSec(Number(e.target.value || 0)); setLobbyDirty(true); }} /></label>
+            </div>
+            <div className={styles.sectionSubTitle}>Состав стола</div>
+            <div className={styles.memberList}>
+              {(chat?.members ?? []).map((member) => {
+                const active = selectedPlayers.includes(member.userId);
+                return (
+                  <button key={member.userId} type="button" className={[styles.memberRow, active ? styles.memberRowActive : ''].filter(Boolean).join(' ')} onClick={() => onTogglePlayer(member.userId)}>
+                    <div className={styles.memberInfo}>
+                      <Avatar url={member.user.avatarUrl ?? undefined} name={member.user.username} size={36} />
+                      <div className={styles.memberMeta}>
+                        <div className={styles.memberName}>{member.user.username}</div>
+                        <div className={styles.memberRole}>{active ? 'Игрок' : 'Наблюдатель'}</div>
+                      </div>
+                    </div>
+                    <span className={active ? styles.badge : styles.badgeMuted}>{active ? 'За столом' : 'Смотреть'}</span>
+                  </button>
+                );
+              })}
+            </div>
+            {submitError ? <div className={styles.notice}>{submitError}</div> : null}
+            <Button variant="primary" disabled={!chatId || creating || selectedGame !== 'POKER'} onClick={createPoker}>
+              {creating ? 'Создаём…' : 'Создать покерную сессию'}
+            </Button>
+          </section>
+
+          <section className={styles.panel}>
+            <div className={styles.sectionTitle}>Сессии чата</div>
+            {sessions.length ? (
+              <div className={styles.catalog}>
+                {sessions.map((session) => (
+                  <button key={session.sessionId} type="button" className={[styles.sessionListCard, selectedSession?.sessionId === session.sessionId ? styles.catalogCardActive : ''].filter(Boolean).join(' ')} onClick={() => setSelectedSessionId(session.sessionId)}>
+                    <div className={styles.catalogTitle}><span className={styles.gameIcon}>{session.gameKey === 'POKER' ? '🂡' : session.gameKey === 'QUIZ' ? '🧠' : '♟️'}</span><span>{session.title}</span></div>
+                    <div className={styles.catalogText}>{gameStatusLabel(session.status)}</div>
+                  </button>
+                ))}
+              </div>
+            ) : <div className={styles.emptyInline}>Пока нет игровых сессий.</div>}
+          </section>
+        </aside>
+
+        <section className={styles.mainColumn}>
+          {detailedSession ? (
+            <>
+              <div className={styles.heroPanel}>
+                <div>
+                  <div className={styles.heroTitle}>{detailedSession.title}</div>
+                  <div className={styles.subline}>{gameLabel(detailedSession.gameKey)} · {gameStatusLabel(detailedSession.status)}</div>
+                </div>
+                <div className={styles.controls}>
+                  {detailedSession.status === 'CONFIG' ? (
+                    <>
+                      {(currentMember?.status === 'invited' || currentMember?.status === 'left') ? <Button onClick={() => joinSession({ sessionId: detailedSession.sessionId, role: 'player' })} disabled={joining}>Войти</Button> : null}
+                      {currentMember?.role === 'player' ? <Button onClick={() => leaveSession({ sessionId: detailedSession.sessionId })} disabled={leaving}>Покинуть</Button> : null}
+                      {!isCreator && currentMember?.role === 'observer' ? <Button onClick={() => joinSession({ sessionId: detailedSession.sessionId, role: 'player' })} disabled={joining}>Стать игроком</Button> : null}
+                      {isCreator ? <Button onClick={saveLobby} disabled={!lobbyDirty || savingConfig}>Сохранить лобби</Button> : null}
+                      {isCreator ? <Button variant="primary" onClick={() => startSession({ sessionId: detailedSession.sessionId })} disabled={starting || activePlayersCount < 2}>Запустить</Button> : null}
+                    </>
+                  ) : null}
+                  {(detailedSession.status === 'ACTIVE' || detailedSession.status === 'CONFIG') && isCreator ? <Button onClick={() => cancelSession({ sessionId: detailedSession.sessionId })} disabled={cancelling}>Остановить</Button> : null}
+                </div>
+              </div>
+
+              <div className={styles.topStats}>
+                <span className={styles.badge}>Игроков: {activePlayersCount}</span>
+                <span className={styles.badge}>Наблюдателей: {observersCount}</span>
+                {detailedSession.startedAt ? <span className={styles.badge}>Старт: {new Date(detailedSession.startedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span> : null}
+                {detailedSession.status === 'CONFIG' && lobbyDirty ? <span className={styles.badgeMuted}>Есть несохранённые изменения</span> : null}
+              </div>
+
+              {detailedSession.status === 'CONFIG' ? (
+                <div className={styles.configOverview}>
+                  <div className={styles.configCard}><span>Buy-in</span><strong>{buyIn}</strong></div>
+                  <div className={styles.configCard}><span>Блайнды</span><strong>{smallBlind} / {bigBlind}</strong></div>
+                  <div className={styles.configCard}><span>Таймер</span><strong>{timerSec} сек.</strong></div>
+                  <div className={styles.configCard}><span>Лимит мест</span><strong>{maxPlayers}</strong></div>
+                </div>
+              ) : null}
+
+              {detailedSession.gameKey === 'POKER' && detailedSession.poker ? <PokerTable session={detailedSession} meId={meId} chat={chat} /> : null}
+
+              <div className={styles.panel}>
+                <div className={styles.sectionTitle}>Состав сессии</div>
+                <div className={styles.memberGrid}>
+                  {detailedSession.members.map((member) => (
+                    <div key={member.userId} className={styles.memberRowStatic}>
+                      <div className={styles.memberInfo}>
+                        <Avatar url={member.avatarUrl ?? undefined} name={member.username ?? 'U'} size={36} />
+                        <div className={styles.memberMeta}>
+                          <div className={styles.memberName}>{member.username ?? getName(chat, member.userId)}</div>
+                          <div className={styles.memberRole}>{member.role === 'player' ? 'Игрок' : 'Наблюдатель'} · {member.status}</div>
+                        </div>
+                      </div>
+                      {member.seat !== null ? <span className={styles.badge}>Seat {member.seat + 1}</span> : <span className={styles.badgeMuted}>Lobby</span>}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </>
+          ) : (
+            <div className={styles.empty}>Выберите существующую сессию или создайте новую.</div>
+          )}
+        </section>
+      </div>
+    </div>
+  );
+}

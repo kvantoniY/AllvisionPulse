@@ -2,9 +2,11 @@
 'use client';
 
 import { getRealtimeSocket } from '@/shared/lib/realtimeSocket';
+import { PUBLIC_TURN_PASSWORD, PUBLIC_TURN_URLS, PUBLIC_TURN_USERNAME } from '@/shared/config/env';
 import { bindAudioUnlock, canPlayUiSounds } from '@/shared/lib/audio';
 
 export type PeerStatus = 'connected' | 'connecting' | 'disconnected' | 'failed';
+export type CallConnectionPhase = 'stable' | 'signaling_reconnecting' | 'media_reconnecting';
 
 export type PeerMediaState = {
   micOn: boolean;
@@ -53,14 +55,33 @@ export type RoomCallbacks = {
   onToast: (text: string) => void;
   onConnected: () => void;
   onConnectionHint?: (text: string, tone?: 'info' | 'warning' | 'error') => void;
+  onConnectionPhase?: (phase: CallConnectionPhase) => void;
   onDeviceProblem?: (problem: DeviceProblem) => void;
   onDevicesChanged?: (inventory: DeviceInventory) => void;
   onLocalMediaChanged?: (media: PeerMediaState) => void;
 };
 
-const RTC_CONFIG: RTCConfiguration = {
-  iceServers: [{ urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] }],
-};
+function buildRtcConfig(): RTCConfiguration {
+  const iceServers: RTCIceServer[] = [{ urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] }];
+  if (PUBLIC_TURN_URLS.length) {
+    iceServers.push({
+      urls: PUBLIC_TURN_URLS,
+      ...(PUBLIC_TURN_USERNAME ? { username: PUBLIC_TURN_USERNAME } : {}),
+      ...(PUBLIC_TURN_PASSWORD ? { credential: PUBLIC_TURN_PASSWORD } : {}),
+    });
+  }
+  return { iceServers, iceCandidatePoolSize: 4 };
+}
+
+const RTC_CONFIG: RTCConfiguration = buildRtcConfig();
+
+function logRtc(scope: string, payload: Record<string, unknown>) {
+  try {
+    console.info(`[rtc:${scope}]`, JSON.stringify(payload));
+  } catch {
+    console.info(`[rtc:${scope}]`, payload);
+  }
+}
 
 const DEFAULT_INVENTORY: DeviceInventory = {
   audioInputs: [],
@@ -169,6 +190,7 @@ export class WebRTCRoom {
     disconnect?: () => void;
   } = {};
   private meMedia: PeerMediaState = { micOn: true, camOn: false, screenOn: false };
+  private phase: CallConnectionPhase = 'stable';
 
   constructor(callId: string, meId: string, callbacks: RoomCallbacks) {
     this.callId = callId;
@@ -190,6 +212,17 @@ export class WebRTCRoom {
 
   private notifyLocalMedia() {
     this.callbacks.onLocalMediaChanged?.({ ...this.meMedia });
+  }
+
+  private setPhase(next: CallConnectionPhase) {
+    if (this.phase === next) return;
+    this.phase = next;
+    this.callbacks.onConnectionPhase?.(next);
+    logRtc('phase', { callId: this.callId, phase: next });
+  }
+
+  private shouldInitiateOffer(remoteUserId: string) {
+    return this.meId.localeCompare(remoteUserId) > 0;
   }
 
   private async ensureSocket(timeoutMs = 2500) {
@@ -343,6 +376,7 @@ export class WebRTCRoom {
 
   private createPc(remoteUserId: string) {
     const pc = new RTCPeerConnection(RTC_CONFIG);
+    logRtc('pc-create', { callId: this.callId, meId: this.meId, remoteUserId });
     this.pcs.set(remoteUserId, pc);
 
     const remoteStream = this.remoteStreams.get(remoteUserId) ?? new MediaStream();
@@ -386,21 +420,42 @@ export class WebRTCRoom {
     const syncStatus = () => {
       const status = statusFrom(pc);
       this.upsertPeer(remoteUserId, { status });
+      logRtc('pc-state', {
+        callId: this.callId,
+        remoteUserId,
+        connectionState: pc.connectionState,
+        iceConnectionState: pc.iceConnectionState,
+        signalingState: pc.signalingState,
+        status,
+      });
       if (!this.connectedOnce && status === 'connected') {
         this.connectedOnce = true;
+        this.setPhase('stable');
         this.callbacks.onConnected();
         this.callbacks.onConnectionHint?.('', 'info');
       }
+      if (status === 'connected' || pc.iceConnectionState === 'connected' || pc.iceConnectionState === 'completed') {
+        const current = this.reconnectRetryTimers.get(remoteUserId);
+        if (current) {
+          window.clearTimeout(current);
+          this.reconnectRetryTimers.delete(remoteUserId);
+        }
+        this.setPhase('stable');
+      }
       if (pc.iceConnectionState === 'disconnected') {
+        this.setPhase('media_reconnecting');
         this.callbacks.onConnectionHint?.('Connection looks unstable. Trying to restore media…', 'warning');
         const current = this.reconnectRetryTimers.get(remoteUserId);
         if (current) window.clearTimeout(current);
         const timer = window.setTimeout(() => {
+          logRtc('ice-restart-scheduled', { callId: this.callId, remoteUserId, reason: 'disconnected' });
           void this.restartPeer(remoteUserId, true);
         }, 1400);
         this.reconnectRetryTimers.set(remoteUserId, timer);
       }
       if (pc.iceConnectionState === 'failed') {
+        this.setPhase('media_reconnecting');
+        logRtc('ice-restart-immediate', { callId: this.callId, remoteUserId, reason: 'failed' });
         void this.restartPeer(remoteUserId, true);
       }
     };
@@ -424,6 +479,7 @@ export class WebRTCRoom {
       const offer = await pc.createOffer(iceRestart ? { iceRestart: true } : undefined);
       if (pc.signalingState !== 'stable') return;
       await pc.setLocalDescription(offer);
+      logRtc('offer', { callId: this.callId, remoteUserId, iceRestart });
       this.socket?.emit('call:signal', {
         callId: this.callId,
         toUserId: remoteUserId,
@@ -496,7 +552,8 @@ export class WebRTCRoom {
       if (shouldIgnoreOffer) return;
 
       try {
-        if (data.t === 'offer') {
+        logRtc('signal', { callId: this.callId, fromUserId, type: data.t });
+      if (data.t === 'offer') {
           if (offerCollision && polite) {
             await Promise.all([
               pc.setLocalDescription({ type: 'rollback' }),
@@ -545,9 +602,10 @@ export class WebRTCRoom {
     this.socket.emit('call:who', { callId: this.callId, reason });
     this.emitCurrentMeta();
     if (reason === 'reconnect') {
+      this.setPhase('signaling_reconnecting');
       this.callbacks.onConnectionHint?.('Restoring call connection…', 'warning');
       for (const remoteUserId of this.pcs.keys()) {
-        void this.restartPeer(remoteUserId, true);
+        if (this.shouldInitiateOffer(remoteUserId)) void this.restartPeer(remoteUserId, true);
       }
     }
   }
@@ -742,7 +800,7 @@ export class WebRTCRoom {
         this.upsertPeer(userId, { status: 'connecting' });
         this.getOrCreatePc(userId);
         this.emitCurrentMeta(userId);
-        void this.maybeOffer(userId);
+        if (this.shouldInitiateOffer(userId)) void this.maybeOffer(userId);
       }
     };
 
@@ -754,7 +812,7 @@ export class WebRTCRoom {
       this.upsertPeer(userId, { status: 'connecting' });
       this.getOrCreatePc(userId);
       this.emitCurrentMeta(userId);
-      void this.maybeOffer(userId);
+      if (this.shouldInitiateOffer(userId)) void this.maybeOffer(userId);
     };
 
     const onLeft = (payload: any) => {
@@ -770,6 +828,7 @@ export class WebRTCRoom {
       const userId = String(payload?.userId ?? '');
       if (!userId || userId === this.meId) return;
       this.upsertPeer(userId, { status: 'disconnected' });
+      this.setPhase('media_reconnecting');
       this.callbacks.onConnectionHint?.('A participant is reconnecting…', 'warning');
     };
 
@@ -780,7 +839,8 @@ export class WebRTCRoom {
       this.upsertPeer(userId, { status: 'connecting' });
       this.getOrCreatePc(userId);
       this.emitCurrentMeta(userId);
-      void this.restartPeer(userId, true);
+      if (this.shouldInitiateOffer(userId)) void this.restartPeer(userId, true);
+      this.setPhase('media_reconnecting');
       this.callbacks.onConnectionHint?.('Connection restored.', 'info');
     };
 
@@ -815,10 +875,14 @@ export class WebRTCRoom {
     };
 
     const onSocketConnect = () => {
+      logRtc('socket-connect', { callId: this.callId });
+      this.setPhase('media_reconnecting');
       void this.syncJoinState('reconnect');
     };
 
     const onSocketDisconnect = () => {
+      logRtc('socket-disconnect', { callId: this.callId, online: navigator.onLine });
+      this.setPhase('signaling_reconnecting');
       const message = navigator.onLine ? 'Realtime connection lost. Reconnecting…' : 'You are offline. Waiting for network…';
       this.callbacks.onConnectionHint?.(message, navigator.onLine ? 'warning' : 'error');
     };
@@ -900,6 +964,7 @@ export class WebRTCRoom {
       // ignore
     }
     this.handlers = {};
+    this.phase = 'stable';
 
     this.pendingIceCandidates.clear();
     for (const userId of [...this.pcs.keys()]) this.removePeer(userId);

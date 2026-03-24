@@ -1,0 +1,575 @@
+.shell {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-height: 0;
+  color: #f7f8fb;
+}
+
+.shellEmbedded {
+  height: 100%;
+}
+
+.eyebrow {
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,.5);
+  margin-bottom: 4px;
+}
+
+.headerRow {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.headline {
+  font-size: 24px;
+  font-weight: 800;
+}
+
+.subline {
+  font-size: 13px;
+  color: rgba(255,255,255,.66);
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(300px, 360px) minmax(0, 1fr);
+  gap: 16px;
+  min-height: 0;
+}
+
+.leftColumn,
+.mainColumn {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-height: 0;
+}
+
+.panel,
+.heroPanel,
+.tableWrap,
+.resultBoard {
+  border-radius: 26px;
+  border: 1px solid rgba(255,255,255,.08);
+  background:
+    radial-gradient(circle at top right, rgba(78, 114, 255, .18), transparent 24%),
+    linear-gradient(180deg, rgba(15,20,35,.96), rgba(8,10,20,.98));
+  box-shadow: 0 18px 40px rgba(0,0,0,.3);
+}
+
+.panel,
+.resultBoard,
+.heroPanel,
+.tableWrap {
+  padding: 18px;
+}
+
+.sectionTitle {
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.sectionSubTitle {
+  font-size: 13px;
+  font-weight: 700;
+  color: rgba(255,255,255,.78);
+}
+
+.catalog {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.catalogCard,
+.sessionListCard {
+  width: 100%;
+  text-align: left;
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 20px;
+  padding: 14px;
+  background: linear-gradient(180deg, rgba(255,255,255,.045), rgba(255,255,255,.02));
+  color: inherit;
+  cursor: pointer;
+  transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease;
+}
+
+.catalogCard:hover,
+.sessionListCard:hover,
+.memberRow:hover {
+  transform: translateY(-1px);
+  border-color: rgba(125, 153, 255, .44);
+  box-shadow: 0 16px 34px rgba(0,0,0,.24);
+}
+
+.catalogCardActive {
+  border-color: rgba(132, 163, 255, .8);
+  box-shadow: 0 0 0 1px rgba(132,163,255,.2), 0 18px 40px rgba(61, 86, 201, .22);
+}
+
+.catalogCardMuted {
+  opacity: .72;
+}
+
+.catalogTitle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.catalogText {
+  margin-top: 8px;
+  font-size: 12px;
+  color: rgba(255,255,255,.64);
+}
+
+.gameIcon {
+  width: 36px;
+  height: 36px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(135deg, rgba(111,142,255,.34), rgba(77,88,170,.16));
+  font-size: 18px;
+}
+
+.formGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.field {
+  display: grid;
+  gap: 6px;
+}
+
+.label {
+  font-size: 12px;
+  color: rgba(255,255,255,.62);
+}
+
+.input {
+  width: 100%;
+  border-radius: 16px;
+  padding: 12px 14px;
+  border: 1px solid rgba(255,255,255,.08);
+  background: rgba(255,255,255,.05);
+  color: white;
+  outline: none;
+}
+
+.input:focus {
+  border-color: rgba(132,163,255,.8);
+  box-shadow: 0 0 0 3px rgba(90,132,255,.14);
+}
+
+.memberList,
+.memberGrid {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.memberRow,
+.memberRowStatic {
+  border-radius: 18px;
+  border: 1px solid rgba(255,255,255,.06);
+  background: rgba(255,255,255,.03);
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.memberRow {
+  cursor: pointer;
+}
+
+.memberRowActive {
+  border-color: rgba(110, 149, 255, .5);
+  background: rgba(68, 100, 208, .14);
+}
+
+.memberInfo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.memberMeta,
+.seatMeta {
+  min-width: 0;
+}
+
+.memberName,
+.seatName {
+  font-size: 14px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.memberRole,
+.seatStack {
+  font-size: 12px;
+  color: rgba(255,255,255,.62);
+}
+
+.heroPanel {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.heroTitle {
+  font-size: 28px;
+  font-weight: 800;
+}
+
+.controls,
+.topStats,
+.badges,
+.heroStats,
+.seatChips,
+.inlineActions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.badge,
+.badgeMuted,
+.badgeAccent {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,.1);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.badge { background: rgba(76, 105, 218, .2); color: #d8e0ff; }
+.badgeMuted { background: rgba(255,255,255,.06); color: rgba(255,255,255,.74); }
+.badgeAccent { background: rgba(255, 189, 82, .18); color: #ffd99d; }
+
+.configOverview {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.configCard,
+.statCard {
+  border-radius: 18px;
+  background: rgba(255,255,255,.045);
+  border: 1px solid rgba(255,255,255,.08);
+  padding: 14px;
+  display: grid;
+  gap: 6px;
+}
+
+.configCard span,
+.statLabel {
+  font-size: 11px;
+  color: rgba(255,255,255,.56);
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+
+.configCard strong,
+.statValue {
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.tableWrap {
+  display: grid;
+  gap: 16px;
+}
+
+.tableHero {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.communityRow {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.table {
+  position: relative;
+  min-height: 620px;
+  border-radius: 36px;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(17, 111, 60, .96), rgba(8, 48, 26, .98) 68%),
+    linear-gradient(135deg, rgba(30, 73, 120, .24), rgba(5, 8, 18, 0));
+  border: 12px solid #3b2617;
+  box-shadow: inset 0 0 0 2px rgba(255,255,255,.05), inset 0 40px 120px rgba(255,255,255,.05);
+  overflow: hidden;
+}
+
+.tableCenter {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 250px;
+  height: 250px;
+  border-radius: 50%;
+  border: 1px dashed rgba(255,255,255,.18);
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 6px;
+  background: radial-gradient(circle, rgba(255,255,255,.08), rgba(255,255,255,0));
+  text-align: center;
+}
+
+.tableCenter strong {
+  font-size: 24px;
+}
+
+.tableCenter span,
+.centerPot {
+  font-size: 13px;
+  color: rgba(255,255,255,.72);
+}
+
+.playSeat {
+  position: absolute;
+  width: 180px;
+  padding: 12px;
+  border-radius: 20px;
+  background: rgba(7,12,22,.88);
+  border: 1px solid rgba(255,255,255,.08);
+  box-shadow: 0 16px 32px rgba(0,0,0,.22);
+  display: grid;
+  gap: 10px;
+}
+
+.playSeatTurn {
+  border-color: rgba(245, 222, 137, .72);
+  box-shadow: 0 0 0 1px rgba(245,222,137,.16), 0 18px 40px rgba(0,0,0,.24);
+}
+
+.playSeatFolded {
+  opacity: .6;
+}
+
+.playSeatAllIn {
+  box-shadow: 0 0 0 1px rgba(255, 154, 69, .18), 0 18px 40px rgba(0,0,0,.24);
+}
+
+.seat0 { left: 50%; top: 18px; transform: translateX(-50%); }
+.seat1 { right: 20px; top: 120px; }
+.seat2 { right: 20px; bottom: 120px; }
+.seat3 { left: 50%; bottom: 18px; transform: translateX(-50%); }
+.seat4 { left: 20px; bottom: 120px; }
+.seat5 { left: 20px; top: 120px; }
+.seat6 { right: 50%; top: 50%; transform: translate(180px, -50%); }
+.seat7 { left: 50%; top: 50%; transform: translate(-360px, -50%); }
+
+.seatHeader,
+.logItem,
+.resultItem {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+}
+
+.seatCards {
+  display: flex;
+  gap: 8px;
+}
+
+.card {
+  position: relative;
+  width: 56px;
+  height: 82px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, #fff, #f3f4f7);
+  color:#111;
+  display:grid;
+  place-items:center;
+  font-weight:800;
+  box-shadow: 0 10px 20px rgba(0,0,0,.22);
+}
+
+.cardCompact {
+  width: 44px;
+  height: 64px;
+}
+
+.cardBack { background: linear-gradient(180deg, #22386b, #0e1630); color: rgba(255,255,255,.92); }
+.cardRed { color: #c0203d; }
+.cardSmall { font-size: 12px; position:absolute; top:8px; left:8px; line-height:1.05; text-align:left; }
+.cardSuit { font-size: 24px; }
+
+.actionDock {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+
+.actionSummary {
+  display: grid;
+  gap: 8px;
+}
+
+.amountControl {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.amountInput {
+  width: 140px;
+}
+
+.logSection {
+  display: grid;
+  gap: 12px;
+}
+
+.logList,
+.resultList {
+  display: grid;
+  gap: 10px;
+}
+
+.logItem,
+.resultItem {
+  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,.06);
+  background: rgba(255,255,255,.04);
+  padding: 12px 14px;
+  font-size: 13px;
+}
+
+.resultLead {
+  margin-top: 10px;
+  color: rgba(255,255,255,.86);
+}
+
+.notice,
+.empty,
+.emptyInline {
+  padding: 14px 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 171, 67, .18);
+  background: rgba(255, 171, 67, .12);
+  color: #ffd89f;
+  font-size: 13px;
+}
+
+.empty {
+  text-align: center;
+  min-height: 220px;
+  display: grid;
+  place-items: center;
+}
+
+.emptyInline {
+  border-style: dashed;
+}
+
+@media (max-width: 1280px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+
+  .configOverview {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 980px) {
+  .table {
+    min-height: auto;
+    padding: 14px;
+    display: grid;
+    gap: 12px;
+  }
+
+  .tableCenter {
+    position: static;
+    transform: none;
+    width: 100%;
+    height: auto;
+    min-height: 160px;
+    margin-bottom: 8px;
+  }
+
+  .playSeat {
+    position: static;
+    width: 100%;
+    transform: none !important;
+  }
+
+  .configOverview,
+  .formGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .headline {
+    font-size: 20px;
+  }
+
+  .heroTitle {
+    font-size: 22px;
+  }
+
+  .panel,
+  .heroPanel,
+  .tableWrap,
+  .resultBoard {
+    padding: 14px;
+    border-radius: 20px;
+  }
+
+  .card {
+    width: 48px;
+    height: 72px;
+  }
+
+  .cardCompact {
+    width: 40px;
+    height: 58px;
+  }
+
+  .amountControl {
+    width: 100%;
+  }
+
+  .amountInput {
+    width: 100%;
+  }
+}

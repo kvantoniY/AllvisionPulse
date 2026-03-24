@@ -44,17 +44,17 @@ export function StartChatModal({
         <textarea
           ref={ref}
           className={styles.input}
-          placeholder="Write your first message…"
+          placeholder="Напишите первое сообщение…"
           value={text}
           onChange={(e) => setText(e.target.value.slice(0, 5000))}
           rows={4}
         />
         <div className={styles.actions}>
           <Button variant="ghost" onClick={onClose}>
-            Cancel
+            Отмена
           </Button>
-          <Button variant="primary" disabled={!canSend} onClick={onSend}>
-            {isLoading ? 'Sending…' : 'Send'}
+          <Button variant="primary" disabled={!canSend} onClick={onSend} loading={isLoading}>
+            Отправить
           </Button>
         </div>
       </div>

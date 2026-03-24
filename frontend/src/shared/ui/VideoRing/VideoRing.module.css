@@ -1,124 +1,83 @@
-.videoRingContainer {
-  position: relative;
+.videoRing {
+  --video-ring-size: 168px;
   display: grid;
-  place-items: center;
-  border-radius: 50%;
-  isolation: isolate;
+  justify-items: center;
+  gap: 10px;
 }
 
-.sizeSmall {
-  width: 132px;
-  height: 132px;
+.shell {
+  position: relative;
+  width: var(--video-ring-size);
+  height: var(--video-ring-size);
 }
 
-.sizeMedium {
-  width: 184px;
-  height: 184px;
-}
-
-.sizeLarge {
-  width: 236px;
-  height: 236px;
-}
-
-.videoSurface {
-  width: calc(100% - 16px);
-  height: calc(100% - 16px);
-  border-radius: 50%;
-  object-fit: cover;
-  display: block;
-  background:
-    radial-gradient(circle at top, rgba(255, 255, 255, 0.08), transparent 35%),
-    linear-gradient(180deg, rgba(11, 14, 22, 0.95), rgba(7, 9, 15, 0.98));
-  box-shadow:
-    0 24px 44px rgba(0, 0, 0, 0.45),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1);
-}
-
-.ringOverlay {
+.progressSvg {
   position: absolute;
   inset: 0;
-  z-index: 2;
-  cursor: grab;
+  transform: rotate(-90deg);
 }
 
-.ringOverlay:active {
-  cursor: grabbing;
+.progressTrack,
+.progressValue {
+  fill: none;
+  stroke-width: 4;
 }
 
-.centerControl {
+.progressTrack {
+  stroke: rgba(255, 255, 255, 0.12);
+}
+
+.progressValue {
+  stroke: rgba(255, 255, 255, 0.95);
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.16s ease;
+}
+
+.viewport {
   position: absolute;
-  z-index: 3;
+  inset: 8px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.video,
+.videoFallback {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.videoFallback {
   display: grid;
   place-items: center;
-  width: 52px;
-  height: 52px;
-  border-radius: 50%;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  background: rgba(4, 8, 14, 0.55);
-  color: white;
-  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.32);
-  backdrop-filter: blur(10px);
-  cursor: pointer;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 13px;
 }
 
-.centerControl svg {
-  width: 22px;
-  height: 22px;
-}
-
-.timeDisplay {
+.playButton {
   position: absolute;
-  bottom: 10px;
   left: 50%;
-  z-index: 3;
-  transform: translateX(-50%);
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 6px 10px;
-  border-radius: 999px;
-  background: rgba(4, 8, 14, 0.62);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  backdrop-filter: blur(10px);
-  white-space: nowrap;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 46px;
+  height: 46px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.46);
+  color: white;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+}
+
+.playButton svg {
+  width: 18px;
+  height: 18px;
+}
+
+.caption {
   font-size: 11px;
-  font-weight: 700;
-}
-
-.currentTime {
-  color: #deebff;
-}
-
-.separator,
-.duration {
-  color: rgba(255, 255, 255, 0.62);
-}
-
-@media (max-width: 640px) {
-  .sizeSmall {
-    width: 120px;
-    height: 120px;
-  }
-
-  .sizeMedium {
-    width: 168px;
-    height: 168px;
-  }
-
-  .sizeLarge {
-    width: 216px;
-    height: 216px;
-  }
-
-  .centerControl {
-    width: 48px;
-    height: 48px;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .ringOverlay circle {
-    transition: none !important;
-  }
+  color: rgba(255, 255, 255, 0.58);
 }

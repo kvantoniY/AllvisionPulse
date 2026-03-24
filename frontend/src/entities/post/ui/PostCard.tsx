@@ -10,6 +10,7 @@ import { formatRelative } from '@/shared/lib/time';
 import { useGetMeQuery } from '@/shared/api/usersApi';
 import { useDeletePostMutation, useGetLastCommentQuery, useLikePostMutation, useUnlikePostMutation } from '@/shared/api/postsApi';
 import { ImageGallery } from '@/shared/ui/ImageGallery/ImageGallery';
+import { Icon } from '@/shared/ui/Icon/Icon';
 
 export function PostCard({ post, onOpen, compact = false }: { post: Post; onOpen?: () => void; compact?: boolean }) {
   const { data } = useGetMeQuery();
@@ -20,7 +21,6 @@ export function PostCard({ post, onOpen, compact = false }: { post: Post; onOpen
   const [del, { isLoading: deleting }] = useDeletePostMutation();
 
   const isMine = !!me && post.authorId === me.id;
-
   const showPreview = (post._count?.comments ?? 0) > 0;
   const { data: lastCommentData } = useGetLastCommentQuery({ postId: post.id }, { skip: !showPreview });
   const last = lastCommentData?.items?.[0];
@@ -45,7 +45,7 @@ export function PostCard({ post, onOpen, compact = false }: { post: Post; onOpen
     <Card className={styles.card}>
       <div className={styles.header}>
         <Link href={ROUTES.app.profile(post.author.username)} className={styles.author}>
-          <Avatar url={post.author.avatarUrl} name={post.author.username} size={40} />
+          <Avatar url={post.author.avatarUrl} name={post.author.username} size={42} />
           <div style={{ minWidth: 0 }}>
             <div className={styles.name}>{post.author.username}</div>
             <div className={styles.handle}>@{post.author.username}</div>
@@ -54,8 +54,8 @@ export function PostCard({ post, onOpen, compact = false }: { post: Post; onOpen
         <div className={styles.right}>
           <div className={styles.time}>{formatRelative(post.createdAt)}</div>
           {isMine ? (
-            <button className={styles.menuBtn} type="button" onClick={onDelete} disabled={deleting} aria-label="delete post">
-              {deleting ? '…' : 'Delete'}
+            <button className={styles.menuBtn} type="button" onClick={onDelete} disabled={deleting} aria-label="Удалить публикацию">
+              {deleting ? '…' : 'Удалить'}
             </button>
           ) : null}
         </div>
@@ -67,8 +67,8 @@ export function PostCard({ post, onOpen, compact = false }: { post: Post; onOpen
         {(post.widgetsJson as any)?.type === 'health' ? (
           <div className={styles.widget}>
             <div>
-              <div className={styles.widgetTitle}>Health widget</div>
-              <div style={{ opacity: 0.7, fontSize: 12 }}>Today Score / 7-Day Pulse</div>
+              <div className={styles.widgetTitle}>Виджет здоровья</div>
+              <div style={{ opacity: 0.72, fontSize: 12 }}>Оценка дня и недельный пульс</div>
             </div>
             <div className={styles.widgetNums}>
               <div>{(post.widgetsJson as any).todayScore ?? '—'}%</div>
@@ -86,29 +86,24 @@ export function PostCard({ post, onOpen, compact = false }: { post: Post; onOpen
 
       {!compact && last ? (
         <div className={styles.commentPreview} onClick={onOpen} style={{ cursor: onOpen ? 'pointer' : 'default' }}>
-          <div className={styles.commentPreviewMeta}>Last comment • {last.author.username}</div>
+          <div className={styles.commentPreviewMeta}>Последний комментарий · {last.author.username}</div>
           <div>{last.text ?? ''}</div>
         </div>
       ) : null}
 
       <div className={styles.footer}>
         <div className={styles.actions}>
-          <button
-            className={[styles.iconBtn, liked ? styles.iconBtnActive : ''].filter(Boolean).join(' ')}
-            onClick={onToggleLike}
-            disabled={liking || unliking || !me}
-            aria-label="like"
-          >
-            ♡ <span>{post._count?.likes ?? 0}</span>
+          <button className={[styles.iconBtn, liked ? styles.iconBtnActive : ''].filter(Boolean).join(' ')} onClick={onToggleLike} disabled={liking || unliking || !me} aria-label="Нравится">
+            <Icon name="heart" size={16} /> <span>{post._count?.likes ?? 0}</span>
           </button>
-          <button className={styles.iconBtn} onClick={onOpen} aria-label="comments">
-            💬 <span>{post._count?.comments ?? 0}</span>
+          <button className={styles.iconBtn} onClick={onOpen} aria-label="Комментарии">
+            <Icon name="comment" size={16} /> <span>{post._count?.comments ?? 0}</span>
           </button>
-          <button className={styles.iconBtn} disabled aria-label="repost">
-            ↻ <span>{post._count?.reposts ?? 0}</span>
+          <button className={styles.iconBtn} disabled aria-label="Репосты">
+            <Icon name="repeat" size={16} /> <span>{post._count?.reposts ?? 0}</span>
           </button>
         </div>
-        <div className={styles.counts}>{post._count?.reposts ? `${post._count.reposts} reposts` : ''}</div>
+        <div className={styles.counts}>{post._count?.reposts ? `${post._count.reposts} репостов` : ''}</div>
       </div>
     </Card>
   );

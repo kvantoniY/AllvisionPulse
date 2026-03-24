@@ -5,15 +5,16 @@ import styles from './callUi.module.css';
 import type { Chat } from '@/shared/types/chat';
 import {
   WebRTCRoom,
+  type CallConnectionPhase,
   type DeviceInventory,
   type DeviceProblem,
   type PeerInfo,
   type PeerStatus,
 } from './webrtcRoom';
 import { Avatar } from '@/shared/ui/Avatar/Avatar';
-import { VideoRing } from '@/shared/ui/VideoRing';
 import { useGetMeQuery } from '@/shared/api/usersApi';
 import { CallChatPanel } from './CallChatPanel';
+import { GameSessionPanel } from '@/features/games';
 
 type Props = {
   open: boolean;
@@ -22,6 +23,7 @@ type Props = {
   callId: string;
   initiator: boolean;
   onConnected: () => void;
+  onConnectionPhase?: (phase: CallConnectionPhase) => void;
   onHangup: (reason?: string) => void;
   onClose: () => void;
 };
@@ -65,10 +67,10 @@ function fmtDuration(ms: number) {
 }
 
 function getChatTitle(chat?: Chat, meId?: string) {
-  if (!chat) return 'Call';
-  if (chat.type === 'GROUP') return chat.title ?? 'Group call';
+  if (!chat) return 'Звонок';
+  if (chat.type === 'GROUP') return chat.title ?? 'Групповой звонок';
   const other = chat.members.find((member) => member.userId !== meId) ?? chat.members[0];
-  return other?.user.username ?? 'Call';
+  return other?.user.username ?? 'Звонок';
 }
 
 function getMember(chat: Chat | undefined, userId: string | undefined) {
@@ -84,10 +86,10 @@ function getStatusClass(status: PeerStatus) {
 }
 
 function getStatusLabel(status: PeerStatus) {
-  if (status === 'connected') return 'Connected';
-  if (status === 'failed') return 'Connection issue';
-  if (status === 'disconnected') return 'Reconnecting';
-  return 'Connecting';
+  if (status === 'connected') return 'Подключён';
+  if (status === 'failed') return 'Проблема со связью';
+  if (status === 'disconnected') return 'Переподключение';
+  return 'Подключение';
 }
 
 function getBannerClass(tone: Banner['tone']) {
@@ -96,7 +98,7 @@ function getBannerClass(tone: Banner['tone']) {
   return styles.bannerInfo;
 }
 
-function iconPath(name: 'mic' | 'micOff' | 'camera' | 'cameraOff' | 'screen' | 'chat' | 'phone' | 'shareBack' | 'settings') {
+function iconPath(name: 'mic' | 'micOff' | 'camera' | 'cameraOff' | 'screen' | 'chat' | 'game' | 'phone' | 'shareBack' | 'settings') {
   switch (name) {
     case 'mic':
       return 'M12 4a3 3 0 0 1 3 3v5a3 3 0 1 1-6 0V7a3 3 0 0 1 3-3Zm5 8a1 1 0 1 1 2 0 7 7 0 0 1-6 6.93V21h3a1 1 0 1 1 0 2H8a1 1 0 1 1 0-2h3v-2.07A7 7 0 0 1 5 12a1 1 0 1 1 2 0 5 5 0 1 0 10 0Z';
@@ -110,6 +112,8 @@ function iconPath(name: 'mic' | 'micOff' | 'camera' | 'cameraOff' | 'screen' | '
       return 'M4 5a3 3 0 0 1 3-3h10a3 3 0 0 1 3 3v8a3 3 0 0 1-3 3h-3l1 2h2a1 1 0 1 1 0 2H7a1 1 0 1 1 0-2h2l1-2H7a3 3 0 0 1-3-3V5Zm3-1a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1H7Z';
     case 'chat':
       return 'M5 4a3 3 0 0 0-3 3v12.2a.8.8 0 0 0 1.26.65L7.4 17H19a3 3 0 0 0 3-3V7a3 3 0 0 0-3-3H5Zm2 6a1 1 0 1 1 0-2h10a1 1 0 1 1 0 2H7Zm0 4a1 1 0 1 1 0-2h7a1 1 0 1 1 0 2H7Z';
+    case 'game':
+      return 'M7 8a2 2 0 1 1 0-4 2 2 0 0 1 0 4Zm10 0a2 2 0 1 1 0-4 2 2 0 0 1 0 4ZM5 10h14a3 3 0 0 1 3 3v2a5 5 0 0 1-5 5h-1v-2h1a3 3 0 0 0 3-3v-2a1 1 0 0 0-1-1h-2v2a2 2 0 1 1-4 0v-2h-2v2a2 2 0 1 1-4 0v-2H5a1 1 0 0 0-1 1v2a3 3 0 0 0 3 3h1v2H7a5 5 0 0 1-5-5v-2a3 3 0 0 1 3-3Z';
     case 'phone':
       return 'M6.62 10.79a15.05 15.05 0 0 0 6.59 6.59l2.2-2.2a1 1 0 0 1 1.02-.24c1.12.3 2.3.46 3.57.46a1 1 0 0 1 1 1V20a2 2 0 0 1-2 2C9.4 22 2 14.6 2 5a2 2 0 0 1 2-2h3.6a1 1 0 0 1 1 1c0 1.27.16 2.45.46 3.57a1 1 0 0 1-.24 1.02l-2.2 2.2Z';
     case 'shareBack':
@@ -188,7 +192,6 @@ function MediaTile({
   audioOutputId?: string;
 }) {
   const showVideo = Boolean(tile.stream && tile.camOn);
-  const videoRef = useRef<HTMLVideoElement | null>(null);
 
   return (
     <button
@@ -204,33 +207,12 @@ function MediaTile({
       onClick={onClick}
     >
       {tile.stream && showVideo ? (
-        <VideoRing
-          videoElement={videoRef.current}
-          size={compact ? 'small' : 'medium'}
-          showProgress={false}
-          className={styles.tileVideoRing}
-        />
-      ) : null}
-
-      {tile.stream ? (
         <StreamRenderer
           stream={tile.stream}
-          className={showVideo ? styles.tileVideoHidden : styles.tileVideo}
+          className={styles.tileVideo}
           muted={tile.isSelf}
-          showVideo={showVideo}
+          showVideo
           sinkId={tile.isSelf ? undefined : audioOutputId}
-        />
-      ) : null}
-
-      {/* Hidden video element for VideoRing */}
-      {showVideo && tile.stream ? (
-        <video
-          ref={videoRef}
-          className={styles.hiddenVideoForRing}
-          autoPlay
-          playsInline
-          muted
-          style={{ display: 'none' }}
         />
       ) : null}
 
@@ -245,12 +227,12 @@ function MediaTile({
         <span className={[styles.stDot, getStatusClass(tile.status)].join(' ')} />
         <span className={styles.tileFooterText}>{tile.name}</span>
         {!tile.isSelf && tile.status === 'connected' && !tile.micOn ? (
-          <span className={styles.tileIconBadge} title="Microphone off" aria-label="microphone off">
+          <span className={styles.tileIconBadge} title="Микрофон выключен" aria-label="Микрофон выключен">
             <ControlIcon name="micOff" className={styles.statusIcon} />
           </span>
         ) : null}
         {!tile.isSelf && tile.status === 'connected' && !tile.camOn ? (
-          <span className={styles.tileIconBadge} title="Camera off" aria-label="camera off">
+          <span className={styles.tileIconBadge} title="Камера выключена" aria-label="Камера выключена">
             <ControlIcon name="cameraOff" className={styles.statusIcon} />
           </span>
         ) : null}
@@ -269,7 +251,7 @@ const EMPTY_DEVICES: DeviceInventory = {
   canSelectAudioOutput: false,
 };
 
-export function CallScreen({ open, stage, chat, callId, initiator, onConnected, onHangup }: Props) {
+export function CallScreen({ open, stage, chat, callId, initiator, onConnected, onConnectionPhase, onHangup }: Props) {
   const { data: meRes } = useGetMeQuery();
   const me = meRes?.user;
   const meId = me?.id ?? '';
@@ -280,12 +262,13 @@ export function CallScreen({ open, stage, chat, callId, initiator, onConnected, 
   const [peers, setPeers] = useState<Record<string, PeerInfo>>({});
   const [pinnedId, setPinnedId] = useState('');
   const [chatOpen, setChatOpen] = useState(false);
+  const [gameOpen, setGameOpen] = useState(false);
   const [toast, setToast] = useState('');
   const [screenStream, setScreenStream] = useState<MediaStream | null>(null);
   const [micOn, setMicOn] = useState(true);
   const [camOn, setCamOn] = useState(false);
   const [sharing, setSharing] = useState(false);
-  const [confirmEnd, setConfirmEnd] = useState(false);
+  const [confirm, setConfirm] = useState(false);
   const [dockPosition, setDockPosition] = useState({ x: 16, y: 88 });
   const [banner, setBanner] = useState<Banner | null>(null);
   const [deviceProblem, setDeviceProblem] = useState<DeviceProblem | null>(null);
@@ -371,6 +354,9 @@ export function CallScreen({ open, stage, chat, callId, initiator, onConnected, 
         if (!startedAtRef.current) startedAtRef.current = Date.now();
         onConnectedRef.current();
       },
+      onConnectionPhase: (phase) => {
+        onConnectionPhase?.(phase);
+      },
       onConnectionHint: (text, tone = 'info') => {
         if (!text) {
           pushBanner('', tone, 0);
@@ -444,7 +430,7 @@ export function CallScreen({ open, stage, chat, callId, initiator, onConnected, 
 
   useEffect(() => {
     if (!pinnedId) return;
-    if (pinnedId === 'local') return;
+    if (pinnedId === 'local' || pinnedId === '__game__') return;
     if (peers[pinnedId]) return;
     setPinnedId('');
   }, [pinnedId, peers]);
@@ -459,7 +445,7 @@ export function CallScreen({ open, stage, chat, callId, initiator, onConnected, 
   }, [open, isGroup, peerList, stage]);
 
   useEffect(() => {
-    const onPointerMove = (event: PointerEvent) => {
+    const onPointerПереместить = (event: PointerEvent) => {
       if (!dragRef.current) return;
       const maxX = Math.max(8, window.innerWidth - 320);
       const maxY = Math.max(72, window.innerHeight - 220);
@@ -473,10 +459,10 @@ export function CallScreen({ open, stage, chat, callId, initiator, onConnected, 
       dragRef.current = null;
     };
 
-    window.addEventListener('pointermove', onPointerMove);
+    window.addEventListener('pointermove', onPointerПереместить);
     window.addEventListener('pointerup', onPointerUp);
     return () => {
-      window.removeEventListener('pointermove', onPointerMove);
+      window.removeEventListener('pointermove', onPointerПереместить);
       window.removeEventListener('pointerup', onPointerUp);
     };
   }, []);
@@ -521,7 +507,8 @@ export function CallScreen({ open, stage, chat, callId, initiator, onConnected, 
 
   const directRemoteTile = tiles[0] ?? null;
   const pinnedTile = pinnedId ? tiles.find((tile) => tile.id === pinnedId) ?? null : null;
-  const shouldShowGrid = isGroup && !screenOwnerId && !pinnedTile;
+  const showGameMain = gameOpen && pinnedId === '__game__';
+  const shouldShowGrid = isGroup && !screenOwnerId && !pinnedTile && !showGameMain;
 
   const mainTile = useMemo<MainTile | null>(() => {
     if (screenOwnerId && !pinnedTile) {
@@ -590,10 +577,10 @@ export function CallScreen({ open, stage, chat, callId, initiator, onConnected, 
   }, [screenOwnerId, pinnedTile, isGroup, directRemoteTile, screenStream, me?.avatarUrl, me?.username, micOn, tiles]);
 
   const railTiles = useMemo(() => {
-    if (!mainTile || (!screenOwnerId && !pinnedTile)) return [];
+    if ((!mainTile && !showGameMain) || (!screenOwnerId && !pinnedTile && !showGameMain)) return [];
     const hiddenId = pinnedId || screenOwnerId;
     return tiles.filter((tile) => tile.id !== hiddenId);
-  }, [mainTile, pinnedId, pinnedTile, screenOwnerId, tiles]);
+  }, [mainTile, pinnedId, pinnedTile, screenOwnerId, tiles, showGameMain]);
 
   const duration = startedAtRef.current ? fmtDuration(Date.now() - startedAtRef.current) : '0:00';
   const connectedCount = peerList.filter((peer) => peer.status === 'connected').length + 1;
@@ -605,7 +592,7 @@ export function CallScreen({ open, stage, chat, callId, initiator, onConnected, 
         : stage === 'reconnecting'
           ? 'Restoring connection…'
           : stage === 'ending'
-            ? 'Ending call…'
+            ? 'ing call…'
             : stage === 'failed'
               ? 'Connection failed'
               : `${duration} · ${connectedCount} ${connectedCount === 1 ? 'participant' : 'participants'}`;
@@ -633,7 +620,7 @@ export function CallScreen({ open, stage, chat, callId, initiator, onConnected, 
       setDeviceProblem(null);
     } catch {
       setCamOn(!next);
-      const text = next ? 'Camera could not be enabled.' : 'Camera could not be changed.';
+      const text = next ? 'Не удалось включить камеру.' : 'Не удалось переключить камеру.';
       pushBanner(text, 'error', 3800);
     }
   };
@@ -644,27 +631,27 @@ export function CallScreen({ open, stage, chat, callId, initiator, onConnected, 
       try {
         const stream = await room.startScreenShare();
         if (!stream) {
-          pushBanner('Screen share was not started.', 'warning', 3200);
+          pushBanner('Не удалось начать демонстрацию экрана.', 'warning', 3200);
           return;
         }
         setScreenStream(stream);
         setSharing(true);
         setPinnedId('');
-        pushToast('You started sharing screen');
+        pushToast('Демонстрация экрана включена');
       } catch {
-        pushBanner('Screen share is unavailable in this browser or window.', 'error', 3800);
+        pushBanner('Демонстрация экрана недоступна в этом браузере или окне.', 'error', 3800);
       }
       return;
     }
     await room.stopScreenShare();
     setScreenStream(null);
     setSharing(false);
-    pushToast('You stopped sharing screen');
+    pushToast('Демонстрация экрана остановлена');
   };
 
   const endCall = () => {
     if (isGroup && initiator) {
-      setConfirmEnd(true);
+      setConfirm(true);
       return;
     }
     onHangup();
@@ -678,37 +665,37 @@ export function CallScreen({ open, stage, chat, callId, initiator, onConnected, 
         <div className={styles.topMeta}>
           <div className={styles.topTitleRow}>
             <div className={styles.topTitle}>{title}</div>
-            <span className={styles.topBadge}>{isGroup ? 'Group' : 'Direct'}</span>
+            <span className={styles.topBadge}>{isGroup ? 'Группа' : 'Личное'}</span>
           </div>
           <div className={styles.topSub}>{topSub}</div>
         </div>
 
         <div className={styles.topActions}>
           {screenOwnerId && pinnedTile ? (
-            <button type="button" className={styles.topGhostBtn} onClick={() => setPinnedId('')}>
+            <button type="button" className={styles.topGhostBtn} onClick={() => setPinnedId('')} aria-label="Вернуться к демонстрации" title="Вернуться к демонстрации">
               <ControlIcon name="shareBack" />
-              <span>Back to share</span>
+              
             </button>
           ) : null}
-          <button type="button" className={styles.topGhostBtn} onClick={() => setSettingsOpen((value) => !value)}>
+          <button type="button" className={styles.topGhostBtn} onClick={() => setSettingsOpen((value) => !value)} aria-label="Настройки устройств" title="Настройки устройств">
             <ControlIcon name="settings" />
-            <span>Devices</span>
+            
           </button>
-          <button type="button" className={[styles.ctrlBtn, styles.ctrlHang].join(' ')} onClick={endCall} aria-label="end call">
-            End
+          <button type="button" className={[styles.ctrlBtn, styles.ctrlHang].join(' ')} onClick={endCall} aria-label="Завершить звонок" title="Завершить звонок">
+            <ControlIcon name="phone" />
           </button>
         </div>
       </div>
 
       {banner ? <div className={[styles.banner, getBannerClass(banner.tone)].join(' ')}>{banner.text}</div> : null}
-      {deviceProblem ? <div className={styles.deviceHint}>Device status: {deviceProblem.message}</div> : null}
+      {deviceProblem ? <div className={styles.deviceHint}>Состояние устройства: {deviceProblem.message}</div> : null}
 
       <div className={styles.stage}>
         {settingsOpen ? (
           <div className={styles.settingsPanel}>
-            <div className={styles.settingsTitle}>Call devices</div>
+            <div className={styles.settingsTitle}>Устройства</div>
             <label className={styles.fieldLabel}>
-              <span>Microphone</span>
+              <span>Микрофон</span>
               <select
                 className={styles.select}
                 value={devices.selectedAudioInputId}
@@ -717,9 +704,9 @@ export function CallScreen({ open, stage, chat, callId, initiator, onConnected, 
                     await room?.switchAudioInput(event.target.value);
                     setLocalStream(room?.getLocalStream() ?? null);
                     setDevices(room?.getDevices() ?? EMPTY_DEVICES);
-                    pushBanner('Microphone switched.', 'info');
+                    pushBanner('Микрофон переключён.', 'info');
                   } catch {
-                    pushBanner('Could not switch microphone.', 'error', 3800);
+                    pushBanner('Не удалось переключить микрофон.', 'error', 3800);
                   }
                 }}
               >
@@ -732,7 +719,7 @@ export function CallScreen({ open, stage, chat, callId, initiator, onConnected, 
             </label>
 
             <label className={styles.fieldLabel}>
-              <span>Camera</span>
+              <span>Камера</span>
               <select
                 className={styles.select}
                 value={devices.selectedVideoInputId}
@@ -741,9 +728,9 @@ export function CallScreen({ open, stage, chat, callId, initiator, onConnected, 
                     await room?.switchVideoInput(event.target.value);
                     setLocalStream(room?.getLocalStream() ?? null);
                     setDevices(room?.getDevices() ?? EMPTY_DEVICES);
-                    pushBanner('Camera switched.', 'info');
+                    pushBanner('Камера переключена.', 'info');
                   } catch {
-                    pushBanner('Could not switch camera.', 'error', 3800);
+                    pushBanner('Не удалось переключить камеру.', 'error', 3800);
                   }
                 }}
               >
@@ -757,7 +744,7 @@ export function CallScreen({ open, stage, chat, callId, initiator, onConnected, 
 
             {devices.canSelectAudioOutput ? (
               <label className={styles.fieldLabel}>
-                <span>Speakers</span>
+                <span>Динамики</span>
                 <select className={styles.select} value={audioOutputId} onChange={(event) => setAudioOutputId(event.target.value)}>
                   {devices.audioOutputs.map((device) => (
                     <option key={device.deviceId} value={device.deviceId}>
@@ -767,7 +754,7 @@ export function CallScreen({ open, stage, chat, callId, initiator, onConnected, 
                 </select>
               </label>
             ) : (
-              <div className={styles.deviceHint}>This browser does not support choosing the audio output device.</div>
+              <div className={styles.deviceHint}>Этот браузер не поддерживает выбор устройства вывода звука.</div>
             )}
           </div>
         ) : null}
@@ -781,67 +768,75 @@ export function CallScreen({ open, stage, chat, callId, initiator, onConnected, 
             </div>
           </div>
         ) : (
-          <div className={styles.mainStage}>
-            <div className={styles.mainVideo}>
-              {mainTile?.stream ? (
-                <StreamRenderer
-                  stream={mainTile.stream}
-                  className={styles.mainVideoEl}
-                  muted={mainTile.muted}
-                  showVideo={mainTile.isScreen || mainTile.camOn}
-                  sinkId={mainTile.muted ? undefined : audioOutputId}
-                />
-              ) : null}
-
-              {!mainTile?.stream || (!mainTile.isScreen && !mainTile.camOn) ? (
-                <div className={styles.mainPlaceholder}>
-                  <Avatar url={mainTile?.avatarUrl ?? undefined} name={mainTile?.name ?? title} size={88} />
-                  <div className={styles.mainLabel}>{mainTile?.title ?? title}</div>
-                  <div className={styles.mainSubLabel}>{mainTile ? getStatusLabel(mainTile.status) : 'Waiting for participants…'}</div>
+          <div className={[styles.mainStage, showGameMain ? styles.mainStageGame : ''].filter(Boolean).join(' ')}>
+            <div className={[styles.mainVideo, showGameMain ? styles.mainVideoGame : ''].filter(Boolean).join(' ')}>
+              {showGameMain ? (
+                <div className={styles.gameStageMain}>
+                  <GameSessionPanel chat={chat} meId={meId} embedded />
                 </div>
-              ) : null}
-
-              {mainTile ? (
-                <div className={styles.mainOverlay}>
-                  <div className={styles.mainOverlayName}>{mainTile.title}</div>
-                  <div className={styles.mainOverlayMeta}>
-                    <span className={[styles.stDot, getStatusClass(mainTile.status)].join(' ')} />
-                    <span>{getStatusLabel(mainTile.status)}</span>
-                    {!mainTile.isSelf && mainTile.status === 'connected' && !mainTile.micOn ? (
-                      <span className={styles.mainMediaFlag} title="Microphone off" aria-label="microphone off">
-                        <ControlIcon name="micOff" className={styles.statusIcon} />
-                      </span>
-                    ) : null}
-                    {!mainTile.isSelf && mainTile.status === 'connected' && !mainTile.isScreen && !mainTile.camOn ? (
-                      <span className={styles.mainMediaFlag} title="Camera off" aria-label="camera off">
-                        <ControlIcon name="cameraOff" className={styles.statusIcon} />
-                      </span>
-                    ) : null}
-                  </div>
-                </div>
-              ) : null}
-
-              {!isGroup && !screenOwnerId ? (
-                <div className={styles.pip}>
-                  {localStream ? (
-                    <StreamRenderer stream={localStream} className={styles.pipVideo} muted showVideo={camOn} />
+              ) : (
+                <>
+                  {mainTile?.stream ? (
+                    <StreamRenderer
+                      stream={mainTile.stream}
+                      className={styles.mainVideoEl}
+                      muted={mainTile.muted}
+                      showVideo={mainTile.isScreen || mainTile.camOn}
+                      sinkId={mainTile.muted ? undefined : audioOutputId}
+                    />
                   ) : null}
-                  {!camOn || !localStream ? (
-                    <div className={styles.pipPlaceholder}>
-                      <Avatar url={me?.avatarUrl ?? undefined} name={me?.username ?? 'You'} size={40} />
-                      <div className={styles.pipName}>{me?.username ?? 'You'}</div>
+
+                  {!mainTile?.stream || (!mainTile.isScreen && !mainTile.camOn) ? (
+                    <div className={styles.mainPlaceholder}>
+                      <Avatar url={mainTile?.avatarUrl ?? undefined} name={mainTile?.name ?? title} size={88} />
+                      <div className={styles.mainLabel}>{mainTile?.title ?? title}</div>
+                      <div className={styles.mainSubLabel}>{mainTile ? getStatusLabel(mainTile.status) : 'Ждём участников…'}</div>
                     </div>
                   ) : null}
-                </div>
-              ) : null}
+
+                  {mainTile ? (
+                    <div className={styles.mainOverlay}>
+                      <div className={styles.mainOverlayName}>{mainTile.title}</div>
+                      <div className={styles.mainOverlayMeta}>
+                        <span className={[styles.stDot, getStatusClass(mainTile.status)].join(' ')} />
+                        <span>{getStatusLabel(mainTile.status)}</span>
+                        {!mainTile.isSelf && mainTile.status === 'connected' && !mainTile.micOn ? (
+                          <span className={styles.mainMediaFlag} title="Микрофон выключен" aria-label="Микрофон выключен">
+                            <ControlIcon name="micOff" className={styles.statusIcon} />
+                          </span>
+                        ) : null}
+                        {!mainTile.isSelf && mainTile.status === 'connected' && !mainTile.isScreen && !mainTile.camOn ? (
+                          <span className={styles.mainMediaFlag} title="Камера выключена" aria-label="Камера выключена">
+                            <ControlIcon name="cameraOff" className={styles.statusIcon} />
+                          </span>
+                        ) : null}
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {!isGroup && !screenOwnerId ? (
+                    <div className={styles.pip}>
+                      {localStream ? (
+                        <StreamRenderer stream={localStream} className={styles.pipVideo} muted showVideo={camOn} />
+                      ) : null}
+                      {!camOn || !localStream ? (
+                        <div className={styles.pipPlaceholder}>
+                          <Avatar url={me?.avatarUrl ?? undefined} name={me?.username ?? 'Вы'} size={40} />
+                          <div className={styles.pipName}>{me?.username ?? 'Вы'}</div>
+                        </div>
+                      ) : null}
+                    </div>
+                  ) : null}
+                </>
+              )}
             </div>
 
             {railTiles.length ? (
               <div
-                className={[styles.railDock, screenOwnerId ? styles.railDockFloating : ''].filter(Boolean).join(' ')}
-                style={screenOwnerId ? { left: dockPosition.x, top: dockPosition.y } : undefined}
+                className={[styles.railDock, showGameMain ? styles.railDockGame : '', screenOwnerId ? styles.railDockFloating : ''].filter(Boolean).join(' ')}
+                style={screenOwnerId && !showGameMain ? { left: dockPosition.x, top: dockPosition.y } : undefined}
               >
-                {screenOwnerId ? (
+                {screenOwnerId && !showGameMain ? (
                   <button
                     type="button"
                     className={styles.railHandle}
@@ -854,7 +849,7 @@ export function CallScreen({ open, stage, chat, callId, initiator, onConnected, 
                       };
                     }}
                   >
-                    Move
+                    Переместить
                   </button>
                 ) : null}
 
@@ -887,68 +882,78 @@ export function CallScreen({ open, stage, chat, callId, initiator, onConnected, 
           type="button"
           className={[styles.ctrlIcon, !micOn ? styles.ctrlDanger : ''].filter(Boolean).join(' ')}
           onClick={() => void toggleMic()}
-          aria-label="toggle microphone"
+          aria-label="Переключить микрофон" title={micOn ? 'Выключить микрофон' : 'Включить микрофон'}
         >
           <ControlIcon name={micOn ? 'mic' : 'micOff'} />
-          <span className={styles.ctrlLabel}>Mic</span>
+          
         </button>
 
         <button
           type="button"
           className={[styles.ctrlIcon, !camOn ? styles.ctrlDanger : ''].filter(Boolean).join(' ')}
           onClick={() => void toggleCam()}
-          aria-label="toggle camera"
+          aria-label="Переключить камеру" title={camOn ? 'Выключить камеру' : 'Включить камеру'}
         >
           <ControlIcon name={camOn ? 'camera' : 'cameraOff'} />
-          <span className={styles.ctrlLabel}>Camera</span>
+          
         </button>
 
         <button
           type="button"
           className={[styles.ctrlIcon, sharing ? styles.ctrlPrimary : ''].filter(Boolean).join(' ')}
           onClick={() => void toggleShare()}
-          aria-label="toggle screen share"
+          aria-label="Переключить демонстрацию экрана" title={sharing ? 'Остановить демонстрацию' : 'Начать демонстрацию'}
         >
           <ControlIcon name="screen" />
-          <span className={styles.ctrlLabel}>{sharing ? 'Stop share' : 'Share'}</span>
+          
         </button>
 
         <button
           type="button"
           className={[styles.ctrlIcon, chatOpen ? styles.ctrlPrimary : ''].filter(Boolean).join(' ')}
           onClick={() => setChatOpen((value) => !value)}
-          aria-label="toggle call chat"
+          aria-label="Открыть чат звонка" title={chatOpen ? 'Скрыть чат звонка' : 'Открыть чат звонка'}
         >
           <ControlIcon name="chat" />
-          <span className={styles.ctrlLabel}>Chat</span>
+          
         </button>
 
-        <button type="button" className={[styles.ctrlIcon, styles.ctrlHang].join(' ')} onClick={endCall} aria-label="hang up">
+        <button
+          type="button"
+          className={[styles.ctrlIcon, gameOpen ? styles.ctrlPrimary : ''].filter(Boolean).join(' ')}
+          onClick={() => { setGameOpen((value) => { const next = !value; setPinnedId(next ? '__game__' : ''); return next; }); }}
+          aria-label="Открыть игры" title={gameOpen ? 'Скрыть игры' : 'Открыть игры'}
+        >
+          <ControlIcon name="game" />
+          
+        </button>
+
+        <button type="button" className={[styles.ctrlIcon, styles.ctrlHang].join(' ')} onClick={endCall} aria-label="Завершить звонок" title="Завершить звонок">
           <ControlIcon name="phone" />
-          <span className={styles.ctrlLabel}>Leave</span>
+          
         </button>
       </div>
 
       {toast ? <div className={styles.toast}>{toast}</div> : null}
 
-      {confirmEnd ? (
+      {confirm ? (
         <div className={styles.confirmWrap} role="dialog" aria-modal="true">
           <div className={styles.confirmCard}>
-            <div className={styles.confirmTitle}>End the call for everyone?</div>
-            <div className={styles.confirmText}>As the call owner, you will disconnect all current participants.</div>
+            <div className={styles.confirmTitle}>Завершить звонок для всех?</div>
+            <div className={styles.confirmText}>Как владелец звонка, вы отключите всех текущих участников.</div>
             <div className={styles.confirmActions}>
-              <button type="button" className={styles.ctrlBtn} onClick={() => setConfirmEnd(false)}>
-                Cancel
+              <button type="button" className={styles.ctrlBtn} onClick={() => setConfirm(false)}>
+                Отмена
               </button>
               <button
                 type="button"
                 className={[styles.ctrlBtn, styles.ctrlHang].join(' ')}
                 onClick={() => {
-                  setConfirmEnd(false);
+                  setConfirm(false);
                   onHangup();
                 }}
               >
-                End for all
+                Завершить для всех
               </button>
             </div>
           </div>

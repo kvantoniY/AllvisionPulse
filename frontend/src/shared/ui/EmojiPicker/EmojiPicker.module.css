@@ -2,21 +2,16 @@
   position: absolute;
   right: 0;
   bottom: calc(100% + 12px);
-  width: min(420px, calc(100vw - 24px));
-  height: min(520px, 68vh);
+  width: min(390px, calc(100vw - 24px));
+  height: min(470px, 64vh);
   display: grid;
   grid-template-rows: auto auto auto 1fr;
-  border-radius: 24px;
+  border-radius: 22px;
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background:
-    radial-gradient(circle at top right, rgba(89, 132, 255, 0.24), transparent 32%),
-    radial-gradient(circle at bottom left, rgba(55, 212, 134, 0.14), transparent 28%),
-    linear-gradient(180deg, rgba(8, 12, 20, 0.98), rgba(6, 8, 14, 0.98));
-  box-shadow:
-    0 28px 72px rgba(0, 0, 0, 0.5),
-    inset 0 1px 0 rgba(255, 255, 255, 0.06);
-  backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(15, 16, 18, 0.98);
+  box-shadow: 0 22px 60px rgba(0, 0, 0, 0.42);
+  backdrop-filter: blur(16px);
   z-index: 40;
 }
 
@@ -25,32 +20,32 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
-  padding: 16px 18px 10px;
+  padding: 14px 14px 8px;
 }
 
 .title {
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 800;
 }
 
 .subtitle {
-  margin-top: 3px;
+  margin-top: 2px;
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.55);
+  color: rgba(255, 255, 255, 0.5);
 }
 
 .closeButton {
-  width: 32px;
-  height: 32px;
-  border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.04);
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.06);
   color: rgba(255, 255, 255, 0.72);
   cursor: pointer;
 }
 
 .searchSection {
-  padding: 0 18px 12px;
+  padding: 0 14px 10px;
 }
 
 .searchContainer {
@@ -62,47 +57,42 @@
 .searchIcon {
   position: absolute;
   left: 12px;
-  width: 18px;
-  height: 18px;
-  color: rgba(255, 255, 255, 0.42);
+  width: 16px;
+  height: 16px;
+  color: rgba(255, 255, 255, 0.38);
 }
 
 .searchInput {
   width: 100%;
-  height: 42px;
+  height: 40px;
   border-radius: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: none;
   background: rgba(255, 255, 255, 0.05);
   color: var(--text);
-  padding: 0 38px 0 40px;
+  padding: 0 38px 0 38px;
   outline: none;
 }
 
-.searchInput:focus {
-  border-color: rgba(89, 132, 255, 0.45);
-  box-shadow: 0 0 0 4px rgba(89, 132, 255, 0.12);
-}
-
 .searchInput::placeholder {
-  color: rgba(255, 255, 255, 0.36);
+  color: rgba(255, 255, 255, 0.34);
 }
 
 .clearButton {
   position: absolute;
   right: 10px;
-  width: 24px;
-  height: 24px;
-  border-radius: 999px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
   border: none;
   background: transparent;
-  color: rgba(255, 255, 255, 0.6);
+  color: rgba(255, 255, 255, 0.56);
   cursor: pointer;
 }
 
 .categoriesBar {
   display: flex;
   gap: 8px;
-  padding: 0 18px 12px;
+  padding: 0 14px 10px;
   overflow-x: auto;
   scrollbar-width: none;
 }
@@ -113,41 +103,37 @@
 
 .categoryTab {
   flex: 0 0 auto;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  height: 38px;
-  padding: 0 12px;
-  border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.04);
-  color: rgba(255, 255, 255, 0.76);
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.7);
   cursor: pointer;
+  display: grid;
+  place-items: center;
 }
 
 .categoryTabActive {
+  background: rgba(255, 255, 255, 0.12);
   color: white;
-  border-color: rgba(89, 132, 255, 0.36);
-  background: linear-gradient(135deg, rgba(89, 132, 255, 0.2), rgba(55, 212, 134, 0.16));
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
 .categoryIcon {
-  font-size: 18px;
+  font-size: 16px;
+  line-height: 1;
 }
 
 .categoryLabel {
-  font-size: 12px;
-  font-weight: 700;
-  white-space: nowrap;
+  display: none;
 }
 
 .emojisGrid {
-  padding: 0 18px 18px;
+  padding: 0 14px 14px;
   overflow-y: auto;
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: 6px;
   align-content: start;
 }
 
@@ -161,53 +147,44 @@
 }
 
 .emojiButton {
-  display: grid;
-  justify-items: center;
-  gap: 6px;
-  min-height: 78px;
-  padding: 10px 8px;
-  border-radius: 18px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  background: rgba(255, 255, 255, 0.04);
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 14px;
+  border: none;
+  background: transparent;
   color: inherit;
   cursor: pointer;
-  transition:
-    transform 0.18s ease,
-    border-color 0.18s ease,
-    background 0.18s ease;
+  display: grid;
+  place-items: center;
 }
 
 .emojiButton:hover {
-  transform: translateY(-1px) scale(1.02);
-  border-color: rgba(89, 132, 255, 0.28);
-  background: rgba(89, 132, 255, 0.12);
+  background: rgba(255, 255, 255, 0.06);
 }
 
 .emojiGlyph {
-  font-size: 28px;
+  font-size: 24px;
   line-height: 1;
 }
 
 .emojiLabel {
-  font-size: 11px;
-  line-height: 1.2;
-  color: rgba(255, 255, 255, 0.62);
-  text-align: center;
+  display: none;
 }
 
 .emptyState {
   position: absolute;
-  inset: 0;
+  inset: 120px 14px 14px;
   display: grid;
   place-content: center;
-  gap: 10px;
+  gap: 8px;
   text-align: center;
-  background: linear-gradient(180deg, rgba(7, 10, 16, 0.55), rgba(7, 10, 16, 0.72));
+  background: rgba(15, 16, 18, 0.92);
   color: rgba(255, 255, 255, 0.6);
+  border-radius: 18px;
 }
 
 .emptyIcon {
-  font-size: 32px;
+  font-size: 28px;
 }
 
 .emptyState p {
@@ -217,28 +194,12 @@
 @media (max-width: 640px) {
   .emojiPicker {
     position: fixed;
-    inset: auto 12px 86px 12px;
+    inset: auto 12px 84px 12px;
     width: auto;
-    height: min(56vh, 460px);
+    height: min(54vh, 420px);
   }
 
   .emojisGrid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 8px;
-  }
-
-  .emojiButton {
-    min-height: 72px;
-  }
-
-  .emojiLabel {
-    font-size: 10px;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .emojiButton,
-  .categoryTab {
-    transition: none;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
   }
 }

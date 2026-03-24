@@ -13,9 +13,9 @@ export default function MessagesPage() {
         </Card>
 
         <div className={styles.right}>
-          <Card>
-            <CardHeader title="Select a chat" />
-            <CardMuted>Open a dialog from the list.</CardMuted>
+          <Card className={styles.placeholder}>
+            <CardHeader title="Выберите чат" />
+            <CardMuted>Откройте диалог из списка слева, чтобы продолжить переписку.</CardMuted>
           </Card>
         </div>
       </div>

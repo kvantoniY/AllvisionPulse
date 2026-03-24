@@ -5,6 +5,7 @@ import styles from './callUi.module.css';
 import type { Chat } from '@/shared/types/chat';
 import { Avatar } from '@/shared/ui/Avatar/Avatar';
 import { bindAudioUnlock, startLoopingRing } from '@/shared/lib/audio';
+import { Icon } from '@/shared/ui/Icon/Icon';
 
 type Props = {
   open: boolean;
@@ -16,10 +17,10 @@ type Props = {
 };
 
 function getTitle(chat?: Chat, fromUserId?: string) {
-  if (!chat) return 'Incoming call';
-  if (chat.type === 'GROUP') return chat.title ?? 'Group call';
+  if (!chat) return 'Входящий звонок';
+  if (chat.type === 'GROUP') return chat.title ?? 'Групповой звонок';
   const other = chat.members.find((member) => member.userId === fromUserId) ?? chat.members.find((member) => member.userId !== fromUserId);
-  return other?.user?.username ?? 'Incoming call';
+  return other?.user?.username ?? 'Входящий звонок';
 }
 
 export function IncomingCallToast({ open, chat, fromUserId, participantIds = [], onAccept, onDecline }: Props) {
@@ -70,7 +71,7 @@ export function IncomingCallToast({ open, chat, fromUserId, participantIds = [],
           <Avatar url={avatarUrl ?? undefined} name={title} size={48} />
           <div className={styles.incomingMeta}>
             <div className={styles.incomingTitle}>{title}</div>
-            <div className={styles.incomingSub}>{chat?.type === 'GROUP' ? 'Group call' : 'Incoming call'}</div>
+            <div className={styles.incomingSub}>{chat?.type === 'GROUP' ? 'Групповой звонок' : 'Входящий звонок'}</div>
             {chat?.type === 'GROUP' && connectedNames.length ? (
               <div className={styles.incomingParticipants}>
                 {connectedNames.slice(0, 4).map((name) => (
@@ -85,11 +86,11 @@ export function IncomingCallToast({ open, chat, fromUserId, participantIds = [],
         </div>
 
         <div className={styles.incomingActions}>
-          <button type="button" className={[styles.ctrlBtn, styles.ctrlAccept].join(' ')} onClick={onAccept} aria-label="accept call">
-            Accept
+          <button type="button" className={[styles.ctrlBtn, styles.ctrlAccept].join(' ')} onClick={onAccept} aria-label="Принять звонок" title="Принять звонок">
+            <Icon name="phone" size={16} />
           </button>
-          <button type="button" className={[styles.ctrlBtn, styles.ctrlHang].join(' ')} onClick={onDecline} aria-label="decline call">
-            Decline
+          <button type="button" className={[styles.ctrlBtn, styles.ctrlHang].join(' ')} onClick={onDecline} aria-label="Отклонить звонок" title="Отклонить звонок">
+            <Icon name="phoneOff" size={16} />
           </button>
         </div>
       </div>

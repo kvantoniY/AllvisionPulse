@@ -2,9 +2,8 @@
   width: 38px;
   height: 38px;
   border-radius: 999px;
-  border: 1px solid var(--stroke);
-  background: rgba(255,255,255,0.03);
-  /* allow online dot to sit above the avatar ring */
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.04);
   overflow: visible;
   display: inline-flex;
   align-items: center;
@@ -20,18 +19,11 @@
   overflow: hidden;
   display: grid;
   place-items: center;
+  background: linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03));
 }
 
-.img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.fallback {
-  font-weight: 700;
-  color: var(--text);
-}
+.img { width: 100%; height: 100%; object-fit: cover; }
+.fallback { font-weight: 700; color: var(--text); }
 
 .statusDot{
   position: absolute;
@@ -40,10 +32,10 @@
   width: 10px;
   height: 10px;
   border-radius: 999px;
-  border: 2px solid rgba(8,12,18,0.95);
+  border: 2px solid var(--bg-elevated);
   background: rgba(255,255,255,0.3);
   z-index: 3;
 }
 
-.statusDotOnline{ background: rgba(77, 223, 124, 0.95); }
+.statusDotOnline{ background: var(--success); }
 .statusDotOffline{ background: rgba(255,255,255,0.25); }

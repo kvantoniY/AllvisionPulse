@@ -1,3 +1,27 @@
-.wrap { display: grid; place-items: center; }
-.text { margin-top: -6px; font-weight: 800; font-size: 22px; }
-.label { color: var(--muted); font-size: 12px; margin-top: 4px; }
+.wrap {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-width: 0;
+}
+
+.track { stroke: rgba(255, 255, 255, 0.08); }
+.progress { transition: stroke-dashoffset 260ms ease, filter 260ms ease; }
+.text {
+  position: absolute;
+  top: 40%;
+  transform: translateY(-50%);
+  font-weight: 800;
+  font-size: 24px;
+  letter-spacing: -0.04em;
+}
+.label {
+  position: absolute;
+  top: 58%;
+  max-width: 72%;
+  text-align: center;
+  color: var(--text-soft);
+  font-size: 12px;
+  font-weight: 600;
+}
+.caption { margin-top: 10px; color: var(--muted); font-size: 12px; }

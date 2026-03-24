@@ -1,6 +1,9 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
+export type PresenceStatus = 'online' | 'reconnecting' | 'offline';
+
 export type PresenceInfo = {
+  status: PresenceStatus;
   isOnline: boolean;
   lastSeenAt: string | null;
 };
@@ -19,19 +22,26 @@ export const presenceSlice = createSlice({
       const { userId } = action.payload;
       if (!userId) return;
       const prev = state.byUserId[userId];
-      state.byUserId[userId] = { isOnline: true, lastSeenAt: prev?.lastSeenAt ?? null };
+      state.byUserId[userId] = { status: 'online', isOnline: true, lastSeenAt: prev?.lastSeenAt ?? null };
+    },
+    setReconnecting(state, action: PayloadAction<{ userId: string }>) {
+      const { userId } = action.payload;
+      if (!userId) return;
+      const prev = state.byUserId[userId];
+      state.byUserId[userId] = { status: 'reconnecting', isOnline: false, lastSeenAt: prev?.lastSeenAt ?? null };
     },
     setOffline(state, action: PayloadAction<{ userId: string; lastSeenAt?: string | null }>) {
       const { userId, lastSeenAt } = action.payload;
       if (!userId) return;
-      state.byUserId[userId] = { isOnline: false, lastSeenAt: lastSeenAt ?? state.byUserId[userId]?.lastSeenAt ?? null };
+      state.byUserId[userId] = { status: 'offline', isOnline: false, lastSeenAt: lastSeenAt ?? state.byUserId[userId]?.lastSeenAt ?? null };
     },
     hydrateUser(state, action: PayloadAction<{ userId: string; lastSeenAt?: string | null }>) {
       const { userId, lastSeenAt } = action.payload;
       if (!userId) return;
       const prev = state.byUserId[userId];
       state.byUserId[userId] = {
-        isOnline: prev?.isOnline ?? false,
+        status: prev?.status ?? 'offline',
+        isOnline: prev?.status === 'online',
         lastSeenAt: lastSeenAt ?? prev?.lastSeenAt ?? null,
       };
     },

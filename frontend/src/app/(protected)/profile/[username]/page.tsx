@@ -25,6 +25,8 @@ import { PostModal } from '@/features/postModal/ui/PostModal';
 import { useIntersection } from '@/shared/lib/hooks/useIntersection';
 import { useAppSelector } from '@/shared/lib/storeHooks';
 import { formatLastSeen } from '@/shared/lib/formatLastSeen';
+import { Icon } from '@/shared/ui/Icon/Icon';
+import { Skeleton, SkeletonText } from '@/shared/ui/Skeleton/Skeleton';
 
 function pickFriendship(relationship: any) {
   if (!relationship) return null;
@@ -123,8 +125,8 @@ export default function ProfilePage() {
     return (
       <div className="container">
         <Card>
-          <CardHeader title="Profile" />
-          <CardMuted>Loading…</CardMuted>
+          <CardHeader title="Профиль" />
+          <div style={{ display: 'grid', gap: 16 }}><div style={{ display: 'flex', gap: 14, alignItems: 'center' }}><Skeleton circle style={{ width: 74, height: 74 }} /><div style={{ flex: 1 }}><SkeletonText lines={3} /></div></div><SkeletonText lines={3} /></div>
         </Card>
       </div>
     );
@@ -136,7 +138,8 @@ export default function ProfilePage() {
     if (isSelf) {
       return (
         <Button variant="primary" onClick={onStartEdit}>
-          Edit
+          <Icon name="pencil" size={16} />
+          Редактировать
         </Button>
       );
     }
@@ -149,19 +152,20 @@ export default function ProfilePage() {
       return (
         <>
           <Button variant="primary" disabled>
-            Friends
+            <Icon name="check" size={16} />
+            В друзьях
           </Button>
           <Button
             onClick={async () => {
               await removeFriend({ userId: user.id }).unwrap().catch(() => null);
               refetchUser();
             }}
-            disabled={removing}
+            loading={removing}
           >
-            Remove
+            Удалить
           </Button>
-          <Button onClick={startMessage} disabled={creatingChat}>
-            Message
+          <Button onClick={startMessage} loading={creatingChat}>
+            Сообщение
           </Button>
         </>
       );
@@ -177,18 +181,18 @@ export default function ProfilePage() {
                 await acceptReq({ friendshipId: friendship.id }).unwrap().catch(() => null);
                 refetchUser();
               }}
-              disabled={accepting}
+              loading={accepting}
             >
-              Accept
+              Принять
             </Button>
             <Button
               onClick={async () => {
                 await declineReq({ friendshipId: friendship.id }).unwrap().catch(() => null);
                 refetchUser();
               }}
-              disabled={declining}
+              loading={declining}
             >
-              Decline
+              Отклонить
             </Button>
           </>
         );
@@ -197,9 +201,9 @@ export default function ProfilePage() {
         return (
           <>
             <Button variant="primary" disabled>
-              Request sent
+              Заявка отправлена
             </Button>
-            <Button disabled>Message</Button>
+            <Button disabled>Сообщение</Button>
           </>
         );
       }
@@ -209,7 +213,7 @@ export default function ProfilePage() {
       return (
         <>
           <Button variant="primary" disabled>
-            Blocked
+            Заблокирован
           </Button>
         </>
       );
@@ -223,11 +227,11 @@ export default function ProfilePage() {
             await sendReq({ userId: user.id }).unwrap().catch(() => null);
             refetchUser();
           }}
-          disabled={!me || sendingReq}
+          disabled={!me} loading={sendingReq}
         >
-          Add Friend
+          Добавить в друзья
         </Button>
-        <Button disabled>Message</Button>
+        <Button disabled>Сообщение</Button>
       </>
     );
   };
@@ -240,7 +244,7 @@ export default function ProfilePage() {
       <StartChatModal
         open={chatStartOpen}
         chatId={chatStartId}
-        title="New message"
+        title="Новое сообщение"
         onClose={() => setChatStartOpen(false)}
         onSent={(cid) => router.push(`/messages/${cid}`)}
       />
@@ -258,11 +262,11 @@ export default function ProfilePage() {
             <div className={styles.counts}>
               <button className={styles.countItem} type="button" disabled={!isSelf} onClick={() => setFriendsOpen(true)}>
                 <div className={styles.countValue}>{friendsCount}</div>
-                <div className={styles.countLabel}>Friends</div>
+                <div className={styles.countLabel}>В друзьях</div>
               </button>
               <div className={styles.countItem}>
                 <div className={styles.countValue}>{(user as any).postsCount ?? '—'}</div>
-                <div className={styles.countLabel}>Posts</div>
+                <div className={styles.countLabel}>Посты</div>
               </div>
             </div>
           </div>
@@ -273,54 +277,54 @@ export default function ProfilePage() {
 
       {edit ? (
         <Card className={styles.editCard}>
-          <CardHeader title="Edit profile" />
+          <CardHeader title="Редактирование профиля" />
           <div className={styles.editBody}>
             <textarea className={styles.textarea} value={bio} onChange={(e) => setBio(e.target.value)} rows={4} />
             <div className={styles.editActions}>
-              <Button variant="primary" onClick={onSubmitBio} disabled={savingBio}>
-                {savingBio ? 'Saving…' : 'Save'}
+              <Button variant="primary" onClick={onSubmitBio} loading={savingBio}>
+                Сохранить
               </Button>
-              <Button onClick={() => setEdit(false)}>Cancel</Button>
+              <Button onClick={() => setEdit(false)}>Отмена</Button>
             </div>
           </div>
         </Card>
       ) : null}
 
       <div className={styles.sectionRow}>
-        <div className={styles.sectionTitle}>Widgets</div>
-        {isSelf ? <div className={styles.sectionAction}>✎ Edit</div> : null}
+        <div className={styles.sectionTitle}>Виджеты</div>
+        {isSelf ? <div className={styles.sectionAction}><Icon name="pencil" size={14} /> Редактировать</div> : null}
       </div>
 
       {showWidgets ? (
         <div className={styles.widgets}>
           <Card className={styles.widget}>
             <div className={styles.widgetValue}>{moodToday != null ? `${moodToday}%` : '—'}</div>
-            <div className={styles.widgetLabel}>Mood Today</div>
+            <div className={styles.widgetLabel}>Настроение сегодня</div>
           </Card>
           <Card className={styles.widget}>
             <div className={styles.widgetValue}>{noAlcoholStreak}</div>
-            <div className={styles.widgetLabel}>Days no alcohol</div>
+            <div className={styles.widgetLabel}>Дней без алкоголя</div>
           </Card>
           <Card className={styles.widget}>
             <div className={styles.widgetValue}>{sleepAvg != null ? `${sleepAvg.toFixed(1)}h` : '—'}</div>
-            <div className={styles.widgetLabel}>Sleep avg</div>
+            <div className={styles.widgetLabel}>Средний сон</div>
           </Card>
         </div>
       ) : (
         <Card>
-          <CardMuted>User скрывает health-виджеты.</CardMuted>
+          <CardMuted>Пользователь скрывает health-виджеты.</CardMuted>
         </Card>
       )}
 
       <div className={styles.sectionTitle} style={{ marginTop: 18 }}>
-        Posts
+        Публикации
       </div>
 
       {isSelf ? <PostComposer context="profile" /> : null}
 
       {userPosts.length ? userPosts.map((p) => <PostCard key={p.id} post={p} onOpen={() => setOpenPostId(p.id)} />) : (
         <Card>
-          <CardMuted>{feedFetching ? 'Loading…' : 'No posts yet.'}</CardMuted>
+          {feedFetching ? <div style={{ display: 'grid', gap: 12 }}><SkeletonText lines={3} /><Skeleton style={{ width: '100%', aspectRatio: '16 / 10' }} /></div> : <CardMuted>Пока нет публикаций.</CardMuted>}
         </Card>
       )}
 

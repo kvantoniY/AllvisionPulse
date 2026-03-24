@@ -21,6 +21,7 @@ export type Chat = {
   updatedAt: string;
   members: ChatMember[];
   pinnedMessageId?: string | null;
+  lastMessage?: Message | null;
 };
 
 export type MessageAttachment = {
@@ -31,12 +32,16 @@ export type MessageAttachment = {
   name?: string;
   size?: number;
   durationSec?: number | null;
+  durationMs?: number | null;
+  width?: number | null;
+  height?: number | null;
 };
 
 export type MessageRead = {
-  id: string;
+  id?: string;
   userId: string;
-  createdAt: string;
+  createdAt?: string;
+  readAt?: string;
 };
 
 export type Message = {
@@ -44,6 +49,7 @@ export type Message = {
   chatId: string;
   senderId: string;
   createdAt: string;
+  updatedAt?: string;
   deletedAt?: string | null;
   type?: string;
   text?: string | null;
@@ -56,4 +62,6 @@ export type Message = {
   reads?: MessageRead[];
   replyToId?: string | null;
   replyTo?: Message | null;
+  forwardOfId?: string | null;
+  forwardOf?: Message | null;
 };

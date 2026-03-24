@@ -45,3 +45,21 @@ export type HealthDay = {
   createdAt: string;
   updatedAt: string;
 };
+
+export type TaskItem = {
+  id: string;
+  userId: string;
+  title: string;
+  notes: string | null;
+  kind: 'TASK' | 'EVENT';
+  dueDate: string | null;
+  hasTime: boolean;
+  completed: boolean;
+  priority: number;
+  tags: string[];
+  remindersJson: unknown;
+  recurrenceJson: unknown;
+  createdAt: string;
+  updatedAt: string;
+  deletedAt: string | null;
+};

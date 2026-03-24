@@ -11,6 +11,9 @@ const EnvSchema = z.object({
   REFRESH_TTL_DAYS: z.coerce.number().default(30),
   CORS_ORIGIN: z.string().default("http://localhost:3000"),
   UPLOAD_DIR: z.string().default("uploads"),
+  SOCKET_RECOVERY_MS: z.coerce.number().default(60000),
+  CALL_RECONNECT_GRACE_MS: z.coerce.number().default(60000),
+  CALL_MAX_PARTICIPANTS: z.coerce.number().default(4),
 });
 
 export type Env = z.infer<typeof EnvSchema>;

@@ -6,7 +6,6 @@ type Paginated<T> = { items: T[]; nextCursor?: string | null };
 export const chatsApi = baseApi.injectEndpoints({
   endpoints: (build) => ({
     getChats: build.query<{ items: Chat[] }, void>({
-      // goes through Next.js proxy: /api/backend/* -> ${BACKEND_URL}/api/*
       query: () => ({ url: '/backend/chats', method: 'GET' }),
       providesTags: (res) =>
         res?.items
@@ -19,7 +18,6 @@ export const chatsApi = baseApi.injectEndpoints({
       invalidatesTags: [{ type: 'Chat', id: 'LIST' }],
     }),
 
-
     createGroupChat: build.mutation<{ chat: Chat }, { title: string; memberIds: string[] }>({
       query: (body) => ({ url: '/backend/chats/group', method: 'POST', body }),
       invalidatesTags: [{ type: 'Chat', id: 'LIST' }],
@@ -30,27 +28,55 @@ export const chatsApi = baseApi.injectEndpoints({
         url: `/backend/chats/${chatId}/messages?take=${take}${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ''}`,
         method: 'GET',
       }),
-      providesTags: (res, err, arg) => [{ type: 'Message', id: `LIST:${arg.chatId}` }],
+      providesTags: (_res, _err, arg) => [{ type: 'Message', id: `LIST:${arg.chatId}` }],
     }),
 
-
+    searchMessages: build.query<{ items: Message[] }, { chatId: string; q: string; take?: number }>({
+      query: ({ chatId, q, take = 20 }) => ({
+        url: `/backend/chats/${chatId}/messages/search?q=${encodeURIComponent(q)}&take=${take}`,
+        method: 'GET',
+      }),
+    }),
 
     getChatMedia: build.query<{ items: any[] }, { chatId: string }>({
       query: ({ chatId }) => ({ url: `/backend/chats/${chatId}/media`, method: 'GET' }),
-      providesTags: (r, e, a) => [{ type: 'Chat', id: a.chatId }],
+      providesTags: (_r, _e, a) => [{ type: 'Chat', id: a.chatId }],
     }),
 
-    sendMessage: build.mutation<{ message: Message }, { chatId: string; type?: string; text?: string; files?: File[] }>({
-      query: ({ chatId, type = 'TEXT', text, files }) => {
+    sendMessage: build.mutation<
+      { message: Message },
+      { chatId: string; type?: string; text?: string; files?: File[]; replyToId?: string | null; forwardOfId?: string | null }
+    >({
+      query: ({ chatId, type = 'TEXT', text, files, replyToId, forwardOfId }) => {
         const form = new FormData();
         if (text) form.append('text', text);
         form.append('type', type);
+        if (replyToId) form.append('replyToId', replyToId);
+        if (forwardOfId) form.append('forwardOfId', forwardOfId);
         if (files?.length) {
           for (const f of files) form.append('files', f);
         }
         return { url: `/backend/chats/${chatId}/messages`, method: 'POST', body: form };
       },
-      invalidatesTags: (r, e, a) => [{ type: 'Message', id: `LIST:${a.chatId}` }, { type: 'Chat', id: 'LIST' }],
+      invalidatesTags: (_r, _e, a) => [{ type: 'Message', id: `LIST:${a.chatId}` }, { type: 'Chat', id: 'LIST' }],
+    }),
+
+    updateMessage: build.mutation<{ message: Message }, { chatId: string; messageId: string; text: string }>({
+      query: ({ chatId, messageId, text }) => ({
+        url: `/backend/chats/${chatId}/messages/${messageId}`,
+        method: 'PATCH',
+        body: { text },
+      }),
+      invalidatesTags: (_r, _e, a) => [{ type: 'Message', id: `LIST:${a.chatId}` }, { type: 'Chat', id: 'LIST' }],
+    }),
+
+    deleteMessagesBulk: build.mutation<{ ok: true; deletedIds: string[] }, { chatId: string; messageIds: string[] }>({
+      query: ({ chatId, messageIds }) => ({
+        url: `/backend/chats/${chatId}/messages/bulk-delete`,
+        method: 'POST',
+        body: { messageIds },
+      }),
+      invalidatesTags: (_r, _e, a) => [{ type: 'Message', id: `LIST:${a.chatId}` }, { type: 'Chat', id: 'LIST' }],
     }),
 
     deleteMessage: build.mutation<{ ok: true }, { chatId: string; messageId: string }>({
@@ -58,7 +84,7 @@ export const chatsApi = baseApi.injectEndpoints({
         url: `/backend/chats/${chatId}/messages/${messageId}`,
         method: 'DELETE',
       }),
-      invalidatesTags: (r, e, a) => [{ type: 'Message', id: `LIST:${a.chatId}` }],
+      invalidatesTags: (_r, _e, a) => [{ type: 'Message', id: `LIST:${a.chatId}` }, { type: 'Chat', id: 'LIST' }],
     }),
 
     markRead: build.mutation<{ ok: true }, { chatId: string; messageId: string }>({
@@ -77,8 +103,12 @@ export const {
   useCreateGroupChatMutation,
   useGetMessagesQuery,
   useLazyGetMessagesQuery,
+  useSearchMessagesQuery,
+  useLazySearchMessagesQuery,
   useGetChatMediaQuery,
   useSendMessageMutation,
+  useUpdateMessageMutation,
+  useDeleteMessagesBulkMutation,
   useDeleteMessageMutation,
   useMarkReadMutation,
 } = chatsApi;

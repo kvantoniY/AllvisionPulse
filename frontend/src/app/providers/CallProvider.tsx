@@ -322,6 +322,16 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       window.setTimeout(() => closeAll(), 1200);
     };
 
+    const onCallError = (payload: any) => {
+      const currentSession = sessionRef.current;
+      const payloadCallId = String(payload?.callId ?? '');
+      const payloadChatId = String(payload?.chatId ?? '');
+      if (currentSession.callId && payloadCallId && payloadCallId !== currentSession.callId) return;
+      if (currentSession.chatId && payloadChatId && payloadChatId !== currentSession.chatId) return;
+      const message = String(payload?.message ?? 'Call action failed');
+      setSession((prev) => (prev.stage === 'idle' ? prev : { ...prev, error: message }));
+    };
+
     socket.on('call:invite', onInvite);
     socket.on('call:accept', onAccept);
     socket.on('call:decline', onDecline);
@@ -329,6 +339,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     socket.on('call:state', onState);
     socket.on('call:already_active', onAlreadyActive);
     socket.on('call:room_full', onRoomFull);
+    socket.on('call:error', onCallError);
     return () => {
       socket.off('call:invite', onInvite);
       socket.off('call:accept', onAccept);
@@ -337,6 +348,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       socket.off('call:state', onState);
       socket.off('call:already_active', onAlreadyActive);
       socket.off('call:room_full', onRoomFull);
+      socket.off('call:error', onCallError);
     };
   }, [socket, closeAll, disarmAutoResume, openExistingCall, postEndRecord, postSystem, resetRuntimeFlags]);
 
@@ -390,6 +402,32 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     return () => window.clearTimeout(timer);
   }, [activeCallsByChat, openExistingCall, session.stage, socket]);
 
+  const handleConnectionPhase = useCallback((phase: 'stable' | 'signaling_reconnecting' | 'media_reconnecting') => {
+    setSession((prev) => {
+      if (prev.stage === 'idle' || prev.stage === 'ending' || prev.stage === 'ended' || prev.stage === 'failed') return prev;
+      if (phase === 'stable') return prev.stage === 'in_call' ? prev : { ...prev, stage: 'in_call', error: '' };
+      return prev.stage === 'reconnecting' ? prev : { ...prev, stage: 'reconnecting' };
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!socket) return;
+    const onDisconnect = () => {
+      if (!sessionRef.current.callId || sessionRef.current.stage === 'idle') return;
+      setSession((prev) => (prev.stage === 'idle' || prev.stage === 'ending' || prev.stage === 'ended' ? prev : { ...prev, stage: 'reconnecting' }));
+    };
+    const onConnect = () => {
+      if (!sessionRef.current.callId || sessionRef.current.stage === 'idle') return;
+      setSession((prev) => (prev.stage === 'reconnecting' ? { ...prev, stage: 'connecting' } : prev));
+    };
+    socket.on('disconnect', onDisconnect);
+    socket.on('connect', onConnect);
+    return () => {
+      socket.off('disconnect', onDisconnect);
+      socket.off('connect', onConnect);
+    };
+  }, [socket]);
+
   const ctx = useMemo<CallContextValue>(() => ({ startCall, joinCall, getActiveCallId, hasReturnableCall }), [startCall, joinCall, getActiveCallId, hasReturnableCall]);
 
   return (
@@ -413,6 +451,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
           setStartedAt((value) => value ?? Date.now());
           setSession((prev) => ({ ...prev, stage: 'in_call', error: '' }));
         }}
+        onConnectionPhase={handleConnectionPhase}
         onHangup={(reason) => void hangup(reason)}
         onClose={closeAll}
       />

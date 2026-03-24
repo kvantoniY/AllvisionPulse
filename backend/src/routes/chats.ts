@@ -155,6 +155,7 @@ router.get("/:chatId/messages", requireAuth, asyncHandler(async (req: AuthedRequ
       reactions: true,
       reads: { select: { userId: true, readAt: true } },
       replyTo: { include: { sender: { select: { id: true, username: true } } } },
+      forwardOf: { include: { sender: { select: { id: true, username: true, avatarUrl: true } }, attachments: true } },
     },
   });
 
@@ -180,20 +181,49 @@ router.post("/:chatId/messages", requireAuth, upload.array("files", 10), asyncHa
   const member = await prisma.chatMember.findUnique({ where: { chatId_userId: { chatId, userId: req.user!.id } } });
   if (!member) throw new HttpError(404, "Chat not found");
 
+  const forwardSource = body.forwardOfId
+    ? await prisma.message.findUnique({
+        where: { id: body.forwardOfId },
+        include: { attachments: true },
+      })
+    : null;
+
+  if (body.forwardOfId && !forwardSource) throw new HttpError(404, "Forward source not found");
+  if (forwardSource) {
+    const sourceMember = await prisma.chatMember.findUnique({
+      where: { chatId_userId: { chatId: forwardSource.chatId, userId: req.user!.id } },
+      select: { userId: true },
+    });
+    if (!sourceMember && req.user!.role !== "ADMIN") throw new HttpError(403, "Forbidden");
+  }
+
+  const attachmentCreates = files.length
+    ? files.map((f) => ({
+        url: fileUrl(req, path.basename(f.filename)),
+        mime: f.mimetype,
+        size: f.size,
+      }))
+    : forwardSource?.attachments?.length
+      ? forwardSource.attachments.map((attachment) => ({
+          url: attachment.url,
+          mime: attachment.mime,
+          size: attachment.size,
+        }))
+      : [];
+
+  const resolvedType = body.forwardOfId && forwardSource ? (forwardSource.type as any) : (body.type as any);
+  const resolvedText = body.text ?? (body.forwardOfId ? forwardSource?.text ?? undefined : undefined);
+
   const message = await prisma.message.create({
     data: {
       chatId,
       senderId: req.user!.id,
-      type: body.type as any,
-      text: body.text ?? undefined,
+      type: resolvedType,
+      text: resolvedText,
       replyToId: body.replyToId ?? undefined,
       forwardOfId: body.forwardOfId ?? undefined,
       attachments: {
-        create: files.map(f => ({
-          url: fileUrl(req, path.basename(f.filename)),
-          mime: f.mimetype,
-          size: f.size,
-        })),
+        create: attachmentCreates,
       },
     },
     include: {
@@ -202,6 +232,7 @@ router.post("/:chatId/messages", requireAuth, upload.array("files", 10), asyncHa
       reactions: true,
       reads: true,
       replyTo: { include: { sender: { select: { id: true, username: true } } } },
+      forwardOf: { include: { sender: { select: { id: true, username: true, avatarUrl: true } }, attachments: true } },
     },
   });
 
@@ -220,6 +251,110 @@ router.post("/:chatId/messages", requireAuth, upload.array("files", 10), asyncHa
   }));
 
   res.json({ message });
+}));
+
+
+const SearchMessagesSchema = z.object({
+  q: z.string().trim().min(1).max(200),
+  take: z.coerce.number().int().min(1).max(50).default(20),
+});
+
+router.get("/:chatId/messages/search", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
+  const chatId = req.params.chatId;
+  const body = SearchMessagesSchema.parse(req.query);
+
+  const member = await prisma.chatMember.findUnique({ where: { chatId_userId: { chatId, userId: req.user!.id } } });
+  if (!member) throw new HttpError(404, "Chat not found");
+
+  const items = await prisma.message.findMany({
+    where: {
+      chatId,
+      deletedAt: null,
+      text: { contains: body.q, mode: "insensitive" },
+    },
+    orderBy: { createdAt: "desc" },
+    take: body.take,
+    include: {
+      sender: { select: { id: true, username: true, avatarUrl: true } },
+      attachments: true,
+      reads: { select: { userId: true, readAt: true } },
+      replyTo: { include: { sender: { select: { id: true, username: true } } } },
+      forwardOf: { include: { sender: { select: { id: true, username: true, avatarUrl: true } }, attachments: true } },
+    },
+  });
+
+  res.json({ items });
+}));
+
+const UpdateMessageSchema = z.object({
+  text: z.string().trim().min(1).max(8000),
+});
+
+router.patch("/:chatId/messages/:messageId", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
+  const { chatId, messageId } = req.params;
+  const body = UpdateMessageSchema.parse(req.body);
+
+  const msg = await prisma.message.findUnique({ where: { id: messageId }, include: { sender: true, attachments: true } });
+  if (!msg || msg.chatId !== chatId || msg.deletedAt) throw new HttpError(404, "Message not found");
+
+  const me = await prisma.chatMember.findUnique({ where: { chatId_userId: { chatId, userId: req.user!.id } } });
+  if (!me) throw new HttpError(404, "Chat not found");
+  if (req.user!.role !== "ADMIN" && msg.senderId !== req.user!.id) throw new HttpError(403, "Forbidden");
+  if (msg.type === "SYSTEM") throw new HttpError(400, "System messages cannot be edited");
+  if (Date.now() - new Date(msg.createdAt).getTime() > 24 * 60 * 60 * 1000) throw new HttpError(400, "Edit window expired");
+
+  const message = await prisma.message.update({
+    where: { id: messageId },
+    data: { text: body.text },
+    include: {
+      sender: { select: { id: true, username: true, avatarUrl: true } },
+      attachments: true,
+      reactions: true,
+      reads: true,
+      replyTo: { include: { sender: { select: { id: true, username: true } } } },
+      forwardOf: { include: { sender: { select: { id: true, username: true, avatarUrl: true } }, attachments: true } },
+    },
+  });
+
+  const emitter = req.app.locals.emitter as any;
+  emitter?.emitToChat(chatId, "message:updated", { chatId, message });
+
+  res.json({ message });
+}));
+
+const BulkDeleteSchema = z.object({
+  messageIds: z.array(z.string().uuid()).min(1).max(100),
+});
+
+router.post("/:chatId/messages/bulk-delete", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
+  const { chatId } = req.params;
+  const body = BulkDeleteSchema.parse(req.body);
+
+  const me = await prisma.chatMember.findUnique({ where: { chatId_userId: { chatId, userId: req.user!.id } } });
+  if (!me) throw new HttpError(404, "Chat not found");
+
+  const messages = await prisma.message.findMany({
+    where: { id: { in: body.messageIds }, chatId, deletedAt: null },
+    select: { id: true, senderId: true },
+  });
+
+  const allowedIds = messages
+    .filter((message) => req.user!.role === "ADMIN" || message.senderId === req.user!.id)
+    .map((message) => message.id);
+
+  if (!allowedIds.length) throw new HttpError(403, "Forbidden");
+
+  await prisma.message.updateMany({
+    where: { id: { in: allowedIds }, chatId, deletedAt: null },
+    data: { deletedAt: new Date() },
+  });
+
+  const emitter = req.app.locals.emitter as any;
+  for (const messageId of allowedIds) {
+    emitter?.emitToChat(chatId, "message:deleted", { chatId, messageId });
+  }
+
+  res.json({ ok: true, deletedIds: allowedIds });
 }));
 
 router.delete("/:chatId/messages/:messageId", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {

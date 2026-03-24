@@ -7,7 +7,7 @@
   width: 44px;
   height: 26px;
   border-radius: 999px;
-  border: 1px solid var(--stroke);
+  border: 1px solid rgba(255,255,255,0.08);
   background: rgba(255,255,255,0.06);
   position: relative;
   transition: background 120ms ease;
@@ -23,8 +23,8 @@
   transition: transform 120ms ease;
 }
 .input:checked + .track {
-  background: rgba(123,97,255,0.25);
-  border-color: rgba(123,97,255,0.6);
+  background: rgba(255,122,26,0.26);
+  border-color: rgba(255,122,26,0.45);
 }
 .input:checked + .track .thumb {
   transform: translateX(18px);

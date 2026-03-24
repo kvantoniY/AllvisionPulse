@@ -1,0 +1,832 @@
+import { Router } from 'express';
+import { z } from 'zod';
+import { Prisma } from '@prisma/client';
+import { prisma } from '../db/prisma';
+import { asyncHandler, HttpError } from '../utils/http';
+import { AuthedRequest, requireAuth } from '../middleware/auth';
+
+const router = Router();
+
+const GAME_SYSTEM_PREFIX = '__GAME_EVENT__';
+const SUPPORTED_GAME_KEYS = ['POKER', 'QUIZ', 'CHECKERS'] as const;
+type SupportedGameKey = (typeof SUPPORTED_GAME_KEYS)[number];
+type SessionStatus = 'CONFIG' | 'ACTIVE' | 'FINISHED' | 'CANCELLED';
+type SessionRole = 'player' | 'observer';
+type SessionMemberStatus = 'invited' | 'joined' | 'left';
+type PokerStage = 'waiting' | 'preflop' | 'flop' | 'turn' | 'river' | 'showdown' | 'finished';
+type PokerActionType = 'fold' | 'check' | 'call' | 'bet' | 'raise';
+
+type SessionMember = {
+  userId: string;
+  username?: string | null;
+  avatarUrl?: string | null;
+  role: SessionRole;
+  status: SessionMemberStatus;
+  seat: number | null;
+  joinedAt: string | null;
+  leftAt: string | null;
+};
+
+type PokerConfig = {
+  buyIn: number;
+  smallBlind: number;
+  bigBlind: number;
+  allowObservers: boolean;
+  timerSec: number;
+  maxPlayers: number;
+};
+
+type PokerPlayerState = {
+  userId: string;
+  seat: number;
+  cards: string[];
+  stack: number;
+  folded: boolean;
+  allIn: boolean;
+  roundBet: number;
+  handBet: number;
+  actedAt?: string | null;
+};
+
+type PokerActionLog = {
+  id: string;
+  userId: string;
+  type: PokerActionType | 'system';
+  amount?: number;
+  createdAt: string;
+  note?: string;
+};
+
+type PokerResult = {
+  winners: string[];
+  placements: { userId: string; amount: number; handLabel?: string }[];
+  reason: 'winner' | 'cancelled' | 'everyone_left';
+  endedBy?: string | null;
+};
+
+type PokerState = {
+  stage: PokerStage;
+  startedAt: string | null;
+  endedAt: string | null;
+  deck: string[];
+  communityCards: string[];
+  players: PokerPlayerState[];
+  dealerIndex: number;
+  turnUserId: string | null;
+  currentBet: number;
+  pot: number;
+  actionLog: PokerActionLog[];
+  result: PokerResult | null;
+};
+
+type GameSession = {
+  version: number;
+  sessionId: string;
+  roomId: string;
+  chatId: string;
+  gameKey: SupportedGameKey;
+  title: string;
+  status: SessionStatus;
+  createdAt: string;
+  updatedAt: string;
+  createdBy: string;
+  invitedUserIds: string[];
+  members: SessionMember[];
+  config: Record<string, any>;
+  startedAt?: string | null;
+  endedAt?: string | null;
+  poker?: PokerState | null;
+  result?: PokerResult | null;
+};
+
+const CreateSessionSchema = z.object({
+  gameKey: z.enum(SUPPORTED_GAME_KEYS),
+  title: z.string().min(2).max(120).optional(),
+  participantUserIds: z.array(z.string().uuid()).optional(),
+  config: z.record(z.string(), z.unknown()).optional(),
+});
+
+const JoinSchema = z.object({
+  role: z.enum(['player', 'observer']).optional(),
+});
+
+const PokerActionSchema = z.object({
+  type: z.enum(['fold', 'check', 'call', 'bet', 'raise']),
+  amount: z.number().int().min(0).optional(),
+});
+
+const UpdateSessionConfigSchema = z.object({
+  title: z.string().min(2).max(120).optional(),
+  participantUserIds: z.array(z.string().uuid()).optional(),
+  config: z.record(z.string(), z.unknown()).optional(),
+});
+
+
+function logGameDebug(scope: string, payload: Record<string, unknown>) {
+  try {
+    console.info(`[games:${scope}]`, JSON.stringify(payload));
+  } catch {
+    console.info(`[games:${scope}]`, payload);
+  }
+}
+
+async function assertGamesSchemaReady() {
+  try {
+    const rows = await prisma.$queryRaw<Array<{ column_name: string }>>(Prisma.sql`
+      SELECT column_name
+      FROM information_schema.columns
+      WHERE table_schema = 'public' AND table_name = 'GameRoom'
+    `);
+    const columns = new Set(rows.map((row) => row.column_name));
+    const required = ['id', 'roomId', 'currentGameKey', 'createdAt', 'meta'];
+    const missing = required.filter((column) => !columns.has(column));
+    if (missing.length) {
+      throw new HttpError(500, 'Games schema is outdated. Run Prisma migration for GameRoom.', {
+        table: 'GameRoom',
+        missingColumns: missing,
+      });
+    }
+  } catch (error) {
+    if (error instanceof HttpError) throw error;
+    throw new HttpError(500, 'Failed to verify games schema readiness', {
+      reason: error instanceof Error ? error.message : String(error),
+    });
+  }
+}
+
+function uuid() {
+  return globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+function gameRoomId(chatId: string) {
+  return `game:${chatId}:${uuid()}`;
+}
+
+function nowIso() {
+  return new Date().toISOString();
+}
+
+function normalizePokerConfig(input: Record<string, any> | undefined): PokerConfig {
+  const buyIn = clampInt(input?.buyIn ?? 1000, 200, 10000);
+  const smallBlind = clampInt(input?.smallBlind ?? 10, 1, buyIn);
+  const bigBlind = clampInt(input?.bigBlind ?? 20, smallBlind + 1, buyIn);
+  return {
+    buyIn,
+    smallBlind,
+    bigBlind,
+    allowObservers: input?.allowObservers !== false,
+    timerSec: clampInt(input?.timerSec ?? 25, 10, 90),
+    maxPlayers: clampInt(input?.maxPlayers ?? 6, 2, 8),
+  };
+}
+
+function clampInt(value: number, min: number, max: number) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return min;
+  return Math.min(max, Math.max(min, Math.round(numeric)));
+}
+
+function shuffle<T>(items: T[]) {
+  const next = [...items];
+  for (let i = next.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [next[i], next[j]] = [next[j], next[i]];
+  }
+  return next;
+}
+
+function buildDeck() {
+  const suits = ['s', 'h', 'd', 'c'];
+  const ranks = ['2', '3', '4', '5', '6', '7', '8', '9', 'T', 'J', 'Q', 'K', 'A'];
+  return shuffle(suits.flatMap((suit) => ranks.map((rank) => `${rank}${suit}`)));
+}
+
+function parseCard(card: string) {
+  const rankChar = card[0];
+  const suit = card[1];
+  const rankMap: Record<string, number> = { '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9, T: 10, J: 11, Q: 12, K: 13, A: 14 };
+  return { rank: rankMap[rankChar] ?? 0, suit };
+}
+
+function combinations<T>(arr: T[], choose: number): T[][] {
+  const out: T[][] = [];
+  const walk = (start: number, current: T[]) => {
+    if (current.length === choose) {
+      out.push([...current]);
+      return;
+    }
+    for (let i = start; i < arr.length; i += 1) {
+      current.push(arr[i]);
+      walk(i + 1, current);
+      current.pop();
+    }
+  };
+  walk(0, []);
+  return out;
+}
+
+function evaluateFive(cards: string[]) {
+  const parsed = cards.map(parseCard).sort((a, b) => b.rank - a.rank);
+  const counts = new Map<number, number>();
+  const suits = new Map<string, number>();
+  for (const card of parsed) {
+    counts.set(card.rank, (counts.get(card.rank) ?? 0) + 1);
+    suits.set(card.suit, (suits.get(card.suit) ?? 0) + 1);
+  }
+  const uniqueRanks = Array.from(new Set(parsed.map((card) => card.rank))).sort((a, b) => b - a);
+  let straightHigh = 0;
+  const straightRanks = [...uniqueRanks];
+  if (uniqueRanks.includes(14)) straightRanks.push(1);
+  for (let i = 0; i <= straightRanks.length - 5; i += 1) {
+    const window = straightRanks.slice(i, i + 5);
+    if (window[0] - window[4] === 4 && new Set(window).size === 5) {
+      straightHigh = Math.max(straightHigh, window[0] === 1 ? 5 : window[0]);
+      break;
+    }
+  }
+  const flushSuit = Array.from(suits.entries()).find(([, count]) => count === 5)?.[0] ?? null;
+  const groups = Array.from(counts.entries())
+    .map(([rank, count]) => ({ rank, count }))
+    .sort((a, b) => (b.count === a.count ? b.rank - a.rank : b.count - a.count));
+
+  const score = (category: number, values: number[]) => ({ category, values, label: handLabel(category, values) });
+
+  if (flushSuit && straightHigh) return score(8, [straightHigh]);
+  if (groups[0]?.count === 4) return score(7, [groups[0].rank, groups[1]?.rank ?? 0]);
+  if (groups[0]?.count === 3 && groups[1]?.count === 2) return score(6, [groups[0].rank, groups[1].rank]);
+  if (flushSuit) return score(5, parsed.map((card) => card.rank));
+  if (straightHigh) return score(4, [straightHigh]);
+  if (groups[0]?.count === 3) return score(3, [groups[0].rank, ...groups.slice(1).map((group) => group.rank).sort((a, b) => b - a)]);
+  if (groups[0]?.count === 2 && groups[1]?.count === 2) {
+    const pairRanks = groups.filter((group) => group.count === 2).map((group) => group.rank).sort((a, b) => b - a);
+    const kicker = groups.find((group) => group.count === 1)?.rank ?? 0;
+    return score(2, [...pairRanks, kicker]);
+  }
+  if (groups[0]?.count === 2) {
+    const kickers = groups.filter((group) => group.count === 1).map((group) => group.rank).sort((a, b) => b - a);
+    return score(1, [groups[0].rank, ...kickers]);
+  }
+  return score(0, parsed.map((card) => card.rank));
+}
+
+function compareEval(a: { category: number; values: number[] }, b: { category: number; values: number[] }) {
+  if (a.category !== b.category) return a.category - b.category;
+  const len = Math.max(a.values.length, b.values.length);
+  for (let i = 0; i < len; i += 1) {
+    const diff = (a.values[i] ?? 0) - (b.values[i] ?? 0);
+    if (diff !== 0) return diff;
+  }
+  return 0;
+}
+
+function bestHand(cards: string[]) {
+  let best: { category: number; values: number[]; label: string } | null = null;
+  for (const combo of combinations(cards, 5)) {
+    const current = evaluateFive(combo);
+    if (!best || compareEval(current, best) > 0) best = current;
+  }
+  return best ?? { category: 0, values: [0], label: 'High card' };
+}
+
+function handLabel(category: number, values: number[]) {
+  const top = values[0] ?? 0;
+  const rankName = (rank: number) => ({ 14: 'Ace', 13: 'King', 12: 'Queen', 11: 'Jack', 10: 'Ten', 9: 'Nine', 8: 'Eight', 7: 'Seven', 6: 'Six', 5: 'Five', 4: 'Four', 3: 'Three', 2: 'Two' }[rank] ?? 'Card');
+  if (category === 8) return top === 14 ? 'Royal flush' : `Straight flush, ${rankName(top)} high`;
+  if (category === 7) return `Four of a kind, ${rankName(top)}s`;
+  if (category === 6) return `Full house, ${rankName(top)}s full`;
+  if (category === 5) return `Flush, ${rankName(top)} high`;
+  if (category === 4) return `Straight, ${rankName(top)} high`;
+  if (category === 3) return `Three of a kind, ${rankName(top)}s`;
+  if (category === 2) return `Two pair, ${rankName(values[0] ?? 0)} and ${rankName(values[1] ?? 0)}`;
+  if (category === 1) return `Pair of ${rankName(top)}s`;
+  return `High card, ${rankName(top)}`;
+}
+
+async function ensureChatAccess(chatId: string, userId: string) {
+  const member = await prisma.chatMember.findUnique({ where: { chatId_userId: { chatId, userId } }, include: { user: true } });
+  if (!member || member.leftAt) throw new HttpError(404, 'Chat not found');
+  const chat = await prisma.chat.findUnique({
+    where: { id: chatId },
+    include: { members: { where: { leftAt: null }, include: { user: { select: { id: true, username: true, avatarUrl: true } } } } },
+  });
+  if (!chat) throw new HttpError(404, 'Chat not found');
+  return { chat, meMember: member };
+}
+
+function syncSessionMembersWithParticipants(session: GameSession, participantIds: string[]) {
+  const selected = new Set(participantIds);
+  for (const member of session.members) {
+    const shouldBePlayer = selected.has(member.userId);
+    member.role = shouldBePlayer ? 'player' : 'observer';
+    if (!shouldBePlayer && session.status === 'CONFIG') {
+      member.seat = null;
+      if (member.status === 'joined') member.status = 'invited';
+    }
+  }
+  session.invitedUserIds = participantIds.filter((id) => id !== session.createdBy);
+}
+
+async function loadSession(sessionId: string) {
+  const room = await prisma.gameRoom.findUnique({ where: { roomId: sessionId } });
+  if (!room?.meta) throw new HttpError(404, 'Game session not found');
+  const session = room.meta as unknown as GameSession;
+  return { room, session };
+}
+
+function postBlind(state: PokerState, userId: string, amount: number) {
+  const player = state.players.find((item) => item.userId === userId);
+  if (!player) return 0;
+  const posted = Math.min(player.stack, amount);
+  player.stack -= posted;
+  player.roundBet += posted;
+  player.handBet += posted;
+  if (player.stack === 0) player.allIn = true;
+  state.pot += posted;
+  state.currentBet = Math.max(state.currentBet, player.roundBet);
+  return posted;
+}
+
+function nextActivePlayer(players: PokerPlayerState[], startIndex: number) {
+  if (!players.length) return null;
+  for (let step = 1; step <= players.length; step += 1) {
+    const candidate = players[(startIndex + step) % players.length];
+    if (!candidate.folded && !candidate.allIn) return candidate;
+  }
+  return null;
+}
+
+function activePlayers(players: PokerPlayerState[]) {
+  return players.filter((player) => !player.folded);
+}
+
+function resetBettingRound(state: PokerState, stage: PokerStage) {
+  state.stage = stage;
+  state.currentBet = 0;
+  for (const player of state.players) player.roundBet = 0;
+  const dealerPlayer = state.players[state.dealerIndex] ?? state.players[0] ?? null;
+  const next = dealerPlayer ? nextActivePlayer(state.players, state.dealerIndex) : null;
+  state.turnUserId = next?.userId ?? null;
+}
+
+function determineWinner(state: PokerState): PokerResult {
+  const contenders = activePlayers(state.players);
+  if (contenders.length === 1) {
+    const winner = contenders[0];
+    winner.stack += state.pot;
+    return {
+      winners: [winner.userId],
+      placements: [{ userId: winner.userId, amount: state.pot, handLabel: 'Last player standing' }],
+      reason: 'winner',
+    };
+  }
+
+  const scored = contenders.map((player) => ({
+    player,
+    hand: bestHand([...player.cards, ...state.communityCards]),
+  }));
+  scored.sort((a, b) => compareEval(b.hand, a.hand));
+  const best = scored[0]?.hand;
+  const winners = scored.filter((item) => best && compareEval(item.hand, best) === 0);
+  const share = winners.length ? Math.floor(state.pot / winners.length) : 0;
+  const remainder = winners.length ? state.pot % winners.length : 0;
+  winners.forEach((winner, index) => {
+    winner.player.stack += share + (index === 0 ? remainder : 0);
+  });
+  return {
+    winners: winners.map((item) => item.player.userId),
+    placements: scored.map((item) => {
+      const winnerIndex = winners.findIndex((winner) => winner.player.userId === item.player.userId);
+      return {
+        userId: item.player.userId,
+        amount: winnerIndex === -1 ? 0 : share + (winnerIndex === 0 ? remainder : 0),
+        handLabel: item.hand.label,
+      };
+    }),
+    reason: 'winner',
+  };
+}
+
+function advancePokerState(session: GameSession, actorId?: string) {
+  const state = session.poker;
+  if (!state) return;
+  const contenders = activePlayers(state.players);
+  if (contenders.length <= 1) {
+    state.stage = 'finished';
+    const result = determineWinner(state);
+    state.result = result;
+    session.result = result;
+    session.status = 'FINISHED';
+    session.endedAt = nowIso();
+    state.endedAt = session.endedAt;
+    session.updatedAt = nowIso();
+    return;
+  }
+
+  const waitingPlayers = contenders.filter((player) => !player.allIn && player.userId !== actorId && player.roundBet !== state.currentBet);
+  if (waitingPlayers.length) {
+    const currentIndex = state.players.findIndex((player) => player.userId === actorId);
+    state.turnUserId = nextActivePlayer(state.players, currentIndex)?.userId ?? null;
+    return;
+  }
+
+  if (state.stage === 'preflop') {
+    state.communityCards.push(state.deck.shift()!, state.deck.shift()!, state.deck.shift()!);
+    resetBettingRound(state, 'flop');
+  } else if (state.stage === 'flop') {
+    state.communityCards.push(state.deck.shift()!);
+    resetBettingRound(state, 'turn');
+  } else if (state.stage === 'turn') {
+    state.communityCards.push(state.deck.shift()!);
+    resetBettingRound(state, 'river');
+  } else if (state.stage === 'river') {
+    state.stage = 'showdown';
+    const result = determineWinner(state);
+    state.result = result;
+    session.result = result;
+    session.status = 'FINISHED';
+    session.endedAt = nowIso();
+    state.endedAt = session.endedAt;
+    state.turnUserId = null;
+  }
+  if (session.status !== 'FINISHED' && state.turnUserId) {
+    const next = state.players.find((player) => player.userId === state.turnUserId);
+    if (next && (next.folded || next.allIn)) {
+      const idx = state.players.findIndex((player) => player.userId === next.userId);
+      state.turnUserId = nextActivePlayer(state.players, idx)?.userId ?? null;
+    }
+  }
+  session.updatedAt = nowIso();
+}
+
+function initPoker(session: GameSession) {
+  const config = normalizePokerConfig(session.config);
+  const playersMembers = session.members.filter((member) => member.role === 'player' && member.status !== 'left').slice(0, config.maxPlayers);
+  if (playersMembers.length < 2) throw new HttpError(400, 'At least two players are required to start poker');
+  const deck = buildDeck();
+  const players = playersMembers.map((member, index) => ({
+    userId: member.userId,
+    seat: index,
+    cards: [deck.shift()!, deck.shift()!],
+    stack: config.buyIn,
+    folded: false,
+    allIn: false,
+    roundBet: 0,
+    handBet: 0,
+  }));
+  playersMembers.forEach((member, index) => {
+    member.seat = index;
+    member.status = 'joined';
+    member.joinedAt = member.joinedAt ?? nowIso();
+  });
+  const dealerIndex = Math.floor(Math.random() * players.length);
+  const smallBlindPlayer = players[(dealerIndex + 1) % players.length];
+  const bigBlindPlayer = players[(dealerIndex + 2) % players.length] ?? players[(dealerIndex + 1) % players.length];
+  const poker: PokerState = {
+    stage: 'preflop',
+    startedAt: nowIso(),
+    endedAt: null,
+    deck,
+    communityCards: [],
+    players,
+    dealerIndex,
+    turnUserId: null,
+    currentBet: 0,
+    pot: 0,
+    actionLog: [],
+    result: null,
+  };
+  const small = postBlind(poker, smallBlindPlayer.userId, config.smallBlind);
+  const big = postBlind(poker, bigBlindPlayer.userId, config.bigBlind);
+  poker.actionLog.push({ id: uuid(), userId: smallBlindPlayer.userId, type: 'system', amount: small, createdAt: nowIso(), note: 'Small blind' });
+  poker.actionLog.push({ id: uuid(), userId: bigBlindPlayer.userId, type: 'system', amount: big, createdAt: nowIso(), note: 'Big blind' });
+  const opener = nextActivePlayer(players, players.findIndex((player) => player.userId === bigBlindPlayer.userId));
+  poker.turnUserId = opener?.userId ?? null;
+  session.poker = poker;
+  session.status = 'ACTIVE';
+  session.startedAt = poker.startedAt;
+  session.updatedAt = nowIso();
+}
+
+function toPublicSession(session: GameSession, viewerId?: string | null) {
+  const revealAllCards = session.status === 'FINISHED' || session.status === 'CANCELLED';
+  return {
+    ...session,
+    poker: session.poker
+      ? {
+          ...session.poker,
+          deck: [],
+          players: session.poker.players.map((player) => ({
+            ...player,
+            cards: revealAllCards || (viewerId && player.userId === viewerId) ? player.cards : player.cards.map(() => '??'),
+          })),
+        }
+      : null,
+  };
+}
+
+function buildSessionMessage(kind: string, session: GameSession, extra?: Record<string, any>) {
+  return `${GAME_SYSTEM_PREFIX}${JSON.stringify({
+    kind,
+    sessionId: session.sessionId,
+    gameKey: session.gameKey,
+    title: session.title,
+    status: session.status,
+    createdBy: session.createdBy,
+    createdAt: session.createdAt,
+    updatedAt: session.updatedAt,
+    result: session.result ?? null,
+    ...extra,
+  })}`;
+}
+
+async function postSystemGameMessage(chatId: string, senderId: string, text: string) {
+  logGameDebug('system-message:create', { chatId, senderId, hasText: Boolean(text), preview: text.slice(0, 120) });
+  await prisma.message.create({
+    data: {
+      chatId,
+      senderId,
+      type: 'SYSTEM',
+      text,
+    },
+  });
+  await prisma.chat.update({ where: { id: chatId }, data: { updatedAt: new Date() } });
+}
+
+async function persistSessionCreate(sessionId: string, gameKey: SupportedGameKey, session: GameSession) {
+  logGameDebug('session:create-db', { sessionId, gameKey, chatId: session.chatId, status: session.status });
+  await prisma.gameRoom.create({
+    data: {
+      roomId: sessionId,
+      currentGameKey: gameKey,
+      meta: session as any,
+    },
+  });
+}
+
+async function saveSession(sessionId: string, session: GameSession) {
+  logGameDebug('session:save-db', { sessionId, gameKey: session.gameKey, status: session.status, updatedAt: session.updatedAt });
+  await prisma.gameRoom.update({
+    where: { roomId: sessionId },
+    data: {
+      currentGameKey: session.gameKey,
+      meta: session as any,
+    },
+  });
+}
+
+async function emitGameUpdate(req: AuthedRequest, session: GameSession, event: string, extra?: Record<string, any>) {
+  const emitter = req.app.locals.emitter as any;
+  emitter?.emitToChat(session.chatId, event, {
+    sessionId: session.sessionId,
+    chatId: session.chatId,
+    gameKey: session.gameKey,
+    status: session.status,
+    updatedAt: session.updatedAt,
+    payload: toPublicSession(session),
+    ...extra,
+  });
+}
+
+router.get('/chat/:chatId/sessions', requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
+  const { chatId } = req.params;
+  await ensureChatAccess(chatId, req.user!.id);
+  const sessions = await prisma.gameRoom.findMany({
+    where: { roomId: { startsWith: `game:${chatId}:` } },
+    orderBy: { createdAt: 'desc' },
+    take: 24,
+  });
+  const items = sessions.map((room) => room.meta as unknown as GameSession).filter(Boolean).map((session) => toPublicSession(session, req.user!.id));
+  res.json({ items });
+}));
+
+router.get('/sessions/:sessionId', requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
+  const { session } = await loadSession(req.params.sessionId);
+  await ensureChatAccess(session.chatId, req.user!.id);
+  res.json({ session: toPublicSession(session, req.user!.id) });
+}));
+
+router.post('/chat/:chatId/sessions', requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
+  await assertGamesSchemaReady();
+  logGameDebug('create-session:start', { chatId: req.params.chatId, userId: req.user!.id, body: req.body });
+
+  const { chat, meMember } = await ensureChatAccess(req.params.chatId, req.user!.id);
+const parsed = CreateSessionSchema.safeParse(req.body);
+
+if (!parsed.success) {
+  console.error('[games:create-session] validation error', {
+    issues: parsed.error.issues,
+    body: req.body,
+  });
+
+  return res.status(400).json({
+    message: 'Invalid game session payload',
+    issues: parsed.error.issues,
+  });
+}
+
+const body = parsed.data;
+  const participantIds = Array.from(new Set([req.user!.id, ...(body.participantUserIds ?? [])])).filter((userId) =>
+    chat.members.some((member) => member.userId === userId),
+  );
+  const members: SessionMember[] = chat.members.map((member) => ({
+    userId: member.userId,
+    username: member.user.username,
+    avatarUrl: member.user.avatarUrl ?? null,
+    role: participantIds.includes(member.userId) ? 'player' : 'observer',
+    status: participantIds.includes(member.userId) ? (member.userId === req.user!.id ? 'joined' : 'invited') : 'invited',
+    seat: null,
+    joinedAt: member.userId === req.user!.id ? nowIso() : null,
+    leftAt: null,
+  }));
+
+  const sessionId = gameRoomId(chat.id);
+  const session: GameSession = {
+    version: 1,
+    sessionId,
+    roomId: sessionId,
+    chatId: chat.id,
+    gameKey: body.gameKey,
+    title: body.title ?? (body.gameKey === 'POKER' ? 'Poker Night' : body.gameKey === 'QUIZ' ? 'Своя игра' : 'Шашки'),
+    status: 'CONFIG',
+    createdAt: nowIso(),
+    updatedAt: nowIso(),
+    createdBy: req.user!.id,
+    invitedUserIds: participantIds.filter((id) => id !== req.user!.id),
+    members,
+    config: body.gameKey === 'POKER' ? normalizePokerConfig(body.config) : body.config ?? {},
+    poker: null,
+    result: null,
+  };
+
+  const systemText = buildSessionMessage('SESSION_CREATED', session, { note: `${session.title} готова к настройке` });
+  await persistSessionCreate(sessionId, body.gameKey, session);
+  await postSystemGameMessage(chat.id, meMember.userId, systemText);
+
+  logGameDebug('create-session:success', { sessionId, chatId: chat.id, gameKey: body.gameKey });
+  await emitGameUpdate(req, session, 'game:update', { reason: 'created' });
+  res.json({ session: toPublicSession(session, req.user!.id) });
+}));
+
+router.patch('/sessions/:sessionId/config', requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
+  const body = UpdateSessionConfigSchema.parse(req.body);
+  const { session } = await loadSession(req.params.sessionId);
+  const { chat } = await ensureChatAccess(session.chatId, req.user!.id);
+  if (session.createdBy !== req.user!.id) throw new HttpError(403, 'Only session creator can update the session');
+  if (session.status !== 'CONFIG') throw new HttpError(400, 'Only lobby sessions can be edited');
+
+  if (body.title) session.title = body.title;
+  if (body.participantUserIds) {
+    const participantIds = Array.from(new Set([session.createdBy, ...body.participantUserIds])).filter((userId) =>
+      chat.members.some((member) => member.userId === userId),
+    );
+    syncSessionMembersWithParticipants(session, participantIds);
+  }
+  if (body.config && session.gameKey === 'POKER') {
+    session.config = normalizePokerConfig({ ...session.config, ...body.config });
+  } else if (body.config) {
+    session.config = { ...session.config, ...body.config };
+  }
+
+  session.updatedAt = nowIso();
+  await saveSession(session.sessionId, session);
+  await emitGameUpdate(req, session, 'game:update', { reason: 'config_updated' });
+  res.json({ session: toPublicSession(session, req.user!.id) });
+}));
+
+router.post('/sessions/:sessionId/join', requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
+  const body = JoinSchema.parse(req.body);
+  const { session } = await loadSession(req.params.sessionId);
+  await ensureChatAccess(session.chatId, req.user!.id);
+  const member = session.members.find((item) => item.userId === req.user!.id);
+  if (!member) throw new HttpError(404, 'Session member not found');
+  if (session.status === 'FINISHED' || session.status === 'CANCELLED') throw new HttpError(400, 'Session is closed');
+  if (body.role) member.role = body.role;
+  if (session.gameKey === 'POKER' && session.status === 'ACTIVE') {
+    member.role = 'observer';
+  }
+  member.status = 'joined';
+  member.joinedAt = member.joinedAt ?? nowIso();
+  member.leftAt = null;
+  session.updatedAt = nowIso();
+  await saveSession(session.sessionId, session);
+  await emitGameUpdate(req, session, 'game:update', { reason: 'joined', userId: req.user!.id });
+  res.json({ session: toPublicSession(session, req.user!.id) });
+}));
+
+router.post('/sessions/:sessionId/leave', requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
+  const { session } = await loadSession(req.params.sessionId);
+  await ensureChatAccess(session.chatId, req.user!.id);
+  const member = session.members.find((item) => item.userId === req.user!.id);
+  if (!member) throw new HttpError(404, 'Session member not found');
+  member.status = 'left';
+  member.leftAt = nowIso();
+  session.updatedAt = nowIso();
+  if (session.poker?.players.some((player) => player.userId === req.user!.id) && session.status === 'ACTIVE') {
+    const player = session.poker.players.find((item) => item.userId === req.user!.id)!;
+    player.folded = true;
+    advancePokerState(session, req.user!.id);
+  }
+  if (session.status === 'ACTIVE' && session.members.filter((item) => item.role === 'player' && item.status !== 'left').length <= 1) {
+    session.status = 'FINISHED';
+    session.endedAt = nowIso();
+    session.result = { winners: [], placements: [], reason: 'everyone_left', endedBy: req.user!.id };
+  }
+  await saveSession(session.sessionId, session);
+  await emitGameUpdate(req, session, 'game:update', { reason: 'left', userId: req.user!.id });
+  res.json({ session: toPublicSession(session, req.user!.id) });
+}));
+
+router.post('/sessions/:sessionId/start', requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
+  const { session } = await loadSession(req.params.sessionId);
+  await ensureChatAccess(session.chatId, req.user!.id);
+  if (session.createdBy !== req.user!.id) throw new HttpError(403, 'Only session creator can start the game');
+  if (session.status !== 'CONFIG') throw new HttpError(400, 'Session already started');
+  if (session.gameKey !== 'POKER') throw new HttpError(400, 'This game is still in development');
+  initPoker(session);
+  await saveSession(session.sessionId, session);
+  await postSystemGameMessage(session.chatId, req.user!.id, buildSessionMessage('SESSION_STARTED', session, { note: 'Покерная сессия началась' }));
+  await emitGameUpdate(req, session, 'game:update', { reason: 'started' });
+  res.json({ session: toPublicSession(session, req.user!.id) });
+}));
+
+router.post('/sessions/:sessionId/cancel', requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
+  const { session } = await loadSession(req.params.sessionId);
+  await ensureChatAccess(session.chatId, req.user!.id);
+  if (session.createdBy !== req.user!.id) throw new HttpError(403, 'Only session creator can cancel the game');
+  if (session.status === 'FINISHED' || session.status === 'CANCELLED') throw new HttpError(400, 'Session already closed');
+  session.status = 'CANCELLED';
+  session.endedAt = nowIso();
+  session.updatedAt = nowIso();
+  session.result = { winners: [], placements: [], reason: 'cancelled', endedBy: req.user!.id };
+  if (session.poker) {
+    session.poker.result = session.result;
+    session.poker.endedAt = session.endedAt;
+    session.poker.stage = 'finished';
+    session.poker.turnUserId = null;
+  }
+  await saveSession(session.sessionId, session);
+  await postSystemGameMessage(session.chatId, req.user!.id, buildSessionMessage('SESSION_FINISHED', session, { note: 'Игровая сессия была отменена' }));
+  await emitGameUpdate(req, session, 'game:update', { reason: 'cancelled' });
+  res.json({ session: toPublicSession(session, req.user!.id) });
+}));
+
+router.post('/sessions/:sessionId/poker/action', requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
+  const body = PokerActionSchema.parse(req.body);
+  const { session } = await loadSession(req.params.sessionId);
+  await ensureChatAccess(session.chatId, req.user!.id);
+  if (session.gameKey !== 'POKER' || !session.poker) throw new HttpError(400, 'Poker session is not active');
+  if (session.status !== 'ACTIVE') throw new HttpError(400, 'Session is not active');
+  const state = session.poker;
+  if (state.turnUserId !== req.user!.id) throw new HttpError(409, 'Not your turn');
+  const player = state.players.find((item) => item.userId === req.user!.id);
+  if (!player || player.folded || player.allIn) throw new HttpError(400, 'Player cannot act');
+  const toCall = Math.max(0, state.currentBet - player.roundBet);
+  const stamp = nowIso();
+
+  if (body.type === 'fold') {
+    player.folded = true;
+  } else if (body.type === 'check') {
+    if (toCall > 0) throw new HttpError(400, 'Cannot check when bet is pending');
+  } else if (body.type === 'call') {
+    if (toCall <= 0) throw new HttpError(400, 'Nothing to call');
+    const pay = Math.min(player.stack, toCall);
+    player.stack -= pay;
+    player.roundBet += pay;
+    player.handBet += pay;
+    state.pot += pay;
+    if (player.stack === 0) player.allIn = true;
+  } else if (body.type === 'bet') {
+    if (state.currentBet > 0) throw new HttpError(400, 'Use raise when bet already exists');
+    const amount = clampInt(body.amount ?? 0, session.config.bigBlind ?? 20, player.stack + player.roundBet);
+    const pay = Math.min(player.stack, amount);
+    player.stack -= pay;
+    player.roundBet += pay;
+    player.handBet += pay;
+    state.pot += pay;
+    state.currentBet = player.roundBet;
+    if (player.stack === 0) player.allIn = true;
+  } else if (body.type === 'raise') {
+    if (state.currentBet === 0) throw new HttpError(400, 'Use bet before raise');
+    const minRaiseTo = state.currentBet + (session.config.bigBlind ?? 20);
+    const target = clampInt(body.amount ?? minRaiseTo, minRaiseTo, player.stack + player.roundBet);
+    const pay = Math.min(player.stack, target - player.roundBet);
+    player.stack -= pay;
+    player.roundBet += pay;
+    player.handBet += pay;
+    state.pot += pay;
+    state.currentBet = player.roundBet;
+    if (player.stack === 0) player.allIn = true;
+  }
+
+  player.actedAt = stamp;
+  state.actionLog.unshift({ id: uuid(), userId: req.user!.id, type: body.type, amount: body.amount, createdAt: stamp });
+  advancePokerState(session, req.user!.id);
+  await saveSession(session.sessionId, session);
+  if (session.status === 'FINISHED') {
+    await postSystemGameMessage(session.chatId, req.user!.id, buildSessionMessage('SESSION_FINISHED', session, { note: 'Покерная сессия завершена' }));
+  }
+  await emitGameUpdate(req, session, 'game:update', { reason: 'poker_action', action: body.type, userId: req.user!.id });
+  res.json({ session: toPublicSession(session, req.user!.id) });
+}));
+
+export default router;

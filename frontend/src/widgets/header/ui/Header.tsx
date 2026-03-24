@@ -8,15 +8,16 @@ import { Avatar } from '@/shared/ui/Avatar/Avatar';
 import { useGetMeQuery } from '@/shared/api/usersApi';
 import { UserSearch } from '@/features/userSearch/ui/UserSearch';
 import { NotificationsBell } from '@/widgets/notificationsBell/ui/NotificationsBell';
+import { Icon } from '@/shared/ui/Icon/Icon';
 
 function titleFromPath(path: string) {
-  if (path.startsWith('/health')) return 'Health';
-  if (path.startsWith('/messages')) return 'Messages';
-  if (path.startsWith('/friends')) return 'Friends';
-  if (path.startsWith('/profile')) return 'Profile';
-  if (path.startsWith('/feed') || path === '/') return 'Feed';
-  if (path.startsWith('/game')) return 'Game';
-  if (path.startsWith('/settings')) return 'Settings';
+  if (path.startsWith('/health')) return 'Пульс';
+  if (path.startsWith('/messages')) return 'Сообщения';
+  if (path.startsWith('/friends')) return 'Друзья';
+  if (path.startsWith('/profile')) return 'Профиль';
+  if (path.startsWith('/feed') || path === '/') return 'Лента';
+  if (path.startsWith('/game')) return 'Игры';
+  if (path.startsWith('/settings')) return 'Настройки';
   return 'Allvision Pulse';
 }
 
@@ -31,12 +32,12 @@ export function Header() {
         <UserSearch />
         <div className={styles.right}>
           <NotificationsBell />
-          <Link href={ROUTES.app.settings} className={styles.settings} aria-label="settings">
-            ⚙
+          <Link href={ROUTES.app.settings} className={styles.settings} aria-label="Настройки">
+            <Icon name="settings" size={18} />
           </Link>
           {me ? (
             <Link href={ROUTES.app.profile(me.username)} className={styles.me}>
-              <Avatar url={me.avatarUrl} name={me.username} size={32} />
+              <Avatar url={me.avatarUrl} name={me.username} size={34} />
               <div className={styles.meText}>
                 <div className={styles.meName}>{me.username}</div>
                 <div className={styles.meHandle}>@{me.username}</div>

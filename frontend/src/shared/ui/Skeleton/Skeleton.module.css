@@ -1,0 +1,38 @@
+.skeleton {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  background: rgba(255,255,255,0.06);
+  border-radius: 12px;
+}
+
+.skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent);
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+
+.circle {
+  border-radius: 999px;
+}
+
+.text {
+  display: grid;
+  gap: 10px;
+}
+
+.line {
+  height: 12px;
+}
+
+.card {
+  display: grid;
+  gap: 14px;
+}
+
+@keyframes shimmer {
+  100% { transform: translateX(100%); }
+}

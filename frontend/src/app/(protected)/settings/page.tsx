@@ -18,8 +18,8 @@ export default function SettingsPage() {
   return (
     <div className="container" style={{ maxWidth: 760 }}>
       <Card>
-        <CardHeader title="Settings" />
-        <CardMuted>Account / privacy / blacklist will be added next.</CardMuted>
+        <CardHeader title="Настройки" />
+        <CardMuted>Разделы аккаунта, приватности и чёрного списка будут добавлены следующим этапом.</CardMuted>
         <div className="hr" />
         <Button variant="ghost" onClick={onLogout} disabled={isLoading}>
           {isLoading ? 'Logging out…' : 'Logout'}

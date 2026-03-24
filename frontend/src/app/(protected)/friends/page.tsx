@@ -14,6 +14,19 @@ import {
   useRemoveFriendMutation,
 } from '@/shared/api/friendsApi';
 import { useAppSelector } from '@/shared/lib/storeHooks';
+import { Skeleton, SkeletonText } from '@/shared/ui/Skeleton/Skeleton';
+
+function RowSkeleton() {
+  return (
+    <div className={styles.row}>
+      <div className={styles.user}>
+        <Skeleton circle style={{ width: 38, height: 38 }} />
+        <div className={styles.meta}><SkeletonText lines={2} /></div>
+      </div>
+      <div className={styles.actions}><Skeleton style={{ width: 96, height: 44 }} /></div>
+    </div>
+  );
+}
 
 export default function FriendsPage() {
   const { data: meData } = useGetMeQuery();
@@ -42,42 +55,34 @@ export default function FriendsPage() {
   return (
     <div className="container">
       <Card>
-        <CardHeader title="Friends" />
-        <CardMuted>Friend list & requests</CardMuted>
+        <CardHeader title="Друзья" />
+        <CardMuted>Список друзей и входящие заявки</CardMuted>
         <div className={styles.tabs}>
           <button className={[styles.tab, tab === 'friends' ? styles.tabActive : ''].filter(Boolean).join(' ')} onClick={() => setTab('friends')}>
-            Friends
+            Друзья
           </button>
           <button className={[styles.tab, tab === 'requests' ? styles.tabActive : ''].filter(Boolean).join(' ')} onClick={() => setTab('requests')}>
-            Requests
+            Заявки
           </button>
         </div>
 
         {tab === 'friends' ? (
           <div className={styles.list}>
-            {friendsLoading ? <CardMuted>Loading…</CardMuted> : null}
-            {!friendsLoading && friendsUsers.length === 0 ? <CardMuted>No friends yet.</CardMuted> : null}
+            {friendsLoading ? <><RowSkeleton /><RowSkeleton /><RowSkeleton /></> : null}
+            {!friendsLoading && friendsUsers.length === 0 ? <CardMuted>Пока нет друзей.</CardMuted> : null}
 
             {friendsUsers.map(({ friendship, other }) => (
               <div key={friendship.id} className={styles.row}>
                 <div className={styles.user}>
-                  <Avatar
-                    url={other!.avatarUrl}
-                    name={other!.username}
-                    size={38}
-                    status={presence[other!.id]?.isOnline ? 'online' : 'offline'}
-                  />
+                  <Avatar url={other!.avatarUrl} name={other!.username} size={38} status={presence[other!.id]?.isOnline ? 'online' : 'offline'} />
                   <div className={styles.meta}>
                     <div className={styles.name}>{other!.username}</div>
                     <div className={styles.handle}>@{other!.username}</div>
                   </div>
                 </div>
                 <div className={styles.actions}>
-                  <Button
-                    onClick={() => remove({ userId: other!.id }).unwrap().catch(() => null)}
-                    disabled={removeLoading}
-                  >
-                    Remove
+                  <Button onClick={() => remove({ userId: other!.id }).unwrap().catch(() => null)} loading={removeLoading}>
+                    Удалить
                   </Button>
                 </div>
               </div>
@@ -85,11 +90,11 @@ export default function FriendsPage() {
           </div>
         ) : (
           <div className={styles.list}>
-            {reqLoading ? <CardMuted>Loading…</CardMuted> : null}
+            {reqLoading ? <><RowSkeleton /><RowSkeleton /></> : null}
 
-            {!reqLoading && incoming.length === 0 && outgoing.length === 0 ? <CardMuted>No requests.</CardMuted> : null}
+            {!reqLoading && incoming.length === 0 && outgoing.length === 0 ? <CardMuted>Нет заявок.</CardMuted> : null}
 
-            {incoming.length ? <div className={styles.badge}>Incoming</div> : null}
+            {incoming.length ? <div className={styles.badge}>Входящие</div> : null}
             {incoming.map((r) => {
               const u = r.sender;
               if (!u) return null;
@@ -103,22 +108,18 @@ export default function FriendsPage() {
                     </div>
                   </div>
                   <div className={styles.actions}>
-                    <Button
-                      variant="primary"
-                      onClick={() => accept({ friendshipId: r.id }).unwrap().catch(() => null)}
-                      disabled={acceptLoading}
-                    >
-                      Accept
+                    <Button variant="primary" onClick={() => accept({ friendshipId: r.id }).unwrap().catch(() => null)} loading={acceptLoading}>
+                      Принять
                     </Button>
-                    <Button onClick={() => decline({ friendshipId: r.id }).unwrap().catch(() => null)} disabled={declineLoading}>
-                      Decline
+                    <Button onClick={() => decline({ friendshipId: r.id }).unwrap().catch(() => null)} loading={declineLoading}>
+                      Отклонить
                     </Button>
                   </div>
                 </div>
               );
             })}
 
-            {outgoing.length ? <div className={styles.badge} style={{ marginTop: 10 }}>Outgoing</div> : null}
+            {outgoing.length ? <div className={styles.badge} style={{ marginTop: 10 }}>Исходящие</div> : null}
             {outgoing.map((r) => {
               const u = r.receiver;
               if (!u) return null;
@@ -132,7 +133,7 @@ export default function FriendsPage() {
                     </div>
                   </div>
                   <div className={styles.actions}>
-                    <div className={styles.badge}>Request sent</div>
+                    <div className={styles.badge}>Заявка отправлена</div>
                   </div>
                 </div>
               );

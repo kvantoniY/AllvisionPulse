@@ -1,5 +1,6 @@
 'use client';
 
+import type { ComponentProps } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import styles from './BottomNav.module.css';
@@ -7,6 +8,7 @@ import { ROUTES } from '@/shared/config/app';
 import { useGetMeQuery } from '@/shared/api/usersApi';
 import { useFriendBadge } from '@/features/friendBadge/useFriendBadge';
 import { useAppSelector } from '@/shared/lib/storeHooks';
+import { Icon } from '@/shared/ui/Icon/Icon';
 
 function Item({
   href,
@@ -17,14 +19,14 @@ function Item({
 }: {
   href: string;
   label: string;
-  icon: string;
+  icon: ComponentProps<typeof Icon>['name'];
   active: boolean;
   badge?: number;
 }) {
   return (
     <Link href={href} className={[styles.item, active ? styles.active : ''].filter(Boolean).join(' ')}>
       <div className={styles.icon}>
-        {icon}
+        <Icon name={icon} size={19} />
         {badge && badge > 0 ? <span className={styles.badgeDot} /> : null}
       </div>
       <div className={styles.label}>{label}</div>
@@ -42,12 +44,12 @@ export function BottomNav() {
   return (
     <div className={styles.nav}>
       <div className={styles.inner}>
-        <Item href={ROUTES.app.feed} label="Feed" icon="🏠" active={pathname === '/' || pathname.startsWith('/feed')} />
-        <Item href={ROUTES.app.health} label="Health" icon="♡" active={pathname.startsWith('/health')} />
-        <Item href={ROUTES.app.game} label="Game" icon="🎮" active={pathname.startsWith('/game')} />
-        <Item href={ROUTES.app.friends} label="Friends" icon="🤝" active={pathname.startsWith('/friends')} badge={incomingCount} />
-        <Item href={ROUTES.app.messages} label="Messages" icon="💬" active={pathname.startsWith('/messages')} badge={unreadMsgs} />
-        {me ? <Item href={ROUTES.app.profile(me.username)} label="Profile" icon="👤" active={pathname.startsWith('/profile')} /> : <Item href={ROUTES.app.feed} label="Profile" icon="👤" active={false} />}
+        <Item href={ROUTES.app.feed} label="Лента" icon="home" active={pathname === '/' || pathname.startsWith('/feed')} />
+        <Item href={ROUTES.app.health} label="Пульс" icon="pulse" active={pathname.startsWith('/health')} />
+        <Item href={ROUTES.app.game} label="Игры" icon="game" active={pathname.startsWith('/game')} />
+        <Item href={ROUTES.app.friends} label="Друзья" icon="users" active={pathname.startsWith('/friends')} badge={incomingCount} />
+        <Item href={ROUTES.app.messages} label="Чаты" icon="messages" active={pathname.startsWith('/messages')} badge={unreadMsgs} />
+        {me ? <Item href={ROUTES.app.profile(me.username)} label="Профиль" icon="user" active={pathname.startsWith('/profile')} /> : <Item href={ROUTES.app.feed} label="Профиль" icon="user" active={false} />}
       </div>
     </div>
   );
