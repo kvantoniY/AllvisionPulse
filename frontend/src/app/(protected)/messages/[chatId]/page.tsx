@@ -6,7 +6,7 @@ import styles from './Chat.module.css';
 import gridStyles from '../Messages.module.css';
 import { ChatSidebar } from '@/features/messages';
 import { Card } from '@/shared/ui/Card/Card';
-import { Avatar } from '@/shared/ui/Avatar/Avatar';
+import { StoryRingAvatar } from '@/features/stories';
 import { useGetMeQuery } from '@/shared/api/usersApi';
 import {
   chatsApi,
@@ -731,7 +731,7 @@ export default function ChatPage() {
               <Button className={styles.back} iconOnly type="button" onClick={() => router.push('/messages')} aria-label="Назад к чатам" title="Назад к чатам">
                 <Icon name="arrowLeft" size={18} />
               </Button>
-              <Avatar url={getChatAvatar(chat, meId)} name={getChatTitle(chat, meId)} size={36} />
+              <StoryRingAvatar userId={otherUser?.id} url={getChatAvatar(chat, meId)} name={getChatTitle(chat, meId)} size={36} disableStoryClick={chat?.type === 'GROUP'} />
               <div className={styles.topInfo}>
                 <div className={styles.title}>{getChatTitle(chat, meId)}</div>
                 <div className={styles.sub}>
@@ -911,7 +911,7 @@ export default function ChatPage() {
 
                   return (
                     <div key={message.id} id={`message-${message.id}`} className={[styles.msgRow, mine ? styles.mine : styles.their, highlightedMessageId === message.id ? styles.msgRowHighlighted : ''].filter(Boolean).join(' ')}>
-                      {!mine ? <Avatar url={message.sender?.avatarUrl} name={message.sender?.username ?? 'U'} size={28} /> : null}
+                      {!mine ? <StoryRingAvatar userId={message.sender?.id} url={message.sender?.avatarUrl} name={message.sender?.username ?? 'U'} size={28} /> : null}
 
                       <div className={styles.messageShell}>
                         <div className={[styles.messageActions, openActionsMessageId === message.id ? styles.messageActionsVisible : ''].filter(Boolean).join(' ')}>
@@ -1151,7 +1151,7 @@ export default function ChatPage() {
               return (
                 <label key={user.id} className={[styles.forwardRow, checked ? styles.forwardRowChecked : ''].filter(Boolean).join(' ')}>
                   <div className={styles.forwardUserInfo}>
-                    <Avatar url={user.avatarUrl} name={user.username} size={36} />
+                    <StoryRingAvatar userId={user.id} url={user.avatarUrl} name={user.username} size={36} />
                     <div>
                       <div className={styles.forwardName}>{user.username}</div>
                       <div className={styles.forwardSub}>Личный чат</div>

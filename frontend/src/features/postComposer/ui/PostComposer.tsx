@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import styles from './PostComposer.module.css';
 import { Card } from '@/shared/ui/Card/Card';
-import { Avatar } from '@/shared/ui/Avatar/Avatar';
+import { StoryRingAvatar } from '@/features/stories';
 import { Button } from '@/shared/ui/Button/Button';
 import { useGetMeQuery } from '@/shared/api/usersApi';
 import { useCreatePostMutation } from '@/shared/api/postsApi';
@@ -121,7 +121,7 @@ export function PostComposer({ context = 'feed' }: { context?: 'feed' | 'profile
       </Modal>
 
       <div className={styles.row}>
-        <Avatar url={me.avatarUrl} name={me.username} size={46} />
+        <StoryRingAvatar userId={me.id} url={me.avatarUrl} name={me.username} size={46} />
         <div className={styles.inputWrap}>
           <textarea
             ref={textRef}

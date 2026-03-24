@@ -17,6 +17,7 @@ import tasksRouter from "./routes/tasks";
 import notificationsRouter from "./routes/notifications";
 import adminRouter from "./routes/admin";
 import gamesRouter from "./routes/games";
+import storiesRouter from "./routes/stories";
 
 export function createApp() {
   const env = getEnv();
@@ -59,6 +60,7 @@ app.use('/uploads', (req, res, next) => {
   app.use("/api/tasks", tasksRouter);
   app.use("/api/notifications", notificationsRouter);
   app.use("/api/games", gamesRouter);
+  app.use("/api/stories", storiesRouter);
   app.use("/api/admin", adminRouter);
 
   app.use(notFound);

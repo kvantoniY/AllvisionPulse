@@ -6,7 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import styles from './Sidebar.module.css';
 import { APP_NAME, ROUTES } from '@/shared/config/app';
 import { useGetMeQuery } from '@/shared/api/usersApi';
-import { Avatar } from '@/shared/ui/Avatar/Avatar';
+import { StoryRingAvatar } from '@/features/stories';
 import { useLogoutMutation } from '@/shared/api/authApi';
 import { useFriendBadge } from '@/features/friendBadge/useFriendBadge';
 import { useAppSelector } from '@/shared/lib/storeHooks';
@@ -70,7 +70,7 @@ export function Sidebar() {
 
       <div className={styles.footer}>
         <div className={styles.me}>
-          <Avatar url={me?.avatarUrl} name={me?.username ?? 'Пользователь'} size={38} />
+          <StoryRingAvatar userId={me?.id} url={me?.avatarUrl} name={me?.username ?? 'Пользователь'} size={38} />
           <div style={{ minWidth: 0 }}>
             <div className={styles.name}>{me?.username ?? '—'}</div>
             <div className={styles.handle}>{me ? `@${me.username}` : ''}</div>

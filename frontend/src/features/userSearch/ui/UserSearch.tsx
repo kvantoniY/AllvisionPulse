@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import styles from './UserSearch.module.css';
 import { useLazySearchUsersQuery } from '@/shared/api/usersApi';
-import { Avatar } from '@/shared/ui/Avatar/Avatar';
+import { StoryRingAvatar } from '@/features/stories';
 import { ROUTES } from '@/shared/config/app';
 import { Icon } from '@/shared/ui/Icon/Icon';
 import { Skeleton, SkeletonText } from '@/shared/ui/Skeleton/Skeleton';
@@ -74,7 +74,7 @@ export function UserSearch() {
           {!isFetching && users.length === 0 ? <div className={styles.empty}>Ничего не найдено</div> : null}
           {users.map((u) => (
             <button key={u.id} className={styles.item} onClick={() => onPick(u.username)}>
-              <Avatar url={u.avatarUrl} name={u.username} size={32} />
+              <StoryRingAvatar userId={u.id} url={u.avatarUrl} name={u.username} size={32} />
               <div className={styles.meta}>
                 <div className={styles.name}>{u.username}</div>
                 <div className={styles.handle}>@{u.username}</div>

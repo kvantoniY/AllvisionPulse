@@ -6,7 +6,7 @@ import styles from '../Profile.module.css';
 import { useGetMeQuery, useGetUserByUsernameQuery, useUpdateProfileMutation } from '@/shared/api/usersApi';
 import { useGetStatsQuery } from '@/shared/api/healthApi';
 import { Card, CardHeader, CardMuted } from '@/shared/ui/Card/Card';
-import { Avatar } from '@/shared/ui/Avatar/Avatar';
+import { StoryRingAvatar } from '@/features/stories';
 import { Button } from '@/shared/ui/Button/Button';
 import {
   useAcceptFriendRequestMutation,
@@ -250,7 +250,7 @@ export default function ProfilePage() {
       />
       <div className={styles.header}>
         <div className={styles.user}>
-          <Avatar url={user.avatarUrl} name={user.username} size={74} />
+          <StoryRingAvatar userId={user.id} url={user.avatarUrl} name={user.username} size={74} />
           <div>
             <div className={styles.name}>{user.username}</div>
             <div className={styles.handle}>@{user.username}</div>

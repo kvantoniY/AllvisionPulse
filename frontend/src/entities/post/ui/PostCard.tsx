@@ -4,7 +4,7 @@ import Link from 'next/link';
 import styles from './PostCard.module.css';
 import type { Post } from '@/shared/types/social';
 import { Card } from '@/shared/ui/Card/Card';
-import { Avatar } from '@/shared/ui/Avatar/Avatar';
+import { StoryRingAvatar } from '@/features/stories';
 import { ROUTES } from '@/shared/config/app';
 import { formatRelative } from '@/shared/lib/time';
 import { useGetMeQuery } from '@/shared/api/usersApi';
@@ -27,11 +27,8 @@ export function PostCard({ post, onOpen, compact = false }: { post: Post; onOpen
 
   const onToggleLike = async () => {
     if (!post.id) return;
-    if (liked) {
-      await unlike({ postId: post.id, userId: me?.id }).unwrap().catch(() => null);
-    } else {
-      await like({ postId: post.id, userId: me?.id }).unwrap().catch(() => null);
-    }
+    if (liked) await unlike({ postId: post.id, userId: me?.id }).unwrap().catch(() => null);
+    else await like({ postId: post.id, userId: me?.id }).unwrap().catch(() => null);
   };
 
   const onDelete = async () => {
@@ -44,13 +41,13 @@ export function PostCard({ post, onOpen, compact = false }: { post: Post; onOpen
   return (
     <Card className={styles.card}>
       <div className={styles.header}>
-        <Link href={ROUTES.app.profile(post.author.username)} className={styles.author}>
-          <Avatar url={post.author.avatarUrl} name={post.author.username} size={42} />
-          <div style={{ minWidth: 0 }}>
+        <div className={styles.author}>
+          <StoryRingAvatar userId={post.author.id} url={post.author.avatarUrl} name={post.author.username} size={42} />
+          <Link href={ROUTES.app.profile(post.author.username)} style={{ minWidth: 0 }}>
             <div className={styles.name}>{post.author.username}</div>
             <div className={styles.handle}>@{post.author.username}</div>
-          </div>
-        </Link>
+          </Link>
+        </div>
         <div className={styles.right}>
           <div className={styles.time}>{formatRelative(post.createdAt)}</div>
           {isMine ? (

@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import styles from './PostModal.module.css';
 import { Modal } from '@/shared/ui/Modal/Modal';
 import { PostCard } from '@/entities/post/ui/PostCard';
-import { Avatar } from '@/shared/ui/Avatar/Avatar';
+import { StoryRingAvatar } from '@/features/stories';
 import { Button } from '@/shared/ui/Button/Button';
 import { useGetMeQuery } from '@/shared/api/usersApi';
 import { useCreateCommentMutation, useDeleteCommentMutation, useGetCommentsQuery, useGetPostQuery } from '@/shared/api/postsApi';
@@ -27,7 +27,7 @@ function useAutosize(ref: React.RefObject<HTMLTextAreaElement>, value: string) {
 function CommentItem({ c, canDelete, onDelete, deleting }: { c: Comment; canDelete: boolean; onDelete: () => void; deleting?: boolean }) {
   return (
     <div className={styles.comment}>
-      <Avatar url={c.author.avatarUrl} name={c.author.username} size={36} />
+      <StoryRingAvatar userId={c.author.id} url={c.author.avatarUrl} name={c.author.username} size={36} />
       <div className={styles.commentBody}>
         <div className={styles.commentTop}>
           <div style={{ minWidth: 0 }}>
@@ -99,7 +99,7 @@ export function PostModal({ postId, open, onClose }: { postId: string | null; op
         {postFetching && !post ? <SkeletonCard className={styles.postSkeleton} /> : null}
 
         <div className={styles.commentBox}>
-          {me ? <Avatar url={me?.avatarUrl} name={me?.username} size={40} /> : <Skeleton circle style={{ width: 40, height: 40 }} />}
+          {me ? <StoryRingAvatar userId={me.id} url={me?.avatarUrl} name={me?.username} size={40} /> : <Skeleton circle style={{ width: 40, height: 40 }} />}
           <div style={{ flex: 1, minWidth: 0 }}>
             <textarea
               ref={ref}

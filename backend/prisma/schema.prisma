@@ -105,6 +105,9 @@ model User {
   pulseTaskCompletions   PulseTaskCompletion[]
   pulseGoals             PulseGoal[]
 
+  stories    Story[]
+  storyViews StoryView[]
+
   createdChatEvents ChatEvent[]     @relation("ChatEventCreator")
   chatEventVotes    ChatEventVote[]
 
@@ -368,6 +371,38 @@ model MessageRead {
 
   @@unique([chatId, userId, messageId])
   @@index([chatId, userId, readAt])
+}
+
+model Story {
+  id         String   @id @default(uuid())
+  authorId   String
+  mediaUrl   String
+  mediaType  String
+  durationMs Int?
+  width      Int?
+  height     Int?
+  itemsJson  Json?
+  createdAt  DateTime @default(now())
+  expiresAt  DateTime
+
+  author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  views  StoryView[]
+
+  @@index([authorId, createdAt])
+  @@index([expiresAt])
+}
+
+model StoryView {
+  id       String   @id @default(uuid())
+  storyId  String
+  viewerId String
+  viewedAt DateTime @default(now())
+
+  story  Story @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  viewer User  @relation(fields: [viewerId], references: [id], onDelete: Cascade)
+
+  @@unique([storyId, viewerId])
+  @@index([viewerId, viewedAt])
 }
 
 model Notification {

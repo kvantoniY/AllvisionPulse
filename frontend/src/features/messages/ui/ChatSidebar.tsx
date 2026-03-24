@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Avatar } from '@/shared/ui/Avatar/Avatar';
+import { StoryRingAvatar } from '@/features/stories';
 import { Button } from '@/shared/ui/Button/Button';
 import { useGetChatsQuery, useGetMessagesQuery, useCreateGroupChatMutation } from '@/shared/api/chatsApi';
 import { useGetMeQuery } from '@/shared/api/usersApi';
@@ -44,7 +44,7 @@ function ChatListItem({ chat, meId, unread, activeId, onOpen, presence }: any) {
 
   return (
     <button type="button" className={[styles.item, activeId === chat.id ? styles.itemActive : ''].join(' ')} onClick={onOpen}>
-      <Avatar url={getChatAvatar(chat, meId)} name={getChatTitle(chat, meId)} size={44} status={avatarStatus} />
+      <StoryRingAvatar userId={otherUser?.id} url={getChatAvatar(chat, meId)} name={getChatTitle(chat, meId)} size={44} status={avatarStatus} disableStoryClick={chat.type === 'GROUP'} />
       <div style={{ minWidth: 0, flex: 1 }}>
         <div className={styles.itemTop}>
           <div className={styles.itemTitle}>{getChatTitle(chat, meId)}</div>
@@ -154,7 +154,7 @@ export function ChatSidebar({ activeChatId }: { activeChatId?: string | null }) 
                 return (
                   <label key={u.id} className={styles.friendRow}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <Avatar url={u.avatarUrl} name={u.username} size={30} />
+                      <StoryRingAvatar userId={u.id} url={u.avatarUrl} name={u.username} size={30} />
                       <div>{u.username}</div>
                     </div>
                     <input type="checkbox" checked={checked} onChange={(e) => setSelected((p) => ({ ...p, [u.id]: e.target.checked }))} />

@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import styles from './Friends.module.css';
 import { Card, CardHeader, CardMuted } from '@/shared/ui/Card/Card';
-import { Avatar } from '@/shared/ui/Avatar/Avatar';
+import { StoryRingAvatar } from '@/features/stories';
 import { Button } from '@/shared/ui/Button/Button';
 import { useGetMeQuery } from '@/shared/api/usersApi';
 import {
@@ -74,7 +74,7 @@ export default function FriendsPage() {
             {friendsUsers.map(({ friendship, other }) => (
               <div key={friendship.id} className={styles.row}>
                 <div className={styles.user}>
-                  <Avatar url={other!.avatarUrl} name={other!.username} size={38} status={presence[other!.id]?.isOnline ? 'online' : 'offline'} />
+                  <StoryRingAvatar userId={other!.id} url={other!.avatarUrl} name={other!.username} size={38} status={presence[other!.id]?.isOnline ? 'online' : 'offline'} />
                   <div className={styles.meta}>
                     <div className={styles.name}>{other!.username}</div>
                     <div className={styles.handle}>@{other!.username}</div>
@@ -101,7 +101,7 @@ export default function FriendsPage() {
               return (
                 <div key={r.id} className={styles.row}>
                   <div className={styles.user}>
-                    <Avatar url={u.avatarUrl} name={u.username} size={38} status={presence[u.id]?.isOnline ? 'online' : 'offline'} />
+                    <StoryRingAvatar userId={u.id} url={u.avatarUrl} name={u.username} size={38} status={presence[u.id]?.isOnline ? 'online' : 'offline'} />
                     <div className={styles.meta}>
                       <div className={styles.name}>{u.username}</div>
                       <div className={styles.handle}>@{u.username}</div>
@@ -126,7 +126,7 @@ export default function FriendsPage() {
               return (
                 <div key={r.id} className={styles.row}>
                   <div className={styles.user}>
-                    <Avatar url={u.avatarUrl} name={u.username} size={38} status={presence[u.id]?.isOnline ? 'online' : 'offline'} />
+                    <StoryRingAvatar userId={u.id} url={u.avatarUrl} name={u.username} size={38} status={presence[u.id]?.isOnline ? 'online' : 'offline'} />
                     <div className={styles.meta}>
                       <div className={styles.name}>{u.username}</div>
                       <div className={styles.handle}>@{u.username}</div>

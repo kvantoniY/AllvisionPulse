@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import styles from './Header.module.css';
 import { ROUTES } from '@/shared/config/app';
-import { Avatar } from '@/shared/ui/Avatar/Avatar';
+import { StoryRingAvatar, StoriesRail } from '@/features/stories';
 import { useGetMeQuery } from '@/shared/api/usersApi';
 import { UserSearch } from '@/features/userSearch/ui/UserSearch';
 import { NotificationsBell } from '@/widgets/notificationsBell/ui/NotificationsBell';
@@ -37,7 +37,7 @@ export function Header() {
           </Link>
           {me ? (
             <Link href={ROUTES.app.profile(me.username)} className={styles.me}>
-              <Avatar url={me.avatarUrl} name={me.username} size={34} />
+              <StoryRingAvatar userId={me.id} url={me.avatarUrl} name={me.username} size={34} />
               <div className={styles.meText}>
                 <div className={styles.meName}>{me.username}</div>
                 <div className={styles.meHandle}>@{me.username}</div>
@@ -46,6 +46,7 @@ export function Header() {
           ) : null}
         </div>
       </div>
+      <StoriesRail />
     </header>
   );
 }
