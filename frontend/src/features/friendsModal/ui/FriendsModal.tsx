@@ -15,9 +15,9 @@ export function FriendsModal({ open, onClose }: { open: boolean; onClose: () => 
   const friends = data?.friends ?? [];
 
   return (
-    <Modal open={open} onClose={onClose} title={`Друзья (${friends.length})`}>
+    <Modal open={open} onClose={onClose} title={`Подписки (${friends.length})`}>
       {isLoading ? <div className={styles.muted}>Загрузка…</div> : null}
-      {!isLoading && friends.length === 0 ? <div className={styles.muted}>Пока нет друзей.</div> : null}
+      {!isLoading && friends.length === 0 ? <div className={styles.muted}>Пока нет подписок.</div> : null}
       <div className={styles.list}>
         {friends.map((f: any) => {
           const u = me && f.senderId === me.id ? f.receiver : f.sender;

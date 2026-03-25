@@ -37,6 +37,17 @@ export type MessageAttachment = {
   height?: number | null;
 };
 
+
+export type MessageMeta = {
+  kind?: 'storyReply';
+  storyId?: string;
+  storyAuthorId?: string;
+  storyAuthorName?: string;
+  storyImageUrl?: string;
+  storyMediaType?: string;
+  storyCreatedAt?: string;
+};
+
 export type MessageRead = {
   id?: string;
   userId: string;
@@ -53,6 +64,7 @@ export type Message = {
   deletedAt?: string | null;
   type?: string;
   text?: string | null;
+  metaJson?: MessageMeta | null;
   sender: {
     id: string;
     username: string;

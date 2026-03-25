@@ -62,7 +62,7 @@ export function Sidebar() {
       <nav className={styles.nav}>
         <NavItem href={ROUTES.app.feed} label="Лента" icon="home" active={pathname === '/' || pathname.startsWith('/feed')} />
         <NavItem href={ROUTES.app.health} label="Пульс" icon="pulse" active={pathname.startsWith('/health')} />
-        <NavItem href={ROUTES.app.friends} label="Друзья" icon="users" active={pathname.startsWith('/friends')} badge={incomingCount} />
+        <NavItem href={ROUTES.app.friends} label="Подписки" icon="users" active={pathname.startsWith('/friends')} badge={incomingCount} />
         <NavItem href={ROUTES.app.game} label="Игры" icon="game" active={pathname.startsWith('/game')} />
         <NavItem href={ROUTES.app.messages} label="Сообщения" icon="messages" active={pathname.startsWith('/messages')} badge={unreadMsgs} />
         {me ? <NavItem href={ROUTES.app.profile(me.username)} label="Профиль" icon="user" active={pathname.startsWith('/profile')} /> : null}

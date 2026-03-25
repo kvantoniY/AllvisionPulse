@@ -3,12 +3,13 @@
 import { useGetStoriesRailQuery } from '@/shared/api/storiesApi';
 import { useGetMeQuery } from '@/shared/api/usersApi';
 import { Skeleton } from '@/shared/ui/Skeleton/Skeleton';
+import { Icon } from '@/shared/ui/Icon/Icon';
 import styles from './Stories.module.css';
 import { StoryRingAvatar } from './StoryRingAvatar';
 import { useStoriesUi } from './StoriesContext';
 
 export function StoriesRail() {
-  const { data, isFetching } = useGetStoriesRailQuery(undefined, { pollingInterval: 30000, refetchOnFocus: true });
+  const { data, isFetching } = useGetStoriesRailQuery(undefined, { pollingInterval: 5000, refetchOnFocus: true, refetchOnReconnect: true });
   const { data: meData } = useGetMeQuery();
   const { openCreator, openViewer } = useStoriesUi();
   const me = meData?.user;
@@ -19,36 +20,43 @@ export function StoriesRail() {
   if (!me && !isFetching && !items.length) return null;
 
   return (
-    <div className={styles.railWrap}>
+    <section className={styles.railWrap} aria-label="Сторис">
       <div className={styles.rail}>
         {me ? (
-          <button type="button" className={styles.railItem} onClick={() => (meEntry ? openViewer(me.id) : openCreator())}>
-            <StoryRingAvatar
-              userId={me.id}
-              url={me.avatarUrl}
-              name={me.username}
-              size={62}
-              disableStoryClick
-              showAddBadge={!meEntry}
-            />
-            <span className={[styles.railName, styles.railNameActive].join(' ')}>{meEntry ? 'Мои сторис' : 'Добавить'}</span>
-          </button>
+          <div className={styles.railOwnGroup}>
+            {meEntry ? (
+              <button type="button" className={styles.railAddSupplement} onClick={() => openCreator()} aria-label="Дополнить сторис">
+                <Icon name="plus" size={18} />
+              </button>
+            ) : null}
+            <button type="button" className={styles.railItem} onClick={() => (meEntry ? openViewer(me.id) : openCreator())}>
+              <StoryRingAvatar
+                userId={me.id}
+                url={me.avatarUrl}
+                name={me.username}
+                size={64}
+                disableStoryClick
+                showAddBadge={!meEntry}
+              />
+              <span className={[styles.railName, styles.railNameActive].join(' ')}>{meEntry ? 'Мои сторис' : 'Добавить'}</span>
+            </button>
+          </div>
         ) : null}
 
         {isFetching && !items.length ? Array.from({ length: 6 }).map((_, index) => (
           <div key={index} className={styles.railItem}>
-            <Skeleton circle style={{ width: 68, height: 68 }} />
+            <Skeleton circle style={{ width: 72, height: 72 }} />
             <Skeleton style={{ width: 58, height: 12, borderRadius: 999 }} />
           </div>
         )) : null}
 
         {others.map((item) => (
           <button key={item.author.id} type="button" className={styles.railItem} onClick={() => openViewer(item.author.id)}>
-            <StoryRingAvatar userId={item.author.id} url={item.author.avatarUrl} name={item.author.username} size={62} disableStoryClick />
+            <StoryRingAvatar userId={item.author.id} url={item.author.avatarUrl} name={item.author.username} size={64} disableStoryClick />
             <span className={[styles.railName, item.hasUnviewed ? styles.railNameActive : ''].filter(Boolean).join(' ')}>{item.author.username}</span>
           </button>
         ))}
       </div>
-    </div>
+    </section>
   );
 }

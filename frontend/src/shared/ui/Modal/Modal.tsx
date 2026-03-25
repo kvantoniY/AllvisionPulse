@@ -1,6 +1,6 @@
 'use client';
 
-import { PropsWithChildren, useEffect } from 'react';
+import { PropsWithChildren, ReactNode, useEffect } from 'react';
 import styles from './Modal.module.css';
 import { Icon } from '@/shared/ui/Icon/Icon';
 
@@ -10,7 +10,9 @@ export function Modal({
   title,
   children,
   size = 'md',
-}: PropsWithChildren<{ open: boolean; onClose: () => void; title?: string; size?: 'md' | 'lg' | 'xl' | 'game' }>) {
+  subtitle,
+  icon,
+}: PropsWithChildren<{ open: boolean; onClose: () => void; title?: string; subtitle?: string; icon?: ReactNode; size?: 'md' | 'lg' | 'xl' | 'game' }>) {
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
@@ -45,7 +47,13 @@ export function Modal({
         onMouseDown={(e) => e.stopPropagation()}
       >
         <div className={styles.header}>
-          <div className={styles.title}>{title ?? ''}</div>
+          <div className={styles.headerMain}>
+            {icon ? <div className={styles.iconWrap}>{icon}</div> : null}
+            <div className={styles.titleWrap}>
+              <div className={styles.title}>{title ?? ''}</div>
+              {subtitle ? <div className={styles.subtitle}>{subtitle}</div> : null}
+            </div>
+          </div>
           <button className={styles.close} onClick={onClose} aria-label="Закрыть">
             <Icon name="close" size={18} />
           </button>

@@ -79,7 +79,7 @@ export default function LoginPage() {
             {...register('password')}
           />
           {errors.root?.message ? <div className={styles.error}>{errors.root.message}</div> : null}
-          <Button variant="primary" className={styles.full} disabled={isLoading}>
+          <Button type="submit" variant="primary" className={styles.full} disabled={isLoading}>
             {isLoading ? 'Входим…' : 'Войти'}
           </Button>
         </form>

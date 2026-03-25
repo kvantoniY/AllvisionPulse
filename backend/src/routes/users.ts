@@ -7,50 +7,237 @@ import { requireAuth, AuthedRequest } from "../middleware/auth";
 
 const router = Router();
 
+const PROFILE_VISIBILITY = ["everyone", "followers", "private"] as const;
+const CONTACT_VISIBILITY = ["everyone", "followers", "none"] as const;
+
+type ProfileVisibility = (typeof PROFILE_VISIBILITY)[number];
+type ContactVisibility = (typeof CONTACT_VISIBILITY)[number];
+
+async function getRelationshipContext(viewerId: string, targetId: string) {
+  const [viewerToUser, userToViewer, blockEntry] = await Promise.all([
+    prisma.friendship.findUnique({
+      where: { senderId_receiverId: { senderId: viewerId, receiverId: targetId } },
+      select: { id: true, senderId: true, receiverId: true, status: true, createdAt: true, updatedAt: true },
+    }),
+    prisma.friendship.findUnique({
+      where: { senderId_receiverId: { senderId: targetId, receiverId: viewerId } },
+      select: { id: true, senderId: true, receiverId: true, status: true, createdAt: true, updatedAt: true },
+    }),
+    prisma.blacklist.findFirst({
+      where: {
+        OR: [
+          { blockerId: viewerId, blockedId: targetId },
+          { blockerId: targetId, blockedId: viewerId },
+        ],
+      },
+      select: { blockerId: true, blockedId: true },
+    }),
+  ]);
+
+  const isFollowing = viewerToUser?.status === "ACCEPTED";
+  const followsYou = userToViewer?.status === "ACCEPTED";
+  const blockedByMe = blockEntry?.blockerId === viewerId;
+  const blockedMe = blockEntry?.blockedId === viewerId;
+
+  return {
+    viewerToUser,
+    userToViewer,
+    isFollowing,
+    followsYou,
+    isMutual: isFollowing && followsYou,
+    outgoingRequest: viewerToUser?.status === "PENDING",
+    incomingRequest: userToViewer?.status === "PENDING",
+    blockedByMe,
+    blockedMe,
+    isBlocked: Boolean(blockEntry),
+  };
+}
+
+function canViewProfile(args: {
+  privacy?: { profileVisibility?: string | null } | null;
+  isSelf: boolean;
+  isFollowing: boolean;
+  isAdmin: boolean;
+}) {
+  const visibility = (args.privacy?.profileVisibility ?? "everyone") as ProfileVisibility;
+  if (args.isAdmin || args.isSelf) return true;
+  if (visibility === "everyone") return true;
+  if (visibility === "followers") return args.isFollowing;
+  return false;
+}
+
+function canContact(args: {
+  value?: string | null;
+  isSelf: boolean;
+  isFollowing: boolean;
+  isAdmin: boolean;
+}) {
+  const value = (args.value ?? "everyone") as ContactVisibility;
+  if (args.isAdmin || args.isSelf) return true;
+  if (value === "everyone") return true;
+  if (value === "followers") return args.isFollowing;
+  return false;
+}
+
+async function serializeProfile(viewerId: string, username: string, viewerRole: string) {
+  const user = await prisma.user.findUnique({
+    where: { username },
+    select: {
+      id: true,
+      username: true,
+      avatarUrl: true,
+      bio: true,
+      lastSeenAt: true,
+      privacy: true,
+      _count: { select: { posts: true } },
+    },
+  });
+  if (!user) throw new HttpError(404, "User not found");
+
+  const isSelf = viewerId === user.id;
+  const relationship = isSelf
+    ? {
+        viewerToUser: null,
+        userToViewer: null,
+        isFollowing: false,
+        followsYou: false,
+        isMutual: false,
+        outgoingRequest: false,
+        incomingRequest: false,
+        blockedByMe: false,
+        blockedMe: false,
+        isBlocked: false,
+      }
+    : await getRelationshipContext(viewerId, user.id);
+
+  const isAdmin = viewerRole === "ADMIN";
+  const profileAllowed = !relationship.isBlocked && canViewProfile({ privacy: user.privacy, isSelf, isFollowing: relationship.isFollowing, isAdmin });
+  const canMessage = !relationship.isBlocked && canContact({ value: user.privacy?.allowMessagesFrom, isSelf, isFollowing: relationship.isFollowing, isAdmin });
+  const canCall = !relationship.isBlocked && canContact({ value: user.privacy?.allowCallsFrom, isSelf, isFollowing: relationship.isFollowing, isAdmin });
+
+  const [followersCount, followingCount] = await Promise.all([
+    prisma.friendship.count({ where: { receiverId: user.id, status: "ACCEPTED" } }),
+    prisma.friendship.count({ where: { senderId: user.id, status: "ACCEPTED" } }),
+  ]);
+
+  return {
+    user: {
+      id: user.id,
+      username: user.username,
+      avatarUrl: user.avatarUrl,
+      bio: profileAllowed || isSelf ? user.bio : null,
+      lastSeenAt: user.lastSeenAt,
+      privacy: user.privacy,
+      postsCount: user._count.posts,
+      followersCount,
+      followingCount,
+    },
+    relationship: {
+      ...relationship,
+      canViewProfile: profileAllowed,
+      canMessage,
+      canCall,
+    },
+  };
+}
+
 router.get("/me", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
   const me = await prisma.user.findUnique({
     where: { id: req.user!.id },
     select: {
-      id: true, email: true, username: true, role: true, avatarUrl: true, bio: true, lastSeenAt: true,
-      settings: true, privacy: true,
+      id: true,
+      email: true,
+      username: true,
+      role: true,
+      avatarUrl: true,
+      bio: true,
+      lastSeenAt: true,
+      settings: true,
+      privacy: true,
+      pulseConfig: true,
+      _count: { select: { posts: true } },
     },
   });
-  res.json({ user: me });
+  if (!me) return res.json({ user: null });
+
+  const [followersCount, followingCount] = await Promise.all([
+    prisma.friendship.count({ where: { receiverId: me.id, status: "ACCEPTED" } }),
+    prisma.friendship.count({ where: { senderId: me.id, status: "ACCEPTED" } }),
+  ]);
+
+  res.json({ user: { ...me, followersCount, followingCount, postsCount: me._count.posts } });
 }));
 
 router.get("/search", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
   const q = (req.query.q?.toString() ?? "").trim();
   const users = await prisma.user.findMany({
-    where: q ? { OR: [{ username: { contains: q, mode: "insensitive" } }, { email: { contains: q, mode: "insensitive" } }] } : undefined,
+    where: q
+      ? {
+          OR: [
+            { username: { contains: q, mode: "insensitive" } },
+            { email: { contains: q, mode: "insensitive" } },
+          ],
+        }
+      : undefined,
     take: 20,
-    select: { id: true, username: true, avatarUrl: true, lastSeenAt: true },
+    select: { id: true, username: true, avatarUrl: true, bio: true, lastSeenAt: true, privacy: true },
   });
   res.json({ users });
 }));
 
-router.get("/:username", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
+router.get("/:username/connections", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
   const username = req.params.username;
-  const user = await prisma.user.findUnique({
+  const tab = req.query.tab === "followers" ? "followers" : "following";
+  const target = await prisma.user.findUnique({
     where: { username },
-    select: {
-      id: true, username: true, avatarUrl: true, bio: true, lastSeenAt: true,
-      privacy: true,
-    },
+    select: { id: true, username: true, privacy: true },
   });
-  if (!user) throw new HttpError(404, "User not found");
+  if (!target) throw new HttpError(404, "User not found");
 
-  // friendship status
-  const rel = await prisma.friendship.findFirst({
-    where: {
-      OR: [
-        { senderId: req.user!.id, receiverId: user.id },
-        { senderId: user.id, receiverId: req.user!.id },
-      ],
-    },
-    select: { id: true, senderId: true, receiverId: true, status: true },
+  const isSelf = req.user!.id === target.id;
+  const relationship = isSelf
+    ? {
+        viewerToUser: null,
+        userToViewer: null,
+        isFollowing: false,
+        followsYou: false,
+        isMutual: false,
+        outgoingRequest: false,
+        incomingRequest: false,
+        blockedByMe: false,
+        blockedMe: false,
+        isBlocked: false,
+      }
+    : await getRelationshipContext(req.user!.id, target.id);
+
+  const canView = !relationship.isBlocked && canViewProfile({
+    privacy: target.privacy,
+    isSelf,
+    isFollowing: relationship.isFollowing,
+    isAdmin: req.user!.role === "ADMIN",
   });
 
-  res.json({ user, relationship: rel });
+  if (!canView) {
+    return res.json({ canView: false, items: [] });
+  }
+
+  const items = await prisma.friendship.findMany({
+    where: tab === "followers"
+      ? { receiverId: target.id, status: "ACCEPTED" }
+      : { senderId: target.id, status: "ACCEPTED" },
+    include: {
+      sender: { select: { id: true, username: true, avatarUrl: true, bio: true, lastSeenAt: true } },
+      receiver: { select: { id: true, username: true, avatarUrl: true, bio: true, lastSeenAt: true } },
+    },
+    orderBy: { updatedAt: "desc" },
+  });
+
+  res.json({ canView: true, items });
+}));
+
+router.get("/:username", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
+  const payload = await serializeProfile(req.user!.id, req.params.username, req.user!.role);
+  res.json(payload);
 }));
 
 const UpdateProfileSchema = z.object({
@@ -72,7 +259,9 @@ const UpdatePrivacySchema = z.object({
   showHealthWidgets: z.boolean().optional(),
   showTasks: z.boolean().optional(),
   showEvents: z.boolean().optional(),
-  allowMessagesFrom: z.enum(["everyone", "friends"]).optional(),
+  profileVisibility: z.enum(PROFILE_VISIBILITY).optional(),
+  allowMessagesFrom: z.enum(CONTACT_VISIBILITY).optional(),
+  allowCallsFrom: z.enum(CONTACT_VISIBILITY).optional(),
 });
 
 router.patch("/me/privacy", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
@@ -85,11 +274,10 @@ router.patch("/me/privacy", requireAuth, asyncHandler(async (req: AuthedRequest,
   res.json({ privacy });
 }));
 
-// --- Blacklist ---
 router.get("/me/blacklist", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
   const list = await prisma.blacklist.findMany({
     where: { blockerId: req.user!.id },
-    include: { blocked: { select: { id: true, username: true, avatarUrl: true } } },
+    include: { blocked: { select: { id: true, username: true, avatarUrl: true, bio: true, lastSeenAt: true } } },
     orderBy: { createdAt: "desc" },
   });
   res.json({ blacklist: list });
@@ -100,16 +288,15 @@ const BlockSchema = z.object({ userId: z.string().uuid() });
 router.post("/me/blacklist", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
   const body = BlockSchema.parse(req.body);
   if (body.userId === req.user!.id) throw new HttpError(400, "Cannot block self");
+
   await prisma.blacklist.create({ data: { blockerId: req.user!.id, blockedId: body.userId } }).catch(() => null);
-  // also mark friendships blocked
-  await prisma.friendship.updateMany({
+  await prisma.friendship.deleteMany({
     where: {
       OR: [
         { senderId: req.user!.id, receiverId: body.userId },
         { senderId: body.userId, receiverId: req.user!.id },
       ],
     },
-    data: { status: "BLOCKED" },
   });
   res.json({ ok: true });
 }));
@@ -120,102 +307,158 @@ router.delete("/me/blacklist/:userId", requireAuth, asyncHandler(async (req: Aut
   res.json({ ok: true });
 }));
 
-// --- Friends ---
-router.get("/me/friends", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
-  const friends = await prisma.friendship.findMany({
-    where: {
-      OR: [
-        { senderId: req.user!.id, status: "ACCEPTED" },
-        { receiverId: req.user!.id, status: "ACCEPTED" },
-      ],
-    },
-    include: {
-      sender: { select: { id: true, username: true, avatarUrl: true, lastSeenAt: true } },
-      receiver: { select: { id: true, username: true, avatarUrl: true, lastSeenAt: true } },
-    },
+router.get("/me/following", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
+  const following = await prisma.friendship.findMany({
+    where: { senderId: req.user!.id, status: "ACCEPTED" },
+    include: { receiver: { select: { id: true, username: true, avatarUrl: true, bio: true, lastSeenAt: true } } },
     orderBy: { updatedAt: "desc" },
   });
-  res.json({ friends });
+  res.json({ following });
 }));
 
-router.get("/me/friend-requests", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
+router.get("/me/followers", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
+  const followers = await prisma.friendship.findMany({
+    where: { receiverId: req.user!.id, status: "ACCEPTED" },
+    include: { sender: { select: { id: true, username: true, avatarUrl: true, bio: true, lastSeenAt: true } } },
+    orderBy: { updatedAt: "desc" },
+  });
+  res.json({ followers });
+}));
+
+router.get("/me/follow-requests", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
   const incoming = await prisma.friendship.findMany({
     where: { receiverId: req.user!.id, status: "PENDING" },
-    include: { sender: { select: { id: true, username: true, avatarUrl: true } } },
+    include: { sender: { select: { id: true, username: true, avatarUrl: true, bio: true, lastSeenAt: true } } },
     orderBy: { createdAt: "desc" },
   });
   const outgoing = await prisma.friendship.findMany({
     where: { senderId: req.user!.id, status: "PENDING" },
-    include: { receiver: { select: { id: true, username: true, avatarUrl: true } } },
+    include: { receiver: { select: { id: true, username: true, avatarUrl: true, bio: true, lastSeenAt: true } } },
     orderBy: { createdAt: "desc" },
   });
   res.json({ incoming, outgoing });
 }));
 
-const FriendReqSchema = z.object({ userId: z.string().uuid() });
+const FollowReqSchema = z.object({ userId: z.string().uuid() });
 
-router.post("/me/friends/request", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
-  const body = FriendReqSchema.parse(req.body);
-  if (body.userId === req.user!.id) throw new HttpError(400, "Cannot friend self");
+router.post("/me/follows", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
+  const body = FollowReqSchema.parse(req.body);
+  if (body.userId === req.user!.id) throw new HttpError(400, "Cannot follow self");
 
-  // blacklist check
   const blocked = await prisma.blacklist.findFirst({
-    where: { OR: [{ blockerId: req.user!.id, blockedId: body.userId }, { blockerId: body.userId, blockedId: req.user!.id }] },
+    where: {
+      OR: [
+        { blockerId: req.user!.id, blockedId: body.userId },
+        { blockerId: body.userId, blockedId: req.user!.id },
+      ],
+    },
     select: { id: true },
   });
   if (blocked) throw new HttpError(403, "Blocked");
 
-  const fr = await prisma.friendship.upsert({
+  const target = await prisma.user.findUnique({ where: { id: body.userId }, select: { id: true, privacy: true } });
+  if (!target) throw new HttpError(404, "User not found");
+  const status = target.privacy?.profileVisibility === "private" && req.user!.role !== "ADMIN" ? "PENDING" : "ACCEPTED";
+
+  const follow = await prisma.friendship.upsert({
     where: { senderId_receiverId: { senderId: req.user!.id, receiverId: body.userId } },
-    create: { senderId: req.user!.id, receiverId: body.userId, status: "PENDING" },
-    update: { status: "PENDING" },
+    create: { senderId: req.user!.id, receiverId: body.userId, status },
+    update: { status },
   });
 
-  // notify
   const emitter = req.app.locals.emitter as any;
   const notif = await prisma.notification.create({
-    data: { userId: body.userId, type: "FRIEND_REQUEST", data: { fromUserId: req.user!.id, friendshipId: fr.id } },
+    data: {
+      userId: body.userId,
+      type: status === "PENDING" ? "FRIEND_REQUEST" : "FRIEND_ACCEPTED",
+      data: { fromUserId: req.user!.id, followId: follow.id, kind: status === "PENDING" ? "follow_request" : "follow" },
+    },
   });
   emitter?.emitToUser(body.userId, "notification:new", notif);
 
-  res.json({ friendship: fr });
+  res.json({ follow });
 }));
 
-router.post("/me/friends/:friendshipId/accept", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
-  const id = req.params.friendshipId;
-  const fr = await prisma.friendship.findUnique({ where: { id } });
-  if (!fr) throw new HttpError(404, "Request not found");
-  if (fr.receiverId !== req.user!.id) throw new HttpError(403, "Forbidden");
+router.post("/me/follows/:followId/accept", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
+  const id = req.params.followId;
+  const follow = await prisma.friendship.findUnique({ where: { id } });
+  if (!follow) throw new HttpError(404, "Request not found");
+  if (follow.receiverId !== req.user!.id) throw new HttpError(403, "Forbidden");
   const updated = await prisma.friendship.update({ where: { id }, data: { status: "ACCEPTED" } });
 
   const emitter = req.app.locals.emitter as any;
   const notif = await prisma.notification.create({
-    data: { userId: fr.senderId, type: "FRIEND_ACCEPTED", data: { byUserId: req.user!.id, friendshipId: id } },
+    data: { userId: follow.senderId, type: "FRIEND_ACCEPTED", data: { byUserId: req.user!.id, followId: id, kind: "follow_accept" } },
   });
-  emitter?.emitToUser(fr.senderId, "notification:new", notif);
+  emitter?.emitToUser(follow.senderId, "notification:new", notif);
 
-  res.json({ friendship: updated });
+  res.json({ follow: updated });
+}));
+
+router.post("/me/follows/:followId/decline", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
+  const id = req.params.followId;
+  const follow = await prisma.friendship.findUnique({ where: { id } });
+  if (!follow) throw new HttpError(404, "Request not found");
+  if (follow.receiverId !== req.user!.id) throw new HttpError(403, "Forbidden");
+  const updated = await prisma.friendship.update({ where: { id }, data: { status: "DECLINED" } });
+  res.json({ follow: updated });
+}));
+
+router.delete("/me/follows/:userId", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
+  const userId = req.params.userId;
+  await prisma.friendship.deleteMany({ where: { senderId: req.user!.id, receiverId: userId } });
+  res.json({ ok: true });
+}));
+
+// Backward-compatible aliases for older frontend modules.
+router.get("/me/friends", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
+  const following = await prisma.friendship.findMany({
+    where: { senderId: req.user!.id, status: "ACCEPTED" },
+    include: { sender: { select: { id: true, username: true, avatarUrl: true, lastSeenAt: true } }, receiver: { select: { id: true, username: true, avatarUrl: true, lastSeenAt: true } } },
+    orderBy: { updatedAt: "desc" },
+  });
+  res.json({ friends: following });
+}));
+
+router.get("/me/friend-requests", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
+  const incoming = await prisma.friendship.findMany({
+    where: { receiverId: req.user!.id, status: "PENDING" },
+    include: { sender: { select: { id: true, username: true, avatarUrl: true, lastSeenAt: true } } },
+    orderBy: { createdAt: "desc" },
+  });
+  const outgoing = await prisma.friendship.findMany({
+    where: { senderId: req.user!.id, status: "PENDING" },
+    include: { receiver: { select: { id: true, username: true, avatarUrl: true, lastSeenAt: true } } },
+    orderBy: { createdAt: "desc" },
+  });
+  res.json({ incoming, outgoing });
+}));
+
+router.post("/me/friends/request", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
+  const body = FollowReqSchema.parse(req.body);
+  const target = await prisma.user.findUnique({ where: { id: body.userId }, select: { id: true, privacy: true } });
+  if (!target) throw new HttpError(404, "User not found");
+  const status = target.privacy?.profileVisibility === "private" && req.user!.role !== "ADMIN" ? "PENDING" : "ACCEPTED";
+  const friendship = await prisma.friendship.upsert({
+    where: { senderId_receiverId: { senderId: req.user!.id, receiverId: body.userId } },
+    create: { senderId: req.user!.id, receiverId: body.userId, status },
+    update: { status },
+  });
+  res.json({ friendship });
+}));
+
+router.post("/me/friends/:friendshipId/accept", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
+  const friendship = await prisma.friendship.update({ where: { id: req.params.friendshipId }, data: { status: "ACCEPTED" } });
+  res.json({ friendship });
 }));
 
 router.post("/me/friends/:friendshipId/decline", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
-  const id = req.params.friendshipId;
-  const fr = await prisma.friendship.findUnique({ where: { id } });
-  if (!fr) throw new HttpError(404, "Request not found");
-  if (fr.receiverId !== req.user!.id) throw new HttpError(403, "Forbidden");
-  const updated = await prisma.friendship.update({ where: { id }, data: { status: "DECLINED" } });
-  res.json({ friendship: updated });
+  const friendship = await prisma.friendship.update({ where: { id: req.params.friendshipId }, data: { status: "DECLINED" } });
+  res.json({ friendship });
 }));
 
 router.delete("/me/friends/:userId", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
-  const userId = req.params.userId;
-  await prisma.friendship.deleteMany({
-    where: {
-      OR: [
-        { senderId: req.user!.id, receiverId: userId },
-        { senderId: userId, receiverId: req.user!.id },
-      ],
-    },
-  });
+  await prisma.friendship.deleteMany({ where: { senderId: req.user!.id, receiverId: req.params.userId } });
   res.json({ ok: true });
 }));
 

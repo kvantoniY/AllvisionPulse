@@ -6,8 +6,8 @@ import styles from './Chat.module.css';
 import gridStyles from '../Messages.module.css';
 import { ChatSidebar } from '@/features/messages';
 import { Card } from '@/shared/ui/Card/Card';
-import { StoryRingAvatar } from '@/features/stories';
-import { useGetMeQuery } from '@/shared/api/usersApi';
+import { StoryRingAvatar, useStoriesUi } from '@/features/stories';
+import { useGetMeQuery, useGetUserByUsernameQuery } from '@/shared/api/usersApi';
 import {
   chatsApi,
   useCreateDirectChatMutation,
@@ -156,6 +156,7 @@ export default function ChatPage() {
   const dispatch = useAppDispatch();
   const presence = useAppSelector((state) => state.presence.byUserId);
   const lightbox = useLightbox();
+  const { openViewer } = useStoriesUi();
   const { startCall, joinCall, hasReturnableCall } = useContext(CallContext);
 
   const { data: meData } = useGetMeQuery();
@@ -166,6 +167,25 @@ export default function ChatPage() {
   const chat = (chatsData?.items ?? []).find((item) => item.id === chatId);
   const otherUser = getOtherUser(chat, meId);
   const otherPresence = otherUser?.id ? presence[otherUser.id] : null;
+  const { data: otherUserProfile } = useGetUserByUsernameQuery(otherUser?.username ?? '', { skip: !otherUser?.username });
+  const directRelationship = otherUserProfile?.relationship;
+  const isDirectChat = chat?.type === 'DIRECT';
+  const canWriteInChat = !isDirectChat || Boolean(directRelationship?.canMessage);
+  const canCallInChat = !isDirectChat || Boolean(directRelationship?.canCall);
+  const composerLockReason = !canWriteInChat
+    ? (directRelationship?.blockedMe
+        ? 'Пользователь добавил вас в чёрный список. Сообщения недоступны.'
+        : directRelationship?.blockedByMe
+          ? 'Вы добавили пользователя в чёрный список. Сообщения недоступны, пока блокировка активна.'
+          : 'Пользователь ограничил входящие сообщения настройками приватности.')
+    : null;
+  const callLockReason = !canCallInChat
+    ? (directRelationship?.blockedMe
+        ? 'Пользователь добавил вас в чёрный список. Звонки недоступны.'
+        : directRelationship?.blockedByMe
+          ? 'Вы добавили пользователя в чёрный список. Звонки недоступны, пока блокировка активна.'
+          : 'Пользователь ограничил входящие звонки настройками приватности.')
+    : null;
 
   const [mediaOpen, setMediaOpen] = useState(false);
   const [gamesOpen, setGamesOpen] = useState(false);
@@ -434,7 +454,7 @@ export default function ChatPage() {
   }, [resizeTextarea]);
 
   const onSend = async () => {
-    if (isSending || isRecordingAudio) return;
+    if (isSending || isRecordingAudio || !canWriteInChat) return;
 
     if (editingMessage) {
       const value = text.trim();
@@ -771,7 +791,7 @@ export default function ChatPage() {
                 ) : null}
 
                 {chat ? (
-                  <Button className={styles.callAction} iconOnly type="button" onClick={() => startCall(chatId)} aria-label={chat.type === 'GROUP' ? 'Начать групповой звонок' : 'Начать звонок'} title={chat.type === 'GROUP' ? 'Начать групповой звонок' : 'Начать звонок'}>
+                  <Button className={styles.callAction} iconOnly type="button" onClick={() => canCallInChat && startCall(chatId)} aria-label={chat.type === 'GROUP' ? 'Начать групповой звонок' : 'Начать звонок'} title={canCallInChat ? (chat.type === 'GROUP' ? 'Начать групповой звонок' : 'Начать звонок') : (callLockReason ?? 'Звонок недоступен')} disabled={!canCallInChat}>
                     <Icon name="phone" size={18} />
                   </Button>
                 ) : null}
@@ -873,6 +893,7 @@ export default function ChatPage() {
                   const status = messageStatusLabel(message, meId, chat, presence);
                   const replyPreview = message.replyTo;
                   const forwardPreview = message.forwardOf;
+                  const storyMeta = (message.metaJson as any)?.kind === 'storyReply' ? (message.metaJson as any) : null;
                   const isSelected = selectedIds.includes(message.id);
                   const canDelete = message.senderId === meId && message.type !== 'SYSTEM';
                   const canReply = message.type !== 'SYSTEM';
@@ -898,7 +919,7 @@ export default function ChatPage() {
                     }
                     return (
                       <div key={message.id} className={styles.systemRow} id={`message-${message.id}`}>
-                        <button type="button" className={[styles.systemCard, clickable ? styles.systemCardInteractive : ''].filter(Boolean).join(' ')} onClick={clickable ? () => (hasLiveCall ? joinCall(chatId) : startCall(chatId)) : undefined} disabled={!clickable}>
+                        <button type="button" className={[styles.systemCard, clickable ? styles.systemCardInteractive : ''].filter(Boolean).join(' ')} onClick={clickable && canCallInChat ? () => (hasLiveCall ? joinCall(chatId) : startCall(chatId)) : undefined} disabled={!clickable || !canCallInChat}>
                           <div className={styles.systemText}>{message.text ?? 'Системное событие'}</div>
                           <div className={styles.systemMeta}>
                             <span>{formatMessageTime(message.createdAt)}</span>
@@ -949,6 +970,26 @@ export default function ChatPage() {
                               <Icon name="forward" size={12} />
                               <span>Переслано от {forwardPreview.sender?.username ?? message.sender?.username}</span>
                             </div>
+                          ) : null}
+
+                          {storyMeta ? (
+                            <button
+                              type="button"
+                              className={styles.storyReplyBlock}
+                              onClick={() => openViewer(String(storyMeta.storyAuthorId ?? ''), String(storyMeta.storyId ?? ''))}
+                            >
+                              <div className={styles.storyReplyThumb}>
+                                {String(storyMeta.storyMediaType ?? '').startsWith('video/') ? (
+                                  <video src={String(storyMeta.storyImageUrl ?? '')} muted playsInline />
+                                ) : (
+                                  <img src={String(storyMeta.storyImageUrl ?? '')} alt="Сторис" />
+                                )}
+                              </div>
+                              <div className={styles.storyReplyMeta}>
+                                <span className={styles.replyAuthor}>Ответ на сторис</span>
+                                <span className={styles.replyText}>Открыть историю {storyMeta.storyAuthorName ?? ''}</span>
+                              </div>
+                            </button>
                           ) : null}
 
                           {replyPreview ? (
@@ -1039,6 +1080,7 @@ export default function ChatPage() {
             </div>
 
             <div className={styles.composer}>
+              {composerLockReason ? <div className={styles.lockBanner}>{composerLockReason}</div> : null}
               {(replyTo || editingMessage) ? (
                 <div className={styles.composerMetaBar}>
                   <div className={styles.composerMetaText}>
@@ -1108,20 +1150,20 @@ export default function ChatPage() {
                 ) : null}
 
                 <div className={styles.composerRow}>
-                  <button className={styles.toolBtn} type="button" onClick={() => fileInputRef.current?.click()} aria-label="Прикрепить изображение" title="Прикрепить изображение" disabled={Boolean(pendingVoice || pendingVideo || isRecordingVideoNote)}>
+                  <button className={styles.toolBtn} type="button" onClick={() => fileInputRef.current?.click()} aria-label="Прикрепить изображение" title="Прикрепить изображение" disabled={!canWriteInChat || Boolean(pendingVoice || pendingVideo || isRecordingVideoNote)}>
                     <Icon name="image" size={18} />
                   </button>
-                  <button className={[styles.toolBtn, showEmojiPicker ? styles.toolBtnActive : ''].filter(Boolean).join(' ')} type="button" onClick={() => { setIsRecordingAudio(false); setShowEmojiPicker((value) => !value); }} aria-label="Открыть эмодзи" title="Эмодзи" disabled={Boolean(pendingVoice || pendingVideo || isRecordingVideoNote)}>
+                  <button className={[styles.toolBtn, showEmojiPicker ? styles.toolBtnActive : ''].filter(Boolean).join(' ')} type="button" onClick={() => { setIsRecordingAudio(false); setShowEmojiPicker((value) => !value); }} aria-label="Открыть эмодзи" title="Эмодзи" disabled={!canWriteInChat || Boolean(pendingVoice || pendingVideo || isRecordingVideoNote)}>
                     <Icon name="sparkles" size={18} />
                   </button>
-                  <button className={[styles.toolBtn, isRecordingAudio ? styles.toolBtnActive : ''].filter(Boolean).join(' ')} type="button" onClick={() => { if (isRecordingVideoNote || text.trim() || files.length || pendingVoice || pendingVideo) return; setShowEmojiPicker(false); setIsRecordingAudio((value) => !value); }} aria-label="Записать голосовое сообщение" title="Голосовое сообщение" disabled={isSending || isRecordingVideoNote || Boolean(text.trim() || files.length || pendingVoice || pendingVideo)}>
+                  <button className={[styles.toolBtn, isRecordingAudio ? styles.toolBtnActive : ''].filter(Boolean).join(' ')} type="button" onClick={() => { if (!canWriteInChat || isRecordingVideoNote || text.trim() || files.length || pendingVoice || pendingVideo) return; setShowEmojiPicker(false); setIsRecordingAudio((value) => !value); }} aria-label="Записать голосовое сообщение" title="Голосовое сообщение" disabled={!canWriteInChat || isSending || isRecordingVideoNote || Boolean(text.trim() || files.length || pendingVoice || pendingVideo)}>
                     <Icon name="mic" size={18} />
                   </button>
-                  <button className={[styles.toolBtn, isRecordingVideoNote ? styles.toolBtnDanger : ''].filter(Boolean).join(' ')} type="button" onClick={() => (isRecordingVideoNote ? stopVideoRecorder() : void startVideoNoteRecording())} aria-label="Записать видеосообщение" title="Видеосообщение" disabled={isSending || isRecordingAudio || Boolean(text.trim() || files.length || pendingVoice || pendingVideo)}>
+                  <button className={[styles.toolBtn, isRecordingVideoNote ? styles.toolBtnDanger : ''].filter(Boolean).join(' ')} type="button" onClick={() => (isRecordingVideoNote ? stopVideoRecorder() : void startVideoNoteRecording())} aria-label="Записать видеосообщение" title="Видеосообщение" disabled={!canWriteInChat || isSending || isRecordingAudio || Boolean(text.trim() || files.length || pendingVoice || pendingVideo)}>
                     <Icon name={isRecordingVideoNote ? 'close' : 'video'} size={18} />
                   </button>
 
-                  <textarea ref={textAreaRef} className={styles.input} placeholder={editingMessage ? 'Измените текст сообщения…' : isRecordingAudio ? 'Идёт запись голосового сообщения…' : 'Сообщение…'} value={text} onChange={(event) => setText(event.target.value.slice(0, 5000).normalize('NFC'))} onPaste={handleTextPaste} onKeyDown={handleTextKeyDown} rows={1} disabled={isRecordingAudio || Boolean(pendingVoice || pendingVideo)} />
+                  <textarea ref={textAreaRef} className={styles.input} placeholder={editingMessage ? 'Измените текст сообщения…' : isRecordingAudio ? 'Идёт запись голосового сообщения…' : 'Сообщение…'} value={text} onChange={(event) => setText(event.target.value.slice(0, 5000).normalize('NFC'))} onPaste={handleTextPaste} onKeyDown={handleTextKeyDown} rows={1} disabled={!canWriteInChat || isRecordingAudio || Boolean(pendingVoice || pendingVideo)} />
                   <Button className={styles.send} iconOnly type="button" onClick={onSend} loading={isSending} disabled={(!text.trim() && !files.length && !pendingVoice && !pendingVideo) || isRecordingAudio} aria-label={editingMessage ? 'Сохранить сообщение' : 'Отправить сообщение'} title={editingMessage ? 'Сохранить сообщение' : 'Отправить сообщение'}>
                     <Icon name={editingMessage ? 'check' : 'send'} size={18} />
                   </Button>

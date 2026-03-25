@@ -1,8 +1,9 @@
 import { createApi } from '@reduxjs/toolkit/query/react';
 import { baseQuery } from './baseQuery';
-import type { User } from '@/shared/types/models';
+import type { User, UserPrivacy } from '@/shared/types/models';
+import type { FollowRecord, FollowRelationship } from '@/shared/types/social';
 
-export type UserSearchItem = Pick<User, 'id' | 'username' | 'avatarUrl' | 'bio' | 'lastSeenAt'>;
+export type UserSearchItem = Pick<User, 'id' | 'username' | 'avatarUrl' | 'bio' | 'lastSeenAt' | 'privacy'>;
 
 export const usersApi = createApi({
   reducerPath: 'usersApi',
@@ -16,23 +17,24 @@ export const usersApi = createApi({
     searchUsers: build.query<{ users: UserSearchItem[] }, { q: string }>({
       query: ({ q }) => ({ url: `/backend/users/search?q=${encodeURIComponent(q)}`, method: 'GET' }),
     }),
-    getUserByUsername: build.query<{ user: User; relationship: any }, string>({
+    getUserByUsername: build.query<{ user: User; relationship: FollowRelationship }, string>({
       query: (username) => ({ url: `/backend/users/${encodeURIComponent(username)}`, method: 'GET' }),
-      providesTags: (result, error, username) => [{ type: 'User' as const, id: username }],
+      providesTags: (_result, _error, username) => [{ type: 'User' as const, id: username }],
+    }),
+    getUserConnections: build.query<{ canView: boolean; items: FollowRecord[] }, { username: string; tab: 'followers' | 'following' }>({
+      query: ({ username, tab }) => ({ url: `/backend/users/${encodeURIComponent(username)}/connections?tab=${tab}`, method: 'GET' }),
     }),
     updateProfile: build.mutation<{ user: Partial<User> }, { avatarUrl?: string | null; bio?: string | null }>({
       query: (body) => ({ url: '/backend/users/me/profile', method: 'PATCH', body }),
       invalidatesTags: ['Me'],
-      async onQueryStarted(arg, { dispatch, queryFulfilled, getState }) {
+      async onQueryStarted(_arg, { dispatch, queryFulfilled, getState }) {
         try {
           const { data } = await queryFulfilled;
-          // обновим /me
           dispatch(
             usersApi.util.updateQueryData('getMe', undefined, (draft) => {
               if (draft.user) Object.assign(draft.user, data.user);
             }),
           );
-          // и профиль текущего юзера, если он открыт
           const state: any = getState();
           const username = state?.usersApi?.queries
             ? Object.values(state.usersApi.queries)
@@ -46,12 +48,10 @@ export const usersApi = createApi({
               }),
             );
           }
-        } catch {
-          // ignore
-        }
+        } catch {}
       },
     }),
-    updatePrivacy: build.mutation<{ privacy: any }, Partial<User['privacy']>>({
+    updatePrivacy: build.mutation<{ privacy: UserPrivacy }, Partial<UserPrivacy>>({
       query: (body) => ({ url: '/backend/users/me/privacy', method: 'PATCH', body }),
       invalidatesTags: ['Me'],
     }),
@@ -63,6 +63,7 @@ export const {
   useSearchUsersQuery,
   useLazySearchUsersQuery,
   useGetUserByUsernameQuery,
+  useGetUserConnectionsQuery,
   useUpdateProfileMutation,
   useUpdatePrivacyMutation,
 } = usersApi;

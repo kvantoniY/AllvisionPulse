@@ -16,7 +16,7 @@ const registerSchema = z
     email: z
       .string()
       .trim()
-      .refine((value) => value.length === 0 || z.email().safeParse(value).success, 'Введите корректную почту'),
+      .refine((value) => value.length === 0 || z.string().email().safeParse(value).success, 'Введите корректную почту'),
     username: z.string().trim().min(1, 'Введите имя пользователя'),
     password: z.string().min(1, 'Введите пароль'),
     confirm: z.string().min(1, 'Подтвердите пароль'),
@@ -107,7 +107,7 @@ export default function RegisterPage() {
             {...register('confirm')}
           />
           {errors.root?.message ? <div className={styles.error}>{errors.root.message}</div> : null}
-          <Button variant="primary" className={styles.full} disabled={isLoading}>
+          <Button type="submit" variant="primary" className={styles.full} disabled={isLoading}>
             {isLoading ? 'Создаём…' : 'Создать аккаунт'}
           </Button>
         </form>

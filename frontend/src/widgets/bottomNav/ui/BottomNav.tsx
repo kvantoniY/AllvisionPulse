@@ -47,7 +47,7 @@ export function BottomNav() {
         <Item href={ROUTES.app.feed} label="Лента" icon="home" active={pathname === '/' || pathname.startsWith('/feed')} />
         <Item href={ROUTES.app.health} label="Пульс" icon="pulse" active={pathname.startsWith('/health')} />
         <Item href={ROUTES.app.game} label="Игры" icon="game" active={pathname.startsWith('/game')} />
-        <Item href={ROUTES.app.friends} label="Друзья" icon="users" active={pathname.startsWith('/friends')} badge={incomingCount} />
+        <Item href={ROUTES.app.friends} label="Подписки" icon="users" active={pathname.startsWith('/friends')} badge={incomingCount} />
         <Item href={ROUTES.app.messages} label="Чаты" icon="messages" active={pathname.startsWith('/messages')} badge={unreadMsgs} />
         {me ? <Item href={ROUTES.app.profile(me.username)} label="Профиль" icon="user" active={pathname.startsWith('/profile')} /> : <Item href={ROUTES.app.feed} label="Профиль" icon="user" active={false} />}
       </div>

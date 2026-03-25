@@ -7,6 +7,7 @@ import { PostCard } from '@/entities/post/ui/PostCard';
 import { useIntersection } from '@/shared/lib/hooks/useIntersection';
 import { PostComposer } from '@/features/postComposer/ui/PostComposer';
 import { PostModal } from '@/features/postModal/ui/PostModal';
+import { StoriesRail } from '@/features/stories';
 import { Skeleton, SkeletonText } from '@/shared/ui/Skeleton/Skeleton';
 
 function FeedCardSkeleton() {
@@ -52,6 +53,8 @@ export default function FeedPage() {
           <CardHeader title="Лента" />
           <CardMuted>Публикации друзей, обновления и контент сообщества в одном потоке.</CardMuted>
         </Card>
+
+        <StoriesRail />
 
         <PostComposer context="feed" />
 

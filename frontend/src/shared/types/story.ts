@@ -1,5 +1,17 @@
 export type StoryWidgetType = 'pulse' | 'focus' | 'health' | 'tasks' | 'nutrition';
 
+export type StoryMediaTransform = {
+  scale?: number;
+  scaleX?: number;
+  scaleY?: number;
+  rotation?: number;
+  offsetX?: number;
+  offsetY?: number;
+  fitMode?: 'contain' | 'cover' | 'manual';
+  backgroundFill?: string;
+  blurFill?: boolean;
+};
+
 export type StoryEditorItem =
   | {
       id: string;
@@ -50,11 +62,17 @@ export type StoryItem = {
   width?: number | null;
   height?: number | null;
   itemsJson?: StoryEditorItem[] | null;
+  trimStartMs?: number | null;
+  trimEndMs?: number | null;
+  transformJson?: StoryMediaTransform | null;
   createdAt: string;
   expiresAt: string;
   author: StoryAuthor;
   viewedByMe: boolean;
+  myReaction?: string | null;
   viewsCount: number;
+  highlightIds?: string[];
+  archived?: boolean;
 };
 
 export type StoryRailItem = {
@@ -75,5 +93,19 @@ export type StoryRailItem = {
 export type StoryViewerItem = {
   id: string;
   viewedAt: string;
+  reaction?: string | null;
   viewer: StoryAuthor;
+};
+
+export type StoryHighlight = {
+  id: string;
+  title: string;
+  createdAt: string;
+  updatedAt: string;
+  count: number;
+  cover?: {
+    mediaUrl: string;
+    mediaType: string;
+  } | null;
+  items: StoryItem[];
 };

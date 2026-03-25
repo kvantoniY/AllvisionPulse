@@ -12,12 +12,21 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
+  gap: 18px;
   padding: 0 24px;
 }
 
-.title { font-size: 28px; font-weight: 800; letter-spacing: -0.04em; }
-.right { display: flex; align-items: center; gap: 12px; }
+.searchWrap {
+  flex: 1 1 auto;
+  max-width: 520px;
+}
+
+.right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: auto;
+}
 
 .settings {
   width: 40px;
@@ -29,6 +38,7 @@
   display: grid;
   place-items: center;
 }
+
 .settings:hover { background: rgba(255,255,255,0.08); }
 
 .me { display: flex; align-items: center; gap: 10px; color: var(--text); padding-left: 4px; }
@@ -36,5 +46,12 @@
 .meName { font-weight: 700; font-size: 13px; line-height: 1.1; }
 .meHandle { font-size: 11px; color: var(--muted); }
 
-@media (max-width: 960px) { .inner { padding: 0 16px; min-height: 64px; } .title { font-size: 24px; } }
-@media (max-width: 640px) { .meText { display: none; } }
+@media (max-width: 960px) {
+  .inner { padding: 0 16px; min-height: 64px; }
+  .searchWrap { max-width: none; }
+}
+
+@media (max-width: 640px) {
+  .meText { display: none; }
+  .searchWrap { max-width: 100%; }
+}

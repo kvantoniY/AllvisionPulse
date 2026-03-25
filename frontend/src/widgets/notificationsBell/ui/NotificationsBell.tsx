@@ -45,7 +45,7 @@ export function NotificationsBell() {
       {open ? (
         <div className={styles.popover}>
           <div className={styles.popTitle}>Уведомления</div>
-          {reqCount > 0 ? <div className={styles.row}>Новые заявки в друзья: {reqCount}</div> : null}
+          {reqCount > 0 ? <div className={styles.row}>Новые запросы на подписку: {reqCount}</div> : null}
           {preview.length ? (
             <div className={styles.list}>
               {preview.map((n) => (

@@ -21,7 +21,7 @@ router.get("/", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
     include: {
       chat: {
         include: {
-          members: { include: { user: { select: { id: true, username: true, avatarUrl: true, lastSeenAt: true } } } },
+          members: { include: { user: { select: { id: true, username: true, avatarUrl: true, lastSeenAt: true, privacy: true } } } },
           pinnedMessage: true,
         },
       },
@@ -36,20 +36,27 @@ router.post("/direct", requireAuth, asyncHandler(async (req: AuthedRequest, res)
   const body = CreateDirectSchema.parse(req.body);
   if (body.userId === req.user!.id) throw new HttpError(400, "Cannot create direct with self");
 
-  // privacy: allow messages from friends only
+  const blocked = await prisma.blacklist.findFirst({
+    where: {
+      OR: [
+        { blockerId: req.user!.id, blockedId: body.userId },
+        { blockerId: body.userId, blockedId: req.user!.id },
+      ],
+    },
+    select: { id: true },
+  });
+  if (blocked) throw new HttpError(403, "Blocked");
+
   const targetPrivacy = await prisma.userPrivacy.findUnique({ where: { userId: body.userId } });
-  if (targetPrivacy?.allowMessagesFrom === "friends") {
-    const friend = await prisma.friendship.findFirst({
-      where: {
-        status: "ACCEPTED",
-        OR: [
-          { senderId: req.user!.id, receiverId: body.userId },
-          { senderId: body.userId, receiverId: req.user!.id },
-        ],
-      },
+  if (targetPrivacy?.allowMessagesFrom === "followers") {
+    const follow = await prisma.friendship.findFirst({
+      where: { senderId: req.user!.id, receiverId: body.userId, status: "ACCEPTED" },
       select: { id: true },
     });
-    if (!friend && req.user!.role !== "ADMIN") throw new HttpError(403, "User accepts messages from friends only");
+    if (!follow && req.user!.role !== "ADMIN") throw new HttpError(403, "User accepts messages from followers only");
+  }
+  if (targetPrivacy?.allowMessagesFrom === "none" && req.user!.role !== "ADMIN") {
+    throw new HttpError(403, "User disabled direct messages");
   }
 
   // find existing direct chat with exactly these 2 members
@@ -169,6 +176,7 @@ router.get("/:chatId/messages", requireAuth, asyncHandler(async (req: AuthedRequ
 const SendMessageSchema = z.object({
   type: z.enum(["TEXT","IMAGE","AUDIO","VIDEO_NOTE","SYSTEM"]).default("TEXT"),
   text: z.string().max(8000).optional().nullable(),
+  metaJson: z.string().optional().nullable(),
   replyToId: z.string().uuid().optional().nullable(),
   forwardOfId: z.string().uuid().optional().nullable(),
 });
@@ -180,6 +188,37 @@ router.post("/:chatId/messages", requireAuth, upload.array("files", 10), asyncHa
 
   const member = await prisma.chatMember.findUnique({ where: { chatId_userId: { chatId, userId: req.user!.id } } });
   if (!member) throw new HttpError(404, "Chat not found");
+
+  const directChat = await prisma.chat.findUnique({
+    where: { id: chatId },
+    select: { type: true, members: { where: { leftAt: null }, select: { userId: true } } },
+  });
+  if (directChat?.type === "DIRECT") {
+    const targetId = directChat.members.find((item) => item.userId !== req.user!.id)?.userId;
+    if (targetId) {
+      const [blockEntry, targetPrivacy, follow] = await Promise.all([
+        prisma.blacklist.findFirst({
+          where: {
+            OR: [
+              { blockerId: req.user!.id, blockedId: targetId },
+              { blockerId: targetId, blockedId: req.user!.id },
+            ],
+          },
+          select: { id: true },
+        }),
+        prisma.userPrivacy.findUnique({ where: { userId: targetId } }),
+        prisma.friendship.findFirst({ where: { senderId: req.user!.id, receiverId: targetId, status: "ACCEPTED" }, select: { id: true } }),
+      ]);
+
+      if (blockEntry) throw new HttpError(403, "Blocked");
+      if (targetPrivacy?.allowMessagesFrom === "followers" && !follow && req.user!.role !== "ADMIN") {
+        throw new HttpError(403, "User accepts messages from followers only");
+      }
+      if (targetPrivacy?.allowMessagesFrom === "none" && req.user!.role !== "ADMIN") {
+        throw new HttpError(403, "User disabled direct messages");
+      }
+    }
+  }
 
   const forwardSource = body.forwardOfId
     ? await prisma.message.findUnique({
@@ -213,6 +252,10 @@ router.post("/:chatId/messages", requireAuth, upload.array("files", 10), asyncHa
 
   const resolvedType = body.forwardOfId && forwardSource ? (forwardSource.type as any) : (body.type as any);
   const resolvedText = body.text ?? (body.forwardOfId ? forwardSource?.text ?? undefined : undefined);
+  let parsedMetaJson: any = undefined;
+  if (body.metaJson) {
+    try { parsedMetaJson = JSON.parse(body.metaJson); } catch { parsedMetaJson = undefined; }
+  }
 
   const message = await prisma.message.create({
     data: {
@@ -220,6 +263,7 @@ router.post("/:chatId/messages", requireAuth, upload.array("files", 10), asyncHa
       senderId: req.user!.id,
       type: resolvedType,
       text: resolvedText,
+      metaJson: parsedMetaJson ?? undefined,
       replyToId: body.replyToId ?? undefined,
       forwardOfId: body.forwardOfId ?? undefined,
       attachments: {

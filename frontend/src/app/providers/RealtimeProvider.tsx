@@ -186,9 +186,9 @@ export function RealtimeProvider({ children }: PropsWithChildren) {
           title = `${by} поставил(а) лайк вашему комментарию`;
           message = data?.postId ? `Пост: ${data.postId}` : undefined;
         } else if (type === 'FRIEND_REQUEST') {
-          title = `${by} отправил(а) заявку в друзья`;
+          title = `${by} запросил(а) подписку`;
         } else if (type === 'FRIEND_ACCEPTED') {
-          title = `${by} принял(а) заявку в друзья`;
+          title = `${by} подтвердил(а) подписку`;
         } else {
           title = type;
         }

@@ -45,14 +45,15 @@ export const chatsApi = baseApi.injectEndpoints({
 
     sendMessage: build.mutation<
       { message: Message },
-      { chatId: string; type?: string; text?: string; files?: File[]; replyToId?: string | null; forwardOfId?: string | null }
+      { chatId: string; type?: string; text?: string; files?: File[]; replyToId?: string | null; forwardOfId?: string | null; metaJson?: Record<string, unknown> | null }
     >({
-      query: ({ chatId, type = 'TEXT', text, files, replyToId, forwardOfId }) => {
+      query: ({ chatId, type = 'TEXT', text, files, replyToId, forwardOfId, metaJson }) => {
         const form = new FormData();
         if (text) form.append('text', text);
         form.append('type', type);
         if (replyToId) form.append('replyToId', replyToId);
         if (forwardOfId) form.append('forwardOfId', forwardOfId);
+        if (metaJson) form.append('metaJson', JSON.stringify(metaJson));
         if (files?.length) {
           for (const f of files) form.append('files', f);
         }
