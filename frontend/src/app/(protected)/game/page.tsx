@@ -1,12 +1,5 @@
-import { Card, CardHeader, CardMuted } from '@/shared/ui/Card/Card';
+import { redirect } from 'next/navigation';
 
 export default function GamePage() {
-  return (
-    <div className="container">
-      <Card>
-        <CardHeader title="Game" />
-        <CardMuted>Placeholder MVP: realtime games module will be added later.</CardMuted>
-      </Card>
-    </div>
-  );
+  redirect('/messages');
 }

@@ -2,144 +2,198 @@
 
 import { useMemo, useState } from 'react';
 import styles from './Friends.module.css';
-import { Card, CardHeader, CardMuted } from '@/shared/ui/Card/Card';
-import { Avatar } from '@/shared/ui/Avatar/Avatar';
+import { Card } from '@/shared/ui/Card/Card';
+import { StoryRingAvatar } from '@/features/stories';
 import { Button } from '@/shared/ui/Button/Button';
-import { useGetMeQuery } from '@/shared/api/usersApi';
 import {
   useAcceptFriendRequestMutation,
+  useBlockUserMutation,
   useDeclineFriendRequestMutation,
+  useGetBlacklistQuery,
+  useGetFollowersQuery,
+  useGetFollowingQuery,
   useGetFriendRequestsQuery,
-  useGetFriendsQuery,
   useRemoveFriendMutation,
+  useSendFriendRequestMutation,
+  useUnblockUserMutation,
 } from '@/shared/api/friendsApi';
 import { useAppSelector } from '@/shared/lib/storeHooks';
+import { Skeleton, SkeletonText } from '@/shared/ui/Skeleton/Skeleton';
+import { Icon } from '@/shared/ui/Icon/Icon';
+
+type Tab = 'following' | 'followers' | 'requests' | 'blacklist';
+
+function RowSkeleton() {
+  return (
+    <div className={styles.row}>
+      <div className={styles.user}>
+        <Skeleton circle style={{ width: 44, height: 44 }} />
+        <div className={styles.meta}><SkeletonText lines={2} /></div>
+      </div>
+      <div className={styles.actions}><Skeleton style={{ width: 120, height: 42 }} /></div>
+    </div>
+  );
+}
 
 export default function FriendsPage() {
-  const { data: meData } = useGetMeQuery();
-  const me = meData?.user;
-
-  const [tab, setTab] = useState<'friends' | 'requests'>('friends');
-  const { data: friendsData, isLoading: friendsLoading } = useGetFriendsQuery(undefined, { skip: tab !== 'friends' });
-  const { data: reqData, isLoading: reqLoading } = useGetFriendRequestsQuery(undefined, { skip: tab !== 'requests' });
-
+  const [tab, setTab] = useState<Tab>('following');
+  const { data: followingData, isLoading: followingLoading } = useGetFollowingQuery(undefined, { skip: tab !== 'following' && tab !== 'followers' });
+  const { data: followersData, isLoading: followersLoading } = useGetFollowersQuery(undefined, { skip: tab !== 'followers' });
+  const { data: requestsData, isLoading: requestsLoading } = useGetFriendRequestsQuery(undefined, { skip: tab !== 'requests' });
+  const { data: blacklistData, isLoading: blacklistLoading } = useGetBlacklistQuery(undefined, { skip: tab !== 'blacklist' });
+  const [followAction, { isLoading: followLoading }] = useSendFriendRequestMutation();
   const [accept, { isLoading: acceptLoading }] = useAcceptFriendRequestMutation();
   const [decline, { isLoading: declineLoading }] = useDeclineFriendRequestMutation();
-  const [remove, { isLoading: removeLoading }] = useRemoveFriendMutation();
-
-  const friends = friendsData?.friends ?? [];
-  const incoming = reqData?.incoming ?? [];
-  const outgoing = reqData?.outgoing ?? [];
+  const [removeFollow, { isLoading: removeLoading }] = useRemoveFriendMutation();
+  const [blockUser, { isLoading: blockLoading }] = useBlockUserMutation();
+  const [unblockUser, { isLoading: unblockLoading }] = useUnblockUserMutation();
   const presence = useAppSelector((s) => s.presence.byUserId);
 
-  const friendsUsers = useMemo(() => {
-    return friends.map((f) => {
-      const other = f.senderId === me?.id ? f.receiver : f.sender;
-      return { friendship: f, other };
-    }).filter((x) => !!x.other);
-  }, [friends, me?.id]);
+  const following = followingData?.following ?? [];
+  const followers = followersData?.followers ?? [];
+  const incoming = requestsData?.incoming ?? [];
+  const outgoing = requestsData?.outgoing ?? [];
+  const blacklist = blacklistData?.blacklist ?? [];
+  const followingIds = useMemo(() => new Set(following.map((item) => item.receiver?.id).filter(Boolean)), [following]);
+
+  const tabs: Array<{ value: Tab; label: string; count?: number }> = [
+    { value: 'following', label: 'Подписки', count: following.length || undefined },
+    { value: 'followers', label: 'Подписчики', count: followers.length || undefined },
+    { value: 'requests', label: 'Запросы', count: (incoming.length + outgoing.length) || undefined },
+    { value: 'blacklist', label: 'Чёрный список', count: blacklist.length || undefined },
+  ];
+
+  const renderUserRow = (user: any, action: React.ReactNode, side?: React.ReactNode) => (
+    <div key={user.id} className={styles.row}>
+      <div className={styles.user}>
+        <StoryRingAvatar userId={user.id} url={user.avatarUrl} name={user.username} size={44} status={presence[user.id]?.isOnline ? 'online' : 'offline'} />
+        <div className={styles.meta}>
+          <div className={styles.name}>{user.username}</div>
+          <div className={styles.handle}>@{user.username}</div>
+          <div className={styles.hint}>{user.bio || 'Короткого описания пока нет.'}</div>
+        </div>
+      </div>
+      <div className={styles.actions}>
+        {side}
+        {action}
+      </div>
+    </div>
+  );
+
+  const statefulFollowButton = ({ userId, followsYou }: { userId: string; followsYou?: boolean }) => {
+    const isFollowing = followingIds.has(userId);
+    const label = isFollowing ? 'Отписаться' : followsYou ? 'Подписаться в ответ' : 'Подписаться';
+    const onClick = () => (isFollowing ? removeFollow({ userId }).unwrap().catch(() => null) : followAction({ userId }).unwrap().catch(() => null));
+    return (
+      <Button variant={isFollowing ? 'default' : 'primary'} onClick={onClick} loading={followLoading || removeLoading}>
+        {label}
+      </Button>
+    );
+  };
 
   return (
-    <div className="container">
+    <div className={`container ${styles.page}`}>
       <Card>
-        <CardHeader title="Friends" />
-        <CardMuted>Friend list & requests</CardMuted>
-        <div className={styles.tabs}>
-          <button className={[styles.tab, tab === 'friends' ? styles.tabActive : ''].filter(Boolean).join(' ')} onClick={() => setTab('friends')}>
-            Friends
-          </button>
-          <button className={[styles.tab, tab === 'requests' ? styles.tabActive : ''].filter(Boolean).join(' ')} onClick={() => setTab('requests')}>
-            Requests
-          </button>
+        <div className={styles.hero}>
+          <div>
+            <div className={styles.title}>Подписки</div>
+            <div className={styles.subtitle}>Компактный список подписок, подписчиков, запросов и чёрного списка без лишнего визуального шума.</div>
+          </div>
+          <div className={styles.summaryChips}>
+            <span className={styles.chip}>{following.length} подписок</span>
+            <span className={styles.chip}>{followers.length} подписчиков</span>
+            {!!incoming.length ? <span className={styles.chipAccent}>{incoming.length} ждут подтверждения</span> : null}
+          </div>
         </div>
-
-        {tab === 'friends' ? (
-          <div className={styles.list}>
-            {friendsLoading ? <CardMuted>Loading…</CardMuted> : null}
-            {!friendsLoading && friendsUsers.length === 0 ? <CardMuted>No friends yet.</CardMuted> : null}
-
-            {friendsUsers.map(({ friendship, other }) => (
-              <div key={friendship.id} className={styles.row}>
-                <div className={styles.user}>
-                  <Avatar
-                    url={other!.avatarUrl}
-                    name={other!.username}
-                    size={38}
-                    status={presence[other!.id]?.isOnline ? 'online' : 'offline'}
-                  />
-                  <div className={styles.meta}>
-                    <div className={styles.name}>{other!.username}</div>
-                    <div className={styles.handle}>@{other!.username}</div>
-                  </div>
-                </div>
-                <div className={styles.actions}>
-                  <Button
-                    onClick={() => remove({ userId: other!.id }).unwrap().catch(() => null)}
-                    disabled={removeLoading}
-                  >
-                    Remove
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className={styles.list}>
-            {reqLoading ? <CardMuted>Loading…</CardMuted> : null}
-
-            {!reqLoading && incoming.length === 0 && outgoing.length === 0 ? <CardMuted>No requests.</CardMuted> : null}
-
-            {incoming.length ? <div className={styles.badge}>Incoming</div> : null}
-            {incoming.map((r) => {
-              const u = r.sender;
-              if (!u) return null;
-              return (
-                <div key={r.id} className={styles.row}>
-                  <div className={styles.user}>
-                    <Avatar url={u.avatarUrl} name={u.username} size={38} status={presence[u.id]?.isOnline ? 'online' : 'offline'} />
-                    <div className={styles.meta}>
-                      <div className={styles.name}>{u.username}</div>
-                      <div className={styles.handle}>@{u.username}</div>
-                    </div>
-                  </div>
-                  <div className={styles.actions}>
-                    <Button
-                      variant="primary"
-                      onClick={() => accept({ friendshipId: r.id }).unwrap().catch(() => null)}
-                      disabled={acceptLoading}
-                    >
-                      Accept
-                    </Button>
-                    <Button onClick={() => decline({ friendshipId: r.id }).unwrap().catch(() => null)} disabled={declineLoading}>
-                      Decline
-                    </Button>
-                  </div>
-                </div>
-              );
-            })}
-
-            {outgoing.length ? <div className={styles.badge} style={{ marginTop: 10 }}>Outgoing</div> : null}
-            {outgoing.map((r) => {
-              const u = r.receiver;
-              if (!u) return null;
-              return (
-                <div key={r.id} className={styles.row}>
-                  <div className={styles.user}>
-                    <Avatar url={u.avatarUrl} name={u.username} size={38} status={presence[u.id]?.isOnline ? 'online' : 'offline'} />
-                    <div className={styles.meta}>
-                      <div className={styles.name}>{u.username}</div>
-                      <div className={styles.handle}>@{u.username}</div>
-                    </div>
-                  </div>
-                  <div className={styles.actions}>
-                    <div className={styles.badge}>Request sent</div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
       </Card>
+
+      <div className={styles.tabs}>
+        {tabs.map((item) => (
+          <button key={item.value} type="button" className={[styles.tab, tab === item.value ? styles.tabActive : ''].filter(Boolean).join(' ')} onClick={() => setTab(item.value)}>
+            <span>{item.label}</span>
+            {item.count ? <em>{item.count}</em> : null}
+          </button>
+        ))}
+      </div>
+
+      {tab === 'following' ? (
+        <div className={styles.list}>
+          {followingLoading ? <><RowSkeleton /><RowSkeleton /></> : null}
+          {!followingLoading && !following.length ? <Card><div className={styles.muted}>Ты пока ни на кого не подписан.</div></Card> : null}
+          {following.map((record) => {
+            const user = record.receiver;
+            if (!user) return null;
+            return renderUserRow(
+              user,
+              <Button onClick={() => removeFollow({ userId: user.id }).unwrap().catch(() => null)} loading={removeLoading}>Отписаться</Button>,
+              <button type="button" className={styles.iconAction} onClick={() => blockUser({ userId: user.id }).unwrap().catch(() => null)} aria-label="В чёрный список" title="В чёрный список">
+                <Icon name="dots" size={16} />
+              </button>,
+            );
+          })}
+        </div>
+      ) : null}
+
+      {tab === 'followers' ? (
+        <div className={styles.list}>
+          {followersLoading ? <><RowSkeleton /><RowSkeleton /></> : null}
+          {!followersLoading && !followers.length ? <Card><div className={styles.muted}>Пока никто не подписан на тебя.</div></Card> : null}
+          {followers.map((record) => {
+            const user = record.sender;
+            if (!user) return null;
+            return renderUserRow(
+              user,
+              statefulFollowButton({ userId: user.id, followsYou: true }),
+              <button type="button" className={styles.iconAction} onClick={() => blockUser({ userId: user.id }).unwrap().catch(() => null)} aria-label="В чёрный список" title="В чёрный список">
+                <Icon name="dots" size={16} />
+              </button>,
+            );
+          })}
+        </div>
+      ) : null}
+
+      {tab === 'requests' ? (
+        <div className={styles.list}>
+          {requestsLoading ? <><RowSkeleton /><RowSkeleton /></> : null}
+          {!requestsLoading && !incoming.length && !outgoing.length ? <Card><div className={styles.muted}>Запросов на подписку сейчас нет.</div></Card> : null}
+          {incoming.length ? <div className={styles.sectionLabel}>Входящие</div> : null}
+          {incoming.map((record) => {
+            const user = record.sender;
+            if (!user) return null;
+            return renderUserRow(
+              user,
+              <div className={styles.inlineActions}>
+                <Button variant="primary" onClick={() => accept({ friendshipId: record.id }).unwrap().catch(() => null)} loading={acceptLoading}>Принять</Button>
+                <Button onClick={() => decline({ friendshipId: record.id }).unwrap().catch(() => null)} loading={declineLoading}>Скрыть</Button>
+              </div>,
+            );
+          })}
+          {outgoing.length ? <div className={styles.sectionLabel}>Исходящие</div> : null}
+          {outgoing.map((record) => {
+            const user = record.receiver;
+            if (!user) return null;
+            return renderUserRow(
+              user,
+              <Button onClick={() => removeFollow({ userId: user.id }).unwrap().catch(() => null)} loading={removeLoading}>Отменить запрос</Button>,
+            );
+          })}
+        </div>
+      ) : null}
+
+      {tab === 'blacklist' ? (
+        <div className={styles.list}>
+          {blacklistLoading ? <><RowSkeleton /><RowSkeleton /></> : null}
+          {!blacklistLoading && !blacklist.length ? <Card><div className={styles.muted}>Чёрный список пуст.</div></Card> : null}
+          {blacklist.map((record) => {
+            const user = record.blocked;
+            if (!user) return null;
+            return renderUserRow(
+              user,
+              <Button onClick={() => unblockUser({ userId: user.id }).unwrap().catch(() => null)} loading={unblockLoading}>Убрать из ЧС</Button>,
+            );
+          })}
+        </div>
+      ) : null}
     </div>
   );
 }

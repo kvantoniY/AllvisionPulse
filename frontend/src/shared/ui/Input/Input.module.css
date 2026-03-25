@@ -1,13 +1,20 @@
-.field { display: grid; gap: 6px; }
-.label { color: var(--muted); font-size: 12px; }
+.field { display: grid; gap: 8px; }
+.label { color: var(--text-soft); font-size: 13px; font-weight: 500; }
 .input {
   width: 100%;
-  padding: 11px 12px;
+  min-height: 44px;
+  padding: 0 14px;
   border-radius: 14px;
-  border: 1px solid var(--stroke);
+  border: 1px solid rgba(255,255,255,0.06);
   background: rgba(255,255,255,0.03);
   color: var(--text);
   outline: none;
+  transition: border-color 140ms ease, background 140ms ease, box-shadow 140ms ease;
 }
-.input:focus { border-color: rgba(123,97,255,0.7); box-shadow: 0 0 0 3px rgba(123,97,255,0.18); }
+.input:hover { border-color: rgba(255,255,255,0.1); }
+.input:focus {
+  border-color: rgba(255,122,26,0.45);
+  background: rgba(255,255,255,0.04);
+  box-shadow: 0 0 0 4px rgba(255,122,26,0.12);
+}
 .error { color: var(--danger); font-size: 12px; }

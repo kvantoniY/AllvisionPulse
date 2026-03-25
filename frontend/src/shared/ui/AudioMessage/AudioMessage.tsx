@@ -10,7 +10,7 @@ export interface AudioMessageProps {
   className?: string;
 }
 
-const BAR_COUNT = 42;
+const BAR_COUNT = 34;
 
 function hashString(input: string): number {
   let hash = 0;
@@ -24,10 +24,10 @@ function hashString(input: string): number {
 function buildWaveform(url: string) {
   const seed = hashString(url) || 1;
   return Array.from({ length: BAR_COUNT }, (_, index) => {
-    const sine = Math.sin((seed + index * 17) * 0.11);
-    const cosine = Math.cos((seed + index * 7) * 0.07);
-    const value = Math.abs(sine * 0.62 + cosine * 0.38);
-    return 0.18 + value * 0.82;
+    const sine = Math.sin((seed + index * 13) * 0.11);
+    const cosine = Math.cos((seed + index * 7) * 0.08);
+    const value = Math.abs(sine * 0.56 + cosine * 0.44);
+    return 0.22 + value * 0.78;
   });
 }
 
@@ -38,7 +38,7 @@ function formatTime(seconds: number) {
   return `${mins}:${secs.toString().padStart(2, '0')}`;
 }
 
-export function AudioMessage({ url, duration = 0, title = 'Voice message', className }: AudioMessageProps) {
+export function AudioMessage({ url, duration = 0, title = 'Голосовое', className }: AudioMessageProps) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -95,32 +95,32 @@ export function AudioMessage({ url, duration = 0, title = 'Voice message', class
     try {
       await audio.play();
     } catch {
-      // ignore play rejection from browser gesture rules
+      // ignore browser gesture restrictions
     }
   };
 
-  const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {
+  const handleSeek = (event: React.MouseEvent<HTMLDivElement>) => {
     const audio = audioRef.current;
     if (!audio || !resolvedDuration) return;
-    const rect = e.currentTarget.getBoundingClientRect();
-    const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    const rect = event.currentTarget.getBoundingClientRect();
+    const ratio = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width));
     audio.currentTime = resolvedDuration * ratio;
     setCurrentTime(audio.currentTime);
   };
 
   return (
     <div className={[styles.audioMessage, className].filter(Boolean).join(' ')}>
-      <button type="button" className={styles.playButton} onClick={togglePlayPause} aria-label={isPlaying ? 'Pause audio' : 'Play audio'}>
+      <button type="button" className={styles.playButton} onClick={togglePlayPause} aria-label={isPlaying ? 'Пауза' : 'Воспроизвести'}>
         {isPlaying ? <PauseIcon /> : <PlayIcon />}
       </button>
 
-      <div className={styles.body}>
-        <div className={styles.header}>
+      <div className={styles.content}>
+        <div className={styles.rowTop}>
           <span className={styles.title}>{title}</span>
-          <span className={styles.duration}>{formatTime(resolvedDuration || duration)}</span>
+          <span className={styles.duration}>{formatTime(resolvedDuration)}</span>
         </div>
 
-        <div className={styles.waveformTrack} onClick={handleSeek} role="slider" aria-label="Seek audio message" tabIndex={0}>
+        <div className={styles.waveformTrack} onClick={handleSeek} role="slider" aria-label="Прокрутка голосового сообщения" tabIndex={0}>
           <div className={styles.waveformBars}>
             {waveform.map((value, index) => {
               const active = index / (waveform.length - 1 || 1) <= playbackProgress;
@@ -128,18 +128,17 @@ export function AudioMessage({ url, duration = 0, title = 'Voice message', class
                 <span
                   key={`${url}-${index}`}
                   className={[styles.waveBar, active ? styles.waveBarActive : ''].filter(Boolean).join(' ')}
-                  style={{ height: `${Math.round(18 + value * 34)}px` }}
+                  style={{ height: `${Math.round(8 + value * 18)}px` }}
                 />
               );
             })}
           </div>
-          <div className={styles.progressFill} style={{ width: `${playbackProgress * 100}%` }} />
           <div className={styles.progressThumb} style={{ left: `${playbackProgress * 100}%` }} />
         </div>
 
-        <div className={styles.footer}>
+        <div className={styles.rowBottom}>
           <span className={styles.currentTime}>{formatTime(currentTime)}</span>
-          <span className={styles.metaLabel}>{isPlaying ? 'Playing' : 'Voice note'}</span>
+          <span className={styles.caption}>{isPlaying ? 'Сейчас играет' : 'Голосовое сообщение'}</span>
         </div>
       </div>
 
@@ -159,7 +158,7 @@ function PlayIcon() {
 function PauseIcon() {
   return (
     <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-      <path d="M6 4h4v16H6V4Zm8 0h4v16h-4V4Z" />
+      <path d="M7 5h4v14H7V5Zm6 0h4v14h-4V5Z" />
     </svg>
   );
 }

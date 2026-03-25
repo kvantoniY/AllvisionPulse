@@ -21,6 +21,12 @@ const io = new Server(server, {
     origin: env.CORS_ORIGIN.split(",").map(s => s.trim()),
     credentials: true,
   },
+  connectionStateRecovery: {
+    maxDisconnectionDuration: env.SOCKET_RECOVERY_MS,
+    skipMiddlewares: true,
+  },
+  pingInterval: 10000,
+  pingTimeout: 20000,
 });
 
 const emitter = createSocket(io);

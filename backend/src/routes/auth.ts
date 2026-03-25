@@ -104,6 +104,26 @@ router.post("/logout", requireAuth, asyncHandler(async (req: AuthedRequest, res)
   res.json({ ok: true });
 }));
 
+
+const ChangePasswordSchema = z.object({
+  currentPassword: z.string().min(8).max(128),
+  newPassword: z.string().min(8).max(128),
+});
+
+router.post("/password", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
+  const body = ChangePasswordSchema.parse(req.body);
+  const user = await prisma.user.findUnique({ where: { id: req.user!.id } });
+  if (!user) throw new HttpError(404, "User not found");
+  const ok = await verifyPassword(body.currentPassword, user.passwordHash);
+  if (!ok) throw new HttpError(400, "Current password is incorrect");
+  if (body.currentPassword === body.newPassword) throw new HttpError(400, "New password must be different");
+
+  await prisma.user.update({ where: { id: user.id }, data: { passwordHash: await hashPassword(body.newPassword) } });
+  await prisma.session.updateMany({ where: { userId: user.id, id: { not: req.user!.sessionId } }, data: { revokedAt: new Date() } });
+
+  res.json({ ok: true });
+}));
+
 router.get("/sessions", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
   const sessions = await prisma.session.findMany({
     where: { userId: req.user!.id },

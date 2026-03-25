@@ -1,24 +1,26 @@
 .header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  gap: 14px;
-  margin-bottom: 16px;
-}
-
-@media (max-width: 780px) {
-  .header { flex-direction: column; align-items: stretch; }
+  gap: 16px;
+  margin-bottom: 18px;
 }
 
 .user {
   display: flex;
   gap: 14px;
-  align-items: center;
+  align-items: flex-start;
+  min-width: 0;
+}
+
+.identity {
+  min-width: 0;
 }
 
 .name {
   font-size: 28px;
   font-weight: 900;
+  letter-spacing: -0.03em;
 }
 
 .handle {
@@ -26,7 +28,7 @@
   margin-top: 4px;
 }
 
-.statusRow{
+.statusRow {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -35,44 +37,49 @@
   font-size: 12px;
 }
 
-.dot{
+.dot {
   width: 8px;
   height: 8px;
   border-radius: 999px;
   background: rgba(255,255,255,0.25);
 }
 
-.dotOnline{ background: rgba(77, 223, 124, 0.95); }
-.dotOffline{ background: rgba(255,255,255,0.25); }
+.dotOnline { background: rgba(77, 223, 124, 0.95); }
+.dotOffline { background: rgba(255,255,255,0.25); }
 
 .bio {
   color: var(--muted);
-  margin-top: 6px;
+  margin-top: 8px;
   max-width: 560px;
+  line-height: 1.5;
 }
 
 .counts {
   display: flex;
-  gap: 18px;
-  margin-top: 10px;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 14px;
 }
 
 .countItem {
+  min-width: 112px;
   display: grid;
   gap: 2px;
-  padding: 0;
-  border: 0;
-  background: transparent;
+  padding: 12px 14px;
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 18px;
+  background: rgba(255,255,255,0.02);
   color: var(--text);
   text-align: left;
 }
 
-.countItem:disabled {
-  opacity: 0.8;
+button.countItem {
+  cursor: pointer;
 }
 
-.countItem:not(:disabled) {
-  cursor: pointer;
+button.countItem:disabled {
+  opacity: 0.64;
+  cursor: not-allowed;
 }
 
 .countValue {
@@ -85,32 +92,6 @@
   color: var(--muted);
 }
 
-.stats {
-  display: flex;
-  gap: 22px;
-  margin-top: 10px;
-}
-
-.stat {
-  display: grid;
-  gap: 2px;
-  cursor: default;
-}
-
-.statClickable {
-  cursor: pointer;
-}
-
-.statValue {
-  font-weight: 900;
-  font-size: 18px;
-}
-
-.statLabel {
-  font-size: 12px;
-  color: var(--muted);
-}
-
 .actions {
   display: flex;
   gap: 10px;
@@ -118,48 +99,8 @@
   justify-content: flex-end;
 }
 
-.sectionRow {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin: 18px 0 10px;
-}
-
 .sectionTitle {
   font-weight: 800;
-}
-
-.sectionAction {
-  color: var(--accent);
-  font-weight: 700;
-}
-
-.widgets {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 14px;
-}
-
-@media (max-width: 780px) {
-  .widgets { grid-template-columns: 1fr; }
-}
-
-.widget {
-  display: grid;
-  place-items: center;
-  padding: 18px;
-  text-align: center;
-}
-
-.widgetValue {
-  font-size: 28px;
-  font-weight: 900;
-}
-
-.widgetLabel {
-  color: var(--muted);
-  font-size: 12px;
-  margin-top: 6px;
 }
 
 .editCard { margin-bottom: 14px; }
@@ -173,5 +114,75 @@
   color: var(--text);
   outline: none;
 }
-.textarea:focus { border-color: rgba(123,97,255,0.7); box-shadow: 0 0 0 3px rgba(123,97,255,0.18); }
+.textarea:focus { border-color: rgba(255,122,26,0.46); box-shadow: 0 0 0 3px rgba(255,122,26,0.12); }
 .editActions { display: flex; gap: 10px; justify-content: flex-end; }
+
+.profileActionsModal {
+  display: grid;
+  gap: 10px;
+}
+
+.connectionModalBody {
+  display: grid;
+  gap: 10px;
+}
+
+.connectionRow {
+  padding: 12px 0;
+  border-top: 1px solid rgba(255,255,255,0.06);
+}
+
+.connectionRow:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.connectionUser {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.connectionMeta {
+  min-width: 0;
+}
+
+.connectionName {
+  font-weight: 700;
+}
+
+.connectionHandle,
+.connectionEmpty {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+@media (max-width: 780px) {
+  .header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .actions {
+    justify-content: stretch;
+  }
+
+  .counts {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .name {
+    font-size: 24px;
+  }
+
+  .user {
+    align-items: center;
+  }
+
+  .counts {
+    grid-template-columns: 1fr;
+  }
+}

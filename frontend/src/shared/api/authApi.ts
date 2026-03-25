@@ -21,7 +21,10 @@ export const authApi = createApi({
       query: () => ({ url: '/auth/logout', method: 'POST' }),
       invalidatesTags: ['Me'],
     }),
+    changePassword: build.mutation<{ ok: boolean }, { currentPassword: string; newPassword: string }>({
+      query: (body) => ({ url: '/backend/auth/password', method: 'POST', body }),
+    }),
   }),
 });
 
-export const { useLoginMutation, useRegisterMutation, useLogoutMutation } = authApi;
+export const { useLoginMutation, useRegisterMutation, useLogoutMutation, useChangePasswordMutation } = authApi;

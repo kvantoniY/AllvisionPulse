@@ -12,8 +12,8 @@ import { Button } from '@/shared/ui/Button/Button';
 import { InputField } from '@/shared/ui/Input/Input';
 
 const loginSchema = z.object({
-  login: z.string().trim().min(1, 'Enter your email or username'),
-  password: z.string().min(1, 'Enter your password'),
+  login: z.string().trim().min(1, 'Введите почту или имя пользователя'),
+  password: z.string().min(1, 'Введите пароль'),
 });
 
 type LoginFormValues = z.infer<typeof loginSchema>;
@@ -53,7 +53,7 @@ export default function LoginPage() {
     } catch (error) {
       setError('root', {
         type: 'server',
-        message: getErrorMessage(error, 'Login failed'),
+        message: getErrorMessage(error, 'Не удалось войти'),
       });
     }
   });
@@ -61,32 +61,32 @@ export default function LoginPage() {
   return (
     <div className={styles.wrap}>
       <div className={styles.card}>
-        <div className={styles.head}>Welcome back</div>
-        <div className={styles.sub}>Login with your username or email</div>
+        <div className={styles.head}>С возвращением</div>
+        <div className={styles.sub}>Войдите по почте или имени пользователя</div>
 
         <form onSubmit={onSubmit} className={styles.form}>
           <InputField
-            label="Email or username"
+            label="Почта или имя пользователя"
             autoComplete="username"
             error={errors.login?.message}
             {...register('login')}
           />
           <InputField
-            label="Password"
+            label="Пароль"
             type="password"
             autoComplete="current-password"
             error={errors.password?.message}
             {...register('password')}
           />
           {errors.root?.message ? <div className={styles.error}>{errors.root.message}</div> : null}
-          <Button variant="primary" className={styles.full} disabled={isLoading}>
-            {isLoading ? 'Signing in...' : 'Sign in'}
+          <Button type="submit" variant="primary" className={styles.full} disabled={isLoading}>
+            {isLoading ? 'Входим…' : 'Войти'}
           </Button>
         </form>
 
         <div className={styles.bottom}>
-          <span>New here?</span>
-          <Link href={ROUTES.auth.register} className={styles.link}>Create an account</Link>
+          <span>Впервые здесь?</span>
+          <Link href={ROUTES.auth.register} className={styles.link}>Создать аккаунт</Link>
         </div>
       </div>
     </div>

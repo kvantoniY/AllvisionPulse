@@ -18,9 +18,9 @@ export interface VideoRingProps {
 }
 
 const SIZE_MAP = {
-  small: 132,
-  medium: 184,
-  large: 236,
+  small: 120,
+  medium: 168,
+  large: 220,
 } as const;
 
 function formatTime(seconds: number) {
@@ -44,21 +44,10 @@ export function VideoRing({
   controls = false,
 }: VideoRingProps) {
   const internalVideoRef = useRef<HTMLVideoElement | null>(null);
-  const previewCanvasRef = useRef<HTMLCanvasElement | null>(null);
-  const pointerActiveRef = useRef(false);
-  const [draggedProgress, setDraggedProgress] = useState<number | null>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
+  const resolvedVideo = src ? internalVideoRef.current : videoElement;
+  const [isPlaying, setIsPlaying] = useState(Boolean(autoPlay));
   const [localDuration, setLocalDuration] = useState(duration);
   const [localCurrentTime, setLocalCurrentTime] = useState(currentTime);
-  const resolvedVideo = src ? internalVideoRef.current : videoElement;
-  const resolvedDuration = src ? localDuration : duration;
-  const resolvedCurrentTime = src ? localCurrentTime : currentTime;
-  const progress = draggedProgress ?? (resolvedDuration > 0 ? resolvedCurrentTime / resolvedDuration : 0);
-  const clampedProgress = Math.max(0, Math.min(1, Number.isFinite(progress) ? progress : 0));
-  const ringRadius = 52;
-  const circumference = 2 * Math.PI * ringRadius;
-  const strokeDashoffset = circumference * (1 - clampedProgress);
-  const sizePx = SIZE_MAP[size];
 
   useEffect(() => {
     setLocalDuration(duration);
@@ -69,113 +58,57 @@ export function VideoRing({
   }, [currentTime]);
 
   useEffect(() => {
-    const video = internalVideoRef.current;
-    if (!src || !video) return;
+    const video = resolvedVideo;
+    if (!video) return;
 
-    const handleLoadedMetadata = () => {
-      if (video.duration > 0) setLocalDuration(video.duration);
-    };
-    const handleTimeUpdate = () => setLocalCurrentTime(video.currentTime || 0);
     const handlePlay = () => setIsPlaying(true);
     const handlePause = () => setIsPlaying(false);
     const handleEnded = () => {
       setIsPlaying(false);
-      setLocalCurrentTime(0);
+      if (src) setLocalCurrentTime(0);
+    };
+    const handleTimeUpdate = () => {
+      if (src) setLocalCurrentTime(video.currentTime || 0);
+    };
+    const handleLoadedMetadata = () => {
+      if (src && Number.isFinite(video.duration) && video.duration > 0) {
+        setLocalDuration(video.duration);
+      }
     };
 
-    video.addEventListener('loadedmetadata', handleLoadedMetadata);
-    video.addEventListener('timeupdate', handleTimeUpdate);
     video.addEventListener('play', handlePlay);
     video.addEventListener('pause', handlePause);
     video.addEventListener('ended', handleEnded);
+    video.addEventListener('timeupdate', handleTimeUpdate);
+    video.addEventListener('loadedmetadata', handleLoadedMetadata);
 
     return () => {
-      video.removeEventListener('loadedmetadata', handleLoadedMetadata);
-      video.removeEventListener('timeupdate', handleTimeUpdate);
       video.removeEventListener('play', handlePlay);
       video.removeEventListener('pause', handlePause);
       video.removeEventListener('ended', handleEnded);
+      video.removeEventListener('timeupdate', handleTimeUpdate);
+      video.removeEventListener('loadedmetadata', handleLoadedMetadata);
     };
-  }, [src]);
+  }, [resolvedVideo, src]);
 
-  useEffect(() => {
-    if (src) return;
-    const canvas = previewCanvasRef.current;
-    const video = videoElement;
-    if (!canvas || !video) return;
-
-    const rect = canvas.getBoundingClientRect();
-    const ratio = window.devicePixelRatio || 1;
-    canvas.width = Math.max(1, Math.floor(rect.width * ratio));
-    canvas.height = Math.max(1, Math.floor(rect.height * ratio));
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    try {
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-    } catch {
-      // ignore if frame is not available yet
-    }
-  }, [src, videoElement, currentTime, duration]);
-
-  const seekToProgress = async (nextProgress: number) => {
-    const nextTime = nextProgress * (resolvedDuration || 0);
-    if (!Number.isFinite(nextTime)) return;
-
-    if (src && internalVideoRef.current) {
-      internalVideoRef.current.currentTime = nextTime;
-      setLocalCurrentTime(nextTime);
-      return;
-    }
-
-    onSeek?.(nextTime);
-  };
-
-  const computeProgressFromPointer = (clientX: number, clientY: number, rect: DOMRect) => {
-    const centerX = rect.left + rect.width / 2;
-    const centerY = rect.top + rect.height / 2;
-    const dx = clientX - centerX;
-    const dy = clientY - centerY;
-    let angle = Math.atan2(dy, dx) + Math.PI / 2;
-    if (angle < 0) angle += Math.PI * 2;
-    return Math.max(0, Math.min(1, angle / (Math.PI * 2)));
-  };
-
-  const bindPointerSeek = (event: React.PointerEvent<SVGSVGElement>) => {
-    if (!showProgress || !(src || onSeek) || !resolvedDuration) return;
-    const rect = event.currentTarget.getBoundingClientRect();
-    pointerActiveRef.current = true;
-
-    const update = (clientX: number, clientY: number) => {
-      const nextProgress = computeProgressFromPointer(clientX, clientY, rect);
-      setDraggedProgress(nextProgress);
-    };
-
-    update(event.clientX, event.clientY);
-
-    const handlePointerMove = (moveEvent: PointerEvent) => update(moveEvent.clientX, moveEvent.clientY);
-    const handlePointerUp = async (upEvent: PointerEvent) => {
-      const nextProgress = computeProgressFromPointer(upEvent.clientX, upEvent.clientY, rect);
-      setDraggedProgress(null);
-      pointerActiveRef.current = false;
-      window.removeEventListener('pointermove', handlePointerMove);
-      window.removeEventListener('pointerup', handlePointerUp);
-      await seekToProgress(nextProgress);
-    };
-
-    window.addEventListener('pointermove', handlePointerMove);
-    window.addEventListener('pointerup', handlePointerUp, { once: true });
-  };
+  const resolvedDuration = src ? localDuration : duration;
+  const resolvedCurrentTime = src ? localCurrentTime : currentTime;
+  const progress = resolvedDuration > 0 ? Math.max(0, Math.min(1, resolvedCurrentTime / resolvedDuration)) : 0;
+  const diameter = SIZE_MAP[size];
+  const ringRadius = diameter / 2 - 6;
+  const circumference = 2 * Math.PI * ringRadius;
+  const dashOffset = circumference * (1 - progress);
+  const style = useMemo(() => ({ '--video-ring-size': `${diameter}px` } as React.CSSProperties), [diameter]);
 
   const togglePlayback = async () => {
-    const video = internalVideoRef.current;
-    if (!src || !video) return;
+    const video = resolvedVideo;
+    if (!video) return;
 
     if (video.paused) {
       try {
         await video.play();
       } catch {
-        // ignore gesture-related rejections
+        // ignore autoplay restrictions
       }
       return;
     }
@@ -183,86 +116,62 @@ export function VideoRing({
     video.pause();
   };
 
-  const rootClassName = useMemo(
-    () => [styles.videoRingContainer, styles[`size${size.charAt(0).toUpperCase() + size.slice(1)}`], className].filter(Boolean).join(' '),
-    [className, size],
-  );
+  const handleProgressPointer = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (!onSeek && !src) return;
+    const rect = event.currentTarget.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+    const angle = Math.atan2(event.clientY - centerY, event.clientX - centerX);
+    const normalized = (angle + Math.PI / 2 + Math.PI * 2) % (Math.PI * 2);
+    const ratio = normalized / (Math.PI * 2);
+    const nextTime = resolvedDuration * ratio;
+    if (onSeek) onSeek(nextTime);
+    if (src && resolvedVideo) {
+      resolvedVideo.currentTime = nextTime;
+      setLocalCurrentTime(nextTime);
+    }
+  };
 
   return (
-    <div className={rootClassName}>
-      {src ? (
-        <video
-          ref={internalVideoRef}
-          className={styles.videoSurface}
-          src={src}
-          playsInline
-          preload="metadata"
-          autoPlay={autoPlay}
-          muted={muted}
-          loop={false}
-          controls={controls}
-        />
-      ) : (
-        <canvas ref={previewCanvasRef} className={styles.videoSurface} />
-      )}
-
-      <svg
-        className={styles.ringOverlay}
-        viewBox="0 0 140 140"
-        style={{ width: sizePx, height: sizePx }}
-        onPointerDown={bindPointerSeek}
-        aria-hidden="true"
-      >
-        <defs>
-          <linearGradient id="videoRingTrack" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#86a4ff" />
-            <stop offset="50%" stopColor="#6ac8ff" />
-            <stop offset="100%" stopColor="#4ddc8f" />
-          </linearGradient>
-          <filter id="videoRingGlow">
-            <feGaussianBlur stdDeviation="1.6" result="coloredBlur" />
-            <feMerge>
-              <feMergeNode in="coloredBlur" />
-              <feMergeNode in="SourceGraphic" />
-            </feMerge>
-          </filter>
-        </defs>
-
-        <circle cx="70" cy="70" r={ringRadius} fill="none" stroke="rgba(255,255,255,0.16)" strokeWidth="6" />
+    <div className={[styles.videoRing, className].filter(Boolean).join(' ')} style={style}>
+      <div className={styles.shell} onPointerDown={handleProgressPointer}>
         {showProgress ? (
-          <circle
-            cx="70"
-            cy="70"
-            r={ringRadius}
-            fill="none"
-            stroke="url(#videoRingTrack)"
-            strokeWidth="6"
-            strokeLinecap="round"
-            strokeDasharray={circumference}
-            strokeDashoffset={strokeDashoffset}
-            filter="url(#videoRingGlow)"
-            style={{
-              transform: 'rotate(-90deg)',
-              transformOrigin: '50% 50%',
-              transition: draggedProgress === null ? 'stroke-dashoffset 120ms linear' : 'none',
-            }}
-          />
+          <svg className={styles.progressSvg} viewBox={`0 0 ${diameter} ${diameter}`} aria-hidden="true">
+            <circle className={styles.progressTrack} cx={diameter / 2} cy={diameter / 2} r={ringRadius} />
+            <circle
+              className={styles.progressValue}
+              cx={diameter / 2}
+              cy={diameter / 2}
+              r={ringRadius}
+              strokeDasharray={circumference}
+              strokeDashoffset={dashOffset}
+            />
+          </svg>
         ) : null}
-      </svg>
 
-      {src ? (
-        <button type="button" className={styles.centerControl} onClick={togglePlayback} aria-label={isPlaying ? 'Pause video note' : 'Play video note'}>
+        <div className={styles.viewport}>
+          {src ? (
+            <video
+              ref={internalVideoRef}
+              className={styles.video}
+              src={src}
+              autoPlay={autoPlay}
+              muted={muted}
+              playsInline
+              preload="metadata"
+              controls={controls}
+            />
+          ) : (
+            <div className={styles.videoFallback}>Видео</div>
+          )}
+        </div>
+
+        <button type="button" className={styles.playButton} onClick={togglePlayback} aria-label={isPlaying ? 'Пауза' : 'Воспроизвести'}>
           {isPlaying ? <PauseIcon /> : <PlayIcon />}
         </button>
-      ) : null}
+      </div>
 
-      {showProgress ? (
-        <div className={styles.timeDisplay}>
-          <span className={styles.currentTime}>{formatTime(draggedProgress !== null ? draggedProgress * resolvedDuration : resolvedCurrentTime)}</span>
-          <span className={styles.separator}>/</span>
-          <span className={styles.duration}>{formatTime(resolvedDuration)}</span>
-        </div>
-      ) : null}
+      <div className={styles.caption}>{formatTime(resolvedCurrentTime || resolvedDuration)}</div>
     </div>
   );
 }
@@ -278,7 +187,7 @@ function PlayIcon() {
 function PauseIcon() {
   return (
     <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-      <path d="M6 4h4v16H6V4Zm8 0h4v16h-4V4Z" />
+      <path d="M7 5h4v14H7V5Zm6 0h4v14h-4V5Z" />
     </svg>
   );
 }

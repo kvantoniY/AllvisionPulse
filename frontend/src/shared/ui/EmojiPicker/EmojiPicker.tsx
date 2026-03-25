@@ -23,7 +23,7 @@ const RECENTS_STORAGE_KEY = 'allvision-pulse:emoji-recents';
 const EMOJI_CATEGORIES: EmojiCategory[] = [
   {
     key: 'smileys',
-    label: 'Smileys',
+    label: 'Смайлы',
     icon: '😊',
     items: [
       ['😀', 'grinning face', ['happy', 'smile', 'joy']],
@@ -58,7 +58,7 @@ const EMOJI_CATEGORIES: EmojiCategory[] = [
   },
   {
     key: 'people',
-    label: 'People',
+    label: 'Люди',
     icon: '🙌',
     items: [
       ['👍', 'thumbs up', ['like', 'yes', 'ok']],
@@ -89,7 +89,7 @@ const EMOJI_CATEGORIES: EmojiCategory[] = [
   },
   {
     key: 'nature',
-    label: 'Nature',
+    label: 'Природа',
     icon: '🌿',
     items: [
       ['❤️', 'red heart', ['love', 'heart']],
@@ -120,7 +120,7 @@ const EMOJI_CATEGORIES: EmojiCategory[] = [
   },
   {
     key: 'food',
-    label: 'Food',
+    label: 'Еда',
     icon: '🍕',
     items: [
       ['☕', 'hot beverage', ['coffee', 'tea']],
@@ -147,7 +147,7 @@ const EMOJI_CATEGORIES: EmojiCategory[] = [
   },
   {
     key: 'travel',
-    label: 'Travel',
+    label: 'Путешествия',
     icon: '🚀',
     items: [
       ['🚗', 'car', ['drive', 'road']],
@@ -174,7 +174,7 @@ const EMOJI_CATEGORIES: EmojiCategory[] = [
   },
   {
     key: 'symbols',
-    label: 'Symbols',
+    label: 'Символы',
     icon: '💬',
     items: [
       ['💬', 'speech balloon', ['chat', 'message']],
@@ -264,12 +264,12 @@ export function EmojiPicker({ onSelect, onClose, className }: EmojiPickerProps) 
   const recentEntries = useMemo(() => {
     if (!recentEmojis.length) return [] as EmojiEntry[];
     const lookup = new Map(EMOJI_CATEGORIES.flatMap((category) => category.items.map((item) => [item.emoji, item] as const)));
-    return recentEmojis.map((emoji) => lookup.get(emoji) ?? { emoji, label: 'Recent emoji', keywords: ['recent'] });
+    return recentEmojis.map((emoji) => lookup.get(emoji) ?? { emoji, label: 'Недавний эмодзи', keywords: ['recent'] });
   }, [recentEmojis]);
 
   const categories = useMemo<EmojiCategory[]>(() => {
     return recentEntries.length
-      ? [{ key: 'recent', label: 'Recent', icon: '🕘', items: recentEntries }, ...EMOJI_CATEGORIES]
+      ? [{ key: 'recent', label: 'Недавние', icon: '🕘', items: recentEntries }, ...EMOJI_CATEGORIES]
       : EMOJI_CATEGORIES;
   }, [recentEntries]);
 
@@ -304,11 +304,11 @@ export function EmojiPicker({ onSelect, onClose, className }: EmojiPickerProps) 
     <div ref={containerRef} className={[styles.emojiPicker, className].filter(Boolean).join(' ')}>
       <div className={styles.header}>
         <div>
-          <div className={styles.title}>Emoji</div>
-          <div className={styles.subtitle}>Pick one or mix several in one message.</div>
+          <div className={styles.title}>Эмодзи</div>
+          <div className={styles.subtitle}>Быстрый выбор для сообщения.</div>
         </div>
         {onClose ? (
-          <button type="button" className={styles.closeButton} onClick={onClose} aria-label="Close emoji picker">
+          <button type="button" className={styles.closeButton} onClick={onClose} aria-label="Закрыть выбор эмодзи">
             ✕
           </button>
         ) : null}
@@ -324,12 +324,12 @@ export function EmojiPicker({ onSelect, onClose, className }: EmojiPickerProps) 
             ref={searchInputRef}
             type="text"
             className={styles.searchInput}
-            placeholder="Search emoji"
+            placeholder="Поиск эмодзи"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
           {searchQuery ? (
-            <button type="button" className={styles.clearButton} onClick={() => setSearchQuery('')} aria-label="Clear search">
+            <button type="button" className={styles.clearButton} onClick={() => setSearchQuery('')} aria-label="Очистить поиск">
               ✕
             </button>
           ) : null}
@@ -373,7 +373,7 @@ export function EmojiPicker({ onSelect, onClose, className }: EmojiPickerProps) 
       {visibleEmojis.length === 0 ? (
         <div className={styles.emptyState}>
           <div className={styles.emptyIcon}>🔎</div>
-          <p>No emoji found for “{searchQuery}”.</p>
+          <p>Ничего не найдено по запросу «{searchQuery}».</p>
         </div>
       ) : null}
     </div>

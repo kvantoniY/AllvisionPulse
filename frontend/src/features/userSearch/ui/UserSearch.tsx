@@ -4,8 +4,10 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import styles from './UserSearch.module.css';
 import { useLazySearchUsersQuery } from '@/shared/api/usersApi';
-import { Avatar } from '@/shared/ui/Avatar/Avatar';
+import { StoryRingAvatar } from '@/features/stories';
 import { ROUTES } from '@/shared/config/app';
+import { Icon } from '@/shared/ui/Icon/Icon';
+import { Skeleton, SkeletonText } from '@/shared/ui/Skeleton/Skeleton';
 
 export function UserSearch() {
   const router = useRouter();
@@ -43,24 +45,36 @@ export function UserSearch() {
 
   return (
     <div ref={boxRef} className={styles.wrap}>
-      <input
-        value={q}
-        onChange={(e) => {
-          setQ(e.target.value);
-          setOpen(true);
-        }}
-        onFocus={() => setOpen(true)}
-        placeholder="Search people…"
-        className={styles.input}
-      />
+      <div className={styles.inputWrap}>
+        <Icon name="search" size={16} className={styles.searchIcon} />
+        <input
+          value={q}
+          onChange={(e) => {
+            setQ(e.target.value);
+            setOpen(true);
+          }}
+          onFocus={() => setOpen(true)}
+          placeholder="Поиск людей"
+          className={styles.input}
+        />
+      </div>
 
       {open && q.trim() ? (
         <div className={styles.dropdown}>
-          {isFetching ? <div className={styles.loading}>Searching…</div> : null}
-          {!isFetching && users.length === 0 ? <div className={styles.empty}>No users found</div> : null}
+          {isFetching ? (
+            <div className={styles.loading}>
+              {Array.from({ length: 3 }).map((_, index) => (
+                <div key={index} className={styles.item}>
+                  <Skeleton circle style={{ width: 32, height: 32 }} />
+                  <div className={styles.meta}><SkeletonText lines={2} /></div>
+                </div>
+              ))}
+            </div>
+          ) : null}
+          {!isFetching && users.length === 0 ? <div className={styles.empty}>Ничего не найдено</div> : null}
           {users.map((u) => (
             <button key={u.id} className={styles.item} onClick={() => onPick(u.username)}>
-              <Avatar url={u.avatarUrl} name={u.username} size={30} />
+              <StoryRingAvatar userId={u.id} url={u.avatarUrl} name={u.username} size={32} />
               <div className={styles.meta}>
                 <div className={styles.name}>{u.username}</div>
                 <div className={styles.handle}>@{u.username}</div>

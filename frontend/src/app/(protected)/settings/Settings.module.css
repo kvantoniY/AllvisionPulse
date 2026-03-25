@@ -1,0 +1,243 @@
+.page {
+  display: grid;
+  gap: 18px;
+}
+
+.hero {
+  display: grid;
+  gap: 14px;
+}
+
+.heroCopy {
+  display: grid;
+  gap: 6px;
+}
+
+.heroTitle {
+  font-size: 26px;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+}
+
+.heroText {
+  max-width: 760px;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.heroChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.heroChip {
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.06);
+  color: var(--text);
+  font-size: 12px;
+}
+
+.segmented {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 6px;
+  border-radius: 18px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.05);
+}
+
+.segmentedItem {
+  min-height: 42px;
+  padding: 0 16px;
+  border-radius: 14px;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.segmentedItemActive {
+  background: rgba(255,255,255,0.06);
+  color: var(--text);
+}
+
+.stack {
+  display: grid;
+  gap: 18px;
+}
+
+.optionList,
+.settingRows,
+.switchRows,
+.blacklist {
+  display: grid;
+  gap: 12px;
+}
+
+.optionRow {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 18px;
+  border-radius: 18px;
+  border: 1px solid rgba(255,255,255,0.06);
+  background: rgba(255,255,255,0.02);
+  color: var(--text);
+  text-align: left;
+}
+
+.optionRowActive {
+  border-color: rgba(255,122,26,0.34);
+  background: rgba(255,122,26,0.08);
+  color: #ffd9ba;
+}
+
+.optionTitle,
+.settingTitle,
+.accountName,
+.userName {
+  font-weight: 800;
+}
+
+.optionHint,
+.settingHint,
+.userHint,
+.accountHint,
+.empty {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.settingRow {
+  display: grid;
+  gap: 12px;
+  padding: 14px 0;
+  border-top: 1px solid rgba(255,255,255,0.06);
+}
+
+.settingRow:first-child {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.choicePills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.choicePill {
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.03);
+  color: var(--text);
+  font-weight: 700;
+}
+
+.choicePillActive {
+  border-color: rgba(255,122,26,0.4);
+  background: rgba(255,122,26,0.14);
+  color: #ffd1aa;
+}
+
+.formGrid {
+  display: grid;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.field {
+  display: grid;
+  gap: 6px;
+}
+
+.field span {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.input {
+  width: 100%;
+  min-height: 48px;
+  padding: 0 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.03);
+  color: var(--text);
+  outline: none;
+}
+
+.input:focus {
+  border-color: rgba(255,122,26,0.45);
+  box-shadow: 0 0 0 3px rgba(255,122,26,0.1);
+}
+
+.footerActions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+
+.accountBox,
+.blacklistRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.userBox {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background: rgba(255,122,26,0.12);
+  color: var(--accent);
+  font-weight: 800;
+}
+
+.userInfo {
+  min-width: 0;
+}
+
+.userHint {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 420px;
+}
+
+.success {
+  margin-top: 12px;
+  color: #4ddf7c;
+}
+
+.error {
+  margin-top: 12px;
+  color: #ff6b6b;
+}
+
+@media (max-width: 880px) {
+  .accountBox,
+  .blacklistRow {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

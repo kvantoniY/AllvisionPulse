@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import styles from './AudioRecorder.module.css';
 
 export interface AudioRecorderProps {
-  onRecordingComplete: (blob: Blob, duration: number) => Promise<void>;
+  onRecordingComplete: (blob: Blob, duration: number) => Promise<void> | void;
   onCancel?: () => void;
   className?: string;
   variant?: 'floating' | 'inline';
@@ -85,28 +85,23 @@ export function AudioRecorder({ onRecordingComplete, onCancel, className, varian
     analyser.getByteFrequencyData(data);
 
     const centerY = canvas.height / 2;
-    const barCount = 44;
-    const barWidth = canvas.width / (barCount * 1.65);
+    const barCount = 42;
+    const barWidth = canvas.width / (barCount * 1.6);
 
     for (let i = 0; i < barCount; i += 1) {
       const sampleIndex = Math.floor((i / barCount) * data.length);
       const value = data[sampleIndex] / 255;
-      const barHeight = Math.max(canvas.height * 0.12, value * canvas.height * 0.74);
-      const x = i * (barWidth * 1.65) + 2;
+      const barHeight = Math.max(canvas.height * 0.16, value * canvas.height * 0.76);
+      const x = i * (barWidth * 1.6) + 2;
       const y = centerY - barHeight / 2;
-      const gradient = ctx.createLinearGradient(0, y, 0, y + barHeight);
-      gradient.addColorStop(0, 'rgba(255, 116, 116, 0.98)');
-      gradient.addColorStop(0.5, 'rgba(255, 176, 86, 0.95)');
-      gradient.addColorStop(1, 'rgba(255, 116, 116, 0.98)');
-      ctx.fillStyle = gradient;
-      const radius = Math.min(barWidth / 2, 8);
+      ctx.fillStyle = i % 3 === 0 ? 'rgba(255,255,255,0.88)' : 'rgba(255,255,255,0.58)';
+      ctx.beginPath();
       if (typeof ctx.roundRect === 'function') {
-        ctx.beginPath();
-        ctx.roundRect(x, y, barWidth, barHeight, radius);
-        ctx.fill();
+        ctx.roundRect(x, y, barWidth, barHeight, Math.min(barWidth / 2, 8));
       } else {
-        ctx.fillRect(x, y, barWidth, barHeight);
+        ctx.rect(x, y, barWidth, barHeight);
       }
+      ctx.fill();
     }
 
     animationRef.current = requestAnimationFrame(drawWaveform);
@@ -141,13 +136,10 @@ export function AudioRecorder({ onRecordingComplete, onCancel, className, varian
       setIsRecording(true);
 
       recorder.ondataavailable = (event) => {
-        if (event.data && event.data.size > 0) {
-          chunksRef.current.push(event.data);
-        }
+        if (event.data && event.data.size > 0) chunksRef.current.push(event.data);
       };
 
       recorder.start(250);
-
       timerRef.current = setInterval(() => {
         durationRef.current += 1;
         setDuration(durationRef.current);
@@ -155,7 +147,7 @@ export function AudioRecorder({ onRecordingComplete, onCancel, className, varian
 
       drawWaveform();
     } catch {
-      setError('Microphone access is unavailable. Check browser permissions.');
+      setError('Нет доступа к микрофону. Проверь разрешения браузера.');
       setIsRecording(false);
     }
   };
@@ -181,9 +173,7 @@ export function AudioRecorder({ onRecordingComplete, onCancel, className, varian
         await onRecordingComplete(blob, recordedDuration);
       }
     } finally {
-      if (isMountedRef.current) {
-        setIsProcessing(false);
-      }
+      if (isMountedRef.current) setIsProcessing(false);
     }
   };
 
@@ -204,7 +194,6 @@ export function AudioRecorder({ onRecordingComplete, onCancel, className, varian
   useEffect(() => {
     isMountedRef.current = true;
     void initializeRecording();
-
     return () => {
       isMountedRef.current = false;
       void cleanup();
@@ -212,49 +201,29 @@ export function AudioRecorder({ onRecordingComplete, onCancel, className, varian
   }, []);
 
   return (
-    <div
-      className={[
-        styles.audioRecorderContainer,
-        variant === 'inline' ? styles.inline : styles.floating,
-        className,
-      ]
-        .filter(Boolean)
-        .join(' ')}
-    >
-      <div className={styles.recordingPanel}>
-        <div className={styles.recordingIndicator}>
-          <span className={styles.redDot} />
-          <span>{error ? 'Recorder unavailable' : isProcessing ? 'Sending voice message' : 'Recording voice'}</span>
+    <div className={[styles.audioRecorderContainer, variant === 'inline' ? styles.inline : styles.floating, className].filter(Boolean).join(' ')}>
+      <div className={styles.panel}>
+        <div className={styles.topRow}>
+          <div className={styles.state}>
+            <span className={styles.redDot} />
+            <span>{error ? 'Микрофон недоступен' : isProcessing ? 'Подготавливаем голосовое' : 'Запись голосового'}</span>
+          </div>
+          <div className={styles.timer}>{formatTime(duration)}</div>
         </div>
 
-        <div className={styles.waveformSection}>
+        <div className={styles.waveformWrap}>
           <canvas ref={canvasRef} className={styles.waveform} />
           {error ? <div className={styles.errorOverlay}>{error}</div> : null}
         </div>
 
-        <div className={styles.controls}>
-          <div className={styles.timer}>
-            <span className={styles.timerLabel}>Duration</span>
-            <span className={styles.timerValue}>{formatTime(duration)}</span>
-          </div>
-
-          <div className={styles.buttonGroup}>
-            <button type="button" className={styles.cancelButton} onClick={() => void cancelRecording()} disabled={isProcessing} aria-label="Cancel recording">
-              <CloseIcon />
-            </button>
-            <button
-              type="button"
-              className={styles.sendButton}
-              onClick={() => void stopRecording()}
-              disabled={!isRecording || isProcessing || Boolean(error)}
-              aria-label="Send voice message"
-            >
-              {isProcessing ? <span className={styles.spinner} /> : <SendIcon />}
-            </button>
-          </div>
+        <div className={styles.actions}>
+          <button type="button" className={styles.ghostButton} onClick={() => void cancelRecording()} disabled={isProcessing} aria-label="Отменить запись">
+            <CloseIcon />
+          </button>
+          <button type="button" className={styles.primaryButton} onClick={() => void stopRecording()} disabled={!isRecording || isProcessing || Boolean(error)} aria-label="Остановить запись">
+            {isProcessing ? <span className={styles.spinner} /> : <SendIcon />}
+          </button>
         </div>
-
-        <div className={styles.hint}>{error ? 'Use device settings to enable microphone.' : 'Speak now — waveform and timer update live.'}</div>
       </div>
     </div>
   );
@@ -270,8 +239,8 @@ function CloseIcon() {
 
 function SendIcon() {
   return (
-    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-      <path d="M3.57 20.3 21 12 3.57 3.7A.75.75 0 0 0 2.5 4.38l1.69 6.5a1 1 0 0 0 .79.72l7.16 1.05-7.16 1.05a1 1 0 0 0-.79.72l-1.7 6.5a.75.75 0 0 0 1.08.88Z" />
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+      <path d="M4 11.5 20 4l-4.5 16-3.3-5.2L4 11.5Zm8.2 3.3L20 4" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }

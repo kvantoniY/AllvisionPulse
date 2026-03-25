@@ -53,6 +53,11 @@ enum NotificationType {
   CHAT_EVENT
 }
 
+enum FinanceEntryType {
+  EXPENSE
+  INCOME
+}
+
 model User {
   id           String   @id @default(uuid())
   email        String?  @unique
@@ -89,6 +94,20 @@ model User {
 
   healthDays HealthDay[]
   tasks      Task[]
+  pulseProfile           PulseProfile?
+  pulseConfig            PulseConfig?
+  pulseFoods             PulseFood[]
+  pulseMeals             PulseMeal[]
+  pulseFinanceCategories PulseFinanceCategory[]
+  pulseFinanceEntries    PulseFinanceEntry[]
+  pulseSavingsGoals      PulseSavingsGoal[]
+  pulseDebts             PulseDebt[]
+  pulseTaskCompletions   PulseTaskCompletion[]
+  pulseGoals             PulseGoal[]
+
+  stories    Story[]
+  storyViews StoryView[]
+  storyHighlights StoryHighlight[]
 
   createdChatEvents ChatEvent[]     @relation("ChatEventCreator")
   chatEventVotes    ChatEventVote[]
@@ -127,7 +146,9 @@ model UserPrivacy {
   showHealthWidgets Boolean @default(true)
   showTasks         Boolean @default(false)
   showEvents        Boolean @default(false)
-  allowMessagesFrom String  @default("everyone") // everyone|friends
+  profileVisibility String  @default("everyone") // everyone|followers|private
+  allowMessagesFrom String  @default("everyone") // everyone|followers|none
+  allowCallsFrom    String  @default("everyone") // everyone|followers|none
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
@@ -289,6 +310,7 @@ model Message {
   senderId    String
   type        MessageType @default(TEXT)
   text        String?
+  metaJson    Json?
   replyToId   String?
   forwardOfId String?
   createdAt   DateTime    @default(now())
@@ -355,6 +377,71 @@ model MessageRead {
   @@index([chatId, userId, readAt])
 }
 
+model Story {
+  id            String   @id @default(uuid())
+  authorId      String
+  mediaUrl      String
+  mediaType     String
+  durationMs    Int?
+  width         Int?
+  height        Int?
+  itemsJson     Json?
+  trimStartMs   Int?
+  trimEndMs     Int?
+  transformJson Json?
+  createdAt     DateTime @default(now())
+  expiresAt     DateTime
+
+  author           User @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  views            StoryView[]
+  highlightEntries StoryHighlightItem[]
+
+  @@index([authorId, createdAt])
+  @@index([expiresAt])
+}
+
+model StoryView {
+  id       String   @id @default(uuid())
+  storyId  String
+  viewerId String
+  viewedAt DateTime @default(now())
+  reaction String?
+
+  story  Story @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  viewer User  @relation(fields: [viewerId], references: [id], onDelete: Cascade)
+
+  @@unique([storyId, viewerId])
+  @@index([viewerId, viewedAt])
+}
+
+
+model StoryHighlight {
+  id        String   @id @default(uuid())
+  userId    String
+  title     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user    User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  entries StoryHighlightItem[]
+
+  @@index([userId, updatedAt])
+}
+
+model StoryHighlightItem {
+  id          String   @id @default(uuid())
+  highlightId String
+  storyId     String
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  highlight StoryHighlight @relation(fields: [highlightId], references: [id], onDelete: Cascade)
+  story     Story          @relation(fields: [storyId], references: [id], onDelete: Cascade)
+
+  @@unique([highlightId, storyId])
+  @@index([storyId])
+}
+
 model Notification {
   id        String           @id @default(uuid())
   userId    String
@@ -375,16 +462,20 @@ model HealthDay {
 
   // factors
   sleepHours   Float?
+  weightKg     Float?
   sleepQuality Int?
-  alcohol      Boolean @default(false)
-  coffee       Boolean @default(false)
-  wellbeing    Int?
-  stress       Int?
-  activity     Boolean @default(false)
-  productivity Int?
-  nutrition    Int?
-  smoking      Boolean @default(false)
-  comment      String?
+  alcohol       Boolean @default(false)
+  coffee        Boolean @default(false)
+  wellbeing     Int?
+  stress        Int?
+  activity      Boolean @default(false)
+  productivity  Int?
+  nutrition     Int?
+  smoking       Boolean @default(false)
+  alcoholLevel  Int?
+  activityLevel Int?
+  caffeineLevel Int?
+  comment       String?
 
   todayScore  Int @default(0)
   pulse7Score Int @default(0)
@@ -412,14 +503,196 @@ model Task {
   tags           String[] @default([])
   remindersJson  Json?
   recurrenceJson Json?
+  sourceKey      String?
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  completions PulseTaskCompletion[]
 
   @@index([userId, dueDate])
+  @@index([userId, sourceKey])
+}
+
+model PulseProfile {
+  id              String   @id @default(uuid())
+  userId          String   @unique
+  heightCm        Float?
+  startWeightKg   Float?
+  currentWeightKg Float?
+  targetWeightKg  Float?
+  age             Int?
+  dailyCaloriesGoal Int?
+  proteinGoal     Float?
+  fatGoal         Float?
+  carbsGoal       Float?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model PulseConfig {
+  id                                String   @id @default(uuid())
+  userId                            String   @unique
+  healthEnabled                     Boolean  @default(true)
+  mentalEnabled                     Boolean  @default(true)
+  nutritionEnabled                  Boolean  @default(true)
+  tasksEnabled                      Boolean  @default(true)
+  financeEnabled                    Boolean  @default(true)
+  duplicateRecurringExpensesToTasks Boolean  @default(true)
+  duplicateDebtPaymentsToTasks      Boolean  @default(true)
+  createdAt                         DateTime @default(now())
+  updatedAt                         DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model PulseFood {
+  id           String   @id @default(uuid())
+  userId       String?
+  name         String
+  isDish       Boolean  @default(false)
+  defaultGrams Float?
+  calories     Int
+  protein      Float?
+  fat          Float?
+  carbs        Float?
+  isHealthy    Boolean  @default(false)
+  isPublic     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([name])
+  @@index([userId, createdAt])
+}
+
+model PulseMeal {
+  id             String   @id @default(uuid())
+  userId         String
+  date           DateTime
+  title          String
+  notes          String?
+  totalCalories  Int      @default(0)
+  totalProtein   Float?
+  totalFat       Float?
+  totalCarbs     Float?
+  nutritionScore Int      @default(0)
+  itemsJson      Json
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, date])
+}
+
+model PulseTaskCompletion {
+  id        String   @id @default(uuid())
+  taskId     String
+  userId     String
+  date       DateTime
+  completed  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([taskId, date])
+  @@index([userId, date])
+}
+
+model PulseFinanceCategory {
+  id          String   @id @default(uuid())
+  userId      String
+  name        String
+  limitAmount Float?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user   User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  entries PulseFinanceEntry[]
+
+  @@unique([userId, name])
+  @@index([userId, createdAt])
+}
+
+model PulseFinanceEntry {
+  id             String           @id @default(uuid())
+  userId         String
+  date           DateTime
+  type           FinanceEntryType @default(EXPENSE)
+  title          String
+  amount         Float
+  categoryId     String?
+  notes          String?
+  recurrenceJson Json?
+  linkedTaskId   String?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  user     User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category PulseFinanceCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  @@index([userId, date])
+}
+
+model PulseSavingsGoal {
+  id           String   @id @default(uuid())
+  userId       String
+  title        String
+  targetAmount Float
+  savedAmount  Float    @default(0)
+  deadline     DateTime?
+  itemsJson    Json?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}
+
+model PulseDebt {
+  id            String   @id @default(uuid())
+  userId        String
+  title         String
+  debtType      String
+  totalAmount   Float
+  paidAmount    Float    @default(0)
+  interestRate  Float?
+  startedAt     DateTime?
+  dueDate       DateTime?
+  paymentDay    Int?
+  paymentAmount Float?
+  termMonths    Int?
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}
+
+model PulseGoal {
+  id          String   @id @default(uuid())
+  userId      String
+  title       String
+  description String?
+  progress    Int      @default(0)
+  targetDate  DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
 }
 
 // --- FUTURE: chat event polls (group chats) ---

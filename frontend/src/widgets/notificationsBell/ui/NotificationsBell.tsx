@@ -5,6 +5,7 @@ import styles from './NotificationsBell.module.css';
 import { useAppDispatch, useAppSelector } from '@/shared/lib/storeHooks';
 import { notificationsActions } from '@/entities/notification';
 import { useGetFriendRequestsQuery } from '@/shared/api/friendsApi';
+import { Icon } from '@/shared/ui/Icon/Icon';
 
 export function NotificationsBell() {
   const dispatch = useAppDispatch();
@@ -16,7 +17,6 @@ export function NotificationsBell() {
   const items = useAppSelector((s) => s.notifications.items);
 
   const count = reqCount + unseen;
-
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement | null>(null);
 
@@ -30,22 +30,22 @@ export function NotificationsBell() {
     return () => document.removeEventListener('mousedown', onDoc);
   }, []);
 
-  
   useEffect(() => {
     if (open) dispatch(notificationsActions.markAllSeen());
   }, [open, dispatch]);
-const preview = useMemo(() => items.slice(0, 6), [items]);
+
+  const preview = useMemo(() => items.slice(0, 6), [items]);
 
   return (
     <div className={styles.wrap} ref={ref}>
-      <button className={styles.btn} onClick={() => setOpen((v) => !v)} aria-label="notifications">
-        🔔
+      <button className={styles.btn} onClick={() => setOpen((v) => !v)} aria-label="Уведомления">
+        <Icon name="bell" size={18} />
         {count > 0 ? <span className={styles.badge}>{count}</span> : null}
       </button>
       {open ? (
         <div className={styles.popover}>
-          <div className={styles.popTitle}>Notifications</div>
-          {reqCount > 0 ? <div className={styles.row}>🤝 Friend requests: {reqCount}</div> : null}
+          <div className={styles.popTitle}>Уведомления</div>
+          {reqCount > 0 ? <div className={styles.row}>Новые запросы на подписку: {reqCount}</div> : null}
           {preview.length ? (
             <div className={styles.list}>
               {preview.map((n) => (
@@ -56,7 +56,7 @@ const preview = useMemo(() => items.slice(0, 6), [items]);
               ))}
             </div>
           ) : (
-            <div className={styles.empty}>No new notifications</div>
+            <div className={styles.empty}>Пока ничего нового</div>
           )}
         </div>
       ) : null}

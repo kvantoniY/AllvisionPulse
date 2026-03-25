@@ -36,8 +36,13 @@ export const healthApi = createApi({
       query: (date) => ({ url: `/backend/health/day/${date}`, method: 'DELETE' }),
       invalidatesTags: ['HealthDay'],
     }),
+    getRange: build.query<{ days: HealthDay[] }, { from: string; to: string }>({
+      query: ({ from, to }) => ({ url: `/backend/health/range?from=${from}&to=${to}`, method: 'GET' }),
+      providesTags: ['HealthDay'],
+    }),
     getStats: build.query<any, number | void>({
       query: (days = 7) => ({ url: `/backend/health/stats?days=${days}`, method: 'GET' }),
+      providesTags: ['HealthDay'],
     }),
   }),
 });
@@ -47,5 +52,6 @@ export const {
   useGetByDateQuery,
   useUpsertCheckinMutation,
   useDeleteDayMutation,
+  useGetRangeQuery,
   useGetStatsQuery,
 } = healthApi;

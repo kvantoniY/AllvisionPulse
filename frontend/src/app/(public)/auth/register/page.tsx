@@ -16,14 +16,14 @@ const registerSchema = z
     email: z
       .string()
       .trim()
-      .refine((value) => value.length === 0 || z.email().safeParse(value).success, 'Enter a valid email'),
-    username: z.string().trim().min(1, 'Enter a username'),
-    password: z.string().min(1, 'Enter a password'),
-    confirm: z.string().min(1, 'Confirm your password'),
+      .refine((value) => value.length === 0 || z.string().email().safeParse(value).success, 'Введите корректную почту'),
+    username: z.string().trim().min(1, 'Введите имя пользователя'),
+    password: z.string().min(1, 'Введите пароль'),
+    confirm: z.string().min(1, 'Подтвердите пароль'),
   })
   .refine((values) => values.password === values.confirm, {
     path: ['confirm'],
-    message: 'Passwords do not match',
+    message: 'Пароли не совпадают',
   });
 
 type RegisterFormValues = z.infer<typeof registerSchema>;
@@ -67,7 +67,7 @@ export default function RegisterPage() {
     } catch (error) {
       setError('root', {
         type: 'server',
-        message: getErrorMessage(error, 'Registration failed'),
+        message: getErrorMessage(error, 'Не удалось зарегистрироваться'),
       });
     }
   });
@@ -75,46 +75,46 @@ export default function RegisterPage() {
   return (
     <div className={styles.wrap}>
       <div className={styles.card}>
-        <div className={styles.head}>Create account</div>
-        <div className={styles.sub}>Allvision Pulse MVP</div>
+        <div className={styles.head}>Создать аккаунт</div>
+        <div className={styles.sub}>Добро пожаловать в Allvision Pulse</div>
 
         <form onSubmit={onSubmit} className={styles.form}>
           <InputField
-            label="Email (optional)"
+            label="Почта (необязательно)"
             type="email"
             autoComplete="email"
             error={errors.email?.message}
             {...register('email')}
           />
           <InputField
-            label="Username"
+            label="Имя пользователя"
             autoComplete="username"
             error={errors.username?.message}
             {...register('username')}
           />
           <InputField
-            label="Password"
+            label="Пароль"
             type="password"
             autoComplete="new-password"
             error={errors.password?.message}
             {...register('password')}
           />
           <InputField
-            label="Confirm password"
+            label="Подтверждение пароля"
             type="password"
             autoComplete="new-password"
             error={errors.confirm?.message}
             {...register('confirm')}
           />
           {errors.root?.message ? <div className={styles.error}>{errors.root.message}</div> : null}
-          <Button variant="primary" className={styles.full} disabled={isLoading}>
-            {isLoading ? 'Creating...' : 'Create'}
+          <Button type="submit" variant="primary" className={styles.full} disabled={isLoading}>
+            {isLoading ? 'Создаём…' : 'Создать аккаунт'}
           </Button>
         </form>
 
         <div className={styles.bottom}>
-          <span>Already have an account?</span>
-          <Link href={ROUTES.auth.login} className={styles.link}>Sign in</Link>
+          <span>Уже есть аккаунт?</span>
+          <Link href={ROUTES.auth.login} className={styles.link}>Войти</Link>
         </div>
       </div>
     </div>

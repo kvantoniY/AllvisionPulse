@@ -2,17 +2,20 @@
 
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Avatar } from '@/shared/ui/Avatar/Avatar';
+import { StoryRingAvatar } from '@/features/stories';
+import { Button } from '@/shared/ui/Button/Button';
 import { useGetChatsQuery, useGetMessagesQuery, useCreateGroupChatMutation } from '@/shared/api/chatsApi';
 import { useGetMeQuery } from '@/shared/api/usersApi';
 import { useGetFriendsQuery } from '@/shared/api/friendsApi';
 import { useAppSelector } from '@/shared/lib/storeHooks';
 import styles from './ChatSidebar.module.css';
+import { Icon } from '@/shared/ui/Icon/Icon';
+import { Skeleton, SkeletonText } from '@/shared/ui/Skeleton/Skeleton';
 
 function getChatTitle(chat: any, meId: string | undefined) {
-  if (chat.type === 'GROUP') return chat.title ?? 'Group';
+  if (chat.type === 'GROUP') return chat.title ?? 'Группа';
   const other = (chat.members ?? []).find((m: any) => m.userId !== meId)?.user;
-  return other?.username ?? 'Direct';
+  return other?.username ?? 'Диалог';
 }
 
 function getChatAvatar(chat: any, meId: string | undefined) {
@@ -26,31 +29,28 @@ function ChatListItem({ chat, meId, unread, activeId, onOpen, presence }: any) {
   const { data } = useGetMessagesQuery({ chatId: chat.id, take: 1, cursor: null }, { skip: Boolean(cachedLast) });
   const last = cachedLast ?? (data?.items?.[0] ?? null);
 
-  const lastText = last?.text ? String(last.text) : last ? `[${last.type ?? 'MESSAGE'}]` : '—';
+  const typeLabel = last?.type === 'AUDIO' ? 'Голосовое' : last?.type === 'VIDEO_NOTE' ? 'Видеосообщение' : last?.attachments?.length ? 'Вложение' : last?.type === 'SYSTEM' ? 'Системное сообщение' : 'Сообщение';
+  const lastText = last?.text ? String(last.text) : last ? typeLabel : '—';
   const lastAt = last?.createdAt ?? chat.updatedAt;
 
   const mine = last?.senderId && meId && last.senderId === meId;
   const otherId = chat.type === 'DIRECT' ? (chat.members ?? []).find((m: any) => m.userId !== meId)?.userId : null;
   const readByOther = mine && otherId ? (last.reads ?? []).some((r: any) => r.userId === otherId) : false;
-  const status = mine ? (readByOther ? 'прочитано' : 'не прочитано') : unread > 0 ? 'не прочитано' : '';
+  const status = mine ? (readByOther ? 'прочитано' : 'доставлено') : unread > 0 ? 'новое' : '';
 
   const otherUser = chat.type === 'DIRECT' ? (chat.members ?? []).find((m: any) => m.userId !== meId)?.user : null;
   const p = otherUser?.id ? presence?.[otherUser.id] : null;
   const avatarStatus = chat.type === 'DIRECT' ? (p?.isOnline ? 'online' : 'offline') : null;
 
   return (
-    <button
-      type="button"
-      className={[styles.item, activeId === chat.id ? styles.itemActive : ''].join(' ')}
-      onClick={onOpen}
-    >
-      <Avatar url={getChatAvatar(chat, meId)} name={getChatTitle(chat, meId)} size={40} status={avatarStatus} />
+    <button type="button" className={[styles.item, activeId === chat.id ? styles.itemActive : ''].join(' ')} onClick={onOpen}>
+      <StoryRingAvatar userId={otherUser?.id} url={getChatAvatar(chat, meId)} name={getChatTitle(chat, meId)} size={44} status={avatarStatus} disableStoryClick={chat.type === 'GROUP'} />
       <div style={{ minWidth: 0, flex: 1 }}>
         <div className={styles.itemTop}>
           <div className={styles.itemTitle}>{getChatTitle(chat, meId)}</div>
           {unread > 0 ? <span className={styles.unreadBadge}>{unread}</span> : null}
         </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'center' }}>
+        <div className={styles.itemMeta}>
           <span className={styles.preview}>{lastText}</span>
           <span className={styles.metaRight}>
             {status ? <span className={styles.status}>{status}</span> : null}
@@ -59,6 +59,21 @@ function ChatListItem({ chat, meId, unread, activeId, onOpen, presence }: any) {
         </div>
       </div>
     </button>
+  );
+}
+
+function ChatListSkeleton() {
+  return (
+    <div className={styles.list}>
+      {Array.from({ length: 5 }).map((_, index) => (
+        <div key={index} className={styles.item}>
+          <Skeleton circle style={{ width: 44, height: 44 }} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <SkeletonText lines={2} />
+          </div>
+        </div>
+      ))}
+    </div>
   );
 }
 
@@ -73,13 +88,12 @@ export function ChatSidebar({ activeChatId }: { activeChatId?: string | null }) 
   const presence = useAppSelector((s) => s.presence.byUserId);
 
   const [groupOpen, setGroupOpen] = useState(false);
-  const { data: friendsData } = useGetFriendsQuery(undefined, { skip: !groupOpen });
+  const { data: friendsData, isFetching: friendsLoading } = useGetFriendsQuery(undefined, { skip: !groupOpen });
   const friends = friendsData?.friends ?? [];
 
   const [title, setTitle] = useState('');
   const [selected, setSelected] = useState<Record<string, boolean>>({});
   const [createGroup, createRes] = useCreateGroupChatMutation();
-
   const selectedIds = useMemo(() => Object.keys(selected).filter((id) => selected[id]), [selected]);
 
   const onCreate = async () => {
@@ -97,65 +111,57 @@ export function ChatSidebar({ activeChatId }: { activeChatId?: string | null }) 
   return (
     <div className={styles.side}>
       <div className={styles.header}>
-        <div className={styles.title}>Messages</div>
+        <div>
+          <div className={styles.eyebrow}>Сообщения</div>
+          <div className={styles.title}>Ваши чаты</div>
+        </div>
         <div className={styles.actions}>
-          <button className={styles.actionBtn} type="button" onClick={() => setGroupOpen(true)}>
-            + Группа
-          </button>
+          <Button className={styles.actionBtn} iconOnly type="button" onClick={() => setGroupOpen(true)} aria-label="Новая группа" title="Новая группа">
+            <Icon name="plus" size={16} />
+          </Button>
         </div>
       </div>
 
-      <div className={styles.list}>
-        {isFetching && !chats.length ? <div style={{ color: 'var(--muted)', padding: 10 }}>Loading…</div> : null}
-        {chats.map((c) => (
-          <ChatListItem
-            key={c.id}
-            chat={c}
-            meId={meId}
-            unread={unreadByChat[c.id] ?? 0}
-            activeId={activeChatId}
-            onOpen={() => router.push(`/messages/${c.id}`)}
-            presence={presence}
-          />
-        ))}
-        {!isFetching && !chats.length ? <div style={{ color: 'var(--muted)', padding: 10 }}>No chats yet.</div> : null}
-      </div>
+      {isFetching && !chats.length ? <ChatListSkeleton /> : null}
+      {!isFetching || chats.length ? (
+        <div className={styles.list}>
+          {chats.map((c) => (
+            <ChatListItem key={c.id} chat={c} meId={meId} unread={unreadByChat[c.id] ?? 0} activeId={activeChatId} onOpen={() => router.push(`/messages/${c.id}`)} presence={presence} />
+          ))}
+          {!isFetching && !chats.length ? <div className={styles.state}>У вас пока нет чатов.</div> : null}
+        </div>
+      ) : null}
 
       {groupOpen ? (
         <div className={styles.modalBackdrop} onMouseDown={() => setGroupOpen(false)}>
           <div className={styles.modal} onMouseDown={(e) => e.stopPropagation()}>
-            <div style={{ fontWeight: 900 }}>Новый групповой чат</div>
+            <div className={styles.modalTitle}>Новый групповой чат</div>
             <div className={styles.formRow}>
-              <input className={styles.input} placeholder="Название" value={title} onChange={(e) => setTitle(e.target.value)} />
-              <button className={styles.actionBtn} type="button" onClick={onCreate} disabled={!title.trim() || createRes.isLoading}>
-                {createRes.isLoading ? '…' : 'Создать'}
-              </button>
-              <button className={styles.actionBtn} type="button" onClick={() => setGroupOpen(false)}>
-                Отмена
-              </button>
+              <input className={styles.input} placeholder="Название группы" value={title} onChange={(e) => setTitle(e.target.value)} />
+            </div>
+            <div className={styles.formActions}>
+              <Button className={styles.actionBtn} type="button" onClick={onCreate} disabled={!title.trim()} loading={createRes.isLoading}>Создать</Button>
+              <Button className={styles.actionBtn} type="button" onClick={() => setGroupOpen(false)}>Отмена</Button>
             </div>
 
-            <div style={{ marginTop: 10, color: 'var(--muted)', fontSize: 12 }}>Участники (друзья)</div>
+            <div className={styles.friendsCaption}>Участники</div>
             <div className={styles.friendList}>
-              {friends.map((fr: any) => {
+              {friendsLoading ? <ChatListSkeleton /> : null}
+              {!friendsLoading ? friends.map((fr: any) => {
                 const u = fr.sender?.id === meId ? fr.receiver : fr.sender;
                 if (!u) return null;
                 const checked = Boolean(selected[u.id]);
                 return (
-                  <div key={u.id} className={styles.friendRow}>
+                  <label key={u.id} className={styles.friendRow}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <Avatar url={u.avatarUrl} name={u.username} size={28} />
+                      <StoryRingAvatar userId={u.id} url={u.avatarUrl} name={u.username} size={30} />
                       <div>{u.username}</div>
                     </div>
-                    <input
-                      type="checkbox"
-                      checked={checked}
-                      onChange={(e) => setSelected((p) => ({ ...p, [u.id]: e.target.checked }))}
-                    />
-                  </div>
+                    <input type="checkbox" checked={checked} onChange={(e) => setSelected((p) => ({ ...p, [u.id]: e.target.checked }))} />
+                  </label>
                 );
-              })}
-              {!friends.length ? <div style={{ color: 'var(--muted)' }}>Нет друзей для добавления.</div> : null}
+              }) : null}
+              {!friendsLoading && !friends.length ? <div className={styles.state}>Нет друзей для добавления.</div> : null}
             </div>
           </div>
         </div>

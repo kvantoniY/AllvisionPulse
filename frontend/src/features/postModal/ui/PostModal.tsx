@@ -4,12 +4,14 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import styles from './PostModal.module.css';
 import { Modal } from '@/shared/ui/Modal/Modal';
 import { PostCard } from '@/entities/post/ui/PostCard';
-import { Avatar } from '@/shared/ui/Avatar/Avatar';
+import { StoryRingAvatar } from '@/features/stories';
 import { Button } from '@/shared/ui/Button/Button';
 import { useGetMeQuery } from '@/shared/api/usersApi';
 import { useCreateCommentMutation, useDeleteCommentMutation, useGetCommentsQuery, useGetPostQuery } from '@/shared/api/postsApi';
 import { formatRelative } from '@/shared/lib/time';
 import type { Comment } from '@/shared/types/social';
+import { Icon } from '@/shared/ui/Icon/Icon';
+import { Skeleton, SkeletonCard, SkeletonText } from '@/shared/ui/Skeleton/Skeleton';
 
 const MAX_TEXT = 5000;
 
@@ -22,23 +24,21 @@ function useAutosize(ref: React.RefObject<HTMLTextAreaElement>, value: string) {
   }, [ref, value]);
 }
 
-function CommentItem({ c, canDelete, onDelete }: { c: Comment; canDelete: boolean; onDelete: () => void }) {
+function CommentItem({ c, canDelete, onDelete, deleting }: { c: Comment; canDelete: boolean; onDelete: () => void; deleting?: boolean }) {
   return (
     <div className={styles.comment}>
-      <Avatar url={c.author.avatarUrl} name={c.author.username} size={34} />
+      <StoryRingAvatar userId={c.author.id} url={c.author.avatarUrl} name={c.author.username} size={36} />
       <div className={styles.commentBody}>
         <div className={styles.commentTop}>
           <div style={{ minWidth: 0 }}>
             <div style={{ fontWeight: 600 }}>{c.author.username}</div>
             <div className={styles.commentMeta}>{formatRelative(c.createdAt)}</div>
           </div>
-          <div className={styles.commentActions}>
-            {canDelete ? (
-              <button className={styles.linkBtn} type="button" onClick={onDelete}>
-                Delete
-              </button>
-            ) : null}
-          </div>
+          {canDelete ? (
+            <Button className={styles.linkBtn} iconOnly size="sm" loading={deleting} type="button" onClick={onDelete} aria-label="Удалить комментарий" title="Удалить комментарий">
+              <Icon name="trash" size={14} />
+            </Button>
+          ) : null}
         </div>
         {c.text ? <div className={styles.commentText}>{c.text}</div> : null}
         {(c.images ?? []).length ? (
@@ -56,16 +56,11 @@ function CommentItem({ c, canDelete, onDelete }: { c: Comment; canDelete: boolea
 export function PostModal({ postId, open, onClose }: { postId: string | null; open: boolean; onClose: () => void }) {
   const { data: meData } = useGetMeQuery();
   const me = meData?.user;
-
-  const { data: postData } = useGetPostQuery({ postId: postId! }, { skip: !open || !postId });
+  const { data: postData, isFetching: postFetching } = useGetPostQuery({ postId: postId! }, { skip: !open || !postId });
   const post = postData?.post;
 
   const [cursor, setCursor] = useState<string | null>(null);
-  const { data: commentsData, isFetching } = useGetCommentsQuery(
-    { postId: postId!, take: 30, cursor },
-    { skip: !open || !postId },
-  );
-
+  const { data: commentsData, isFetching } = useGetCommentsQuery({ postId: postId!, take: 30, cursor }, { skip: !open || !postId });
   const comments = commentsData?.items ?? [];
   const nextCursor = (commentsData as any)?.nextCursor ?? null;
 
@@ -98,57 +93,45 @@ export function PostModal({ postId, open, onClose }: { postId: string | null; op
   }, [comments, me]);
 
   return (
-    <Modal open={open} onClose={onClose} title="Post">
+    <Modal open={open} onClose={onClose} title="Публикация" size="lg">
       <div className={styles.wrap}>
         {post ? <PostCard post={post} compact onOpen={() => {}} /> : null}
+        {postFetching && !post ? <SkeletonCard className={styles.postSkeleton} /> : null}
 
         <div className={styles.commentBox}>
-          <Avatar url={me?.avatarUrl} name={me?.username ?? 'me'} size={34} />
-          <div style={{ flex: 1, minWidth: 0, display: 'grid', gap: 8 }}>
+          {me ? <StoryRingAvatar userId={me.id} url={me?.avatarUrl} name={me?.username} size={40} /> : <Skeleton circle style={{ width: 40, height: 40 }} />}
+          <div style={{ flex: 1, minWidth: 0 }}>
             <textarea
               ref={ref}
-              className={styles.commentInput}
-              placeholder="Write a comment…"
+              className={styles.textarea}
               value={commentText}
               onChange={(e) => setCommentText(e.target.value.slice(0, MAX_TEXT + 50))}
+              placeholder="Написать комментарий…"
+              rows={1}
             />
-            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'center' }}>
-              <div style={{ opacity: 0.6, fontSize: 12 }}>{MAX_TEXT - commentText.length}</div>
-              <Button variant="primary" disabled={!canSend} onClick={onSend}>
-                {sending ? 'Sending…' : 'Comment'}
+            <div className={styles.commentActions}>
+              <div className={styles.commentMeta}>{MAX_TEXT - commentText.length}</div>
+              <Button variant="primary" onClick={onSend} disabled={!canSend} loading={sending}>
+                Отправить
               </Button>
             </div>
           </div>
         </div>
 
-        {nextCursor ? (
-          <button
-            className={styles.loadMore}
-            type="button"
-            disabled={isFetching}
-            onClick={() => {
-              if (!postId || !nextCursor) return;
-              setCursor(nextCursor);
-            }}
-          >
-            {isFetching ? 'Loading…' : 'Load more'}
-          </button>
-        ) : null}
+        {nextCursor ? <Button onClick={() => nextCursor && setCursor(nextCursor)} loading={isFetching}>Показать ещё</Button> : null}
 
-        <div style={{ display: 'grid', gap: 12 }}>
+        <div style={{ display: 'grid', gap: 14 }}>
           {comments.map((c) => (
-            <CommentItem
-              key={c.id}
-              c={c}
-              canDelete={!!me && (me.role === 'ADMIN' || canDeleteIds.has(c.id))}
-              onDelete={() =>
-                deleteComment({ commentId: c.id, postId: c.postId }).unwrap().catch(() => null)
-              }
-            />
+            <CommentItem key={c.id} c={c} canDelete={!!me && (me.role === 'ADMIN' || canDeleteIds.has(c.id))} deleting={deleting} onDelete={() => deleteComment({ commentId: c.id, postId: c.postId }).unwrap().catch(() => null)} />
           ))}
-          {isFetching ? <div style={{ opacity: 0.7 }}>Loading…</div> : null}
-          {!comments.length && !isFetching ? <div style={{ opacity: 0.7 }}>No comments yet.</div> : null}
-          {deleting ? <div style={{ opacity: 0.6, fontSize: 12 }}>Updating…</div> : null}
+          {isFetching && !comments.length ? (
+            <>
+              <div className={styles.comment}><Skeleton circle style={{ width: 36, height: 36 }} /><div className={styles.commentBody}><SkeletonText lines={3} /></div></div>
+              <div className={styles.comment}><Skeleton circle style={{ width: 36, height: 36 }} /><div className={styles.commentBody}><SkeletonText lines={2} /></div></div>
+            </>
+          ) : null}
+          {!comments.length && !isFetching ? <div style={{ color: 'var(--muted)' }}>Комментариев пока нет.</div> : null}
+          {deleting ? <div style={{ color: 'var(--muted)', fontSize: 12 }}>Обновляем список…</div> : null}
         </div>
       </div>
     </Modal>
