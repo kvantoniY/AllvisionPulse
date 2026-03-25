@@ -432,3 +432,26 @@
     padding: 14px;
   }
 }
+
+
+/* redesign overrides */
+.page { gap: 16px; }
+.hero { gap: 16px; }
+.heroCopy { gap: 8px; }
+.heroTitle { font-size: clamp(24px, 3.2vw, 34px); font-weight: 800; }
+.heroText, .subtle, .empty, .note, .metricHint, .rankMeta, .queueMeta, .queueSubtle, .inlineMeta, .chartTooltipLabel, .openLink { font-size: 14px; }
+.heroActions { gap: 8px; justify-items: start; }
+.adminIdentity, .liveBadge, .chip, .status { padding: 7px 12px; font-size: 12px; }
+.tabSwitch { gap: 6px; padding: 4px; border-radius: 14px; }
+.tabButton { min-height: 36px; padding: 0 14px; border-radius: 10px; }
+.analyticsLayout, .chartGrid, .insightsGrid { gap: 16px; }
+.metricsGrid { gap: 10px; }
+.metricCard { border-radius: 16px; padding: 14px; }
+.metricValue { font-size: clamp(22px, 2.6vw, 28px); }
+.chartBox { height: 260px; }
+.chartTooltip { padding: 10px 12px; border-radius: 12px; gap: 8px; }
+.progressList, .rankList, .filterStack, .queueList, .detailStack, .replyList, .sectionBlock { gap: 12px; }
+.progressTrack { height: 8px; }
+.rankItem, .queueItem, .replyCard, .answerPreview, .sectionCard, .ticketCard, .questionCard, .detailCard, .summaryCard { border-radius: 16px !important; padding: 14px !important; }
+.queueItem:hover, .tabButton:hover { transform: translateY(-1px); }
+@media (max-width: 1100px) { .chartGrid, .insightsGrid, .metricsGrid { grid-template-columns: 1fr; } }

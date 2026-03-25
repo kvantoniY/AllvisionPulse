@@ -5230,3 +5230,15 @@
   padding: 8px 10px;
   font-size: 12px;
 }
+
+
+/* redesign overrides */
+.shell { border-radius: 20px; }
+.sessionTabs, .catalogTabs, .toolbarRight, .lobbyActions, .controlMain, .raiseRow { gap: 8px; }
+.sessionTab, .catalogTab { padding: 8px 12px; border-radius: 12px; }
+.leftPanel, .rightPanel { padding: 14px 16px; }
+.sectionTitle { font-size: 18px; }
+.formGrid { gap: 10px; }
+.input { padding: 11px 12px; border-radius: 12px; }
+.rulesCard, .playerRow, .tableCard, .metaCard, .catalogCard, .sessionCard { border-radius: 14px !important; padding: 12px !important; }
+.primaryBtn, .ghostBtn, .successBtn, .dangerBtn { padding: 10px 14px; border-radius: 12px; }

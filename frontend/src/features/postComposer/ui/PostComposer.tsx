@@ -3,8 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import styles from './PostComposer.module.css';
 import { Card } from '@/shared/ui/Card/Card';
-import { StoryRingAvatar } from '@/features/stories';
 import { Button } from '@/shared/ui/Button/Button';
+import { Avatar } from '@/shared/ui/Avatar/Avatar';
 import { useGetMeQuery } from '@/shared/api/usersApi';
 import { useCreatePostMutation } from '@/shared/api/postsApi';
 import { useGetTodayQuery, useGetStatsQuery } from '@/shared/api/healthApi';
@@ -14,14 +14,14 @@ import { Skeleton, SkeletonText } from '@/shared/ui/Skeleton/Skeleton';
 
 const MAX_TEXT = 5000;
 
-function useAutosizeTextArea(ref: React.RefObject<HTMLTextAreaElement>, value: string) {
+function useAutosizeTextArea(ref: React.RefObject<HTMLTextAreaElement>, value: string, expanded: boolean) {
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
     el.style.height = '0px';
-    const next = Math.min(el.scrollHeight, 260);
-    el.style.height = `${next}px`;
-  }, [ref, value]);
+    const baseHeight = expanded ? Math.min(el.scrollHeight, 240) : 46;
+    el.style.height = `${baseHeight}px`;
+  }, [ref, value, expanded]);
 }
 
 type HealthWidget = {
@@ -37,7 +37,6 @@ export function PostComposer({ context = 'feed' }: { context?: 'feed' | 'profile
 
   const [text, setText] = useState('');
   const textRef = useRef<HTMLTextAreaElement | null>(null);
-  useAutosizeTextArea(textRef, text);
 
   const [images, setImages] = useState<File[]>([]);
   const previews = useMemo(() => images.map((f) => ({ f, url: URL.createObjectURL(f) })), [images]);
@@ -45,6 +44,9 @@ export function PostComposer({ context = 'feed' }: { context?: 'feed' | 'profile
 
   const [widget, setWidget] = useState<HealthWidget | null>(null);
   const [widgetOpen, setWidgetOpen] = useState(false);
+
+  const expanded = !!text.trim() || images.length > 0 || !!widget;
+  useAutosizeTextArea(textRef, text, expanded);
 
   const { data: today, isFetching: widgetLoading } = useGetTodayQuery(undefined, { skip: !widgetOpen });
   const { data: stats7, isFetching: statsLoading } = useGetStatsQuery(7, { skip: !widgetOpen });
@@ -84,18 +86,12 @@ export function PostComposer({ context = 'feed' }: { context?: 'feed' | 'profile
     return (
       <Card className={styles.card}>
         <div className={styles.row}>
-          <Skeleton circle style={{ width: 46, height: 46 }} />
+          <Skeleton circle style={{ width: 44, height: 44 }} />
           <div className={styles.inputWrap}>
-            <SkeletonText lines={3} />
-            <div className={styles.tools}>
-              <div className={styles.leftTools}>
-                <Skeleton style={{ width: 44, height: 44 }} />
-                <Skeleton style={{ width: 44, height: 44 }} />
-              </div>
-              <div className={styles.meta}>
-                <Skeleton style={{ width: 32, height: 16 }} />
-                <Skeleton style={{ width: 120, height: 44 }} />
-              </div>
+            <Skeleton style={{ width: '100%', height: 46, borderRadius: 16 }} />
+            <div className={styles.compactTools}>
+              <Skeleton style={{ width: 34, height: 34 }} />
+              <Skeleton style={{ width: 34, height: 34 }} />
             </div>
           </div>
         </div>
@@ -106,7 +102,7 @@ export function PostComposer({ context = 'feed' }: { context?: 'feed' | 'profile
   if (!me) return null;
 
   return (
-    <Card className={styles.card}>
+    <Card className={[styles.card, expanded ? styles.cardExpanded : ''].filter(Boolean).join(' ')}>
       <Modal open={widgetOpen} onClose={() => setWidgetOpen(false)} title="Добавить виджет">
         <div style={{ display: 'grid', gap: 12 }}>
           <div style={{ color: 'var(--muted)', fontSize: 14, lineHeight: 1.5 }}>
@@ -121,18 +117,20 @@ export function PostComposer({ context = 'feed' }: { context?: 'feed' | 'profile
       </Modal>
 
       <div className={styles.row}>
-        <StoryRingAvatar userId={me.id} url={me.avatarUrl} name={me.username} size={46} />
+        <Avatar url={me.avatarUrl} name={me.username} size={44} />
+
         <div className={styles.inputWrap}>
           <textarea
             ref={textRef}
-            className={styles.textarea}
-            placeholder={context === 'profile' ? 'Поделитесь чем-нибудь в профиле…' : 'Что нового?'}
+            className={[styles.textarea, expanded ? styles.textareaExpanded : styles.textareaCollapsed].join(' ')}
+            placeholder={context === 'profile' ? 'Поделиться записью…' : 'Что у вас нового?'}
             value={text}
+            rows={1}
             onChange={(e) => setText(e.target.value.slice(0, MAX_TEXT + 50))}
           />
 
           {widget ? (
-            <div style={{ marginTop: 10 }}>
+            <div className={styles.widgetRow}>
               <span className={styles.widgetTag}>
                 <Icon name="sparkles" size={14} />
                 Сводка дня: {widget.todayScore ?? '—'}% / {widget.pulse7Score ?? '—'}%
@@ -156,23 +154,27 @@ export function PostComposer({ context = 'feed' }: { context?: 'feed' | 'profile
             </div>
           ) : null}
 
-          <div className={styles.tools}>
+          <div className={expanded ? styles.toolsExpanded : styles.toolsCollapsed}>
             <div className={styles.leftTools}>
               <label className={styles.toolBtn} title="Добавить фото" aria-label="Добавить фото">
                 <Icon name="image" size={18} />
+                {expanded ? <span>Фото</span> : null}
                 <input type="file" accept="image/*" multiple hidden onChange={(e) => onPickImages(e.target.files)} />
               </label>
               <button className={styles.toolBtn} type="button" onClick={() => setWidgetOpen(true)} title="Добавить виджет" aria-label="Добавить виджет">
                 <Icon name="sparkles" size={18} />
+                {expanded ? <span>Сводка</span> : null}
               </button>
             </div>
 
-            <div className={styles.meta}>
-              <span className={remaining < 0 ? styles.counterBad : ''}>{remaining}</span>
-              <Button variant="primary" onClick={onSubmit} disabled={!canSubmit} loading={isLoading}>
-                Опубликовать
-              </Button>
-            </div>
+            {expanded ? (
+              <div className={styles.meta}>
+                <span className={remaining < 0 ? styles.counterBad : ''}>{remaining}</span>
+                <Button variant="primary" onClick={onSubmit} disabled={!canSubmit} loading={isLoading}>
+                  Опубликовать
+                </Button>
+              </div>
+            ) : null}
           </div>
         </div>
       </div>

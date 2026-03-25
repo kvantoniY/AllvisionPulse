@@ -288,7 +288,7 @@ export default function AdminPage() {
 
   if (isLoading) {
     return (
-      <div className="container">
+      <div className="container appPage">
         <Card>
           <CardHeader title="Админ панель" />
           <CardMuted>Проверяем права доступа…</CardMuted>
@@ -342,7 +342,7 @@ export default function AdminPage() {
   };
 
   return (
-    <div className="container">
+    <div className="container appPage">
       <div className={styles.page}>
         <Card>
           <div className={styles.hero}>

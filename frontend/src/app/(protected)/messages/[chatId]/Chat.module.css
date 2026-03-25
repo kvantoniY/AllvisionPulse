@@ -784,3 +784,24 @@
   font-size: 13px;
   line-height: 1.45;
 }
+
+
+/* redesign overrides */
+.wrap { height: calc(100vh - 126px); }
+.top { gap: 10px; padding: 12px 14px; }
+.back { min-width: 34px; height: 34px; }
+.title { font-size: 15px; }
+.sub { font-size: 11px; }
+.headerActions { gap: 6px; }
+.mediaLink, .callAction, .callActionJoin { height: 34px; padding: 0 10px; border-radius: 10px; }
+.searchBar { gap: 10px; padding: 10px 14px; }
+.searchField { height: 36px; border-radius: 12px; }
+.selectionBar { padding: 10px 14px; }
+.messages { padding: 12px 12px 14px; gap: 8px; }
+.dateBadge { padding: 5px 9px; font-size: 10px; }
+.msgRow { gap: 8px; }
+.bubble, .bubbleMine, .bubbleSystem { border-radius: 16px !important; }
+.composer, .composerInner, .composerBar { border-radius: 16px !important; }
+.composer { padding: 10px 12px !important; }
+.mediaPanel, .searchResultsPanel, .forwardModal, .returnBanner { border-radius: 16px !important; }
+.mediaBtn, .send, .attachBtn, .emojiBtn, .composerAction, .selectionAction { border-radius: 10px !important; }

@@ -2,54 +2,67 @@
   position: sticky;
   top: 0;
   height: 100vh;
-  padding: 18px 14px;
-  border-right: 1px solid rgba(255,255,255,0.05);
-  background: rgba(7, 7, 8, 0.88);
+  padding: 14px 12px;
+  border-right: 1px solid var(--stroke);
+  background: rgba(9, 11, 14, 0.88);
   backdrop-filter: blur(18px);
 }
 
 .brand {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 10px 12px 20px;
+  gap: 10px;
+  padding: 8px 10px 16px;
   color: var(--text);
   font-weight: 700;
   letter-spacing: -0.02em;
 }
 
 .logo {
-  width: 18px;
-  height: 18px;
-  border-radius: 7px;
-  background: var(--accent);
-  box-shadow: 0 0 0 8px rgba(255,122,26,0.08);
+  width: 16px;
+  height: 16px;
+  border-radius: 6px;
+  background: linear-gradient(135deg, var(--accent), #ffb173);
+  box-shadow: 0 0 0 6px rgba(255,122,26,0.08);
 }
 
-.nav { display: grid; gap: 6px; padding: 8px; }
+.nav {
+  display: grid;
+  gap: 4px;
+  padding: 6px;
+}
 
 .item {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 11px 12px;
-  border-radius: 16px;
+  gap: 10px;
+  min-height: 44px;
+  padding: 8px 10px;
+  border-radius: 14px;
   color: var(--muted);
   transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
   border: 1px solid transparent;
 }
 
 .iconWrap {
-  width: 36px;
-  height: 36px;
-  border-radius: 12px;
+  width: 34px;
+  height: 34px;
+  border-radius: 11px;
   display: grid;
   place-items: center;
-  background: rgba(255,255,255,0.03);
+  background: rgba(255,255,255,0.025);
   border: 1px solid rgba(255,255,255,0.04);
+  color: inherit;
 }
 
-.label { display: inline-flex; align-items: center; gap: 8px; font-weight: 500; }
+.label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
 .badge {
   min-width: 18px;
   height: 18px;
@@ -63,52 +76,84 @@
 }
 
 .item:hover {
-  background: rgba(255,255,255,0.04);
+  background: rgba(255,255,255,0.03);
   color: var(--text);
 }
 
-.item:hover .iconWrap { background: rgba(255,255,255,0.05); }
+.item:hover .iconWrap {
+  background: rgba(255,255,255,0.04);
+}
 
 .active {
-  background: rgba(255,255,255,0.05);
+  background: rgba(255,255,255,0.04);
   color: var(--text);
+  border-color: rgba(255,255,255,0.04);
 }
 
 .active .iconWrap {
   background: rgba(255,122,26,0.12);
-  border-color: rgba(255,122,26,0.16);
+  border-color: rgba(255,122,26,0.2);
   color: var(--accent-strong);
 }
 
 .footer {
   position: absolute;
-  left: 14px;
-  right: 14px;
-  bottom: 18px;
-  border-top: 1px solid rgba(255,255,255,0.05);
-  padding: 14px 10px 0;
+  left: 12px;
+  right: 12px;
+  bottom: 14px;
+  border-top: 1px solid var(--stroke);
+  padding: 12px 8px 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
+  gap: 8px;
 }
 
-.me { display: flex; align-items: center; gap: 10px; min-width: 0; }
-.name { font-size: 13px; color: var(--text); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.handle { font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.me {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.name {
+  font-size: 13px;
+  color: var(--text);
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.handle {
+  font-size: 11px;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 
 .logout {
-  width: 40px;
-  height: 40px;
-  border: 1px solid rgba(255,255,255,0.06);
-  background: rgba(255,255,255,0.04);
-  color: var(--text);
-  border-radius: 14px;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--stroke);
+  background: rgba(255,255,255,0.03);
+  color: var(--text-soft);
+  border-radius: 12px;
   display: grid;
   place-items: center;
   cursor: pointer;
+  transition: background 140ms ease, color 140ms ease, border-color 140ms ease;
 }
 
-.logout:hover { background: rgba(255,255,255,0.08); }
+.logout:hover {
+  background: rgba(255,255,255,0.06);
+  color: var(--text);
+  border-color: var(--stroke-strong);
+}
 
-@media (max-width: 960px) { .sidebar { display: none; } }
+@media (max-width: 960px) {
+  .sidebar {
+    display: none;
+  }
+}

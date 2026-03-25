@@ -1530,3 +1530,15 @@
     max-height: 58px !important;
   }
 }
+
+
+/* redesign overrides */
+.topBar { gap: 12px; padding: 12px 16px; }
+.topTitle { font-size: 16px; }
+.topSub { font-size: 12px; }
+.topGhostBtn { height: 36px; border-radius: 12px; }
+.grid { padding: 14px; gap: 10px; }
+.mainOverlay { left: 14px; bottom: 14px; gap: 4px; padding: 10px 12px; border-radius: 14px; }
+.pip { right: 14px; bottom: 14px; width: 160px; height: 204px; border-radius: 16px; }
+.railDock, .bottomBar, .chatRail { border-radius: 16px !important; }
+.participantCard, .toolButton, .toolButtonDanger, .sidePanel { border-radius: 14px !important; }

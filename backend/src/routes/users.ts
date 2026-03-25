@@ -279,8 +279,8 @@ router.get("/:username/connections", requireAuth, asyncHandler(async (req: Authe
           : { receiver: { is: activeUserWhere(now) } }),
     },
     include: {
-      sender: { select: { id: true, username: true, avatarUrl: true, role: true, bio: true, lastSeenAt: true } },
-      receiver: { select: { id: true, username: true, avatarUrl: true, role: true, bio: true, lastSeenAt: true } },
+      sender: { select: { id: true, username: true, avatarUrl: true, role: true, bio: true, lastSeenAt: true, privacy: true } },
+      receiver: { select: { id: true, username: true, avatarUrl: true, role: true, bio: true, lastSeenAt: true, privacy: true } },
     },
     orderBy: { updatedAt: "desc" },
   });

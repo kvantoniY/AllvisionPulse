@@ -49,11 +49,11 @@ export default function SupportQuestionDetailPage() {
   }, [question?.answerText]);
 
   if (isLoading) {
-    return <div className="container"><Card><CardHeader title="Вопрос" /><CardMuted>Загружаем вопрос…</CardMuted></Card></div>;
+    return <div className="container appPage"><Card><CardHeader title="Вопрос" /><CardMuted>Загружаем вопрос…</CardMuted></Card></div>;
   }
 
   if (isError || !question) {
-    return <div className="container"><Card><CardHeader title="Вопрос не найден" /><CardMuted>Похоже, вопрос был удалён или ссылка устарела.</CardMuted></Card></div>;
+    return <div className="container appPage"><Card><CardHeader title="Вопрос не найден" /><CardMuted>Похоже, вопрос был удалён или ссылка устарела.</CardMuted></Card></div>;
   }
 
   const toggleLike = async () => {
@@ -69,7 +69,7 @@ export default function SupportQuestionDetailPage() {
   };
 
   return (
-    <div className="container">
+    <div className="container appPage">
       <div className={styles.page}>
         <Link href="/support" className={styles.backLink}>← Вернуться в техподдержку</Link>
         <div className={styles.detailLayout}>

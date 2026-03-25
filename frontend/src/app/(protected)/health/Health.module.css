@@ -4376,3 +4376,28 @@
     grid-template-columns: 1fr;
   }
 }
+
+
+/* redesign overrides */
+.page { gap: 16px; padding-bottom: 20px; }
+.hero { gap: 16px; padding: 16px; border-radius: 20px; background: rgba(255,255,255,0.02); }
+.kicker { margin-bottom: 8px; }
+.title { font-size: clamp(24px, 3.4vw, 34px); }
+.subtitle { font-size: 14px; line-height: 1.55; }
+.heroActions { gap: 8px; }
+.toolbar { gap: 12px; padding: 14px; border-radius: 16px; }
+.dateLabel { margin-bottom: 8px; font-size: 14px; }
+.weekDay { min-width: 64px; border-radius: 12px; padding: 8px 10px; }
+.weekDay strong { font-size: 14px; }
+.segmented { gap: 6px; }
+.segment { padding: 8px 12px; font-size: 13px; }
+.grid, .stack { gap: 14px; }
+.compactGrid { gap: 10px; }
+.field { gap: 4px; }
+.field input, .field textarea, .field select, .dateInput { border-radius: 12px; padding: 10px 12px; }
+.actionsRow { gap: 10px; margin-top: 12px; }
+.metricRow { gap: 10px; }
+.metricCard { border-radius: 14px; padding: 12px; }
+.metricCard strong { font-size: 18px; }
+.sectionCard, .mealCard, .taskCard, .eventCard, .sleepCard, .insightCard, .statCard, .chartCard, .tableCard, .goalCard, .profileCard { border-radius: 16px !important; padding: 14px !important; }
+@media (max-width: 1100px) { .metricRow { grid-template-columns: 1fr; } }

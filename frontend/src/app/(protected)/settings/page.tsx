@@ -138,7 +138,7 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className={`container ${styles.page}`}>
+    <div className={`container appPage ${styles.page}`}>
       <Card>
         <div className={styles.hero}>
           <div className={styles.heroCopy}>

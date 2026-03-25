@@ -1,20 +1,20 @@
-.field { display: grid; gap: 8px; }
-.label { color: var(--text-soft); font-size: 13px; font-weight: 500; }
+.field { display: grid; gap: 6px; }
+.label { color: var(--text-soft); font-size: 12px; font-weight: 600; }
 .input {
   width: 100%;
-  min-height: 44px;
-  padding: 0 14px;
-  border-radius: 14px;
-  border: 1px solid rgba(255,255,255,0.06);
+  min-height: 40px;
+  padding: 0 12px;
+  border-radius: 12px;
+  border: 1px solid var(--stroke);
   background: rgba(255,255,255,0.03);
   color: var(--text);
   outline: none;
   transition: border-color 140ms ease, background 140ms ease, box-shadow 140ms ease;
 }
-.input:hover { border-color: rgba(255,255,255,0.1); }
+.input:hover { border-color: var(--stroke-strong); }
 .input:focus {
-  border-color: rgba(255,122,26,0.45);
+  border-color: var(--stroke-accent);
   background: rgba(255,255,255,0.04);
-  box-shadow: 0 0 0 4px rgba(255,122,26,0.12);
+  box-shadow: 0 0 0 4px rgba(255,122,26,0.08);
 }
 .error { color: var(--danger); font-size: 12px; }

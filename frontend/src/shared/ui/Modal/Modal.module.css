@@ -1,22 +1,22 @@
 .backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(3, 3, 4, 0.8);
+  background: rgba(4, 5, 7, 0.8);
   display: grid;
   place-items: center;
-  z-index: 100;
-  padding: 20px;
+  z-index: 160;
+  padding: 18px;
   backdrop-filter: blur(14px);
 }
 
 .modal {
-  width: min(640px, 100%);
+  width: min(620px, 100%);
   max-height: min(88vh, 920px);
   overflow: hidden;
-  border-radius: 28px;
-  border: 1px solid rgba(255,255,255,0.06);
-  background: linear-gradient(180deg, rgba(11, 12, 15, 0.98), rgba(6, 7, 9, 0.985));
-  box-shadow: 0 34px 80px rgba(0, 0, 0, 0.42);
+  border-radius: 20px;
+  border: 1px solid var(--stroke);
+  background: linear-gradient(180deg, rgba(12, 14, 17, 0.98), rgba(8, 10, 13, 0.985));
+  box-shadow: var(--shadow-lg);
 }
 
 .headerMain {
@@ -27,15 +27,15 @@
 }
 
 .iconWrap {
-  width: 42px;
-  height: 42px;
-  min-width: 42px;
-  border-radius: 14px;
+  width: 38px;
+  height: 38px;
+  min-width: 38px;
+  border-radius: 12px;
   display: grid;
   place-items: center;
   color: var(--accent);
-  background: rgba(255, 122, 26, 0.12);
-  border: 1px solid rgba(255, 122, 26, 0.18);
+  background: rgba(255, 122, 26, 0.1);
+  border: 1px solid rgba(255, 122, 26, 0.16);
 }
 
 .titleWrap {
@@ -44,33 +44,32 @@
   min-width: 0;
 }
 
-
 .header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
-  padding: 22px 22px 18px;
-  border-bottom: 1px solid rgba(255,255,255,0.05);
+  padding: 18px 18px 14px;
+  border-bottom: 1px solid var(--stroke);
 }
 
 .title {
   font-weight: 800;
-  font-size: 18px;
+  font-size: 17px;
   color: var(--text);
   letter-spacing: -0.03em;
 }
 
 .subtitle {
   color: var(--muted);
-  font-size: 13px;
+  font-size: 12px;
   line-height: 1.45;
 }
 
 .close {
-  width: 40px;
-  height: 40px;
-  border: 1px solid rgba(255,255,255,0.06);
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--stroke);
   background: rgba(255,255,255,0.03);
   color: var(--text);
   border-radius: 12px;
@@ -79,16 +78,16 @@
   cursor: pointer;
 }
 
-.close:hover { background: rgba(255,255,255,0.07); }
+.close:hover { background: rgba(255,255,255,0.06); }
 
 .body {
-  padding: 20px 22px 22px;
-  max-height: calc(min(88vh, 920px) - 87px);
+  padding: 16px 18px 18px;
+  max-height: calc(min(88vh, 920px) - 74px);
   overflow: auto;
 }
 
-.modalLg { width: min(980px, 100%); }
-.modalXl { width: min(1260px, 100%); }
+.modalLg { width: min(960px, 100%); }
+.modalXl { width: min(1180px, 100%); }
 
 .modalGame {
   width: min(1080px, 100%);
@@ -97,7 +96,7 @@
 
 .bodyGame {
   padding: 10px;
-  height: calc(100% - 87px);
+  height: calc(100% - 74px);
   max-height: none;
   overflow: hidden;
 }
@@ -109,11 +108,10 @@
   .modalXl {
     width: 100%;
     max-height: min(92vh, 100vh);
-    border-radius: 24px 24px 0 0;
+    border-radius: 18px 18px 0 0;
   }
-  .header { padding: 18px 16px 14px; }
-  .title { font-size: 17px; }
-  .subtitle { font-size: 12px; }
-  .body { max-height: calc(min(92vh, 100vh) - 87px); padding: 18px 16px 20px; }
-  .modalGame { width: 100%; height: min(92vh, 100vh); border-radius: 20px 20px 0 0; }
+  .header { padding: 16px 14px 12px; }
+  .title { font-size: 16px; }
+  .body { max-height: calc(min(92vh, 100vh) - 74px); padding: 14px 14px 18px; }
+  .modalGame { width: 100%; height: min(92vh, 100vh); border-radius: 18px 18px 0 0; }
 }

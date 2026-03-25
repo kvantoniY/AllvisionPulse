@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { Card, CardHeader, CardMuted } from '@/shared/ui/Card/Card';
+import styles from './FeedPage.module.css';
+import { Card, CardMuted } from '@/shared/ui/Card/Card';
 import { useGetFeedQuery, useLazyGetFeedQuery } from '@/shared/api/postsApi';
 import { PostCard } from '@/entities/post/ui/PostCard';
 import { useIntersection } from '@/shared/lib/hooks/useIntersection';
@@ -17,7 +18,7 @@ function FeedCardSkeleton() {
         <Skeleton circle style={{ width: 42, height: 42 }} />
         <div style={{ flex: 1, minWidth: 0, display: 'grid', gap: 12 }}>
           <SkeletonText lines={2} />
-          <Skeleton style={{ width: '100%', aspectRatio: '16 / 10' }} />
+          <Skeleton style={{ width: '100%', aspectRatio: '4 / 5' }} />
           <div style={{ display: 'flex', gap: 10 }}>
             <Skeleton style={{ width: 36, height: 36 }} />
             <Skeleton style={{ width: 36, height: 36 }} />
@@ -46,13 +47,11 @@ export default function FeedPage() {
   }, [nearEnd, isFetching, nextCursor, fetchPage]);
 
   return (
-    <div className="container">
-      <PostModal postId={openPostId} open={!!openPostId} onClose={() => setOpenPostId(null)} />
-      <div style={{ display: 'grid', gap: 14 }}>
-        <Card>
-          <CardHeader title="Лента" />
-          <CardMuted>Публикации друзей, обновления и контент сообщества в одном потоке.</CardMuted>
-        </Card>
+    <div className="container appPage">
+      <PostModal postId={openPostId} open={!!openPostId} onClose={() => setOpenPostId(null)} onOpenPost={setOpenPostId} />
+
+      <div className={styles.stack}>
+        <div className={styles.eyebrow}>Главная лента</div>
 
         <StoriesRail />
 
@@ -65,7 +64,7 @@ export default function FeedPage() {
         ) : null}
 
         {items.map((p) => (
-          <PostCard key={p.id} post={p} onOpen={() => setOpenPostId(p.id)} />
+          <PostCard key={p.id} post={p} onOpenPost={setOpenPostId} onOpen={() => setOpenPostId(p.id)} />
         ))}
 
         {isFetching && !items.length ? (
@@ -74,12 +73,6 @@ export default function FeedPage() {
             <FeedCardSkeleton />
             <FeedCardSkeleton />
           </>
-        ) : null}
-
-        {!nextCursor && items.length ? (
-          <Card>
-            <CardMuted>Вы дошли до конца ленты.</CardMuted>
-          </Card>
         ) : null}
 
         <div ref={sentinelRef} style={{ height: 1 }} />

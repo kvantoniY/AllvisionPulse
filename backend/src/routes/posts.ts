@@ -28,6 +28,22 @@ function visiblePostWhere(postId?: string) {
   };
 }
 
+function buildPostInclude(depth = 3): any {
+  return {
+    author: { select: { id: true, username: true, avatarUrl: true, role: true } },
+    images: true,
+    likes: { select: { userId: true } },
+    _count: { select: { comments: true, likes: true, reposts: true } },
+    ...(depth > 0
+      ? {
+          repostOf: {
+            include: buildPostInclude(depth - 1),
+          },
+        }
+      : {}),
+  };
+}
+
 async function ensureVisiblePost(postId: string) {
   const post = await prisma.post.findFirst({
     where: visiblePostWhere(postId),
@@ -46,19 +62,7 @@ router.get("/feed", asyncHandler(async (req: AuthedRequest, res) => {
     orderBy: { createdAt: "desc" },
     take: take + 1,
     ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
-    include: {
-      author: { select: { id: true, username: true, avatarUrl: true, role: true } },
-      images: true,
-      likes: { select: { userId: true } },
-      _count: { select: { comments: true, likes: true, reposts: true } },
-      repostOf: {
-        include: {
-          author: { select: { id: true, username: true, avatarUrl: true, role: true } },
-          images: true,
-          _count: { select: { comments: true, likes: true, reposts: true } },
-        },
-      },
-    },
+    include: buildPostInclude(),
   });
 
   const hasMore = posts.length > take;
@@ -92,11 +96,7 @@ router.post("/", upload.array("images", 10), asyncHandler(async (req: AuthedRequ
         create: files.map((f, idx) => ({ url: fileUrl(req, path.basename(f.filename)), order: idx })),
       },
     },
-    include: {
-      author: { select: { id: true, username: true, avatarUrl: true, role: true } },
-      images: true,
-      _count: { select: { comments: true, likes: true, reposts: true } },
-    },
+    include: buildPostInclude(),
   });
   res.json({ post: created });
 }));
@@ -105,12 +105,7 @@ router.get("/:postId", asyncHandler(async (req: AuthedRequest, res) => {
   const postId = req.params.postId;
   const post = await prisma.post.findFirst({
     where: visiblePostWhere(postId),
-    include: {
-      author: { select: { id: true, username: true, avatarUrl: true, role: true } },
-      images: true,
-      likes: { select: { userId: true } },
-      _count: { select: { comments: true, likes: true, reposts: true } },
-    },
+    include: buildPostInclude(),
   });
   if (!post) throw new HttpError(404, "Post not found");
   res.json({ post });
@@ -146,6 +141,28 @@ router.delete("/:postId/like", asyncHandler(async (req: AuthedRequest, res) => {
   const postId = req.params.postId;
   await prisma.postLike.deleteMany({ where: { postId, userId: req.user!.id } });
   res.json({ ok: true });
+}));
+
+
+router.get("/:postId/likes", asyncHandler(async (req: AuthedRequest, res) => {
+  const postId = req.params.postId;
+  await ensureVisiblePost(postId);
+
+  const items = await prisma.postLike.findMany({
+    where: { postId, user: { is: activeUserWhere(new Date()) } },
+    orderBy: { createdAt: "desc" },
+    include: {
+      user: { select: { id: true, username: true, avatarUrl: true, role: true } },
+    },
+  });
+
+  res.json({ items: items.map((item) => ({
+    id: item.user.id,
+    username: item.user.username,
+    avatarUrl: item.user.avatarUrl,
+    role: item.user.role,
+    likedAt: item.createdAt,
+  })) });
 }));
 
 router.get("/:postId/comments", asyncHandler(async (req: AuthedRequest, res) => {

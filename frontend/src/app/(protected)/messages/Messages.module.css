@@ -1,13 +1,18 @@
 .grid {
   display: grid;
-  grid-template-columns: 360px minmax(0, 1fr);
-  gap: 16px;
+  grid-template-columns: 320px minmax(0, 1fr);
+  gap: 14px;
 }
 
-.listCard { padding: 0; min-height: calc(100vh - 146px); }
-.rightChat{ min-width: 0; }
+.listCard {
+  padding: 0;
+  min-height: calc(100vh - 126px);
+  border-radius: 18px;
+}
+
+.rightChat { min-width: 0; }
 .right,
-.placeholder { min-height: calc(100vh - 146px); }
+.placeholder { min-height: calc(100vh - 126px); }
 .placeholder { display: grid; align-content: start; }
 
 @media (max-width: 900px) {

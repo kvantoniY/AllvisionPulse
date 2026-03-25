@@ -71,22 +71,34 @@ export function ImageGallery({
         ))}
       </div>
 
-      <button
-        type="button"
-        className={styles.navLeft}
-        onClick={() => setIdx((v) => clamp(v - 1, 0, list.length - 1))}
-        aria-label="previous"
-      >
-        ‹
-      </button>
-      <button
-        type="button"
-        className={styles.navRight}
-        onClick={() => setIdx((v) => clamp(v + 1, 0, list.length - 1))}
-        aria-label="next"
-      >
-        ›
-      </button>
+      {safeIdx > 0 ? (
+        <button
+          type="button"
+          className={styles.navLeft}
+          onClick={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            setIdx((v) => clamp(v - 1, 0, list.length - 1));
+          }}
+          aria-label="Предыдущая картинка"
+        >
+          <span className={styles.navIcon}>‹</span>
+        </button>
+      ) : null}
+      {safeIdx < list.length - 1 ? (
+        <button
+          type="button"
+          className={styles.navRight}
+          onClick={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            setIdx((v) => clamp(v + 1, 0, list.length - 1));
+          }}
+          aria-label="Следующая картинка"
+        >
+          <span className={styles.navIcon}>›</span>
+        </button>
+      ) : null}
 
       <div className={styles.dots} aria-label="gallery dots">
         {list.map((_, i) => (
@@ -94,7 +106,11 @@ export function ImageGallery({
             key={i}
             type="button"
             className={[styles.dot, i === safeIdx ? styles.dotActive : ''].filter(Boolean).join(' ')}
-            onClick={() => setIdx(i)}
+            onClick={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              setIdx(i);
+            }}
             aria-label={`go to ${i + 1}`}
           />
         ))}

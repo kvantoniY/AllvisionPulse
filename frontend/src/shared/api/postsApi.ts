@@ -59,29 +59,32 @@ export const postsApi = createApi({
       providesTags: (_r, _e, arg) => [{ type: 'Post', id: arg.postId }],
     }),
 
-    createPost: build.mutation<PostResponse, { text?: string; images?: File[]; widgetsJson?: any | null }>(
+    createPost: build.mutation<PostResponse, { text?: string; images?: File[]; widgetsJson?: any | null; repostOfId?: string | null }>(
       {
-        query: ({ text, images, widgetsJson }) => {
+        query: ({ text, images, widgetsJson, repostOfId }) => {
           const fd = new FormData();
           if (text != null) fd.set('text', text);
           if (widgetsJson != null) fd.set('widgetsJson', JSON.stringify(widgetsJson));
+          if (repostOfId) fd.set('repostOfId', repostOfId);
           for (const f of images ?? []) fd.append('images', f);
           return { url: '/backend/posts', method: 'POST', body: fd };
         },
-        async onQueryStarted(_arg, { dispatch, queryFulfilled }) {
+        async onQueryStarted(arg, { dispatch, queryFulfilled }) {
           try {
             const { data } = await queryFulfilled;
-            // prepend to feed cache
             dispatch(
               postsApi.util.updateQueryData('getFeed', undefined as any, (draft) => {
                 draft.items.unshift(data.post as any);
+                if (arg.repostOfId) {
+                  const target = draft.items.find((item) => item.id === arg.repostOfId);
+                  if (target?._count) target._count.reposts = (target._count.reposts ?? 0) + 1;
+                }
               }),
             );
           } catch {
-            // ignore
           }
         },
-        // No invalidation: we update the feed cache optimistically by prepending.
+        invalidatesTags: (_r, _e, arg) => arg.repostOfId ? [{ type: 'Post' as const, id: arg.repostOfId }] : [],
       },
     ),
 
@@ -141,6 +144,12 @@ export const postsApi = createApi({
         }
       },
       invalidatesTags: (_r, _e, arg) => [{ type: 'Post', id: arg.postId }],
+    }),
+
+
+    getPostLikes: build.query<{ items: Array<{ id: string; username: string; avatarUrl?: string | null; role?: string; likedAt: string }> }, { postId: string }>({
+      query: ({ postId }) => ({ url: `/backend/posts/${encodeURIComponent(postId)}/likes`, method: 'GET' }),
+      providesTags: (_r, _e, arg) => [{ type: 'Post', id: `${arg.postId}:likes` }],
     }),
 
     // Comments
@@ -260,6 +269,7 @@ export const {
   useDeletePostMutation,
   useLikePostMutation,
   useUnlikePostMutation,
+  useGetPostLikesQuery,
   useGetCommentsQuery,
   useLazyGetCommentsQuery,
   useGetLastCommentQuery,

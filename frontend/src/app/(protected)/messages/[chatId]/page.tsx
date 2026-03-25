@@ -731,7 +731,7 @@ export default function ChatPage() {
   }, [messages]);
 
   return (
-    <div className="container">
+    <div className="container appPage">
       <div className={gridStyles.grid}>
         <Card className={[gridStyles.listCard, gridStyles.hideOnMobile].filter(Boolean).join(' ')}>
           <ChatSidebar activeChatId={chatId} />

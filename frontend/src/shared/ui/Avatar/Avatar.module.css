@@ -3,29 +3,30 @@
   height: 38px;
   border-radius: 999px;
   border: 1px solid rgba(255,255,255,0.08);
-  background: rgba(255,255,255,0.04);
+  background: rgba(255,255,255,0.03);
   overflow: visible;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   flex: 0 0 auto;
   position: relative;
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.02);
 }
 
-.inner{
+.inner {
   width: 100%;
   height: 100%;
   border-radius: 999px;
   overflow: hidden;
   display: grid;
   place-items: center;
-  background: linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03));
+  background: linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02));
 }
 
 .img { width: 100%; height: 100%; object-fit: cover; }
-.fallback { font-weight: 700; color: var(--text); }
+.fallback { font-weight: 700; color: var(--text); font-size: 12px; }
 
-.statusDot{
+.statusDot {
   position: absolute;
   right: -1px;
   bottom: -1px;
@@ -37,5 +38,5 @@
   z-index: 3;
 }
 
-.statusDotOnline{ background: var(--success); }
-.statusDotOffline{ background: rgba(255,255,255,0.25); }
+.statusDotOnline { background: var(--success); }
+.statusDotOffline { background: rgba(255,255,255,0.25); }

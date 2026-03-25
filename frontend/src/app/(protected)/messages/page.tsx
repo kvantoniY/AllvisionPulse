@@ -6,7 +6,7 @@ import { ChatSidebar } from '@/features/messages';
 
 export default function MessagesPage() {
   return (
-    <div className="container">
+    <div className="container appPage">
       <div className={styles.grid}>
         <Card className={styles.listCard}>
           <ChatSidebar activeChatId={null} />

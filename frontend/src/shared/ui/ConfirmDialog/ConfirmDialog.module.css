@@ -1,0 +1,57 @@
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.cancelBtn,
+.confirmBtn {
+  min-height: 40px;
+  padding: 0 16px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 140ms ease, border-color 140ms ease, color 140ms ease, transform 140ms ease;
+}
+
+.cancelBtn {
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-soft);
+}
+
+.cancelBtn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text);
+}
+
+.confirmBtn {
+  border-color: rgba(255, 122, 26, 0.22);
+  background: linear-gradient(180deg, rgba(255, 122, 26, 0.24), rgba(255, 122, 26, 0.14));
+  color: #fff;
+}
+
+.confirmBtn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  filter: brightness(1.06);
+}
+
+.cancelBtn:disabled,
+.confirmBtn:disabled {
+  opacity: 0.56;
+  cursor: not-allowed;
+  transform: none;
+}
+
+@media (max-width: 640px) {
+  .actions {
+    flex-direction: column-reverse;
+  }
+
+  .cancelBtn,
+  .confirmBtn {
+    width: 100%;
+  }
+}

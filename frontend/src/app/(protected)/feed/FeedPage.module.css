@@ -1,0 +1,24 @@
+.stack {
+  display: grid;
+  gap: 14px;
+}
+
+.eyebrow {
+  font-size: 11px;
+  line-height: 1;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+  font-weight: 700;
+  margin: 2px 2px -2px;
+}
+
+@media (max-width: 640px) {
+  .stack {
+    gap: 12px;
+  }
+
+  .eyebrow {
+    margin-inline: 0;
+  }
+}

@@ -314,7 +314,7 @@ export default function SupportPage() {
     : `${activeQuestions.length} активных вопросов и ${archivedQuestions.length} в архиве`;
 
   return (
-    <div className="container">
+    <div className="container appPage">
       <div className={styles.page}>
         <Card>
           <div className={styles.hero}>

@@ -197,7 +197,7 @@ export default function ProfilePage() {
 
   if (isLoading) {
     return (
-      <div className="container">
+      <div className="container appPage">
         <Card>
           <CardHeader title="Профиль" />
           <div style={{ display: 'grid', gap: 16 }}><div style={{ display: 'flex', gap: 14, alignItems: 'center' }}><Skeleton circle style={{ width: 74, height: 74 }} /><div style={{ flex: 1 }}><SkeletonText lines={3} /></div></div><SkeletonText lines={3} /></div>
@@ -208,7 +208,7 @@ export default function ProfilePage() {
 
   if (isError || !user) {
     return (
-      <div className="container">
+      <div className="container appPage">
         <Card>
           <CardHeader title="Профиль недоступен" />
           <CardMuted>Пользователь скрыт, заблокирован администрацией или не существует.</CardMuted>
@@ -218,8 +218,8 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="container">
-      <PostModal postId={openPostId} open={!!openPostId} onClose={() => setOpenPostId(null)} />
+    <div className="container appPage">
+      <PostModal postId={openPostId} open={!!openPostId} onClose={() => setOpenPostId(null)} onOpenPost={setOpenPostId} />
       <StartChatModal open={chatStartOpen} chatId={chatStartId} title="Новое сообщение" onClose={() => setChatStartOpen(false)} onSent={(cid) => router.push(`/messages/${cid}`)} />
       <Modal open={actionsOpen} onClose={() => setActionsOpen(false)} title="Действия с профилем">
         <div className={styles.profileActionsModal}>
@@ -334,7 +334,7 @@ export default function ProfilePage() {
         <>
           <div className={styles.sectionTitle} style={{ marginTop: 18 }}>Публикации</div>
           {isSelf ? <PostComposer context="profile" /> : null}
-          {userPosts.length ? userPosts.map((post) => <PostCard key={post.id} post={post} onOpen={() => setOpenPostId(post.id)} />) : (
+          {userPosts.length ? userPosts.map((post) => <PostCard key={post.id} post={post} onOpenPost={setOpenPostId} onOpen={() => setOpenPostId(post.id)} />) : (
             <Card>{feedFetching ? <div style={{ display: 'grid', gap: 12 }}><SkeletonText lines={3} /><Skeleton style={{ width: '100%', aspectRatio: '16 / 10' }} /></div> : <CardMuted>Пока нет публикаций.</CardMuted>}</Card>
           )}
           <div ref={sentinelRef} style={{ height: 1 }} />

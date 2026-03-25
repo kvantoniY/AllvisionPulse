@@ -203,3 +203,16 @@
     grid-template-columns: repeat(7, minmax(0, 1fr));
   }
 }
+
+
+/* redesign overrides */
+.emojiPicker { width: min(360px, calc(100vw - 24px)); height: min(440px, 60vh); border-radius: 18px; }
+.header { padding: 12px 12px 6px; }
+.title { font-size: 14px; }
+.searchSection { padding: 0 12px 8px; }
+.searchInput { height: 36px; border-radius: 12px; }
+.categoriesBar { gap: 6px; padding: 0 12px 8px; }
+.categoryTab { width: 30px; height: 30px; }
+.emojisGrid { padding: 0 12px 12px; gap: 4px; }
+.emojiButton { border-radius: 10px; }
+.emptyState { inset: 104px 12px 12px; border-radius: 14px; }

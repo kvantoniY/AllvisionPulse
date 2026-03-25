@@ -2,6 +2,7 @@
 
 import { PropsWithChildren, createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import styles from './Lightbox.module.css';
+import { Icon } from '@/shared/ui/Icon/Icon';
 
 type LightboxImage = { url: string; id?: string };
 
@@ -82,25 +83,25 @@ export function LightboxProvider({ children }: PropsWithChildren) {
               ✕
             </button>
 
-            {many ? (
-              <>
-                <button
-                  className={styles.navLeft}
-                  type="button"
-                  onClick={() => setState((s) => ({ ...s, index: clamp(idx - 1, 0, s.images.length - 1) }))}
-                  aria-label="previous"
-                >
-                  ‹
-                </button>
-                <button
-                  className={styles.navRight}
-                  type="button"
-                  onClick={() => setState((s) => ({ ...s, index: clamp(idx + 1, 0, s.images.length - 1) }))}
-                  aria-label="next"
-                >
-                  ›
-                </button>
-              </>
+            {many && idx > 0 ? (
+              <button
+                className={styles.navLeft}
+                type="button"
+                onClick={() => setState((s) => ({ ...s, index: clamp(idx - 1, 0, s.images.length - 1) }))}
+                aria-label="Предыдущая картинка"
+              >
+                <Icon name="arrowLeft" size={18} />
+              </button>
+            ) : null}
+            {many && idx < state.images.length - 1 ? (
+              <button
+                className={styles.navRight}
+                type="button"
+                onClick={() => setState((s) => ({ ...s, index: clamp(idx + 1, 0, s.images.length - 1) }))}
+                aria-label="Следующая картинка"
+              >
+                <Icon name="arrowLeft" size={18} className={styles.navRightIcon} />
+              </button>
             ) : null}
 
             <div className={styles.stage}>

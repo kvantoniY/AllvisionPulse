@@ -2,43 +2,62 @@
   position: fixed;
   left: 12px;
   right: 12px;
-  bottom: 12px;
-  height: 76px;
-  border: 1px solid rgba(255,255,255,0.06);
-  background: rgba(10, 10, 11, 0.9);
+  bottom: 10px;
+  height: 68px;
+  border: 1px solid var(--stroke);
+  background: rgba(9, 11, 14, 0.9);
   box-shadow: var(--shadow-md);
-  border-radius: 22px;
+  border-radius: 18px;
   backdrop-filter: blur(18px);
   display: none;
   z-index: 30;
 }
 
-.inner { height: 100%; display: grid; grid-template-columns: repeat(6, 1fr); align-items: center; }
-.item { display: grid; justify-items: center; gap: 4px; color: var(--muted); font-size: 10px; padding-top: 2px; }
-.active { color: var(--text); }
+.inner {
+  height: 100%;
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  align-items: center;
+}
 
-@media (max-width: 960px) { .nav { display: block; } }
+.item {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.active {
+  color: var(--text);
+}
+
+@media (max-width: 960px) {
+  .nav {
+    display: block;
+  }
+}
 
 .icon {
-  width: 42px;
-  height: 42px;
-  border-radius: 14px;
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
   display: grid;
   place-items: center;
   position: relative;
 }
 
+.active .icon {
+  background: rgba(255,255,255,0.05);
+}
+
 .badgeDot {
   position: absolute;
-  top: 7px;
-  right: 7px;
+  top: 6px;
+  right: 6px;
   width: 8px;
   height: 8px;
   border-radius: 999px;
   background: var(--accent-strong);
-  box-shadow: 0 0 0 2px rgba(10, 10, 11, 1);
+  box-shadow: 0 0 0 2px rgba(9, 11, 14, 1);
 }
-
-.label { opacity: 0.92; }
-.item:hover .icon { background: rgba(255,255,255,0.04); }
-.active .icon { background: rgba(255,122,26,0.12); color: var(--accent-strong); }

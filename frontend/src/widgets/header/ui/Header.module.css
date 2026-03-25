@@ -1,57 +1,93 @@
 .header {
   position: sticky;
   top: 0;
-  z-index: 20;
-  border-bottom: 1px solid rgba(255,255,255,0.05);
-  background: rgba(7, 7, 8, 0.82);
+  z-index: 30;
+  border-bottom: 1px solid var(--stroke);
+  background: rgba(9, 11, 14, 0.82);
   backdrop-filter: blur(18px);
 }
 
 .inner {
-  min-height: 72px;
+  min-height: var(--header-height);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 18px;
+  gap: 16px;
   padding: 0 24px;
 }
 
 .searchWrap {
   flex: 1 1 auto;
-  max-width: 520px;
+  max-width: 480px;
 }
 
 .right {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   margin-left: auto;
 }
 
 .settings {
-  width: 40px;
-  height: 40px;
-  border: 1px solid rgba(255,255,255,0.06);
-  background: rgba(255,255,255,0.04);
-  color: var(--text);
-  border-radius: 14px;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--stroke);
+  background: rgba(255,255,255,0.03);
+  color: var(--text-soft);
+  border-radius: 12px;
   display: grid;
   place-items: center;
+  transition: background 140ms ease, border-color 140ms ease, color 140ms ease;
 }
 
-.settings:hover { background: rgba(255,255,255,0.08); }
+.settings:hover {
+  background: rgba(255,255,255,0.06);
+  border-color: var(--stroke-strong);
+  color: var(--text);
+}
 
-.me { display: flex; align-items: center; gap: 10px; color: var(--text); padding-left: 4px; }
-.meText { display: grid; }
-.meName { font-weight: 700; font-size: 13px; line-height: 1.1; }
-.meHandle { font-size: 11px; color: var(--muted); }
+.me {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding-left: 2px;
+}
+
+.meText {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.meName {
+  font-weight: 700;
+  font-size: 13px;
+  line-height: 1.15;
+  color: var(--text);
+}
+
+.meHandle {
+  font-size: 11px;
+  color: var(--muted);
+}
 
 @media (max-width: 960px) {
-  .inner { padding: 0 16px; min-height: 64px; }
-  .searchWrap { max-width: none; }
+  .inner {
+    padding: 0 16px;
+  }
+
+  .searchWrap {
+    max-width: none;
+  }
 }
 
 @media (max-width: 640px) {
-  .meText { display: none; }
-  .searchWrap { max-width: 100%; }
+  .meText {
+    display: none;
+  }
+
+  .searchWrap {
+    max-width: 100%;
+  }
 }

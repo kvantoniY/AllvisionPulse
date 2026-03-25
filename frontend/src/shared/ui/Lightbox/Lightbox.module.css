@@ -11,10 +11,9 @@
 
 .modal{
   position: relative;
-  width: min(980px, 100%);
-  height: min(86vh, 820px);
-  border: 1px solid var(--stroke);
-  background: rgba(12,12,14,0.92);
+  width: min(1100px, 100%);
+  height: min(88vh, 900px);
+  background: transparent;
   border-radius: 18px;
   overflow: hidden;
 }
@@ -40,10 +39,11 @@
   width: 40px;
   height: 40px;
   border-radius: 999px;
-  border: 1px solid var(--stroke);
-  background: rgba(255,255,255,0.06);
-  color: var(--text);
+  border: 1px solid rgba(255,255,255,0.16);
+  background: rgba(12,14,18,0.72);
+  color: white;
   cursor: pointer;
+  z-index: 2;
 }
 
 .navLeft,
@@ -51,14 +51,20 @@
   position:absolute;
   top: 50%;
   transform: translateY(-50%);
-  width: 46px;
-  height: 46px;
+  width: 44px;
+  height: 44px;
   border-radius: 999px;
-  border: 1px solid var(--stroke);
-  background: rgba(255,255,255,0.06);
-  color: var(--text);
+  border: 1px solid rgba(255,255,255,0.16);
+  background: rgba(12,14,18,0.72);
+  color: white;
   cursor: pointer;
-  font-size: 26px;
+  display:grid;
+  place-items:center;
+  backdrop-filter: blur(12px);
+}
+
+.navRightIcon {
+  transform: rotate(180deg);
 }
 
 .navLeft{ left: 10px; }
@@ -79,3 +85,11 @@
 @media (max-width: 640px){
   .modal{ height: 78vh; }
 }
+
+
+/* redesign overrides */
+.backdrop { background: rgba(0,0,0,0.88); padding: 14px; }
+.modal { border-radius: 16px; }
+.close { width: 36px; height: 36px; }
+.navLeft, .navRight { width: 40px; height: 40px; }
+.counter { padding: 5px 9px; }
