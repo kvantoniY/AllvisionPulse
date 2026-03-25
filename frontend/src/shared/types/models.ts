@@ -43,6 +43,10 @@ export type User = {
   followersCount?: number;
   followingCount?: number;
   postsCount?: number;
+  suspendedAt?: string | null;
+  suspendedUntil?: string | null;
+  suspendedPermanent?: boolean;
+  suspensionReason?: string | null;
 };
 
 export type HealthDay = {

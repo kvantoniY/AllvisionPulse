@@ -1,3 +1,5 @@
+import type { Role } from './models';
+
 export type ChatType = 'DIRECT' | 'GROUP';
 
 export type ChatRole = 'CREATOR' | 'ADMIN' | 'MEMBER';
@@ -11,6 +13,7 @@ export type ChatMember = {
     id: string;
     username: string;
     avatarUrl?: string | null;
+    role?: Role;
   };
 };
 
@@ -69,6 +72,7 @@ export type Message = {
     id: string;
     username: string;
     avatarUrl?: string | null;
+    role?: Role;
   };
   attachments?: MessageAttachment[];
   reads?: MessageRead[];

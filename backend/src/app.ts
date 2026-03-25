@@ -18,6 +18,8 @@ import notificationsRouter from "./routes/notifications";
 import adminRouter from "./routes/admin";
 import gamesRouter from "./routes/games";
 import storiesRouter from "./routes/stories";
+import supportRouter from "./routes/support";
+import analyticsRouter from "./routes/analytics";
 
 export function createApp() {
   const env = getEnv();
@@ -62,6 +64,8 @@ app.use('/uploads', (req, res, next) => {
   app.use("/api/games", gamesRouter);
   app.use("/api/stories", storiesRouter);
   app.use("/api/admin", adminRouter);
+  app.use("/api/support", supportRouter);
+  app.use("/api/analytics", analyticsRouter);
 
   app.use(notFound);
   app.use(errorHandler);

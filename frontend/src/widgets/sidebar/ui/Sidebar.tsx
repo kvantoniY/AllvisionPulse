@@ -11,6 +11,7 @@ import { useLogoutMutation } from '@/shared/api/authApi';
 import { useFriendBadge } from '@/features/friendBadge/useFriendBadge';
 import { useAppSelector } from '@/shared/lib/storeHooks';
 import { Icon } from '@/shared/ui/Icon/Icon';
+import { AdminBadge } from '@/shared/ui/AdminBadge/AdminBadge';
 
 function NavItem({
   href,
@@ -63,8 +64,9 @@ export function Sidebar() {
         <NavItem href={ROUTES.app.feed} label="Лента" icon="home" active={pathname === '/' || pathname.startsWith('/feed')} />
         <NavItem href={ROUTES.app.health} label="Пульс" icon="pulse" active={pathname.startsWith('/health')} />
         <NavItem href={ROUTES.app.friends} label="Подписки" icon="users" active={pathname.startsWith('/friends')} badge={incomingCount} />
-        <NavItem href={ROUTES.app.game} label="Игры" icon="game" active={pathname.startsWith('/game')} />
         <NavItem href={ROUTES.app.messages} label="Сообщения" icon="messages" active={pathname.startsWith('/messages')} badge={unreadMsgs} />
+        <NavItem href={ROUTES.app.support} label="Тех поддержка" icon="support" active={pathname.startsWith('/support')} />
+        {me?.role === 'ADMIN' ? <NavItem href={ROUTES.app.admin} label="Админ панель" icon="shield" active={pathname.startsWith('/admin')} /> : null}
         {me ? <NavItem href={ROUTES.app.profile(me.username)} label="Профиль" icon="user" active={pathname.startsWith('/profile')} /> : null}
       </nav>
 
@@ -72,7 +74,10 @@ export function Sidebar() {
         <div className={styles.me}>
           <StoryRingAvatar userId={me?.id} url={me?.avatarUrl} name={me?.username ?? 'Пользователь'} size={38} />
           <div style={{ minWidth: 0 }}>
-            <div className={styles.name}>{me?.username ?? '—'}</div>
+            <div className={styles.name} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              {me?.username ?? '—'}
+              <AdminBadge role={me?.role} />
+            </div>
             <div className={styles.handle}>{me ? `@${me.username}` : ''}</div>
           </div>
         </div>

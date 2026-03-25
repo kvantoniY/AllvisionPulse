@@ -18,6 +18,8 @@ export const ROUTES = {
     messages: '/messages',
     profile: (username: string) => `/profile/${username}`,
     settings: '/settings',
+    admin: '/admin',
+    support: '/support',
     game: '/game',
   },
 } as const;

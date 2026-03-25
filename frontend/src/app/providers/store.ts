@@ -7,6 +7,8 @@ import { friendsApi } from '@/shared/api/friendsApi';
 import { chatsApi } from '@/shared/api/chatsApi';
 import { tasksApi } from '@/shared/api/tasksApi';
 import { pulseApi } from '@/shared/api/pulseApi';
+import { adminApi } from '@/shared/api/adminApi';
+import { supportApi } from '@/shared/api/supportApi';
 import { notificationsReducer } from '@/entities/notification';
 import { chatUiReducer } from '@/entities/chat';
 import { presenceReducer } from '@/entities/presence';
@@ -25,6 +27,8 @@ export const makeStore = () =>
       [chatsApi.reducerPath]: chatsApi.reducer,
       [tasksApi.reducerPath]: tasksApi.reducer,
       [pulseApi.reducerPath]: pulseApi.reducer,
+      [adminApi.reducerPath]: adminApi.reducer,
+      [supportApi.reducerPath]: supportApi.reducer,
     },
     middleware: (getDefault) =>
       getDefault().concat(
@@ -36,6 +40,8 @@ export const makeStore = () =>
         chatsApi.middleware,
         tasksApi.middleware,
         pulseApi.middleware,
+        adminApi.middleware,
+        supportApi.middleware,
       ),
   });
 

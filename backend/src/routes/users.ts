@@ -1,9 +1,9 @@
-
 import { Router } from "express";
 import { z } from "zod";
 import { prisma } from "../db/prisma";
 import { asyncHandler, HttpError } from "../utils/http";
-import { requireAuth, AuthedRequest } from "../middleware/auth";
+import { requireAuth, requireActiveUser, AuthedRequest } from "../middleware/auth";
+import { activeUserWhere, isUserSuspended } from "../utils/userStatus";
 
 const router = Router();
 
@@ -12,6 +12,31 @@ const CONTACT_VISIBILITY = ["everyone", "followers", "none"] as const;
 
 type ProfileVisibility = (typeof PROFILE_VISIBILITY)[number];
 type ContactVisibility = (typeof CONTACT_VISIBILITY)[number];
+
+function emptyRelationship() {
+  return {
+    viewerToUser: null,
+    userToViewer: null,
+    isFollowing: false,
+    followsYou: false,
+    isMutual: false,
+    outgoingRequest: false,
+    incomingRequest: false,
+    blockedByMe: false,
+    blockedMe: false,
+    isBlocked: false,
+  };
+}
+
+function topLevelUserSearchFilter(q: string) {
+  if (!q) return undefined;
+  return {
+    OR: [
+      { username: { contains: q, mode: "insensitive" as const } },
+      { email: { contains: q, mode: "insensitive" as const } },
+    ],
+  };
+}
 
 async function getRelationshipContext(viewerId: string, targetId: string) {
   const [viewerToUser, userToViewer, blockEntry] = await Promise.all([
@@ -79,45 +104,66 @@ function canContact(args: {
   return false;
 }
 
+function ensureVisibleUserForViewer(args: {
+  user: { suspendedAt?: Date | null; suspendedUntil?: Date | null; suspendedPermanent?: boolean | null };
+  isSelf: boolean;
+  isAdmin: boolean;
+}) {
+  if ((args.isSelf || args.isAdmin) || !isUserSuspended(args.user)) return;
+  throw new HttpError(404, "User not found");
+}
+
 async function serializeProfile(viewerId: string, username: string, viewerRole: string) {
+  const now = new Date();
   const user = await prisma.user.findUnique({
     where: { username },
     select: {
       id: true,
       username: true,
       avatarUrl: true,
+      role: true,
       bio: true,
       lastSeenAt: true,
+      suspendedAt: true,
+      suspendedUntil: true,
+      suspendedPermanent: true,
+      suspensionReason: true,
       privacy: true,
-      _count: { select: { posts: true } },
     },
   });
   if (!user) throw new HttpError(404, "User not found");
 
   const isSelf = viewerId === user.id;
-  const relationship = isSelf
-    ? {
-        viewerToUser: null,
-        userToViewer: null,
-        isFollowing: false,
-        followsYou: false,
-        isMutual: false,
-        outgoingRequest: false,
-        incomingRequest: false,
-        blockedByMe: false,
-        blockedMe: false,
-        isBlocked: false,
-      }
-    : await getRelationshipContext(viewerId, user.id);
-
   const isAdmin = viewerRole === "ADMIN";
+  ensureVisibleUserForViewer({ user, isSelf, isAdmin });
+
+  const relationship = isSelf ? emptyRelationship() : await getRelationshipContext(viewerId, user.id);
   const profileAllowed = !relationship.isBlocked && canViewProfile({ privacy: user.privacy, isSelf, isFollowing: relationship.isFollowing, isAdmin });
   const canMessage = !relationship.isBlocked && canContact({ value: user.privacy?.allowMessagesFrom, isSelf, isFollowing: relationship.isFollowing, isAdmin });
   const canCall = !relationship.isBlocked && canContact({ value: user.privacy?.allowCallsFrom, isSelf, isFollowing: relationship.isFollowing, isAdmin });
 
-  const [followersCount, followingCount] = await Promise.all([
-    prisma.friendship.count({ where: { receiverId: user.id, status: "ACCEPTED" } }),
-    prisma.friendship.count({ where: { senderId: user.id, status: "ACCEPTED" } }),
+  const [followersCount, followingCount, postsCount] = await Promise.all([
+    prisma.friendship.count({
+      where: {
+        receiverId: user.id,
+        status: "ACCEPTED",
+        ...(isAdmin ? {} : { sender: { is: activeUserWhere(now) } }),
+      },
+    }),
+    prisma.friendship.count({
+      where: {
+        senderId: user.id,
+        status: "ACCEPTED",
+        ...(isAdmin ? {} : { receiver: { is: activeUserWhere(now) } }),
+      },
+    }),
+    prisma.post.count({
+      where: {
+        authorId: user.id,
+        deletedAt: null,
+        ...(isAdmin ? {} : { author: { is: activeUserWhere(now) } }),
+      },
+    }),
   ]);
 
   return {
@@ -127,10 +173,15 @@ async function serializeProfile(viewerId: string, username: string, viewerRole: 
       avatarUrl: user.avatarUrl,
       bio: profileAllowed || isSelf ? user.bio : null,
       lastSeenAt: user.lastSeenAt,
+      role: user.role,
       privacy: user.privacy,
-      postsCount: user._count.posts,
+      postsCount,
       followersCount,
       followingCount,
+      suspendedAt: user.suspendedAt,
+      suspendedUntil: user.suspendedUntil,
+      suspendedPermanent: user.suspendedPermanent,
+      suspensionReason: user.suspensionReason,
     },
     relationship: {
       ...relationship,
@@ -142,6 +193,7 @@ async function serializeProfile(viewerId: string, username: string, viewerRole: 
 }
 
 router.get("/me", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
+  const now = new Date();
   const me = await prisma.user.findUnique({
     where: { id: req.user!.id },
     select: {
@@ -152,35 +204,40 @@ router.get("/me", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
       avatarUrl: true,
       bio: true,
       lastSeenAt: true,
+      suspendedAt: true,
+      suspendedUntil: true,
+      suspendedPermanent: true,
+      suspensionReason: true,
       settings: true,
       privacy: true,
       pulseConfig: true,
-      _count: { select: { posts: true } },
     },
   });
   if (!me) return res.json({ user: null });
 
-  const [followersCount, followingCount] = await Promise.all([
-    prisma.friendship.count({ where: { receiverId: me.id, status: "ACCEPTED" } }),
-    prisma.friendship.count({ where: { senderId: me.id, status: "ACCEPTED" } }),
+  const [followersCount, followingCount, postsCount] = await Promise.all([
+    prisma.friendship.count({ where: { receiverId: me.id, status: "ACCEPTED", sender: { is: activeUserWhere(now) } } }),
+    prisma.friendship.count({ where: { senderId: me.id, status: "ACCEPTED", receiver: { is: activeUserWhere(now) } } }),
+    prisma.post.count({ where: { authorId: me.id, deletedAt: null } }),
   ]);
 
-  res.json({ user: { ...me, followersCount, followingCount, postsCount: me._count.posts } });
+  res.json({ user: { ...me, followersCount, followingCount, postsCount } });
 }));
+
+router.use(requireAuth, requireActiveUser);
 
 router.get("/search", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
   const q = (req.query.q?.toString() ?? "").trim();
+  const now = new Date();
+  const queryFilter = topLevelUserSearchFilter(q);
   const users = await prisma.user.findMany({
-    where: q
-      ? {
-          OR: [
-            { username: { contains: q, mode: "insensitive" } },
-            { email: { contains: q, mode: "insensitive" } },
-          ],
-        }
-      : undefined,
+    where: req.user!.role === "ADMIN"
+      ? queryFilter
+      : {
+          AND: [activeUserWhere(now), ...(queryFilter ? [queryFilter] : [])],
+        },
     take: 20,
-    select: { id: true, username: true, avatarUrl: true, bio: true, lastSeenAt: true, privacy: true },
+    select: { id: true, username: true, avatarUrl: true, role: true, bio: true, lastSeenAt: true, privacy: true },
   });
   res.json({ users });
 }));
@@ -188,33 +245,23 @@ router.get("/search", requireAuth, asyncHandler(async (req: AuthedRequest, res) 
 router.get("/:username/connections", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
   const username = req.params.username;
   const tab = req.query.tab === "followers" ? "followers" : "following";
+  const now = new Date();
   const target = await prisma.user.findUnique({
     where: { username },
-    select: { id: true, username: true, privacy: true },
+    select: { id: true, username: true, privacy: true, suspendedAt: true, suspendedUntil: true, suspendedPermanent: true },
   });
   if (!target) throw new HttpError(404, "User not found");
 
   const isSelf = req.user!.id === target.id;
-  const relationship = isSelf
-    ? {
-        viewerToUser: null,
-        userToViewer: null,
-        isFollowing: false,
-        followsYou: false,
-        isMutual: false,
-        outgoingRequest: false,
-        incomingRequest: false,
-        blockedByMe: false,
-        blockedMe: false,
-        isBlocked: false,
-      }
-    : await getRelationshipContext(req.user!.id, target.id);
+  const isAdmin = req.user!.role === "ADMIN";
+  ensureVisibleUserForViewer({ user: target, isSelf, isAdmin });
 
+  const relationship = isSelf ? emptyRelationship() : await getRelationshipContext(req.user!.id, target.id);
   const canView = !relationship.isBlocked && canViewProfile({
     privacy: target.privacy,
     isSelf,
     isFollowing: relationship.isFollowing,
-    isAdmin: req.user!.role === "ADMIN",
+    isAdmin,
   });
 
   if (!canView) {
@@ -222,12 +269,18 @@ router.get("/:username/connections", requireAuth, asyncHandler(async (req: Authe
   }
 
   const items = await prisma.friendship.findMany({
-    where: tab === "followers"
-      ? { receiverId: target.id, status: "ACCEPTED" }
-      : { senderId: target.id, status: "ACCEPTED" },
+    where: {
+      ...(tab === "followers" ? { receiverId: target.id } : { senderId: target.id }),
+      status: "ACCEPTED",
+      ...(isAdmin
+        ? {}
+        : tab === "followers"
+          ? { sender: { is: activeUserWhere(now) } }
+          : { receiver: { is: activeUserWhere(now) } }),
+    },
     include: {
-      sender: { select: { id: true, username: true, avatarUrl: true, bio: true, lastSeenAt: true } },
-      receiver: { select: { id: true, username: true, avatarUrl: true, bio: true, lastSeenAt: true } },
+      sender: { select: { id: true, username: true, avatarUrl: true, role: true, bio: true, lastSeenAt: true } },
+      receiver: { select: { id: true, username: true, avatarUrl: true, role: true, bio: true, lastSeenAt: true } },
     },
     orderBy: { updatedAt: "desc" },
   });
@@ -250,7 +303,7 @@ router.patch("/me/profile", requireAuth, asyncHandler(async (req: AuthedRequest,
   const user = await prisma.user.update({
     where: { id: req.user!.id },
     data: { avatarUrl: body.avatarUrl ?? undefined, bio: body.bio ?? undefined },
-    select: { id: true, username: true, avatarUrl: true, bio: true },
+    select: { id: true, username: true, avatarUrl: true, role: true, bio: true },
   });
   res.json({ user });
 }));
@@ -277,7 +330,7 @@ router.patch("/me/privacy", requireAuth, asyncHandler(async (req: AuthedRequest,
 router.get("/me/blacklist", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
   const list = await prisma.blacklist.findMany({
     where: { blockerId: req.user!.id },
-    include: { blocked: { select: { id: true, username: true, avatarUrl: true, bio: true, lastSeenAt: true } } },
+    include: { blocked: { select: { id: true, username: true, avatarUrl: true, role: true, bio: true, lastSeenAt: true } } },
     orderBy: { createdAt: "desc" },
   });
   res.json({ blacklist: list });
@@ -309,7 +362,7 @@ router.delete("/me/blacklist/:userId", requireAuth, asyncHandler(async (req: Aut
 
 router.get("/me/following", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
   const following = await prisma.friendship.findMany({
-    where: { senderId: req.user!.id, status: "ACCEPTED" },
+    where: { senderId: req.user!.id, status: "ACCEPTED", receiver: { is: activeUserWhere(new Date()) } },
     include: { receiver: { select: { id: true, username: true, avatarUrl: true, bio: true, lastSeenAt: true } } },
     orderBy: { updatedAt: "desc" },
   });
@@ -318,7 +371,7 @@ router.get("/me/following", requireAuth, asyncHandler(async (req: AuthedRequest,
 
 router.get("/me/followers", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
   const followers = await prisma.friendship.findMany({
-    where: { receiverId: req.user!.id, status: "ACCEPTED" },
+    where: { receiverId: req.user!.id, status: "ACCEPTED", sender: { is: activeUserWhere(new Date()) } },
     include: { sender: { select: { id: true, username: true, avatarUrl: true, bio: true, lastSeenAt: true } } },
     orderBy: { updatedAt: "desc" },
   });
@@ -326,13 +379,14 @@ router.get("/me/followers", requireAuth, asyncHandler(async (req: AuthedRequest,
 }));
 
 router.get("/me/follow-requests", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
+  const now = new Date();
   const incoming = await prisma.friendship.findMany({
-    where: { receiverId: req.user!.id, status: "PENDING" },
+    where: { receiverId: req.user!.id, status: "PENDING", sender: { is: activeUserWhere(now) } },
     include: { sender: { select: { id: true, username: true, avatarUrl: true, bio: true, lastSeenAt: true } } },
     orderBy: { createdAt: "desc" },
   });
   const outgoing = await prisma.friendship.findMany({
-    where: { senderId: req.user!.id, status: "PENDING" },
+    where: { senderId: req.user!.id, status: "PENDING", receiver: { is: activeUserWhere(now) } },
     include: { receiver: { select: { id: true, username: true, avatarUrl: true, bio: true, lastSeenAt: true } } },
     orderBy: { createdAt: "desc" },
   });
@@ -356,8 +410,11 @@ router.post("/me/follows", requireAuth, asyncHandler(async (req: AuthedRequest, 
   });
   if (blocked) throw new HttpError(403, "Blocked");
 
-  const target = await prisma.user.findUnique({ where: { id: body.userId }, select: { id: true, privacy: true } });
-  if (!target) throw new HttpError(404, "User not found");
+  const target = await prisma.user.findUnique({
+    where: { id: body.userId },
+    select: { id: true, privacy: true, suspendedAt: true, suspendedUntil: true, suspendedPermanent: true },
+  });
+  if (!target || (req.user!.role !== "ADMIN" && isUserSuspended(target))) throw new HttpError(404, "User not found");
   const status = target.privacy?.profileVisibility === "private" && req.user!.role !== "ADMIN" ? "PENDING" : "ACCEPTED";
 
   const follow = await prisma.friendship.upsert({
@@ -413,22 +470,26 @@ router.delete("/me/follows/:userId", requireAuth, asyncHandler(async (req: Authe
 // Backward-compatible aliases for older frontend modules.
 router.get("/me/friends", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
   const following = await prisma.friendship.findMany({
-    where: { senderId: req.user!.id, status: "ACCEPTED" },
-    include: { sender: { select: { id: true, username: true, avatarUrl: true, lastSeenAt: true } }, receiver: { select: { id: true, username: true, avatarUrl: true, lastSeenAt: true } } },
+    where: { senderId: req.user!.id, status: "ACCEPTED", receiver: { is: activeUserWhere(new Date()) } },
+    include: {
+      sender: { select: { id: true, username: true, avatarUrl: true, role: true, lastSeenAt: true } },
+      receiver: { select: { id: true, username: true, avatarUrl: true, role: true, lastSeenAt: true } },
+    },
     orderBy: { updatedAt: "desc" },
   });
   res.json({ friends: following });
 }));
 
 router.get("/me/friend-requests", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
+  const now = new Date();
   const incoming = await prisma.friendship.findMany({
-    where: { receiverId: req.user!.id, status: "PENDING" },
-    include: { sender: { select: { id: true, username: true, avatarUrl: true, lastSeenAt: true } } },
+    where: { receiverId: req.user!.id, status: "PENDING", sender: { is: activeUserWhere(now) } },
+    include: { sender: { select: { id: true, username: true, avatarUrl: true, role: true, lastSeenAt: true } } },
     orderBy: { createdAt: "desc" },
   });
   const outgoing = await prisma.friendship.findMany({
-    where: { senderId: req.user!.id, status: "PENDING" },
-    include: { receiver: { select: { id: true, username: true, avatarUrl: true, lastSeenAt: true } } },
+    where: { senderId: req.user!.id, status: "PENDING", receiver: { is: activeUserWhere(now) } },
+    include: { receiver: { select: { id: true, username: true, avatarUrl: true, role: true, lastSeenAt: true } } },
     orderBy: { createdAt: "desc" },
   });
   res.json({ incoming, outgoing });
@@ -436,8 +497,11 @@ router.get("/me/friend-requests", requireAuth, asyncHandler(async (req: AuthedRe
 
 router.post("/me/friends/request", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
   const body = FollowReqSchema.parse(req.body);
-  const target = await prisma.user.findUnique({ where: { id: body.userId }, select: { id: true, privacy: true } });
-  if (!target) throw new HttpError(404, "User not found");
+  const target = await prisma.user.findUnique({
+    where: { id: body.userId },
+    select: { id: true, privacy: true, suspendedAt: true, suspendedUntil: true, suspendedPermanent: true },
+  });
+  if (!target || (req.user!.role !== "ADMIN" && isUserSuspended(target))) throw new HttpError(404, "User not found");
   const status = target.privacy?.profileVisibility === "private" && req.user!.role !== "ADMIN" ? "PENDING" : "ACCEPTED";
   const friendship = await prisma.friendship.upsert({
     where: { senderId_receiverId: { senderId: req.user!.id, receiverId: body.userId } },

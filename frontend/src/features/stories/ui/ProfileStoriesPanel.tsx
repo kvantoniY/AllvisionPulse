@@ -5,6 +5,7 @@ import { Button } from '@/shared/ui/Button/Button';
 import { CardMuted } from '@/shared/ui/Card/Card';
 import { Modal } from '@/shared/ui/Modal/Modal';
 import { Icon } from '@/shared/ui/Icon/Icon';
+import { AdminBadge } from '@/shared/ui/AdminBadge/AdminBadge';
 import { StoryRingAvatar } from './StoryRingAvatar';
 import {
   useAddStoryToHighlightMutation,
@@ -264,7 +265,7 @@ export function ProfileStoriesPanel({ userId, isSelf }: { userId: string; isSelf
                       {(highlightViewersData?.items ?? []).map((item) => (
                         <div key={item.id} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                           <StoryRingAvatar userId={item.viewer.id} url={item.viewer.avatarUrl} name={item.viewer.username} size={38} disableStoryClick />
-                          <div style={{ minWidth: 0, flex: 1 }}><div style={{ fontWeight: 700 }}>{item.viewer.username}</div><div style={{ fontSize: 12, color: 'rgba(255,255,255,.58)' }}>{new Date(item.viewedAt).toLocaleString('ru-RU')}</div></div>
+                          <div style={{ minWidth: 0, flex: 1 }}><div style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6 }}>{item.viewer.username}<AdminBadge role={item.viewer.role} /></div><div style={{ fontSize: 12, color: 'rgba(255,255,255,.58)' }}>{new Date(item.viewedAt).toLocaleString('ru-RU')}</div></div>
                           {item.reaction ? <div style={{ fontSize: 22 }}>{item.reaction}</div> : null}
                         </div>
                       ))}

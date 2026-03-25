@@ -3,9 +3,10 @@ import { z } from 'zod';
 import { Prisma } from '@prisma/client';
 import { prisma } from '../db/prisma';
 import { asyncHandler, HttpError } from '../utils/http';
-import { AuthedRequest, requireAuth } from '../middleware/auth';
+import { AuthedRequest, requireAuth, requireActiveUser } from '../middleware/auth';
 
 const router = Router();
+router.use(requireAuth, requireActiveUser);
 
 const sessionActionTimers = new Map<string, NodeJS.Timeout>();
 const sessionShowdownTimers = new Map<string, NodeJS.Timeout>();
@@ -411,7 +412,7 @@ async function ensureChatAccess(chatId: string, userId: string) {
   if (!member || member.leftAt) throw new HttpError(404, 'Chat not found');
   const chat = await prisma.chat.findUnique({
     where: { id: chatId },
-    include: { members: { where: { leftAt: null }, include: { user: { select: { id: true, username: true, avatarUrl: true } } } } },
+    include: { members: { where: { leftAt: null }, include: { user: { select: { id: true, username: true, avatarUrl: true, role: true } } } } },
   });
   if (!chat) throw new HttpError(404, 'Chat not found');
   return { chat, meMember: member };

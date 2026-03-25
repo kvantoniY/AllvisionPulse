@@ -30,7 +30,8 @@ type RegisterFormValues = z.infer<typeof registerSchema>;
 
 function getErrorMessage(error: unknown, fallback: string) {
   if (error && typeof error === 'object' && 'data' in error) {
-    return (error.data as { message?: string } | undefined)?.message ?? fallback;
+    const data = error.data as { message?: string; error?: { message?: string } } | undefined;
+    return data?.message ?? data?.error?.message ?? fallback;
   }
 
   return fallback;

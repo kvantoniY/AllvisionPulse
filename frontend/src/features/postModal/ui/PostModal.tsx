@@ -12,6 +12,7 @@ import { formatRelative } from '@/shared/lib/time';
 import type { Comment } from '@/shared/types/social';
 import { Icon } from '@/shared/ui/Icon/Icon';
 import { Skeleton, SkeletonCard, SkeletonText } from '@/shared/ui/Skeleton/Skeleton';
+import { AdminBadge } from '@/shared/ui/AdminBadge/AdminBadge';
 
 const MAX_TEXT = 5000;
 
@@ -31,7 +32,7 @@ function CommentItem({ c, canDelete, onDelete, deleting }: { c: Comment; canDele
       <div className={styles.commentBody}>
         <div className={styles.commentTop}>
           <div style={{ minWidth: 0 }}>
-            <div style={{ fontWeight: 600 }}>{c.author.username}</div>
+            <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>{c.author.username}<AdminBadge role={c.author.role} /></div>
             <div className={styles.commentMeta}>{formatRelative(c.createdAt)}</div>
           </div>
           {canDelete ? (

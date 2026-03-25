@@ -3,6 +3,7 @@ import { AuthGate } from '@/widgets/appShell/ui/AuthGate';
 import { RealtimeProvider } from '@/app/providers/RealtimeProvider';
 import { CallProvider } from '@/app/providers/CallProvider';
 import { StoriesProvider } from '@/features/stories';
+import { AnalyticsTracker } from '@/app/providers/AnalyticsTracker';
 
 export default function ProtectedLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -10,6 +11,7 @@ export default function ProtectedLayout({ children }: { children: React.ReactNod
       <RealtimeProvider>
         <CallProvider>
           <StoriesProvider>
+            <AnalyticsTracker />
             <AppShell>{children}</AppShell>
           </StoriesProvider>
         </CallProvider>

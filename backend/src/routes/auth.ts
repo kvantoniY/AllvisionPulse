@@ -1,4 +1,3 @@
-
 import { Router } from "express";
 import { z } from "zod";
 import { prisma } from "../db/prisma";
@@ -35,7 +34,6 @@ router.post("/register", asyncHandler(async (req, res) => {
     select: { id: true, username: true, email: true, role: true, createdAt: true },
   });
 
-  // create session
   const sessionId = uuid();
   const refresh = signRefreshToken({ sub: user.id, sessionId });
   await prisma.session.create({
@@ -53,7 +51,7 @@ router.post("/register", asyncHandler(async (req, res) => {
 }));
 
 const LoginSchema = z.object({
-  login: z.string().min(3), // username or email
+  login: z.string().min(3),
   password: z.string().min(8).max(128),
 });
 
@@ -63,6 +61,7 @@ router.post("/login", asyncHandler(async (req, res) => {
     where: { OR: [{ username: body.login }, { email: body.login }] },
   });
   if (!user) throw new HttpError(401, "Invalid credentials");
+
   const ok = await verifyPassword(body.password, user.passwordHash);
   if (!ok) throw new HttpError(401, "Invalid credentials");
 
@@ -92,7 +91,6 @@ router.post("/refresh", asyncHandler(async (req, res) => {
     include: { user: true },
   });
   if (!session) throw new HttpError(401, "Invalid refresh token");
-
   await prisma.session.update({ where: { id: session.id }, data: { lastUsedAt: new Date() } });
 
   const access = signAccessToken({ sub: session.userId, role: session.user.role, sessionId: session.id });
@@ -103,7 +101,6 @@ router.post("/logout", requireAuth, asyncHandler(async (req: AuthedRequest, res)
   await prisma.session.update({ where: { id: req.user!.sessionId }, data: { revokedAt: new Date() } });
   res.json({ ok: true });
 }));
-
 
 const ChangePasswordSchema = z.object({
   currentPassword: z.string().min(8).max(128),
@@ -135,7 +132,6 @@ router.get("/sessions", requireAuth, asyncHandler(async (req: AuthedRequest, res
 
 router.delete("/sessions/:sessionId", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
   const sessionId = req.params.sessionId;
-  // user can revoke own sessions; admin can revoke any
   const session = await prisma.session.findUnique({ where: { id: sessionId } });
   if (!session) throw new HttpError(404, "Session not found");
   if (req.user!.role !== "ADMIN" && session.userId !== req.user!.id) throw new HttpError(403, "Forbidden");

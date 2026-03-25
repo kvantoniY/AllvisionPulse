@@ -4,11 +4,13 @@ import multer from 'multer';
 import { v4 as uuid } from 'uuid';
 import { z } from 'zod';
 import { prisma } from '../db/prisma';
-import { requireAuth, AuthedRequest } from '../middleware/auth';
+import { requireAuth, requireActiveUser, AuthedRequest } from '../middleware/auth';
 import { asyncHandler, HttpError } from '../utils/http';
 import { getEnv } from '../config/env';
+import { activeUserWhere, isUserSuspended } from '../utils/userStatus';
 
 const router = Router();
+router.use(requireAuth, requireActiveUser);
 const env = getEnv();
 
 const storyStorage = multer.diskStorage({
@@ -38,6 +40,17 @@ async function getFriendIds(userId: string) {
   const ids = new Set<string>([userId]);
   for (const relation of relations) ids.add(relation.senderId === userId ? relation.receiverId : relation.senderId);
   return Array.from(ids);
+}
+
+
+async function ensureAuthorVisibleForStories(authorId: string, viewerId: string, isAdmin = false) {
+  const author = await prisma.user.findUnique({
+    where: { id: authorId },
+    select: { id: true, suspendedAt: true, suspendedUntil: true, suspendedPermanent: true },
+  });
+  if (!author) throw new HttpError(404, 'User not found');
+  if (!isAdmin && viewerId !== authorId && isUserSuspended(author)) throw new HttpError(404, 'User not found');
+  return author;
 }
 
 async function ensureStoryAccess(viewerId: string, authorId: string, isAdmin = false) {
@@ -123,10 +136,11 @@ router.get('/rail', requireAuth, asyncHandler(async (req: AuthedRequest, res) =>
     where: {
       expiresAt: { gt: now },
       authorId: { in: visibleUserIds },
+      author: { is: activeUserWhere(now) },
     },
     orderBy: [{ createdAt: 'asc' }],
     include: {
-      author: { select: { id: true, username: true, avatarUrl: true } },
+      author: { select: { id: true, username: true, avatarUrl: true, role: true } },
       views: { where: { viewerId: meId }, select: { id: true, reaction: true } },
       _count: { select: { views: true } },
     },
@@ -165,15 +179,16 @@ router.get('/rail', requireAuth, asyncHandler(async (req: AuthedRequest, res) =>
 router.get('/user/:userId', requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
   const meId = req.user!.id;
   const userId = req.params.userId;
+  await ensureAuthorVisibleForStories(userId, meId, req.user!.role === 'ADMIN');
   const allowed = await ensureStoryAccess(meId, userId, req.user!.role === 'ADMIN');
   if (!allowed) throw new HttpError(403, 'Forbidden');
 
   const now = new Date();
   const stories = await prisma.story.findMany({
-    where: { authorId: userId, expiresAt: { gt: now } },
+    where: { authorId: userId, expiresAt: { gt: now }, ...(req.user!.role === 'ADMIN' ? {} : { author: { is: activeUserWhere(now) } }) },
     orderBy: [{ createdAt: 'asc' }],
     include: {
-      author: { select: { id: true, username: true, avatarUrl: true } },
+      author: { select: { id: true, username: true, avatarUrl: true, role: true } },
       views: { where: { viewerId: meId }, select: { id: true, reaction: true } },
       _count: { select: { views: true } },
       highlightEntries: { select: { highlightId: true } },
@@ -193,7 +208,7 @@ router.get('/archive', requireAuth, asyncHandler(async (req: AuthedRequest, res)
     where: { authorId: meId, expiresAt: { lte: now } },
     orderBy: [{ createdAt: 'desc' }],
     include: {
-      author: { select: { id: true, username: true, avatarUrl: true } },
+      author: { select: { id: true, username: true, avatarUrl: true, role: true } },
       views: { where: { viewerId: meId }, select: { id: true, reaction: true } },
       _count: { select: { views: true } },
       highlightEntries: { select: { highlightId: true } },
@@ -205,6 +220,7 @@ router.get('/archive', requireAuth, asyncHandler(async (req: AuthedRequest, res)
 router.get('/highlights/user/:userId', requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
   const meId = req.user!.id;
   const userId = req.params.userId;
+  await ensureAuthorVisibleForStories(userId, meId, req.user!.role === 'ADMIN');
   const allowed = await ensureStoryAccess(meId, userId, req.user!.role === 'ADMIN');
   if (!allowed) throw new HttpError(403, 'Forbidden');
 
@@ -213,11 +229,12 @@ router.get('/highlights/user/:userId', requireAuth, asyncHandler(async (req: Aut
     orderBy: [{ updatedAt: 'desc' }],
     include: {
       entries: {
+        ...(req.user!.role === 'ADMIN' ? {} : { where: { story: { author: { is: activeUserWhere(new Date()) } } } }),
         orderBy: [{ order: 'asc' }, { createdAt: 'asc' }],
         include: {
           story: {
             include: {
-              author: { select: { id: true, username: true, avatarUrl: true } },
+              author: { select: { id: true, username: true, avatarUrl: true, role: true } },
               views: { where: { viewerId: meId }, select: { id: true, reaction: true } },
               _count: { select: { views: true } },
               highlightEntries: { select: { highlightId: true } },
@@ -373,7 +390,7 @@ router.post('/', requireAuth, storyUpload.array('files', 20), asyncHandler(async
           expiresAt,
         },
         include: {
-          author: { select: { id: true, username: true, avatarUrl: true } },
+          author: { select: { id: true, username: true, avatarUrl: true, role: true } },
           _count: { select: { views: true } },
           highlightEntries: { select: { highlightId: true } },
         },
@@ -440,7 +457,7 @@ router.get('/:storyId/viewers', requireAuth, asyncHandler(async (req: AuthedRequ
     where: { storyId },
     orderBy: { viewedAt: 'desc' },
     include: {
-      viewer: { select: { id: true, username: true, avatarUrl: true } },
+      viewer: { select: { id: true, username: true, avatarUrl: true, role: true } },
     },
   });
 

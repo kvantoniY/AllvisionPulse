@@ -4,10 +4,11 @@ import { z } from "zod";
 import path from "path";
 import { prisma } from "../db/prisma";
 import { asyncHandler, HttpError } from "../utils/http";
-import { requireAuth, AuthedRequest } from "../middleware/auth";
+import { requireAuth, requireActiveUser, AuthedRequest } from "../middleware/auth";
 import { upload } from "../middleware/upload";
 
 const router = Router();
+router.use(requireAuth, requireActiveUser);
 
 function fileUrl(req: any, filename: string) {
   const base = `${req.protocol}://${req.get("host")}`;
@@ -21,7 +22,7 @@ router.get("/", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
     include: {
       chat: {
         include: {
-          members: { include: { user: { select: { id: true, username: true, avatarUrl: true, lastSeenAt: true, privacy: true } } } },
+          members: { include: { user: { select: { id: true, username: true, avatarUrl: true, role: true, lastSeenAt: true, privacy: true } } } },
           pinnedMessage: true,
         },
       },
@@ -99,7 +100,7 @@ router.post("/group", requireAuth, asyncHandler(async (req: AuthedRequest, res) 
         create: uniqueIds.map(uid => ({ userId: uid, role: uid === req.user!.id ? "CREATOR" : "MEMBER" })),
       },
     },
-    include: { members: { include: { user: { select: { id: true, username: true, avatarUrl: true } } } } },
+    include: { members: { include: { user: { select: { id: true, username: true, avatarUrl: true, role: true } } } } },
   });
   res.json({ chat });
 }));
@@ -157,12 +158,12 @@ router.get("/:chatId/messages", requireAuth, asyncHandler(async (req: AuthedRequ
     take: take + 1,
     ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
     include: {
-      sender: { select: { id: true, username: true, avatarUrl: true } },
+      sender: { select: { id: true, username: true, avatarUrl: true, role: true } },
       attachments: true,
       reactions: true,
       reads: { select: { userId: true, readAt: true } },
       replyTo: { include: { sender: { select: { id: true, username: true } } } },
-      forwardOf: { include: { sender: { select: { id: true, username: true, avatarUrl: true } }, attachments: true } },
+      forwardOf: { include: { sender: { select: { id: true, username: true, avatarUrl: true, role: true } }, attachments: true } },
     },
   });
 
@@ -271,12 +272,12 @@ router.post("/:chatId/messages", requireAuth, upload.array("files", 10), asyncHa
       },
     },
     include: {
-      sender: { select: { id: true, username: true, avatarUrl: true } },
+      sender: { select: { id: true, username: true, avatarUrl: true, role: true } },
       attachments: true,
       reactions: true,
       reads: true,
       replyTo: { include: { sender: { select: { id: true, username: true } } } },
-      forwardOf: { include: { sender: { select: { id: true, username: true, avatarUrl: true } }, attachments: true } },
+      forwardOf: { include: { sender: { select: { id: true, username: true, avatarUrl: true, role: true } }, attachments: true } },
     },
   });
 
@@ -319,11 +320,11 @@ router.get("/:chatId/messages/search", requireAuth, asyncHandler(async (req: Aut
     orderBy: { createdAt: "desc" },
     take: body.take,
     include: {
-      sender: { select: { id: true, username: true, avatarUrl: true } },
+      sender: { select: { id: true, username: true, avatarUrl: true, role: true } },
       attachments: true,
       reads: { select: { userId: true, readAt: true } },
       replyTo: { include: { sender: { select: { id: true, username: true } } } },
-      forwardOf: { include: { sender: { select: { id: true, username: true, avatarUrl: true } }, attachments: true } },
+      forwardOf: { include: { sender: { select: { id: true, username: true, avatarUrl: true, role: true } }, attachments: true } },
     },
   });
 
@@ -351,12 +352,12 @@ router.patch("/:chatId/messages/:messageId", requireAuth, asyncHandler(async (re
     where: { id: messageId },
     data: { text: body.text },
     include: {
-      sender: { select: { id: true, username: true, avatarUrl: true } },
+      sender: { select: { id: true, username: true, avatarUrl: true, role: true } },
       attachments: true,
       reactions: true,
       reads: true,
       replyTo: { include: { sender: { select: { id: true, username: true } } } },
-      forwardOf: { include: { sender: { select: { id: true, username: true, avatarUrl: true } }, attachments: true } },
+      forwardOf: { include: { sender: { select: { id: true, username: true, avatarUrl: true, role: true } }, attachments: true } },
     },
   });
 

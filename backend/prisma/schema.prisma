@@ -58,17 +58,47 @@ enum FinanceEntryType {
   INCOME
 }
 
+enum SupportTicketKind {
+  PROBLEM
+  IDEA
+}
+
+enum SupportTicketStatus {
+  OPEN
+  IN_REVIEW
+  CLOSED
+}
+
+enum SupportQuestionStatus {
+  OPEN
+  ANSWERED
+  CLOSED
+  ARCHIVED
+}
+
+enum AnalyticsEventType {
+  PAGE_VIEW
+  PAGE_LEAVE
+  HEARTBEAT
+  ACTION
+}
+
+
 model User {
   id           String   @id @default(uuid())
   email        String?  @unique
   username     String   @unique
   passwordHash String
   role         UserRole @default(USER)
-  avatarUrl    String?
-  bio          String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  lastSeenAt   DateTime @default(now())
+  avatarUrl          String?
+  bio                String?
+  suspendedAt        DateTime?
+  suspendedUntil     DateTime?
+  suspendedPermanent Boolean  @default(false)
+  suspensionReason   String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  lastSeenAt         DateTime @default(now())
 
   settings UserSettings?
   privacy  UserPrivacy?
@@ -91,6 +121,14 @@ model User {
   messageReactions MessageReaction[]
 
   notifications Notification[]
+
+  supportTickets         SupportTicket[]
+  supportTicketReplies   SupportTicketReply[]
+  supportQuestions       SupportQuestion[]     @relation("SupportQuestionAuthor")
+  supportQuestionAnswers SupportQuestion[]     @relation("SupportQuestionAnswerAuthor")
+  supportQuestionLikes   SupportQuestionLike[]
+  analyticsSessions      AnalyticsSession[]
+  analyticsEvents        AnalyticsEvent[]
 
   healthDays HealthDay[]
   tasks      Task[]
@@ -756,4 +794,123 @@ model GameRoom {
   currentGameKey String?
   createdAt      DateTime @default(now())
   meta           Json?
+}
+
+
+model SupportTicket {
+  id          String              @id @default(uuid())
+  authorId    String
+  kind        SupportTicketKind   @default(PROBLEM)
+  subject     String
+  description String
+  category    String?
+  status      SupportTicketStatus @default(OPEN)
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  closedAt    DateTime?
+  lastReplyAt DateTime?
+
+  author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  replies SupportTicketReply[]
+
+  @@index([authorId, status])
+  @@index([status, updatedAt])
+}
+
+model SupportTicketReply {
+  id        String   @id @default(uuid())
+  ticketId  String
+  authorId  String
+  text      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  ticket SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  author User          @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([ticketId, createdAt])
+  @@index([authorId, createdAt])
+}
+
+model SupportQuestion {
+  id             String                @id @default(uuid())
+  authorId       String
+  title          String
+  body           String?
+  status         SupportQuestionStatus @default(OPEN)
+  answerText     String?
+  answerAuthorId String?
+  answeredAt     DateTime?
+  closedAt       DateTime?
+  archivedAt     DateTime?
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+
+  author       User                  @relation("SupportQuestionAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  answerAuthor User?                 @relation("SupportQuestionAnswerAuthor", fields: [answerAuthorId], references: [id], onDelete: SetNull)
+  likes        SupportQuestionLike[]
+
+  @@index([status, createdAt])
+  @@index([archivedAt])
+  @@index([authorId, createdAt])
+}
+
+model SupportQuestionLike {
+  id         String   @id @default(uuid())
+  questionId String
+  userId     String
+  createdAt  DateTime @default(now())
+
+  question SupportQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  user     User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([questionId, userId])
+  @@index([userId, createdAt])
+}
+
+
+model AnalyticsSession {
+  id               String   @id @default(uuid())
+  userId           String
+  sessionKey       String
+  landingPath      String?
+  exitPath         String?
+  pageViews        Int      @default(0)
+  totalDurationSec Int      @default(0)
+  startedAt        DateTime @default(now())
+  lastSeenAt       DateTime @default(now())
+  endedAt          DateTime?
+  isActive         Boolean  @default(true)
+
+  user   User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  events AnalyticsEvent[]
+
+  @@unique([userId, sessionKey])
+  @@index([lastSeenAt])
+  @@index([startedAt])
+  @@index([userId, startedAt])
+}
+
+model AnalyticsEvent {
+  id           String             @id @default(uuid())
+  userId       String
+  sessionId    String?
+  sessionKey   String
+  type         AnalyticsEventType
+  path         String
+  pageLabel    String?
+  referrerPath String?
+  actionKey    String?
+  durationSec  Int?
+  metadata     Json?
+  createdAt    DateTime           @default(now())
+
+  user    User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  session AnalyticsSession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+
+  @@index([type, createdAt])
+  @@index([path, createdAt])
+  @@index([userId, createdAt])
+  @@index([sessionKey, createdAt])
 }

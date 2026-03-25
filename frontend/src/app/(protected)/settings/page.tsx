@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import styles from './Settings.module.css';
 import { Card, CardHeader, CardMuted } from '@/shared/ui/Card/Card';
 import { Button } from '@/shared/ui/Button/Button';
+import { AdminBadge } from '@/shared/ui/AdminBadge/AdminBadge';
 import { Switch } from '@/shared/ui/Switch/Switch';
 import { useLogoutMutation, useChangePasswordMutation } from '@/shared/api/authApi';
 import { ROUTES } from '@/shared/config/app';
@@ -238,7 +239,7 @@ export default function SettingsPage() {
             <CardHeader title="Аккаунт" />
             <div className={styles.accountBox}>
               <div className={styles.accountMeta}>
-                <div className={styles.accountName}>@{me?.username}</div>
+                <div className={styles.accountName} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>@{me?.username}<AdminBadge role={me?.role} /></div>
                 <div className={styles.accountHint}>{me?.followersCount ?? 0} подписчиков • {me?.followingCount ?? 0} подписок</div>
               </div>
               <Button onClick={onLogout} loading={loggingOut}>Выйти из аккаунта</Button>
@@ -260,7 +261,7 @@ export default function SettingsPage() {
                   <div className={styles.userBox}>
                     <div className={styles.avatar}>{user.username?.slice(0, 1)?.toUpperCase()}</div>
                     <div className={styles.userInfo}>
-                      <div className={styles.userName}>{user.username}</div>
+                      <div className={styles.userName} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>{user.username}<AdminBadge role={user.role} /></div>
                       <div className={styles.userHint}>{user.bio || 'Пользователь скрыт из общения и рекомендаций.'}</div>
                     </div>
                   </div>

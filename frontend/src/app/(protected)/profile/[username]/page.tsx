@@ -27,6 +27,8 @@ import { formatLastSeen } from '@/shared/lib/formatLastSeen';
 import { Icon } from '@/shared/ui/Icon/Icon';
 import { Skeleton, SkeletonText } from '@/shared/ui/Skeleton/Skeleton';
 import { Modal } from '@/shared/ui/Modal/Modal';
+import { AdminBadge } from '@/shared/ui/AdminBadge/AdminBadge';
+import { useDeleteUserAsAdminMutation, useSuspendUserMutation, useUnsuspendUserMutation } from '@/shared/api/adminApi';
 
 function ConnectionList({
   tab,
@@ -58,7 +60,7 @@ function ConnectionList({
             <div className={styles.connectionUser}>
               <StoryRingAvatar userId={user.id} url={user.avatarUrl} name={user.username} size={42} />
               <div className={styles.connectionMeta}>
-                <div className={styles.connectionName}>{user.username}</div>
+                <div className={styles.connectionName} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>{user.username}<AdminBadge role={user.role} /></div>
                 <div className={styles.connectionHandle}>@{user.username}</div>
               </div>
             </div>
@@ -74,7 +76,7 @@ export default function ProfilePage() {
   const router = useRouter();
   const { data: meData } = useGetMeQuery();
   const me = meData?.user;
-  const { data, isLoading, refetch: refetchUser } = useGetUserByUsernameQuery(username);
+  const { data, isLoading, isError, refetch: refetchUser } = useGetUserByUsernameQuery(username);
   const user = data?.user;
   const relationship = data?.relationship;
   const isSelf = Boolean(me && user && me.id === user.id);
@@ -83,6 +85,9 @@ export default function ProfilePage() {
   const canViewProfile = Boolean(isSelf || relationship?.canViewProfile);
   const canMessage = Boolean(isSelf || relationship?.canMessage);
   const isBlocked = Boolean(relationship?.isBlocked);
+  const isAdmin = me?.role === 'ADMIN';
+  const canModerateUser = Boolean(isAdmin && user && me && user.id !== me.id);
+  const isUserSuspended = Boolean(user?.suspendedPermanent || (user?.suspendedUntil && new Date(user.suspendedUntil).getTime() > Date.now()));
 
   const { data: feedData, isFetching: feedFetching } = useGetFeedQuery(undefined);
   const [fetchFeedPage] = useLazyGetFeedQuery();
@@ -104,6 +109,10 @@ export default function ProfilePage() {
   const [openPostId, setOpenPostId] = useState<string | null>(null);
   const [connectionsOpen, setConnectionsOpen] = useState<'followers' | 'following' | null>(null);
   const [actionsOpen, setActionsOpen] = useState(false);
+  const [adminReason, setAdminReason] = useState('');
+  const [suspendUser, { isLoading: suspendingUser }] = useSuspendUserMutation();
+  const [unsuspendUser, { isLoading: unsuspendingUser }] = useUnsuspendUserMutation();
+  const [deleteUserAsAdmin, { isLoading: deletingUserAsAdmin }] = useDeleteUserAsAdminMutation();
 
   const sentinelRef = useRef<HTMLDivElement | null>(null);
   const inView = useIntersection(sentinelRef, { rootMargin: '220px 0px' });
@@ -166,18 +175,43 @@ export default function ProfilePage() {
     return { label: relationship?.followsYou ? 'Подписаться в ответ' : 'Подписаться', tone: 'primary' as const, loading: sendingFollow, disabled: false };
   }, [accepting, isSelf, relationship, removing, sendingFollow]);
 
+  const handleAdminSuspend = async (payload: { durationDays?: number | null; permanent?: boolean }) => {
+    if (!user?.id || !canModerateUser) return;
+    await suspendUser({ userId: user.id, reason: adminReason.trim() || null, ...payload }).unwrap().catch(() => null);
+    await refetchUser();
+  };
+
+  const handleAdminDelete = async () => {
+    if (!user?.id || !canModerateUser) return;
+    const ok = window.confirm(`Удалить аккаунт @${user.username} без возможности восстановления?`);
+    if (!ok) return;
+    await deleteUserAsAdmin({ userId: user.id }).unwrap().catch(() => null);
+    router.replace('/feed');
+  };
+
   const restrictionMessage = relationship?.blockedMe
     ? 'Пользователь добавил вас в чёрный список. Публикации, подписки и общение скрыты.'
     : relationship?.blockedByMe
       ? 'Вы добавили пользователя в чёрный список. Публикации и общение скрыты, пока пользователь находится в ЧС.'
       : 'Профиль скрыт настройками приватности. Чтобы увидеть подробности, нужно быть подтверждённым подписчиком.';
 
-  if (isLoading || !user) {
+  if (isLoading) {
     return (
       <div className="container">
         <Card>
           <CardHeader title="Профиль" />
           <div style={{ display: 'grid', gap: 16 }}><div style={{ display: 'flex', gap: 14, alignItems: 'center' }}><Skeleton circle style={{ width: 74, height: 74 }} /><div style={{ flex: 1 }}><SkeletonText lines={3} /></div></div><SkeletonText lines={3} /></div>
+        </Card>
+      </div>
+    );
+  }
+
+  if (isError || !user) {
+    return (
+      <div className="container">
+        <Card>
+          <CardHeader title="Профиль недоступен" />
+          <CardMuted>Пользователь скрыт, заблокирован администрацией или не существует.</CardMuted>
         </Card>
       </div>
     );
@@ -194,6 +228,27 @@ export default function ProfilePage() {
           ) : (
             <Button onClick={() => blockUser({ userId: user.id }).unwrap().then(refetchUser).finally(() => setActionsOpen(false)).catch(() => null)} loading={blocking}>Добавить в чёрный список</Button>
           )}
+          {canModerateUser ? (
+            <div className={styles.adminPanel}>
+              <div className={styles.adminPanelTitle}>Админ-действия</div>
+              <div className={styles.adminPanelHint}>Эти действия работают через серверные проверки роли из БД. Старые токены не дадут обхода доступа.</div>
+              <textarea
+                className={styles.textarea}
+                value={adminReason}
+                onChange={(event) => setAdminReason(event.target.value.slice(0, 500))}
+                rows={3}
+                placeholder="Причина блокировки (необязательно)"
+              />
+              <div className={styles.adminActionGrid}>
+                <Button onClick={() => handleAdminSuspend({ durationDays: 1 })} loading={suspendingUser}>Заблокировать на 1 день</Button>
+                <Button onClick={() => handleAdminSuspend({ durationDays: 7 })} loading={suspendingUser}>На 7 дней</Button>
+                <Button onClick={() => handleAdminSuspend({ durationDays: 30 })} loading={suspendingUser}>На 30 дней</Button>
+                <Button variant="primary" onClick={() => handleAdminSuspend({ permanent: true })} loading={suspendingUser}>Бессрочно</Button>
+                <Button onClick={() => user?.id && unsuspendUser({ userId: user.id }).unwrap().then(refetchUser).catch(() => null)} loading={unsuspendingUser} disabled={!isUserSuspended}>Снять блокировку</Button>
+                <Button onClick={handleAdminDelete} loading={deletingUserAsAdmin}>Удалить аккаунт</Button>
+              </div>
+            </div>
+          ) : null}
           {relationship?.incomingRequest && relationship.userToViewer?.id ? (
             <Button onClick={() => declineFollow({ friendshipId: relationship.userToViewer!.id }).unwrap().then(refetchUser).finally(() => setActionsOpen(false)).catch(() => null)} loading={declining}>Отклонить запрос</Button>
           ) : null}
@@ -207,7 +262,7 @@ export default function ProfilePage() {
         <div className={styles.user}>
           <StoryRingAvatar userId={user.id} url={user.avatarUrl} name={user.username} size={74} />
           <div className={styles.identity}>
-            <div className={styles.name}>{user.username}</div>
+            <div className={styles.name} style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>{user.username}<AdminBadge role={user.role} />{isUserSuspended ? <span className={styles.suspendedChip}>{user.suspendedPermanent ? 'Заблокирован бессрочно' : `Заблокирован до ${new Date(user.suspendedUntil as string).toLocaleDateString('ru-RU')}`}</span> : null}</div>
             <div className={styles.handle}>@{user.username}</div>
             <div className={styles.statusRow}>
               <span className={[styles.dot, p?.isOnline ? styles.dotOnline : styles.dotOffline].join(' ')} />

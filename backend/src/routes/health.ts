@@ -3,9 +3,10 @@ import { z } from "zod";
 import dayjs from "dayjs";
 import { prisma } from "../db/prisma";
 import { asyncHandler, HttpError } from "../utils/http";
-import { requireAuth, AuthedRequest } from "../middleware/auth";
+import { requireAuth, requireActiveUser, AuthedRequest } from "../middleware/auth";
 
 const router = Router();
+router.use(requireAuth, requireActiveUser);
 
 const DEFAULT_FOODS = [
   { key: "fried_chicken", name: "Курица жаренная", isDish: false, defaultGrams: 150, calories: 360, protein: 32, fat: 22, carbs: 6, isHealthy: false },

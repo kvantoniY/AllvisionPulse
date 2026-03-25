@@ -10,6 +10,7 @@ import { useGetFriendsQuery } from '@/shared/api/friendsApi';
 import { useAppSelector } from '@/shared/lib/storeHooks';
 import styles from './ChatSidebar.module.css';
 import { Icon } from '@/shared/ui/Icon/Icon';
+import { AdminBadge } from '@/shared/ui/AdminBadge/AdminBadge';
 import { Skeleton, SkeletonText } from '@/shared/ui/Skeleton/Skeleton';
 
 function getChatTitle(chat: any, meId: string | undefined) {
@@ -155,7 +156,7 @@ export function ChatSidebar({ activeChatId }: { activeChatId?: string | null }) 
                   <label key={u.id} className={styles.friendRow}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                       <StoryRingAvatar userId={u.id} url={u.avatarUrl} name={u.username} size={30} />
-                      <div>{u.username}</div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>{u.username}<AdminBadge role={u.role} /></div>
                     </div>
                     <input type="checkbox" checked={checked} onChange={(e) => setSelected((p) => ({ ...p, [u.id]: e.target.checked }))} />
                   </label>

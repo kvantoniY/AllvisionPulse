@@ -186,3 +186,47 @@ button.countItem:disabled {
     grid-template-columns: 1fr;
   }
 }
+
+
+.adminPanel {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 92, 92, 0.14);
+  background: rgba(255, 92, 92, 0.06);
+}
+
+.adminPanelTitle {
+  font-weight: 800;
+}
+
+.adminPanelHint {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.adminActionGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.suspendedChip {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(255, 92, 92, 0.12);
+  border: 1px solid rgba(255, 92, 92, 0.24);
+  color: #ff8080;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+@media (max-width: 640px) {
+  .adminActionGrid {
+    grid-template-columns: 1fr;
+  }
+}

@@ -38,6 +38,7 @@ import { EmojiInputHandler } from '@/shared/lib/emojiInputHandler';
 import { Modal } from '@/shared/ui/Modal/Modal';
 import { Button } from '@/shared/ui/Button/Button';
 import { Icon } from '@/shared/ui/Icon/Icon';
+import { AdminBadge } from '@/shared/ui/AdminBadge/AdminBadge';
 import { SkeletonText } from '@/shared/ui/Skeleton/Skeleton';
 import { GameSessionPanel } from '@/features/games';
 import { parseGameSystemMessage, gameLabel, gameStatusLabel } from '@/shared/lib/gameMessages';
@@ -963,12 +964,12 @@ export default function ChatPage() {
 
                         <div className={[styles.bubble, imageAttachments.length ? styles.bubbleMedia : '', messageType === 'AUDIO' ? styles.bubbleAudio : '', messageType === 'VIDEO_NOTE' ? styles.bubbleVideo : '', mine ? styles.bubbleMine : styles.bubbleTheirs].filter(Boolean).join(' ')} onClick={() => { if (selectionMode) { setSelectedIds((prev) => prev.includes(message.id) ? prev.filter((id) => id !== message.id) : [...prev, message.id]); } }}>
                           {selectionMode ? <div className={[styles.selectMarker, isSelected ? styles.selectMarkerActive : ''].filter(Boolean).join(' ')}>{isSelected ? <Icon name="check" size={12} /> : null}</div> : null}
-                          {!mine ? <div className={styles.sender}>{message.sender?.username}</div> : null}
+                          {!mine ? <div className={styles.sender} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>{message.sender?.username}<AdminBadge role={message.sender?.role} /></div> : null}
 
                           {forwardPreview ? (
                             <div className={styles.forwardedBlock}>
                               <Icon name="forward" size={12} />
-                              <span>Переслано от {forwardPreview.sender?.username ?? message.sender?.username}</span>
+                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>Переслано от {forwardPreview.sender?.username ?? message.sender?.username}<AdminBadge role={forwardPreview.sender?.role ?? message.sender?.role} /></span>
                             </div>
                           ) : null}
 
@@ -994,7 +995,7 @@ export default function ChatPage() {
 
                           {replyPreview ? (
                             <button type="button" className={styles.replyBlock} onClick={() => void scrollToMessage(replyPreview.id)}>
-                              <span className={styles.replyAuthor}>{replyPreview.sender?.username ?? 'Сообщение'}</span>
+                              <span className={styles.replyAuthor} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>{replyPreview.sender?.username ?? 'Сообщение'}<AdminBadge role={replyPreview.sender?.role} /></span>
                               <span className={styles.replyText}>{formatPreviewText(replyPreview)}</span>
                             </button>
                           ) : null}
@@ -1195,7 +1196,7 @@ export default function ChatPage() {
                   <div className={styles.forwardUserInfo}>
                     <StoryRingAvatar userId={user.id} url={user.avatarUrl} name={user.username} size={36} />
                     <div>
-                      <div className={styles.forwardName}>{user.username}</div>
+                      <div className={styles.forwardName} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>{user.username}<AdminBadge role={user.role} /></div>
                       <div className={styles.forwardSub}>Личный чат</div>
                     </div>
                   </div>

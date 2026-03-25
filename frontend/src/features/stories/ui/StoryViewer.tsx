@@ -17,6 +17,7 @@ import { useCreateDirectChatMutation, useSendMessageMutation } from '@/shared/ap
 import { useGetMeQuery } from '@/shared/api/usersApi';
 import { Button } from '@/shared/ui/Button/Button';
 import { Icon } from '@/shared/ui/Icon/Icon';
+import { AdminBadge } from '@/shared/ui/AdminBadge/AdminBadge';
 import { StoryEditorItem, StoryItem } from '@/shared/types/story';
 import { StoryRingAvatar } from './StoryRingAvatar';
 import styles from './Stories.module.css';
@@ -424,7 +425,7 @@ export function StoryViewer({
             <div className={styles.viewerMeta}>
               <StoryRingAvatar userId={current.author.id} url={current.author.avatarUrl} name={current.author.username} size={38} disableStoryClick />
               <div className={styles.viewerMetaText}>
-                <div className={styles.viewerName}>{current.author.username}</div>
+                <div className={styles.viewerName} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>{current.author.username}<AdminBadge role={current.author.role} /></div>
                 <div className={styles.viewerTime}>{formatStoryTime(current.createdAt)}</div>
               </div>
               {isOwn ? (

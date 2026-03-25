@@ -4,9 +4,10 @@ import { z } from "zod";
 import dayjs from "dayjs";
 import { prisma } from "../db/prisma";
 import { asyncHandler, HttpError } from "../utils/http";
-import { requireAuth, AuthedRequest } from "../middleware/auth";
+import { requireAuth, requireActiveUser, AuthedRequest } from "../middleware/auth";
 
 const router = Router();
+router.use(requireAuth, requireActiveUser);
 
 const TaskSchema = z.object({
   title: z.string().min(1).max(200),

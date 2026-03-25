@@ -11,6 +11,7 @@ import { EmojiInputHandler } from '@/shared/lib/emojiInputHandler';
 import { Icon } from '@/shared/ui/Icon/Icon';
 import { Spinner } from '@/shared/ui/Spinner/Spinner';
 import { SkeletonText } from '@/shared/ui/Skeleton/Skeleton';
+import { AdminBadge } from '@/shared/ui/AdminBadge/AdminBadge';
 
 export function CallChatPanel({ chatId }: { chatId: string }) {
   const { data: meRes } = useGetMeQuery();
@@ -101,7 +102,7 @@ export function CallChatPanel({ chatId }: { chatId: string }) {
           const messageType = message.type ?? 'TEXT';
           return (
             <div key={message.id} className={[styles.callChatMsg, mine ? styles.callChatMine : styles.callChatTheir].join(' ')}>
-              <div className={styles.callChatName}>{mine ? 'Вы' : message.sender?.username ?? 'Участник'}</div>
+              <div className={styles.callChatName} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>{mine ? 'Вы' : message.sender?.username ?? 'Участник'}{!mine ? <AdminBadge role={message.sender?.role} /> : null}</div>
               {messageType === 'AUDIO' ? (
                 <AudioMessage url={message.attachments?.[0]?.url || ''} duration={Number(message.attachments?.[0]?.durationSec ?? 0) || undefined} title="Голосовое сообщение" />
               ) : (

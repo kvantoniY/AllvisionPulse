@@ -11,6 +11,7 @@ import { useGetMeQuery } from '@/shared/api/usersApi';
 import { useDeletePostMutation, useGetLastCommentQuery, useLikePostMutation, useUnlikePostMutation } from '@/shared/api/postsApi';
 import { ImageGallery } from '@/shared/ui/ImageGallery/ImageGallery';
 import { Icon } from '@/shared/ui/Icon/Icon';
+import { AdminBadge } from '@/shared/ui/AdminBadge/AdminBadge';
 
 export function PostCard({ post, onOpen, compact = false }: { post: Post; onOpen?: () => void; compact?: boolean }) {
   const { data } = useGetMeQuery();
@@ -20,7 +21,7 @@ export function PostCard({ post, onOpen, compact = false }: { post: Post; onOpen
   const [unlike, { isLoading: unliking }] = useUnlikePostMutation();
   const [del, { isLoading: deleting }] = useDeletePostMutation();
 
-  const isMine = !!me && post.authorId === me.id;
+  const canDeletePost = !!me && (post.authorId === me.id || me.role === 'ADMIN');
   const showPreview = (post._count?.comments ?? 0) > 0;
   const { data: lastCommentData } = useGetLastCommentQuery({ postId: post.id }, { skip: !showPreview });
   const last = lastCommentData?.items?.[0];
@@ -44,13 +45,13 @@ export function PostCard({ post, onOpen, compact = false }: { post: Post; onOpen
         <div className={styles.author}>
           <StoryRingAvatar userId={post.author.id} url={post.author.avatarUrl} name={post.author.username} size={42} />
           <Link href={ROUTES.app.profile(post.author.username)} style={{ minWidth: 0 }}>
-            <div className={styles.name}>{post.author.username}</div>
+            <div className={styles.name} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>{post.author.username}<AdminBadge role={post.author.role} /></div>
             <div className={styles.handle}>@{post.author.username}</div>
           </Link>
         </div>
         <div className={styles.right}>
           <div className={styles.time}>{formatRelative(post.createdAt)}</div>
-          {isMine ? (
+          {canDeletePost ? (
             <button className={styles.menuBtn} type="button" onClick={onDelete} disabled={deleting} aria-label="Удалить публикацию">
               {deleting ? '…' : 'Удалить'}
             </button>
@@ -83,7 +84,7 @@ export function PostCard({ post, onOpen, compact = false }: { post: Post; onOpen
 
       {!compact && last ? (
         <div className={styles.commentPreview} onClick={onOpen} style={{ cursor: onOpen ? 'pointer' : 'default' }}>
-          <div className={styles.commentPreviewMeta}>Последний комментарий · {last.author.username}</div>
+          <div className={styles.commentPreviewMeta} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>Последний комментарий · {last.author.username}<AdminBadge role={last.author.role} /></div>
           <div>{last.text ?? ''}</div>
         </div>
       ) : null}

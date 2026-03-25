@@ -15,6 +15,7 @@ import { Avatar } from '@/shared/ui/Avatar/Avatar';
 import { useGetMeQuery } from '@/shared/api/usersApi';
 import { CallChatPanel } from './CallChatPanel';
 import { GameSessionPanel } from '@/features/games';
+import { AdminBadge } from '@/shared/ui/AdminBadge/AdminBadge';
 
 type Props = {
   open: boolean;
@@ -822,7 +823,7 @@ export function CallScreen({ open, stage, chat, callId, initiator, onConnected, 
                       {!camOn || !localStream ? (
                         <div className={styles.pipPlaceholder}>
                           <Avatar url={me?.avatarUrl ?? undefined} name={me?.username ?? 'Вы'} size={40} />
-                          <div className={styles.pipName}>{me?.username ?? 'Вы'}</div>
+                          <div className={styles.pipName} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>{me?.username ?? 'Вы'}<AdminBadge role={me?.role} /></div>
                         </div>
                       ) : null}
                     </div>

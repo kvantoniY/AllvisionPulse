@@ -3,9 +3,10 @@ import { Router } from "express";
 import { z } from "zod";
 import { prisma } from "../db/prisma";
 import { asyncHandler } from "../utils/http";
-import { requireAuth, AuthedRequest } from "../middleware/auth";
+import { requireAuth, requireActiveUser, AuthedRequest } from "../middleware/auth";
 
 const router = Router();
+router.use(requireAuth, requireActiveUser);
 
 router.get("/", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
   const cursor = req.query.cursor?.toString();

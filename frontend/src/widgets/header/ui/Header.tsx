@@ -8,6 +8,7 @@ import { useGetMeQuery } from '@/shared/api/usersApi';
 import { UserSearch } from '@/features/userSearch/ui/UserSearch';
 import { NotificationsBell } from '@/widgets/notificationsBell/ui/NotificationsBell';
 import { Icon } from '@/shared/ui/Icon/Icon';
+import { AdminBadge } from '@/shared/ui/AdminBadge/AdminBadge';
 
 export function Header() {
   const { data } = useGetMeQuery();
@@ -28,7 +29,7 @@ export function Header() {
             <Link href={ROUTES.app.profile(me.username)} className={styles.me}>
               <StoryRingAvatar userId={me.id} url={me.avatarUrl} name={me.username} size={34} />
               <div className={styles.meText}>
-                <div className={styles.meName}>{me.username}</div>
+                <div className={styles.meName} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>{me.username}<AdminBadge role={me.role} /></div>
                 <div className={styles.meHandle}>@{me.username}</div>
               </div>
             </Link>

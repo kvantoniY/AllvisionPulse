@@ -1,36 +1,59 @@
-
 import { Router } from "express";
 import { z } from "zod";
 import path from "path";
 import { prisma } from "../db/prisma";
 import { asyncHandler, HttpError } from "../utils/http";
-import { requireAuth, AuthedRequest } from "../middleware/auth";
+import { requireAuth, requireActiveUser, AuthedRequest } from "../middleware/auth";
 import { upload } from "../middleware/upload";
+import { activeUserWhere } from "../utils/userStatus";
 
 const router = Router();
+router.use(requireAuth, requireActiveUser);
 
 function fileUrl(req: any, filename: string) {
   const base = `${req.protocol}://${req.get("host")}`;
   return `${base}/uploads/${filename}`;
 }
 
-router.get("/feed", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
+function visiblePostWhere(postId?: string) {
+  const now = new Date();
+  return {
+    ...(postId ? { id: postId } : {}),
+    deletedAt: null,
+    author: { is: activeUserWhere(now) },
+    OR: [
+      { repostOfId: null },
+      { repostOf: { is: { deletedAt: null, author: { is: activeUserWhere(now) } } } },
+    ],
+  };
+}
+
+async function ensureVisiblePost(postId: string) {
+  const post = await prisma.post.findFirst({
+    where: visiblePostWhere(postId),
+    select: { id: true, authorId: true, deletedAt: true },
+  });
+  if (!post) throw new HttpError(404, "Post not found");
+  return post;
+}
+
+router.get("/feed", asyncHandler(async (req: AuthedRequest, res) => {
   const cursor = req.query.cursor?.toString();
   const take = Math.min(Number(req.query.take ?? 20), 50);
 
   const posts = await prisma.post.findMany({
-    where: { deletedAt: null },
+    where: visiblePostWhere(),
     orderBy: { createdAt: "desc" },
     take: take + 1,
     ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
     include: {
-      author: { select: { id: true, username: true, avatarUrl: true } },
+      author: { select: { id: true, username: true, avatarUrl: true, role: true } },
       images: true,
       likes: { select: { userId: true } },
       _count: { select: { comments: true, likes: true, reposts: true } },
       repostOf: {
         include: {
-          author: { select: { id: true, username: true, avatarUrl: true } },
+          author: { select: { id: true, username: true, avatarUrl: true, role: true } },
           images: true,
           _count: { select: { comments: true, likes: true, reposts: true } },
         },
@@ -51,9 +74,14 @@ const CreatePostSchema = z.object({
   repostOfId: z.string().uuid().optional().nullable(),
 });
 
-router.post("/", requireAuth, upload.array("images", 10), asyncHandler(async (req: AuthedRequest, res) => {
+router.post("/", upload.array("images", 10), asyncHandler(async (req: AuthedRequest, res) => {
   const body = CreatePostSchema.parse(req.body);
   const files = (req.files as Express.Multer.File[]) ?? [];
+
+  if (body.repostOfId) {
+    await ensureVisiblePost(body.repostOfId);
+  }
+
   const created = await prisma.post.create({
     data: {
       authorId: req.user!.id,
@@ -65,7 +93,7 @@ router.post("/", requireAuth, upload.array("images", 10), asyncHandler(async (re
       },
     },
     include: {
-      author: { select: { id: true, username: true, avatarUrl: true } },
+      author: { select: { id: true, username: true, avatarUrl: true, role: true } },
       images: true,
       _count: { select: { comments: true, likes: true, reposts: true } },
     },
@@ -73,12 +101,12 @@ router.post("/", requireAuth, upload.array("images", 10), asyncHandler(async (re
   res.json({ post: created });
 }));
 
-router.get("/:postId", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
+router.get("/:postId", asyncHandler(async (req: AuthedRequest, res) => {
   const postId = req.params.postId;
   const post = await prisma.post.findFirst({
-    where: { id: postId, deletedAt: null },
+    where: visiblePostWhere(postId),
     include: {
-      author: { select: { id: true, username: true, avatarUrl: true } },
+      author: { select: { id: true, username: true, avatarUrl: true, role: true } },
       images: true,
       likes: { select: { userId: true } },
       _count: { select: { comments: true, likes: true, reposts: true } },
@@ -88,7 +116,7 @@ router.get("/:postId", requireAuth, asyncHandler(async (req: AuthedRequest, res)
   res.json({ post });
 }));
 
-router.delete("/:postId", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
+router.delete("/:postId", asyncHandler(async (req: AuthedRequest, res) => {
   const postId = req.params.postId;
   const post = await prisma.post.findUnique({ where: { id: postId } });
   if (!post || post.deletedAt) throw new HttpError(404, "Post not found");
@@ -98,10 +126,9 @@ router.delete("/:postId", requireAuth, asyncHandler(async (req: AuthedRequest, r
   res.json({ ok: true });
 }));
 
-router.post("/:postId/like", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
+router.post("/:postId/like", asyncHandler(async (req: AuthedRequest, res) => {
   const postId = req.params.postId;
-  const post = await prisma.post.findUnique({ where: { id: postId }, select: { authorId: true, deletedAt: true } });
-  if (!post || post.deletedAt) throw new HttpError(404, "Post not found");
+  const post = await ensureVisiblePost(postId);
   await prisma.postLike.create({ data: { postId, userId: req.user!.id } }).catch(() => null);
 
   if (post.authorId !== req.user!.id) {
@@ -115,25 +142,25 @@ router.post("/:postId/like", requireAuth, asyncHandler(async (req: AuthedRequest
   res.json({ ok: true });
 }));
 
-router.delete("/:postId/like", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
+router.delete("/:postId/like", asyncHandler(async (req: AuthedRequest, res) => {
   const postId = req.params.postId;
   await prisma.postLike.deleteMany({ where: { postId, userId: req.user!.id } });
   res.json({ ok: true });
 }));
 
-// --- Comments ---
-router.get("/:postId/comments", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
+router.get("/:postId/comments", asyncHandler(async (req: AuthedRequest, res) => {
   const postId = req.params.postId;
   const cursor = req.query.cursor?.toString();
   const take = Math.min(Number(req.query.take ?? 30), 100);
+  await ensureVisiblePost(postId);
 
   const comments = await prisma.comment.findMany({
-    where: { postId, deletedAt: null, parentId: null },
+    where: { postId, deletedAt: null, parentId: null, author: { is: activeUserWhere(new Date()) } },
     orderBy: { createdAt: "desc" },
     take: take + 1,
     ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
     include: {
-      author: { select: { id: true, username: true, avatarUrl: true } },
+      author: { select: { id: true, username: true, avatarUrl: true, role: true } },
       images: true,
       likes: { select: { userId: true } },
       _count: { select: { replies: true, likes: true } },
@@ -145,12 +172,12 @@ router.get("/:postId/comments", requireAuth, asyncHandler(async (req: AuthedRequ
   res.json({ items, nextCursor });
 }));
 
-router.get("/comments/:commentId/replies", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
+router.get("/comments/:commentId/replies", asyncHandler(async (req: AuthedRequest, res) => {
   const commentId = req.params.commentId;
   const replies = await prisma.comment.findMany({
-    where: { parentId: commentId, deletedAt: null },
+    where: { parentId: commentId, deletedAt: null, author: { is: activeUserWhere(new Date()) } },
     orderBy: { createdAt: "asc" },
-    include: { author: { select: { id: true, username: true, avatarUrl: true } }, images: true, likes: { select: { userId: true } } },
+    include: { author: { select: { id: true, username: true, avatarUrl: true, role: true } }, images: true, likes: { select: { userId: true } } },
   });
   res.json({ items: replies });
 }));
@@ -161,13 +188,20 @@ const CreateCommentSchema = z.object({
   parentId: z.string().uuid().optional().nullable(),
 });
 
-router.post("/:postId/comments", requireAuth, upload.array("images", 10), asyncHandler(async (req: AuthedRequest, res) => {
+router.post("/:postId/comments", upload.array("images", 10), asyncHandler(async (req: AuthedRequest, res) => {
   const postId = req.params.postId;
   const body = CreateCommentSchema.parse(req.body);
   const files = (req.files as Express.Multer.File[]) ?? [];
 
-  const post = await prisma.post.findUnique({ where: { id: postId }, select: { id: true, authorId: true, deletedAt: true } });
-  if (!post || post.deletedAt) throw new HttpError(404, "Post not found");
+  const post = await ensureVisiblePost(postId);
+
+  if (body.parentId) {
+    const parent = await prisma.comment.findFirst({
+      where: { id: body.parentId, postId, deletedAt: null, author: { is: activeUserWhere(new Date()) } },
+      select: { id: true },
+    });
+    if (!parent) throw new HttpError(404, "Comment not found");
+  }
 
   const comment = await prisma.comment.create({
     data: {
@@ -179,7 +213,7 @@ router.post("/:postId/comments", requireAuth, upload.array("images", 10), asyncH
       images: { create: files.map((f, idx) => ({ url: fileUrl(req, path.basename(f.filename)), order: idx })) },
     },
     include: {
-      author: { select: { id: true, username: true, avatarUrl: true } },
+      author: { select: { id: true, username: true, avatarUrl: true, role: true } },
       images: true,
       likes: { select: { userId: true } },
       _count: { select: { replies: true, likes: true } },
@@ -197,7 +231,7 @@ router.post("/:postId/comments", requireAuth, upload.array("images", 10), asyncH
   res.json({ comment });
 }));
 
-router.delete("/comments/:commentId", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
+router.delete("/comments/:commentId", asyncHandler(async (req: AuthedRequest, res) => {
   const commentId = req.params.commentId;
   const comment = await prisma.comment.findUnique({ where: { id: commentId } });
   if (!comment || comment.deletedAt) throw new HttpError(404, "Comment not found");
@@ -206,10 +240,13 @@ router.delete("/comments/:commentId", requireAuth, asyncHandler(async (req: Auth
   res.json({ ok: true });
 }));
 
-router.post("/comments/:commentId/like", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
+router.post("/comments/:commentId/like", asyncHandler(async (req: AuthedRequest, res) => {
   const commentId = req.params.commentId;
-  const comment = await prisma.comment.findUnique({ where: { id: commentId }, select: { authorId: true, postId: true, deletedAt: true } });
-  if (!comment || comment.deletedAt) throw new HttpError(404, "Comment not found");
+  const comment = await prisma.comment.findFirst({
+    where: { id: commentId, deletedAt: null, author: { is: activeUserWhere(new Date()) }, post: { is: visiblePostWhere() } },
+    select: { authorId: true, postId: true },
+  });
+  if (!comment) throw new HttpError(404, "Comment not found");
   await prisma.commentLike.create({ data: { commentId, userId: req.user!.id } }).catch(() => null);
 
   if (comment.authorId !== req.user!.id) {
@@ -223,7 +260,7 @@ router.post("/comments/:commentId/like", requireAuth, asyncHandler(async (req: A
   res.json({ ok: true });
 }));
 
-router.delete("/comments/:commentId/like", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
+router.delete("/comments/:commentId/like", asyncHandler(async (req: AuthedRequest, res) => {
   const commentId = req.params.commentId;
   await prisma.commentLike.deleteMany({ where: { commentId, userId: req.user!.id } });
   res.json({ ok: true });

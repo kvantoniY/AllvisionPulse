@@ -20,6 +20,7 @@ import {
 import { useAppSelector } from '@/shared/lib/storeHooks';
 import { Skeleton, SkeletonText } from '@/shared/ui/Skeleton/Skeleton';
 import { Icon } from '@/shared/ui/Icon/Icon';
+import { AdminBadge } from '@/shared/ui/AdminBadge/AdminBadge';
 
 type Tab = 'following' | 'followers' | 'requests' | 'blacklist';
 
@@ -68,7 +69,7 @@ export default function FriendsPage() {
       <div className={styles.user}>
         <StoryRingAvatar userId={user.id} url={user.avatarUrl} name={user.username} size={44} status={presence[user.id]?.isOnline ? 'online' : 'offline'} />
         <div className={styles.meta}>
-          <div className={styles.name}>{user.username}</div>
+          <div className={styles.name} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>{user.username}<AdminBadge role={user.role} /></div>
           <div className={styles.handle}>@{user.username}</div>
           <div className={styles.hint}>{user.bio || 'Короткого описания пока нет.'}</div>
         </div>

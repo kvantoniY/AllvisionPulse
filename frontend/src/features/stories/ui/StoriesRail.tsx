@@ -4,6 +4,7 @@ import { useGetStoriesRailQuery } from '@/shared/api/storiesApi';
 import { useGetMeQuery } from '@/shared/api/usersApi';
 import { Skeleton } from '@/shared/ui/Skeleton/Skeleton';
 import { Icon } from '@/shared/ui/Icon/Icon';
+import { AdminBadge } from '@/shared/ui/AdminBadge/AdminBadge';
 import styles from './Stories.module.css';
 import { StoryRingAvatar } from './StoryRingAvatar';
 import { useStoriesUi } from './StoriesContext';
@@ -53,7 +54,7 @@ export function StoriesRail() {
         {others.map((item) => (
           <button key={item.author.id} type="button" className={styles.railItem} onClick={() => openViewer(item.author.id)}>
             <StoryRingAvatar userId={item.author.id} url={item.author.avatarUrl} name={item.author.username} size={64} disableStoryClick />
-            <span className={[styles.railName, item.hasUnviewed ? styles.railNameActive : ''].filter(Boolean).join(' ')}>{item.author.username}</span>
+            <span className={[styles.railName, item.hasUnviewed ? styles.railNameActive : ''].filter(Boolean).join(' ')} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>{item.author.username}<AdminBadge role={item.author.role} /></span>
           </button>
         ))}
       </div>
