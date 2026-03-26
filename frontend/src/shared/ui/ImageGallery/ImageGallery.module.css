@@ -54,3 +54,5 @@
 /* redesign overrides */
 .single, .slider { border-radius: 14px; }
 .dots { bottom: 10px; }
+
+.noRadius { border-radius: 0 !important; }

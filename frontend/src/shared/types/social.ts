@@ -27,6 +27,7 @@ export type Comment = {
   createdAt: string;
   updatedAt: string;
   parentId?: string | null;
+  replyToUsername?: string | null;
   _count?: { replies: number; likes: number };
   likes?: { userId: string }[];
 };

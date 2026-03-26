@@ -1,6 +1,6 @@
 import { createApi } from '@reduxjs/toolkit/query/react';
 import { baseQuery } from './baseQuery';
-import type { CommentsResponse, FeedResponse, PostResponse } from '@/shared/types/social';
+import type { Comment, CommentsResponse, FeedResponse, PostResponse } from '@/shared/types/social';
 
 type FeedArg = { take?: number; cursor?: string | null } | void;
 
@@ -185,25 +185,44 @@ export const postsApi = createApi({
       providesTags: (_r, _e, arg) => [{ type: 'Comments', id: `last:${arg.postId}` }],
     }),
 
-    createComment: build.mutation<{ comment: any }, { postId: string; text?: string; images?: File[]; widgetsJson?: any | null }>({
-      query: ({ postId, text, images, widgetsJson }) => {
+    getCommentReplies: build.query<{ items: Comment[] }, { commentId: string }>({
+      query: ({ commentId }) => ({ url: `/backend/posts/comments/${encodeURIComponent(commentId)}/replies`, method: 'GET' }),
+      providesTags: (_r, _e, arg) => [{ type: 'Comments', id: `replies:${arg.commentId}` }],
+    }),
+
+    createComment: build.mutation<{ comment: Comment }, { postId: string; text?: string; images?: File[]; widgetsJson?: any | null; parentId?: string | null }>({
+      query: ({ postId, text, images, widgetsJson, parentId }) => {
         const fd = new FormData();
         if (text != null) fd.set('text', text);
         if (widgetsJson != null) fd.set('widgetsJson', JSON.stringify(widgetsJson));
+        if (parentId) fd.set('parentId', parentId);
         for (const f of images ?? []) fd.append('images', f);
         return { url: `/backend/posts/${encodeURIComponent(postId)}/comments`, method: 'POST', body: fd };
       },
-      async onQueryStarted({ postId }, { dispatch, queryFulfilled }) {
+      async onQueryStarted({ postId, parentId }, { dispatch, queryFulfilled }) {
         try {
           const { data } = await queryFulfilled;
           const comment = data.comment;
 
-          // Update comments cache for that post: prepend (since endpoint orders desc)
-          dispatch(
-            postsApi.util.updateQueryData('getComments', { postId } as any, (draft) => {
-              draft.items.unshift(comment);
-            }),
-          );
+          if (!parentId) {
+            dispatch(
+              postsApi.util.updateQueryData('getComments', { postId } as any, (draft) => {
+                draft.items.unshift(comment);
+              }),
+            );
+          } else {
+            dispatch(
+              postsApi.util.updateQueryData('getComments', { postId } as any, (draft) => {
+                const parent = draft.items.find((item) => item.id === parentId);
+                if (parent?._count) parent._count.replies = (parent._count.replies ?? 0) + 1;
+              }),
+            );
+            dispatch(
+              postsApi.util.updateQueryData('getCommentReplies', { commentId: parentId } as any, (draft) => {
+                draft.items.push(comment);
+              }),
+            );
+          }
 
           // Update feed post counts
           dispatch(
@@ -213,13 +232,14 @@ export const postsApi = createApi({
             }),
           );
 
-          // Update last comment cache
-          dispatch(
-            postsApi.util.upsertQueryData('getLastComment', { postId } as any, {
-              items: [comment],
-              nextCursor: null,
-            } as any),
-          );
+          if (!parentId) {
+            dispatch(
+              postsApi.util.upsertQueryData('getLastComment', { postId } as any, {
+                items: [comment],
+                nextCursor: null,
+              } as any),
+            );
+          }
         } catch {
           // ignore
         }
@@ -227,18 +247,31 @@ export const postsApi = createApi({
       invalidatesTags: (_r, _e, arg) => [
         { type: 'Comments', id: arg.postId },
         { type: 'Comments', id: `last:${arg.postId}` },
+        ...(arg.parentId ? [{ type: 'Comments' as const, id: `replies:${arg.parentId}` }] : []),
         { type: 'Post', id: arg.postId },
       ],
     }),
 
-    deleteComment: build.mutation<{ ok: true }, { commentId: string; postId: string }>({
+    deleteComment: build.mutation<{ ok: true }, { commentId: string; postId: string; parentId?: string | null }>({
       query: ({ commentId }) => ({ url: `/backend/posts/comments/${encodeURIComponent(commentId)}`, method: 'DELETE' }),
-      async onQueryStarted({ commentId, postId }, { dispatch, queryFulfilled }) {
+      async onQueryStarted({ commentId, postId, parentId }, { dispatch, queryFulfilled }) {
         const patch = dispatch(
           postsApi.util.updateQueryData('getComments', { postId } as any, (draft) => {
-            draft.items = draft.items.filter((c) => c.id !== commentId);
+            if (parentId) {
+              const parent = draft.items.find((c) => c.id === parentId);
+              if (parent?._count) parent._count.replies = Math.max(0, (parent._count.replies ?? 0) - 1);
+            } else {
+              draft.items = draft.items.filter((c) => c.id !== commentId);
+            }
           }),
         );
+        const patchReplies = parentId
+          ? dispatch(
+              postsApi.util.updateQueryData('getCommentReplies', { commentId: parentId } as any, (draft) => {
+                draft.items = draft.items.filter((c) => c.id !== commentId);
+              }),
+            )
+          : null;
         const patchFeed = dispatch(
           postsApi.util.updateQueryData('getFeed', undefined as any, (draft) => {
             const p = draft.items.find((x) => x.id === postId);
@@ -249,11 +282,13 @@ export const postsApi = createApi({
           await queryFulfilled;
         } catch {
           patch.undo();
+          patchReplies?.undo?.();
           patchFeed.undo();
         }
       },
       invalidatesTags: (_r, _e, arg) => [
         { type: 'Comments', id: arg.postId },
+        ...(arg.parentId ? [{ type: 'Comments' as const, id: `replies:${arg.parentId}` }] : []),
         { type: 'Post', id: arg.postId },
         { type: 'Comments', id: `last:${arg.postId}` },
       ],
@@ -271,6 +306,7 @@ export const {
   useUnlikePostMutation,
   useGetPostLikesQuery,
   useGetCommentsQuery,
+  useGetCommentRepliesQuery,
   useLazyGetCommentsQuery,
   useGetLastCommentQuery,
   useCreateCommentMutation,

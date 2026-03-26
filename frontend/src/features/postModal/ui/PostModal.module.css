@@ -1,105 +1,94 @@
 .backdrop {
   position: fixed;
   inset: 0;
-  z-index: 120;
-  background: rgba(3, 4, 6, 0.86);
-  backdrop-filter: blur(16px);
-  padding: 20px;
+  z-index: 150;
+  background: rgba(2, 4, 7, 0.88);
+  backdrop-filter: blur(14px);
   display: grid;
   place-items: center;
+  padding: 24px;
 }
 
 .close {
   position: fixed;
   top: 18px;
   right: 18px;
-  width: 44px;
-  height: 44px;
-  border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(12, 14, 18, 0.76);
-  color: #fff;
+  width: 48px;
+  height: 48px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(7, 9, 12, 0.78);
+  color: var(--text);
   display: grid;
   place-items: center;
   cursor: pointer;
-  z-index: 122;
+  z-index: 2;
 }
 
 .surface {
-  width: min(1320px, calc(100vw - 40px));
-  height: min(92vh, 940px);
-  border-radius: 24px;
-  overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: #090b0f;
+  width: min(1440px, calc(100vw - 48px));
+  height: min(90vh, 960px);
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 372px;
-  box-shadow: 0 32px 90px rgba(0, 0, 0, 0.46);
+  grid-template-columns: minmax(0, 1fr) 392px;
+  border-radius: 28px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: linear-gradient(180deg, rgba(10, 12, 16, 0.98), rgba(6, 8, 12, 0.99));
+  box-shadow: 0 40px 120px rgba(0, 0, 0, 0.52);
+}
+
+.surfaceCompact {
+  width: min(760px, calc(100vw - 48px));
+  height: min(84vh, 920px);
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .mediaPane {
   min-width: 0;
-  background: #06070a;
+  min-height: 0;
+  background: #020304;
   display: grid;
   place-items: center;
-  position: relative;
 }
 
 .mainImage {
   width: 100%;
   height: 100%;
   object-fit: contain;
-  background: #06070a;
   cursor: zoom-in;
+  background: #000;
 }
 
-.textOnlyState {
+.postSkeleton {
   width: 100%;
-  max-width: 720px;
-  padding: 32px;
-  display: grid;
-  gap: 12px;
-}
-
-.textOnlyLabel,
-.commentsHeader,
-.repostLabel {
-  font-size: 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--muted);
-}
-
-.textOnlyContent {
-  font-size: 20px;
-  line-height: 1.45;
-  color: var(--text);
-  white-space: pre-wrap;
+  height: 100%;
 }
 
 .sidePane {
-  border-left: 1px solid rgba(255, 255, 255, 0.06);
-  background: linear-gradient(180deg, #0b0d10 0%, #090b0f 100%);
-  display: flex;
-  flex-direction: column;
+  min-width: 0;
   min-height: 0;
-  height: 100%;
+  display: grid;
+  grid-template-rows: auto auto auto auto minmax(0, 1fr);
+  background: transparent;
+}
+
+.sidePaneTextOnly {
+  grid-template-rows: auto auto minmax(0, 1fr);
 }
 
 .sideHeader {
   padding: 18px 18px 14px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
-  flex-shrink: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .author {
   display: flex;
+  align-items: flex-start;
   gap: 12px;
-  align-items: center;
   min-width: 0;
 }
 
@@ -107,24 +96,29 @@
   min-width: 0;
 }
 
-.authorNameRow,
-.commentAuthorRow {
+.authorNameRow {
   display: flex;
   align-items: center;
   gap: 6px;
 }
 
 .authorName {
-  font-size: 18px;
+  font-size: 15px;
   font-weight: 800;
   color: var(--text);
 }
 
 .authorMeta,
-.commentMeta {
-  margin-top: 4px;
+.repostMeta,
+.commentMeta,
+.commentReplyTo,
+.repostLabel {
   color: var(--muted);
-  font-size: 13px;
+  font-size: 12px;
+}
+
+.repostMeta {
+  margin-top: 4px;
 }
 
 .headerTools {
@@ -133,13 +127,12 @@
   gap: 8px;
 }
 
-.headerToolBtn,
-.commentDelete {
-  width: 32px;
-  height: 32px;
-  border-radius: 10px;
+.headerToolBtn {
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.06);
-  background: rgba(255, 255, 255, 0.02);
+  background: rgba(255, 255, 255, 0.03);
   color: var(--muted);
   display: grid;
   place-items: center;
@@ -147,16 +140,31 @@
 }
 
 .headerToolBtn:hover,
-.commentDelete:hover {
+.repostLinkBtn:hover,
+.metricBtn:hover,
+.metricCountBtn:hover,
+.metricIconBtn:hover,
+.commentActionBtn:hover,
+.commentDelete:hover,
+.loadMore:hover,
+.loadMoreInline:hover,
+.inputToolBtn:hover,
+.replyChipClose:hover {
   color: var(--text);
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.055);
 }
 
 .actionRow {
+  padding: 14px 18px;
   display: flex;
-  gap: 12px;
-  padding: 16px 18px 14px;
-  flex-shrink: 0;
+  gap: 8px;
+  align-items: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.actionRowTextOnly {
+  padding: 14px 0 0;
+  border-bottom: none;
 }
 
 .metricGroup {
@@ -171,97 +179,160 @@
 
 .metricIconBtn,
 .metricBtn {
+  min-height: 36px;
   border: 1px solid rgba(255, 255, 255, 0.06);
   background: rgba(255, 255, 255, 0.03);
   color: var(--muted);
+  border-radius: 12px;
+  padding: 0 11px;
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  font-size: 14px;
-  font-weight: 700;
   cursor: pointer;
+  font-size: 13px;
+  font-weight: 700;
 }
 
-.metricIconBtn {
-  min-width: 38px;
-  justify-content: center;
+.metricGroup .metricIconBtn {
   border: none;
   border-right: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 0;
   background: transparent;
+  min-width: 38px;
+  justify-content: center;
 }
 
 .metricCountBtn {
   min-width: 34px;
-  padding: 0 12px;
+  padding: 0 10px;
   border: none;
   background: transparent;
   color: var(--muted);
-  font-size: 14px;
-  font-weight: 700;
   cursor: pointer;
-}
-
-.metricBtn {
-  min-height: 36px;
-  padding: 0 12px;
-  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 700;
 }
 
 .metricBtnActive,
-.metricIconBtn:hover,
-.metricBtn:hover,
-.metricCountBtn:hover {
+.metricGroup .metricBtnActive {
   color: var(--text);
-}
-
-.metricBtnActive {
   background: rgba(255, 122, 26, 0.1);
 }
 
 .description {
-  padding: 0 18px 16px;
-  color: var(--text-soft);
-  line-height: 1.55;
-  font-size: 14px;
   white-space: pre-wrap;
   word-break: break-word;
-  flex-shrink: 0;
+  line-height: 1.58;
+  font-size: 14px;
+  color: var(--text-soft);
 }
 
-.repostRow {
-  padding: 0 18px 14px;
+.descriptionScrollable {
+  padding: 16px 18px 0;
+  max-height: 180px;
+  overflow: auto;
+}
+
+.descriptionTextOnly {
+  padding: 16px 0 0;
+  max-height: 220px;
+  overflow: auto;
+}
+
+.textFlow {
+  padding: 0 18px 18px;
+  display: grid;
+  gap: 0;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+
+.descriptionCollapsed {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.descriptionScrollable.descriptionCollapsed {
+  -webkit-line-clamp: 8;
+  max-height: none;
+}
+
+.descriptionTextOnly.descriptionCollapsed {
+  -webkit-line-clamp: 10;
+  max-height: none;
+}
+
+.moreTextBtnModal {
+  margin: 8px 18px 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: #6da8ff;
+  font-size: 13px;
+  font-weight: 700;
+  text-align: left;
+}
+
+.textFlow .moreTextBtnModal {
+  margin: 8px 0 0;
+}
+
+.repostRow,
+.repostRowInline {
+  padding-top: 12px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
+  gap: 12px;
   flex-wrap: wrap;
-  flex-shrink: 0;
 }
 
-.repostLinkBtn {
-  min-height: 30px;
-  padding: 0 10px;
-  border-radius: 10px;
+.repostRow {
+  margin: 14px 18px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.repostRowInline {
+  margin-top: 12px;
+  border-top: 1px solid rgba(255,255,255,0.06);
+}
+
+.repostLinkBtn,
+.loadMore,
+.loadMoreInline,
+.commentActionBtn,
+.commentDelete,
+.inputToolBtn,
+.replyChipClose {
   border: 1px solid rgba(255, 255, 255, 0.06);
   background: rgba(255, 255, 255, 0.03);
-  color: var(--text-soft);
-  font-size: 12px;
-  font-weight: 700;
+  color: var(--muted);
   cursor: pointer;
 }
 
-.repostLinkBtn:hover {
-  color: var(--text);
-  background: rgba(255, 255, 255, 0.05);
+.repostLinkBtn {
+  min-height: 34px;
+  padding: 0 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 700;
 }
 
 .commentsSection {
-  flex: 1 1 auto;
   min-height: 0;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;
-  overflow: hidden;
   border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.commentsSectionTextOnly {
+  border-top: none;
+}
+
+.commentsDock {
+  min-height: 0;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
 }
 
 .commentsHeader {
@@ -272,10 +343,23 @@
 .commentsList {
   min-height: 0;
   overflow: auto;
-  padding: 0 18px 18px;
+  padding: 0 18px 14px;
   display: flex;
   flex-direction: column;
   gap: 14px;
+}
+
+.thread {
+  display: grid;
+  gap: 10px;
+}
+
+.replies {
+  margin-left: 44px;
+  display: grid;
+  gap: 10px;
+  padding-left: 12px;
+  border-left: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .comment {
@@ -295,6 +379,13 @@
   gap: 10px;
 }
 
+.commentAuthorRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
 .commentAuthor {
   font-size: 14px;
   font-weight: 700;
@@ -310,8 +401,46 @@
   color: var(--text-soft);
 }
 
+.commentActions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.commentActionBtn {
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.commentDelete {
+  width: 28px;
+  height: 28px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+}
+
+.commentImages {
+  margin-top: 10px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.commentImg {
+  width: 100%;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  object-fit: cover;
+  aspect-ratio: 1 / 1;
+  cursor: zoom-in;
+}
+
 .emptyComments {
-  min-height: 160px;
+  min-height: 180px;
   display: grid;
   place-content: center;
   gap: 10px;
@@ -328,25 +457,114 @@
   margin: 0 18px 14px;
   min-height: 36px;
   border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  background: rgba(255, 255, 255, 0.03);
-  color: var(--text-soft);
-  cursor: pointer;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.loadMoreInline {
+  justify-self: start;
+  margin-left: 56px;
+  min-height: 30px;
+  padding: 0 10px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 700;
 }
 
 .commentComposer {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
-  align-items: center;
+  align-items: end;
   gap: 10px;
   padding: 14px 18px 18px;
   border-top: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(10, 12, 16, 0.98);
+}
+
+.commentComposerInline {
+  padding: 14px 0 0;
+  border-top: 1px solid rgba(255,255,255,0.06);
   background: transparent;
-  flex-shrink: 0;
+}
+
+.commentsDock > .commentComposer {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
 }
 
 .commentInputWrap {
   min-width: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.replyChip {
+  align-self: start;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--muted);
+  width: fit-content;
+  font-size: 12px;
+}
+
+.replyChipClose {
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+}
+
+.attachmentsPreview {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+.attachmentItem {
+  position: relative;
+  width: 64px;
+  height: 64px;
+  min-width: 64px;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.attachmentImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.attachmentRemove {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(4, 5, 7, 0.75);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+
+.textareaShell {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 8px;
 }
 
 .textarea {
@@ -370,6 +588,21 @@
   box-shadow: 0 0 0 4px rgba(255, 122, 26, 0.08);
 }
 
+.textareaTools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 2px;
+}
+
+.inputToolBtn {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+}
+
 .sendBtn {
   width: 44px;
   height: 44px;
@@ -388,95 +621,71 @@
   cursor: not-allowed;
 }
 
-.images {
-  margin-top: 10px;
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
-}
-
-.img {
-  width: 100%;
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  object-fit: cover;
-  aspect-ratio: 1 / 1;
-  cursor: zoom-in;
-}
-
-.postSkeleton {
-  width: 100%;
-  height: 100%;
-}
-
-@media (max-width: 980px) {
+@media (max-width: 1100px) {
   .surface {
-    grid-template-columns: minmax(0, 1fr) 340px;
+    grid-template-columns: minmax(0, 1fr) 360px;
   }
 }
 
 @media (max-width: 900px) {
   .backdrop {
     padding: 0;
-    align-items: stretch;
+    place-items: end center;
   }
 
   .close {
-    top: 12px;
-    right: 12px;
-    width: 40px;
-    height: 40px;
+    top: 10px;
+    right: 10px;
+    width: 42px;
+    height: 42px;
+    border-radius: 14px;
   }
 
-  .surface {
+  .surface,
+  .surfaceCompact {
     width: 100%;
-    height: 100vh;
-    border-radius: 0;
-    grid-template-columns: 1fr;
-    grid-template-rows: minmax(280px, 44vh) minmax(0, 1fr);
+    height: min(94vh, 100vh);
+    border-radius: 22px 22px 0 0;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .mediaPane {
+    min-height: 280px;
+    max-height: 52vh;
   }
 
   .sidePane {
-    border-left: none;
-    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    grid-template-rows: auto auto auto auto minmax(140px, 1fr);
   }
 }
 
 @media (max-width: 640px) {
   .sideHeader,
   .actionRow,
-  .description,
-  .repostRow,
   .commentsHeader,
   .commentsList,
   .commentComposer {
-    padding-left: 14px;
-    padding-right: 14px;
+    padding-inline: 14px;
   }
 
-  .sideHeader {
-    padding-top: 14px;
-    padding-bottom: 12px;
+  .textFlow {
+    padding-inline: 14px;
   }
 
-  .authorName {
-    font-size: 16px;
-  }
-
-  .actionRow {
-    gap: 10px;
-    padding-top: 14px;
-    padding-bottom: 12px;
-    flex-wrap: wrap;
-  }
-
-  .commentsList {
-    padding-bottom: 14px;
+  .repostRow,
+  .loadMore {
+    margin-inline: 14px;
   }
 
   .commentComposer {
-    padding-top: 12px;
-    padding-bottom: calc(14px + env(safe-area-inset-bottom));
     grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+
+  .replies {
+    margin-left: 24px;
+  }
+
+  .commentImages {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }

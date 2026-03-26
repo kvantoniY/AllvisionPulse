@@ -21,6 +21,6 @@
   }
 
   .content {
-    padding: 14px 16px 88px;
+    padding: 0 0 calc(92px + env(safe-area-inset-bottom, 0px));
   }
 }

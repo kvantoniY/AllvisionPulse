@@ -4,7 +4,7 @@
   background: rgba(4, 5, 7, 0.8);
   display: grid;
   place-items: center;
-  z-index: 160;
+  z-index: 260;
   padding: 18px;
   backdrop-filter: blur(14px);
 }

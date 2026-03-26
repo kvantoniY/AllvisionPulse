@@ -22,3 +22,12 @@
     margin-inline: 0;
   }
 }
+
+.pageMobile {
+  padding-inline: 0;
+}
+
+.pageMobile .stack {
+  gap: 0;
+  padding-top: 4px;
+}

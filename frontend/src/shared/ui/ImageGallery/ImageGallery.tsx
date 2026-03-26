@@ -14,10 +14,12 @@ export function ImageGallery({
   images,
   aspect = '16 / 9',
   maxHeight = 520,
+  rounded = true,
 }: {
   images: GalleryImage[];
   aspect?: string;
   maxHeight?: number;
+  rounded?: boolean;
 }) {
   const list = images ?? [];
   const many = list.length > 1;
@@ -39,7 +41,7 @@ export function ImageGallery({
   if (!many) {
     const img = list[0];
     return (
-      <div className={styles.single} style={{ aspectRatio: aspect, maxHeight }}>
+      <div className={[styles.single, !rounded ? styles.noRadius : ''].filter(Boolean).join(' ')} style={{ aspectRatio: aspect, maxHeight }}>
         <img
           src={img.url}
           alt=""
@@ -54,7 +56,7 @@ export function ImageGallery({
   }
 
   return (
-    <div className={styles.slider} style={{ aspectRatio: aspect, maxHeight }}>
+    <div className={[styles.slider, !rounded ? styles.noRadius : ''].filter(Boolean).join(' ')} style={{ aspectRatio: aspect, maxHeight }}>
       <div className={styles.track} style={{ transform: `translateX(-${safeIdx * 100}%)` }}>
         {list.map((img, i) => (
           <div key={img.id} className={styles.slide}>

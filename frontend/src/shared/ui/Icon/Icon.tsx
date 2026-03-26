@@ -41,7 +41,8 @@ type IconName =
   | 'chevronDown'
   | 'chevronUp'
   | 'select'
-  | 'clock';
+  | 'clock'
+  | 'menu';
 
 const line = { fill: 'none', stroke: 'currentColor', strokeWidth: '1.8', strokeLinecap: 'round', strokeLinejoin: 'round' } as const;
 
@@ -87,6 +88,7 @@ const paths: Record<IconName, ReactNode> = {
   chevronUp: <path d="m6 15 6-6 6 6" {...line} />,
   select: <><rect x="4" y="4" width="16" height="16" rx="4" {...line}/><path d="M8 12.5 11 15l5-6" {...line}/></>,
   clock: <><circle cx="12" cy="12" r="8" {...line}/><path d="M12 8v4.5l3 1.5" {...line}/></>,
+  menu: <><path d="M4 7h16" {...line}/><path d="M4 12h16" {...line}/><path d="M4 17h16" {...line}/></>,
 };
 
 export function Icon({ name, size = 20, className, ...props }: SVGProps<SVGSVGElement> & { name: IconName; size?: number }) {

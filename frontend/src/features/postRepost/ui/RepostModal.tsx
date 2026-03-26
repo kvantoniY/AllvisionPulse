@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Modal } from '@/shared/ui/Modal/Modal';
+import { MobileSheet } from '@/shared/ui/MobileSheet/MobileSheet';
+import { useIsMobile } from '@/shared/lib/hooks/useIsMobile';
 import { Icon } from '@/shared/ui/Icon/Icon';
 import { Avatar } from '@/shared/ui/Avatar/Avatar';
 import { useCreatePostMutation } from '@/shared/api/postsApi';
@@ -14,7 +16,6 @@ import { ROUTES } from '@/shared/config/app';
 import styles from './RepostModal.module.css';
 
 const MAX_TEXT = 5000;
-
 type Mode = 'wall' | 'direct';
 
 type Recipient = {
@@ -33,37 +34,14 @@ function getOriginalPost(post: Post): Post {
   return current;
 }
 
-function collectRepostNotes(post: Post) {
-  const notes: string[] = [];
-  let current: Post | null = post;
-  while (current?.repostOf) {
-    const value = current.text?.trim();
-    if (value) notes.push(value);
-    current = current.repostOf;
-  }
-  return notes;
-}
-
 function buildMessageText(post: Post, note: string) {
-  const parts: string[] = [];
-  const trimmedNote = note.trim();
   const source = getOriginalPost(post);
-  const sourceText = source.text?.trim();
-  const repostNotes = collectRepostNotes(post);
-  const imageLinks = (source.images ?? []).slice(0, 8).map((item) => item.url);
-
-  if (trimmedNote) parts.push(trimmedNote);
+  const parts: string[] = [];
+  if (note.trim()) parts.push(note.trim());
   parts.push(`Репост публикации от @${source.author.username}`);
-  if (repostNotes.length) {
-    parts.push(
-      repostNotes
-        .map((value, index) => `Комментарий к репосту ${repostNotes.length > 1 ? index + 1 : ''}`.trim() + `: ${value}`)
-        .join('\n'),
-    );
-  }
-  if (sourceText) parts.push(sourceText.slice(0, 900));
+  if (source.text?.trim()) parts.push(source.text.trim().slice(0, 900));
+  const imageLinks = (source.images ?? []).slice(0, 8).map((item) => item.url);
   if (imageLinks.length) parts.push(imageLinks.join('\n'));
-
   return parts.filter(Boolean).join('\n\n');
 }
 
@@ -81,6 +59,7 @@ function getDirectPartner(chat: Chat, myId?: string | null) {
 
 export function RepostModal({ open, onClose, post }: { open: boolean; onClose: () => void; post: Post | null }) {
   const router = useRouter();
+  const isMobile = useIsMobile();
   const { data: meData } = useGetMeQuery();
   const me = meData?.user;
   const [mode, setMode] = useState<Mode>('wall');
@@ -147,7 +126,7 @@ export function RepostModal({ open, onClose, post }: { open: boolean; onClose: (
         role: user.role,
         chatId: directMap.get(id)?.chatId ?? null,
         canMessage,
-        disabledReason: canMessage ? null : 'Пользователь закрыл личные сообщения',
+        disabledReason: canMessage ? null : 'Личные сообщения закрыты',
       });
     }
 
@@ -158,7 +137,7 @@ export function RepostModal({ open, onClose, post }: { open: boolean; onClose: (
     });
   }, [directMap, followersData?.items, followingData?.items, me?.id]);
 
-  const list = useMemo(() => {
+  const filteredRecipients = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return mutualRecipients;
     return mutualRecipients.filter((item) => item.username.toLowerCase().includes(q));
@@ -169,9 +148,10 @@ export function RepostModal({ open, onClose, post }: { open: boolean; onClose: (
 
   const onSubmit = async () => {
     if (!post || !canSubmit) return;
+    const original = getOriginalPost(post);
 
     if (mode === 'wall') {
-      await createPost({ text: note.trim() || undefined, repostOfId: post.id }).unwrap().catch(() => null);
+      await createPost({ text: note.trim() || undefined, repostOfId: original.id }).unwrap().catch(() => null);
       onClose();
       return;
     }
@@ -185,20 +165,13 @@ export function RepostModal({ open, onClose, post }: { open: boolean; onClose: (
     }
     if (!chatId) return;
 
-    const text = buildMessageText(post, note);
+    const text = buildMessageText(original, note);
     await sendMessage({ chatId, text }).unwrap().catch(() => null);
     onClose();
     router.push(`${ROUTES.app.messages}/${chatId}`);
   };
 
-  return (
-    <Modal
-      open={open}
-      onClose={busy ? () => undefined : onClose}
-      title="Репост"
-      icon={<Icon name="forward" size={18} />}
-      size="md"
-    >
+  const content = (
       <div className={styles.stack}>
         <div className={styles.segmented}>
           <button
@@ -233,7 +206,7 @@ export function RepostModal({ open, onClose, post }: { open: boolean; onClose: (
             </div>
 
             <div className={styles.recipientList}>
-              {list.map((item) => (
+              {filteredRecipients.map((item) => (
                 <button
                   type="button"
                   key={`${item.id}:${item.chatId ?? 'user'}`}
@@ -257,22 +230,18 @@ export function RepostModal({ open, onClose, post }: { open: boolean; onClose: (
                       ) : null}
                     </div>
                     <div className={styles.recipientHint}>
-                      {!item.canMessage
-                        ? item.disabledReason
-                        : item.chatId
-                          ? 'Уже есть диалог'
-                          : 'Создать новый диалог'}
+                      {!item.canMessage ? item.disabledReason : item.chatId ? 'Уже есть диалог' : 'Создать новый диалог'}
                     </div>
                   </div>
                   {selectedRecipient?.id === item.id ? <Icon name="check" size={16} /> : null}
                 </button>
               ))}
 
-              {!list.length ? (
+              {!filteredRecipients.length ? (
                 <div className={styles.emptyState}>
                   {query.trim().length
                     ? 'Никого не нашли среди взаимных подписок.'
-                    : 'Здесь появятся пользователи с взаимной подпиской.'}
+                    : 'Здесь появятся пользователи, которым можно отправить репост.'}
                 </div>
               ) : null}
             </div>
@@ -285,21 +254,35 @@ export function RepostModal({ open, onClose, post }: { open: boolean; onClose: (
             className={styles.textarea}
             value={note}
             onChange={(event) => setNote(event.target.value.slice(0, MAX_TEXT))}
-            placeholder={mode === 'wall' ? 'Добавьте комментарий к публикации' : 'Добавьте текст к сообщению'}
+            placeholder={mode === 'wall' ? 'Добавьте комментарий к репосту' : 'Добавьте текст к сообщению'}
             rows={4}
           />
           <div className={styles.counter}>{MAX_TEXT - note.length}</div>
         </div>
-      </div>
 
-      <div className={styles.footer}>
-        <button type="button" className={styles.cancelBtn} onClick={onClose} disabled={busy}>
-          Отмена
-        </button>
-        <button type="button" className={styles.submitBtn} onClick={() => void onSubmit()} disabled={!canSubmit}>
-          {busy ? 'Отправляем…' : mode === 'wall' ? 'Опубликовать' : 'Отправить'}
-        </button>
+        <div className={styles.footer}>
+          <button type="button" className={styles.cancelBtn} onClick={onClose} disabled={busy}>
+            Отмена
+          </button>
+          <button type="button" className={styles.submitBtn} onClick={() => void onSubmit()} disabled={!canSubmit}>
+            {busy ? 'Отправляем…' : mode === 'wall' ? 'Опубликовать' : 'Отправить'}
+          </button>
+        </div>
       </div>
+  );
+
+  if (isMobile) {
+    return (
+      <MobileSheet open={open} onClose={busy ? () => undefined : onClose} title="Поделиться">
+        <div style={{ padding: '10px 16px 0' }}>{content}</div>
+      </MobileSheet>
+    );
+  }
+
+  return (
+    <Modal open={open} onClose={busy ? () => undefined : onClose} title="Поделиться" icon={<Icon name="repeat" size={18} />} size="md">
+      {content}
     </Modal>
   );
+
 }

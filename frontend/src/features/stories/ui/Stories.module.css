@@ -70,14 +70,18 @@
 }
 
 .rail {
-  display: flex;
+  display: inline-flex;
+  width: 100%;
+  max-width: 100%;
   gap: 14px;
   overflow-x: auto;
   padding: 0 0 2px;
+  margin: 0;
   scrollbar-width: none;
   background: transparent !important;
   border: none !important;
   box-shadow: none !important;
+  outline: none !important;
 }
 
 .rail::-webkit-scrollbar {
@@ -1381,7 +1385,7 @@
 .viewerInner { border-radius: 22px; }
 
 @media (max-width: 640px) {
-  .rail { gap: 12px; padding-bottom: 2px; }
+  .rail { gap: 12px; padding: 8px 12px 8px; }
   .railItem { min-width: 66px; gap: 6px; }
   .railName { max-width: 70px; font-size: 11px; }
 }

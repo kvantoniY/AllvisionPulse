@@ -1,6 +1,7 @@
 'use client';
 
 import { PropsWithChildren, ReactNode, useEffect } from 'react';
+import { lockBodyScroll } from '@/shared/lib/dom/scrollLock';
 import styles from './Modal.module.css';
 import { Icon } from '@/shared/ui/Icon/Icon';
 
@@ -24,11 +25,7 @@ export function Modal({
 
   useEffect(() => {
     if (!open) return;
-    const previous = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = previous;
-    };
+    return lockBodyScroll();
   }, [open]);
 
   if (!open) return null;

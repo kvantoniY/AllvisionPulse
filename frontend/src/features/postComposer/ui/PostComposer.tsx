@@ -11,6 +11,8 @@ import { useGetTodayQuery, useGetStatsQuery } from '@/shared/api/healthApi';
 import { Modal } from '@/shared/ui/Modal/Modal';
 import { Icon } from '@/shared/ui/Icon/Icon';
 import { Skeleton, SkeletonText } from '@/shared/ui/Skeleton/Skeleton';
+import { useIsMobile } from '@/shared/lib/hooks/useIsMobile';
+import { MobilePostComposerModal } from './MobilePostComposerModal';
 
 const MAX_TEXT = 5000;
 
@@ -34,6 +36,7 @@ type HealthWidget = {
 export function PostComposer({ context = 'feed' }: { context?: 'feed' | 'profile' }) {
   const { data, isFetching: meFetching } = useGetMeQuery();
   const me = data?.user;
+  const isMobile = useIsMobile();
 
   const [text, setText] = useState('');
   const textRef = useRef<HTMLTextAreaElement | null>(null);
@@ -44,6 +47,7 @@ export function PostComposer({ context = 'feed' }: { context?: 'feed' | 'profile
 
   const [widget, setWidget] = useState<HealthWidget | null>(null);
   const [widgetOpen, setWidgetOpen] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   const expanded = !!text.trim() || images.length > 0 || !!widget;
   useAutosizeTextArea(textRef, text, expanded);
@@ -55,18 +59,32 @@ export function PostComposer({ context = 'feed' }: { context?: 'feed' | 'profile
   const remaining = MAX_TEXT - text.length;
   const canSubmit = (!!text.trim() || images.length > 0 || !!widget) && remaining >= 0 && !isLoading;
 
+  useEffect(() => {
+    if (!isMobile) return;
+    const onOpen = () => setMobileOpen(true);
+    window.addEventListener('av:open-post-composer', onOpen as EventListener);
+    return () => window.removeEventListener('av:open-post-composer', onOpen as EventListener);
+  }, [isMobile]);
+
   const onPickImages = (files: FileList | null) => {
     if (!files) return;
     const arr = Array.from(files);
     setImages((prev) => [...prev, ...arr].slice(0, 10));
   };
 
-  const onSubmit = async () => {
-    if (!canSubmit) return;
-    await createPost({ text: text.trim() ? text : '', images, widgetsJson: widget }).unwrap().catch(() => null);
+  const reset = () => {
     setText('');
     setImages([]);
     setWidget(null);
+  };
+
+  const onSubmit = async () => {
+    if (!canSubmit) return;
+    const ok = await createPost({ text: text.trim() ? text : '', images, widgetsJson: widget }).unwrap().catch(() => null);
+    if (!ok) return;
+    reset();
+    window.dispatchEvent(new Event('av:post-created'));
+    setMobileOpen(false);
   };
 
   const pickTodayWidget = () => {
@@ -100,6 +118,46 @@ export function PostComposer({ context = 'feed' }: { context?: 'feed' | 'profile
   }
 
   if (!me) return null;
+
+  if (isMobile) {
+    return (
+      <>
+        <button type="button" className={styles.mobileTrigger} onClick={() => setMobileOpen(true)}>
+          <Avatar url={me.avatarUrl} name={me.username} size={40} />
+          <span className={styles.mobileTriggerText}>Напишите что-нибудь...</span>
+        </button>
+
+        <Modal open={widgetOpen} onClose={() => setWidgetOpen(false)} title="Добавить виджет">
+          <div style={{ display: 'grid', gap: 12 }}>
+            <div style={{ color: 'var(--muted)', fontSize: 14, lineHeight: 1.5 }}>
+              Сейчас можно прикрепить краткий виджет со сводкой по дню и недельным пульсом.
+            </div>
+            {widgetLoading || statsLoading ? <SkeletonText lines={3} /> : null}
+            <Button variant="primary" onClick={pickTodayWidget} loading={widgetLoading || statsLoading}>
+              Добавить сводку дня
+            </Button>
+          </div>
+        </Modal>
+
+        <MobilePostComposerModal
+          open={mobileOpen}
+          onClose={() => setMobileOpen(false)}
+          me={{ avatarUrl: me.avatarUrl, username: me.username }}
+          text={text}
+          onTextChange={setText}
+          images={images}
+          previews={previews.map((item) => ({ url: item.url }))}
+          onPickImages={onPickImages}
+          onRemoveImage={(index) => setImages((arr) => arr.filter((_, i) => i !== index))}
+          widget={widget}
+          onOpenWidget={() => setWidgetOpen(true)}
+          onRemoveWidget={() => setWidget(null)}
+          onSubmit={onSubmit}
+          isLoading={isLoading}
+        />
+      </>
+    );
+  }
 
   return (
     <Card className={[styles.card, expanded ? styles.cardExpanded : ''].filter(Boolean).join(' ')}>

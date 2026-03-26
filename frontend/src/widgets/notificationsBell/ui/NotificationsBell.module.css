@@ -94,3 +94,15 @@
   color: var(--muted);
   padding: 8px 2px 4px;
 }
+
+
+.mobileBody {
+  padding: 8px 16px 0;
+  display: grid;
+  gap: 10px;
+}
+
+@media (max-width: 900px) {
+  .btn { width: 42px; height: 42px; border-radius: 999px; background: transparent; }
+  .badge { top: 0; right: 0; }
+}

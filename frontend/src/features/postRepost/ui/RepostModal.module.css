@@ -95,7 +95,7 @@
 .recipientList {
   display: grid;
   gap: 8px;
-  max-height: 300px;
+  max-height: 280px;
   overflow: auto;
 }
 
@@ -174,8 +174,9 @@
 .footer {
   display: flex;
   justify-content: center;
+  align-items: center;
   gap: 10px;
-  margin-top: 18px;
+  margin-top: 4px;
 }
 
 .cancelBtn,
@@ -213,12 +214,12 @@
   }
 
   .recipientList {
-    max-height: 240px;
+    max-height: 220px;
   }
 
   .footer {
-    flex-direction: column-reverse;
-    align-items: stretch;
+    display: grid;
+    grid-template-columns: 1fr;
   }
 
   .cancelBtn,

@@ -47,6 +47,12 @@
   font-size: 12px;
 }
 
+.repostMeta {
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
 .right {
   display: flex;
   align-items: center;
@@ -183,8 +189,7 @@
 }
 
 .quoteMediaSingle,
-.quoteGalleryWrap,
-.quoteNested {
+.quoteGalleryWrap {
   margin-top: 10px;
 }
 
@@ -192,10 +197,6 @@
 .quoteGalleryWrap {
   border-radius: 16px;
   overflow: hidden;
-}
-
-.quoteNested {
-  padding-top: 2px;
 }
 
 .quoteSingleImage {
@@ -330,3 +331,80 @@
     padding: 0 9px;
   }
 }
+
+
+.cardMobile {
+  padding: 14px 0 16px;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+
+.textCollapsed {
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.moreTextBtn {
+  margin-top: 8px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: #6da8ff;
+  font-size: 14px;
+  font-weight: 600;
+  text-align: left;
+}
+
+.quoteCardMobile {
+  background: rgba(255,255,255,0.025);
+}
+
+
+@media (max-width: 900px) {
+  .cardMobile .mediaSingle,
+  .cardMobile .galleryWrap,
+  .cardMobile .repostWrap {
+    margin-top: 10px;
+  }
+
+  .cardMobile .mediaSingle {
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+  }
+
+  .cardMobile .singleImage {
+    max-height: none;
+    width: 100%;
+  }
+
+  .cardMobile .actions {
+    width: 100%;
+    justify-content: flex-start;
+    gap: 6px;
+  }
+}
+
+.cardMobile .header,
+.cardMobile .text,
+.cardMobile .moreTextBtn,
+.cardMobile .widget,
+.cardMobile .footer,
+.cardMobile .repostWrap {
+  margin-inline: 16px;
+}
+
+.cardMobile .repostWrap {
+  width: auto;
+}
+
+.cardMobile .header {
+  padding-top: 2px;
+}
+
+.cardMobile .galleryWrap :global(img) { border-radius: 0; }

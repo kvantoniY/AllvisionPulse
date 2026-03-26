@@ -1,0 +1,222 @@
+.sheet {
+  min-height: 100%;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+}
+
+.sortRow {
+  padding: 12px 20px 10px;
+  color: #6da8ff;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 15px;
+}
+
+.list {
+  min-height: 0;
+  overflow: auto;
+  padding: 0 16px 112px;
+  display: grid;
+  align-content: start;
+  gap: 14px;
+}
+
+.thread {
+  display: grid;
+  gap: 10px;
+}
+
+.replies {
+  margin-left: 44px;
+  display: grid;
+  gap: 10px;
+}
+
+.comment {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.commentBody {
+  min-width: 0;
+  flex: 1;
+}
+
+.commentAuthorRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.commentAuthor {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.replyTo,
+.commentMetaRow {
+  color: var(--muted);
+}
+
+.commentText {
+  margin-top: 4px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  line-height: 1.45;
+  font-size: 15px;
+}
+
+.commentMetaRow {
+  margin-top: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  font-size: 13px;
+}
+
+.commentAction {
+  border: none;
+  background: transparent;
+  color: inherit;
+  padding: 0;
+}
+
+.commentLikes {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+}
+
+.commentImages {
+  margin-top: 10px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.commentImg {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  border-radius: 14px;
+}
+
+.moreBtn {
+  justify-self: start;
+  min-height: 34px;
+  padding: 0 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.03);
+  color: var(--text-soft);
+}
+
+.empty {
+  min-height: 180px;
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+  text-align: center;
+}
+
+.composerWrap {
+  position: sticky;
+  bottom: 0;
+  z-index: 4;
+  padding: 10px 12px calc(10px + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(17,18,20,0.98);
+}
+
+.previewStrip {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+}
+
+.previewItem {
+  position: relative;
+  width: 56px;
+  height: 56px;
+  min-width: 56px;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.previewItem img { width: 100%; height: 100%; object-fit: cover; }
+
+.previewRemove {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  border: none;
+  background: rgba(0,0,0,0.65);
+  color: white;
+  display: grid;
+  place-items: center;
+}
+
+.replyChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 26px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.05);
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+
+.replyChip button { border: none; background: transparent; color: inherit; padding: 0; display: grid; place-items: center; }
+
+.composer {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  gap: 8px;
+  align-items: end;
+}
+
+.inputShell {
+  min-width: 0;
+}
+
+.textarea {
+  width: 100%;
+  min-height: 42px;
+  max-height: 120px;
+  resize: none;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.03);
+  padding: 10px 12px;
+  color: var(--text);
+  outline: none;
+}
+
+.toolBtn,
+.sendBtn {
+  width: 40px;
+  height: 40px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.03);
+  color: var(--text-soft);
+  display: grid;
+  place-items: center;
+}
+
+.sendBtn {
+  background: rgba(255,122,26,0.16);
+  border-color: rgba(255,122,26,0.22);
+  color: white;
+}
+
+.sendBtn:disabled { opacity: 0.4; }

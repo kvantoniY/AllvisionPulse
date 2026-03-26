@@ -28,7 +28,7 @@ function visiblePostWhere(postId?: string) {
   };
 }
 
-function buildPostInclude(depth = 3): any {
+function buildPostInclude(depth = 1): any {
   return {
     author: { select: { id: true, username: true, avatarUrl: true, role: true } },
     images: true,
@@ -41,6 +41,28 @@ function buildPostInclude(depth = 3): any {
           },
         }
       : {}),
+  };
+}
+
+
+async function resolveOriginalPostId(postId: string) {
+  let currentId = postId;
+  for (let i = 0; i < 8; i += 1) {
+    const current = await prisma.post.findFirst({
+      where: visiblePostWhere(currentId),
+      select: { id: true, repostOfId: true },
+    });
+    if (!current) throw new HttpError(404, "Post not found");
+    if (!current.repostOfId) return current.id;
+    currentId = current.repostOfId;
+  }
+  return currentId;
+}
+
+function mapComment<T extends { widgetsJson?: any | null }>(comment: T) {
+  return {
+    ...comment,
+    replyToUsername: comment.widgetsJson?.replyToUsername ?? null,
   };
 }
 
@@ -82,8 +104,9 @@ router.post("/", upload.array("images", 10), asyncHandler(async (req: AuthedRequ
   const body = CreatePostSchema.parse(req.body);
   const files = (req.files as Express.Multer.File[]) ?? [];
 
+  let repostOfId: string | undefined;
   if (body.repostOfId) {
-    await ensureVisiblePost(body.repostOfId);
+    repostOfId = await resolveOriginalPostId(body.repostOfId);
   }
 
   const created = await prisma.post.create({
@@ -91,7 +114,7 @@ router.post("/", upload.array("images", 10), asyncHandler(async (req: AuthedRequ
       authorId: req.user!.id,
       text: body.text ?? undefined,
       widgetsJson: body.widgetsJson ?? undefined,
-      repostOfId: body.repostOfId ?? undefined,
+      repostOfId,
       images: {
         create: files.map((f, idx) => ({ url: fileUrl(req, path.basename(f.filename)), order: idx })),
       },
@@ -186,7 +209,7 @@ router.get("/:postId/comments", asyncHandler(async (req: AuthedRequest, res) => 
   const hasMore = comments.length > take;
   const items = hasMore ? comments.slice(0, take) : comments;
   const nextCursor = hasMore ? items[items.length - 1].id : null;
-  res.json({ items, nextCursor });
+  res.json({ items: items.map(mapComment), nextCursor });
 }));
 
 router.get("/comments/:commentId/replies", asyncHandler(async (req: AuthedRequest, res) => {
@@ -194,9 +217,9 @@ router.get("/comments/:commentId/replies", asyncHandler(async (req: AuthedReques
   const replies = await prisma.comment.findMany({
     where: { parentId: commentId, deletedAt: null, author: { is: activeUserWhere(new Date()) } },
     orderBy: { createdAt: "asc" },
-    include: { author: { select: { id: true, username: true, avatarUrl: true, role: true } }, images: true, likes: { select: { userId: true } } },
+    include: { author: { select: { id: true, username: true, avatarUrl: true, role: true } }, images: true, likes: { select: { userId: true } }, _count: { select: { replies: true, likes: true } } },
   });
-  res.json({ items: replies });
+  res.json({ items: replies.map(mapComment) });
 }));
 
 const CreateCommentSchema = z.object({
@@ -245,7 +268,7 @@ router.post("/:postId/comments", upload.array("images", 10), asyncHandler(async 
     emitter?.emitToUser(post.authorId, "notification:new", notif);
   }
 
-  res.json({ comment });
+  res.json({ comment: mapComment(comment) });
 }));
 
 router.delete("/comments/:commentId", asyncHandler(async (req: AuthedRequest, res) => {

@@ -13,10 +13,12 @@ import { ImageGallery } from '@/shared/ui/ImageGallery/ImageGallery';
 import { useLightbox } from '@/shared/ui/Lightbox/LightboxProvider';
 import { Icon } from '@/shared/ui/Icon/Icon';
 import { AdminBadge } from '@/shared/ui/AdminBadge/AdminBadge';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { ConfirmDialog } from '@/shared/ui/ConfirmDialog/ConfirmDialog';
 import { RepostModal } from '@/features/postRepost/ui/RepostModal';
 import { PostLikesModal } from '@/features/postLikes/ui/PostLikesModal';
+import { useIsMobile } from '@/shared/lib/hooks/useIsMobile';
+import { PostCommentsMobileModal } from '@/features/postComments/ui/PostCommentsMobileModal';
 
 function getOriginalPost(post: Post): Post {
   let current = post;
@@ -24,14 +26,13 @@ function getOriginalPost(post: Post): Post {
   return current;
 }
 
-function PostQuote({ post, onOpenOriginal }: { post: Post; onOpenOriginal?: () => void }) {
+function QuoteCard({ post, onOpenOriginal, mobile }: { post: Post; onOpenOriginal?: () => void; mobile?: boolean }) {
   const lightbox = useLightbox();
   const images = post.images ?? [];
   const singleImage = images.length === 1 ? images[0] : null;
-  const original = getOriginalPost(post);
 
   return (
-    <div className={styles.quoteCard}>
+    <div className={[styles.quoteCard, mobile ? styles.quoteCardMobile : ''].filter(Boolean).join(' ')}>
       <div className={styles.quoteHeader}>
         <Avatar url={post.author.avatarUrl} name={post.author.username} size={34} />
         <div className={styles.quoteMeta}>
@@ -59,19 +60,13 @@ function PostQuote({ post, onOpenOriginal }: { post: Post; onOpenOriginal?: () =
 
       {images.length > 1 ? (
         <div className={styles.quoteGalleryWrap}>
-          <ImageGallery images={images} aspect="4 / 5" maxHeight={580} />
+          <ImageGallery images={images} aspect="4 / 5" maxHeight={580} rounded={!mobile} />
         </div>
       ) : null}
 
-      {post.repostOf ? (
-        <div className={styles.quoteNested}>
-          <PostQuote post={post.repostOf} onOpenOriginal={onOpenOriginal} />
-        </div>
-      ) : null}
-
-      {onOpenOriginal ? (
+      {onOpenOriginal && !mobile ? (
         <button type="button" className={styles.quoteOpenBtn} onClick={onOpenOriginal}>
-          <span>{original.id === post.id ? 'Открыть пост' : 'Открыть оригинал'}</span>
+          <span>Открыть оригинал</span>
           <Icon name="arrowLeft" size={14} className={styles.quoteOpenIcon} />
         </button>
       ) : null}
@@ -100,14 +95,18 @@ export function PostCard({
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
   const [likesOpen, setLikesOpen] = useState(false);
+  const [commentsOpen, setCommentsOpen] = useState(false);
+  const [textExpanded, setTextExpanded] = useState(false);
+  const isMobile = useIsMobile();
 
   const canDeletePost = !!me && (post.authorId === me.id || me.role === 'ADMIN');
-  const sourcePost = post.repostOf ?? null;
-  const mediaPost = post.repostOf ? getOriginalPost(post.repostOf) : post;
-  const images = mediaPost.images ?? [];
+  const originalPost = useMemo(() => (post.repostOf ? getOriginalPost(post.repostOf) : null), [post.repostOf]);
+  const images = post.repostOf ? [] : post.images ?? [];
   const singleImage = images.length === 1 ? images[0] : null;
+  const longText = (post.text ?? '').length > 220;
 
   const openCurrent = () => {
+    if (isMobile) return;
     if (onOpenPost) onOpenPost(post.id);
     else onOpen?.();
   };
@@ -124,20 +123,22 @@ export function PostCard({
     setConfirmOpen(false);
   };
 
-  const onOpenOriginal = sourcePost && onOpenPost ? () => onOpenPost(getOriginalPost(sourcePost).id) : undefined;
+  const onOpenOriginal = originalPost && onOpenPost ? () => onOpenPost(originalPost.id) : undefined;
+  const textClass = [styles.text, !textExpanded && longText ? styles.textCollapsed : ''].filter(Boolean).join(' ');
 
   return (
     <>
-      <Card className={[styles.card, compact ? styles.cardCompact : ''].filter(Boolean).join(' ')}>
+      <Card className={[styles.card, compact ? styles.cardCompact : '', isMobile ? styles.cardMobile : ''].filter(Boolean).join(' ')}>
         <div className={styles.header}>
           <div className={styles.author}>
-            <Avatar url={post.author.avatarUrl} name={post.author.username} size={44} />
+            <Avatar url={post.author.avatarUrl} name={post.author.username} size={isMobile ? 42 : 44} />
             <Link href={ROUTES.app.profile(post.author.username)} className={styles.authorLink}>
               <div className={styles.nameRow}>
                 <span className={styles.name}>{post.author.username}</span>
                 <AdminBadge role={post.author.role} />
               </div>
               <div className={styles.handle}>@{post.author.username}</div>
+              {post.repostOf ? <div className={styles.repostMeta}>репостнул публикацию</div> : null}
             </Link>
           </div>
 
@@ -152,13 +153,20 @@ export function PostCard({
         </div>
 
         {post.text ? (
-          <div className={styles.text} onClick={openCurrent} style={{ cursor: onOpen || onOpenPost ? 'pointer' : 'default' }}>
-            {post.text}
-          </div>
+          <>
+            <div className={textClass} onClick={!isMobile ? openCurrent : undefined} style={{ cursor: !isMobile && (onOpen || onOpenPost) ? 'pointer' : 'default' }}>
+              {post.text}
+            </div>
+            {longText ? (
+              <button type="button" className={styles.moreTextBtn} onClick={() => setTextExpanded((value) => !value)}>
+                {textExpanded ? 'Свернуть' : 'Показать ещё'}
+              </button>
+            ) : null}
+          </>
         ) : null}
 
         {(post.widgetsJson as any)?.type === 'health' ? (
-          <button type="button" className={styles.widget} onClick={openCurrent}>
+          <button type="button" className={styles.widget} onClick={!isMobile ? openCurrent : undefined}>
             <div>
               <div className={styles.widgetTitle}>Сводка дня</div>
               <div className={styles.widgetHint}>Оценка дня и недельный пульс</div>
@@ -170,13 +178,13 @@ export function PostCard({
           </button>
         ) : null}
 
-        {sourcePost ? (
+        {originalPost ? (
           <div className={styles.repostWrap}>
-            <PostQuote post={sourcePost} onOpenOriginal={onOpenOriginal} />
+            <QuoteCard post={originalPost} onOpenOriginal={onOpenOriginal} mobile={isMobile} />
           </div>
         ) : null}
 
-        {!sourcePost && singleImage ? (
+        {!originalPost && singleImage ? (
           <div className={styles.mediaSingle}>
             <img
               src={singleImage.url}
@@ -188,9 +196,9 @@ export function PostCard({
           </div>
         ) : null}
 
-        {!sourcePost && images.length > 1 ? (
+        {!originalPost && images.length > 1 ? (
           <div className={styles.galleryWrap}>
-            <ImageGallery images={images} aspect="4 / 5" maxHeight={760} />
+            <ImageGallery images={images} aspect="4 / 5" maxHeight={isMobile ? 560 : 760} rounded={!isMobile} />
           </div>
         ) : null}
 
@@ -204,12 +212,12 @@ export function PostCard({
                 {post._count?.likes ?? 0}
               </button>
             </div>
-            <button className={styles.iconBtn} onClick={openCurrent} aria-label="Комментарии">
+            <button className={styles.iconBtn} onClick={isMobile ? () => setCommentsOpen(true) : openCurrent} aria-label="Комментарии">
               <Icon name="comment" size={16} />
               <span>{post._count?.comments ?? 0}</span>
             </button>
             <button className={styles.iconBtn} onClick={() => setShareOpen(true)} aria-label="Сделать репост">
-              <Icon name="forward" size={16} />
+              <Icon name="repeat" size={16} />
               <span>{post._count?.reposts ?? 0}</span>
             </button>
           </div>
@@ -229,6 +237,7 @@ export function PostCard({
 
       <RepostModal open={shareOpen} onClose={() => setShareOpen(false)} post={post} />
       <PostLikesModal open={likesOpen} onClose={() => setLikesOpen(false)} postId={post.id} />
+      <PostCommentsMobileModal open={commentsOpen} onClose={() => setCommentsOpen(false)} postId={post.id} />
     </>
   );
 }

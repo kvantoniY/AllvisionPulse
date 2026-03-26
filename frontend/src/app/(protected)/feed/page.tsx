@@ -10,6 +10,7 @@ import { PostComposer } from '@/features/postComposer/ui/PostComposer';
 import { PostModal } from '@/features/postModal/ui/PostModal';
 import { StoriesRail } from '@/features/stories';
 import { Skeleton, SkeletonText } from '@/shared/ui/Skeleton/Skeleton';
+import { useIsMobile } from '@/shared/lib/hooks/useIsMobile';
 
 function FeedCardSkeleton() {
   return (
@@ -33,6 +34,7 @@ function FeedCardSkeleton() {
 export default function FeedPage() {
   const { data, isFetching, isError } = useGetFeedQuery(undefined);
   const [fetchPage] = useLazyGetFeedQuery();
+  const isMobile = useIsMobile();
 
   const items = data?.items ?? [];
   const nextCursor = data?.nextCursor ?? null;
@@ -47,11 +49,11 @@ export default function FeedPage() {
   }, [nearEnd, isFetching, nextCursor, fetchPage]);
 
   return (
-    <div className="container appPage">
-      <PostModal postId={openPostId} open={!!openPostId} onClose={() => setOpenPostId(null)} onOpenPost={setOpenPostId} />
+    <div className={["container", "appPage", isMobile ? styles.pageMobile : ''].join(' ')}>
+      {!isMobile ? <PostModal postId={openPostId} open={!!openPostId} onClose={() => setOpenPostId(null)} onOpenPost={setOpenPostId} /> : null}
 
       <div className={styles.stack}>
-        <div className={styles.eyebrow}>Главная лента</div>
+        {!isMobile ? <div className={styles.eyebrow}>Главная лента</div> : null}
 
         <StoriesRail />
 
