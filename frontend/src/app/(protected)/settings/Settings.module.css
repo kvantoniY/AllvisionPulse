@@ -33,3 +33,46 @@
 .success { margin-top: 12px; color: #4ddf7c; font-size: 13px; }
 .error { margin-top: 12px; color: #ff6b6b; font-size: 13px; }
 @media (max-width: 880px) { .accountBox, .blacklistRow { flex-direction: column; align-items: stretch; } }
+
+
+/* adaptive-first global overrides */
+@media (max-width: 960px) {
+  .page,
+  .stack {
+    gap: 14px;
+  }
+
+  .segmented {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .segmentedItem {
+    min-height: 38px;
+  }
+
+  .optionRow,
+  .settingRow,
+  .blacklistRow,
+  .accountBox {
+    gap: 12px;
+  }
+
+  .choicePills {
+    width: 100%;
+  }
+
+  .choicePill {
+    flex: 1 1 auto;
+    justify-content: center;
+  }
+
+  .footerActions {
+    justify-content: stretch;
+  }
+
+  .footerActions > * {
+    width: 100%;
+  }
+}

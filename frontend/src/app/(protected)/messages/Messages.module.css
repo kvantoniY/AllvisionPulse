@@ -22,3 +22,34 @@
   .hideOnMobile { display: none; }
   .listCard { min-height: auto; }
 }
+
+
+/* adaptive-first global overrides */
+.grid {
+  align-items: stretch;
+}
+
+.placeholder {
+  padding: 18px;
+}
+
+@media (max-width: 1180px) {
+  .grid {
+    grid-template-columns: 280px minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 960px) {
+  .grid {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+
+  .listCard,
+  .right,
+  .placeholder {
+    min-height: calc(100dvh - var(--mobile-header-height) - var(--mobile-nav-height) - env(safe-area-inset-bottom, 0px) - 8px);
+    border-radius: 0;
+    border-inline: 0;
+  }
+}

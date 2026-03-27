@@ -9,8 +9,8 @@
 }
 
 .sheet {
-  width: 100%;
-  height: min(100dvh, 100vh);
+  width: 100vw;
+  height: 100dvh;
   background: #111214;
   border-radius: 0;
   border-top: 1px solid rgba(255, 255, 255, 0.06);
@@ -69,6 +69,8 @@
 
 .body {
   min-height: 0;
-  overflow: auto;
-  padding-bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+  overflow: hidden;
+  padding-bottom: 0;
+  display: flex;
+  flex-direction: column;
 }

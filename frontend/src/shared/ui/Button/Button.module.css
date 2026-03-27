@@ -77,3 +77,9 @@
 .ghost:hover {
   background: rgba(255,255,255,0.04);
 }
+
+@media (max-width: 960px) {
+  .btn {
+    min-height: 42px;
+  }
+}

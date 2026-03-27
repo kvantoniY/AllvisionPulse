@@ -3,6 +3,7 @@
 import { PropsWithChildren, createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import styles from './Lightbox.module.css';
 import { Icon } from '@/shared/ui/Icon/Icon';
+import { lockBodyScroll } from '@/shared/lib/dom/scrollLock';
 
 type LightboxImage = { url: string; id?: string };
 
@@ -61,12 +62,7 @@ export function LightboxProvider({ children }: PropsWithChildren) {
 
   useEffect(() => {
     if (!state.open) return;
-    // lock scroll
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = prev;
-    };
+    return lockBodyScroll();
   }, [state.open]);
 
   const idx = clamp(state.index, 0, Math.max(0, state.images.length - 1));
@@ -80,7 +76,7 @@ export function LightboxProvider({ children }: PropsWithChildren) {
         <div className={styles.backdrop} role="dialog" aria-modal="true" onMouseDown={closeLightbox}>
           <div className={styles.modal} onMouseDown={(e) => e.stopPropagation()}>
             <button className={styles.close} type="button" onClick={closeLightbox} aria-label="close">
-              ✕
+              <Icon name="close" size={20} />
             </button>
 
             {many && idx > 0 ? (

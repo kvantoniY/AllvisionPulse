@@ -122,11 +122,6 @@ export function PostComposer({ context = 'feed' }: { context?: 'feed' | 'profile
   if (isMobile) {
     return (
       <>
-        <button type="button" className={styles.mobileTrigger} onClick={() => setMobileOpen(true)}>
-          <Avatar url={me.avatarUrl} name={me.username} size={40} />
-          <span className={styles.mobileTriggerText}>Напишите что-нибудь...</span>
-        </button>
-
         <Modal open={widgetOpen} onClose={() => setWidgetOpen(false)} title="Добавить виджет">
           <div style={{ display: 'grid', gap: 12 }}>
             <div style={{ color: 'var(--muted)', fontSize: 14, lineHeight: 1.5 }}>

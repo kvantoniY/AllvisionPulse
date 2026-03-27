@@ -21,3 +21,49 @@
 .iconAction { width: 36px; height: 36px; border-radius: 10px; border: 1px solid var(--stroke); background: rgba(255,255,255,0.03); color: var(--text); display: grid; place-items: center; }
 .sectionLabel { margin: 4px 0 0; color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.12em; }
 @media (max-width: 920px) { .hero, .row { flex-direction: column; align-items: stretch; } }
+
+
+/* adaptive-first global overrides */
+@media (max-width: 960px) {
+  .page {
+    gap: 14px;
+  }
+
+  .hero {
+    gap: 12px;
+  }
+
+  .subtitle {
+    max-width: none;
+  }
+
+  .tabs {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .tab {
+    justify-content: center;
+  }
+
+  .list {
+    gap: 8px;
+  }
+
+  .row {
+    padding: 12px;
+    border-radius: 14px;
+  }
+
+  .actions,
+  .inlineActions {
+    width: 100%;
+    justify-content: stretch;
+  }
+
+  .actions > *,
+  .inlineActions > * {
+    flex: 1 1 auto;
+  }
+}

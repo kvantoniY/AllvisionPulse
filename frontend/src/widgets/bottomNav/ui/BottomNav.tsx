@@ -54,7 +54,7 @@ export function BottomNav() {
   const [menuOpen, setMenuOpen] = useState(false);
 
 
-  const hideNav = /^\/messages\/[^/]+/.test(pathname) || pathname.startsWith('/call');
+  const hideNav = /^\/messages\/[^/]+/.test(pathname) || pathname.startsWith('/call') || pathname.startsWith('/game');
 
   if (hideNav) return null;
 

@@ -14,6 +14,8 @@ import {
   useGetPostQuery,
   useLikePostMutation,
   useUnlikePostMutation,
+  useLikeCommentMutation,
+  useUnlikeCommentMutation,
 } from '@/shared/api/postsApi';
 import { formatRelative } from '@/shared/lib/time';
 import type { Comment, Post } from '@/shared/types/social';
@@ -24,6 +26,7 @@ import { useLightbox } from '@/shared/ui/Lightbox/LightboxProvider';
 import { ConfirmDialog } from '@/shared/ui/ConfirmDialog/ConfirmDialog';
 import { RepostModal } from '@/features/postRepost/ui/RepostModal';
 import { PostLikesModal } from '@/features/postLikes/ui/PostLikesModal';
+import { EditPostModal } from '@/features/postEdit/ui/EditPostModal';
 import { lockBodyScroll } from '@/shared/lib/dom/scrollLock';
 
 const MAX_TEXT = 5000;
@@ -57,20 +60,43 @@ function formatAbsoluteDate(value: string) {
   }
 }
 
+
+type SortMode = 'new' | 'old' | 'top';
+function sortComments<T extends { createdAt: string; _count?: { likes?: number } }>(items: T[], mode: SortMode) {
+  const list = [...items];
+  if (mode === 'top') return list.sort((a, b) => (b._count?.likes ?? 0) - (a._count?.likes ?? 0) || +new Date(b.createdAt) - +new Date(a.createdAt));
+  if (mode === 'old') return list.sort((a, b) => +new Date(a.createdAt) - +new Date(b.createdAt));
+  return list.sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt));
+}
+
 function CommentBubble({
   comment,
+  postId,
+  parentId,
+  meId,
   canDelete,
   deleting,
   onAskDelete,
   onReply,
 }: {
   comment: Comment;
+  postId: string;
+  parentId?: string;
+  meId?: string | null;
   canDelete: boolean;
   deleting?: boolean;
   onAskDelete: () => void;
   onReply: () => void;
 }) {
   const lightbox = useLightbox();
+  const liked = !!meId && (comment.likes ?? []).some((item) => item.userId === meId);
+  const [likeComment] = useLikeCommentMutation();
+  const [unlikeComment] = useUnlikeCommentMutation();
+  const onToggleLike = async () => {
+    if (!meId) return;
+    if (liked) await unlikeComment({ commentId: comment.id, postId, parentId, userId: meId }).unwrap().catch(() => null);
+    else await likeComment({ commentId: comment.id, postId, parentId, userId: meId }).unwrap().catch(() => null);
+  };
   return (
     <div className={styles.comment}>
       <Avatar url={comment.author.avatarUrl} name={comment.author.username} size={34} />
@@ -109,6 +135,10 @@ function CommentBubble({
           <button type="button" className={styles.commentActionBtn} onClick={onReply}>
             Ответить
           </button>
+          <button type="button" className={[styles.commentLikeBtn, liked ? styles.commentLikeBtnActive : ''].filter(Boolean).join(' ')} onClick={onToggleLike}>
+            <Icon name="heart" size={15} />
+            <span>{comment._count?.likes ?? 0}</span>
+          </button>
         </div>
       </div>
     </div>
@@ -117,24 +147,28 @@ function CommentBubble({
 
 function CommentThread({
   rootComment,
+  postId,
   meId,
   isAdmin,
   canDeleteIds,
   deletingCommentId,
+  sortMode,
   onAskDelete,
   onReply,
 }: {
   rootComment: Comment;
+  postId: string;
   meId?: string | null;
   isAdmin?: boolean;
   canDeleteIds: Set<string>;
   deletingCommentId?: string | null;
+  sortMode: SortMode;
   onAskDelete: (comment: Comment) => void;
   onReply: (comment: Comment, rootParentId?: string) => void;
 }) {
   const hasReplies = (rootComment._count?.replies ?? 0) > 0;
   const { data: repliesData } = useGetCommentRepliesQuery({ commentId: rootComment.id }, { skip: !hasReplies });
-  const replies = repliesData?.items ?? [];
+  const replies = useMemo(() => sortComments(repliesData?.items ?? [], 'new'), [repliesData?.items]);
   const [expanded, setExpanded] = useState(false);
   const visibleReplies = expanded ? replies : replies.slice(0, 2);
   const hiddenCount = Math.max(0, replies.length - visibleReplies.length);
@@ -143,6 +177,8 @@ function CommentThread({
     <div className={styles.thread}>
       <CommentBubble
         comment={rootComment}
+        postId={postId}
+        meId={meId}
         canDelete={canDeleteIds.has(rootComment.id)}
         deleting={deletingCommentId === rootComment.id}
         onAskDelete={() => onAskDelete(rootComment)}
@@ -155,6 +191,9 @@ function CommentThread({
             <CommentBubble
               key={reply.id}
               comment={reply}
+              postId={postId}
+              parentId={rootComment.id}
+              meId={meId}
               canDelete={!!meId && (reply.authorId === meId || !!isAdmin)}
               deleting={deletingCommentId === reply.id}
               onAskDelete={() => onAskDelete(reply)}
@@ -200,6 +239,8 @@ function CommentComposer({
 }) {
   const ref = useRef<HTMLTextAreaElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const previewUrls = useMemo(() => files.map((file) => ({ file, url: URL.createObjectURL(file) })), [files]);
+  useEffect(() => () => previewUrls.forEach((item) => URL.revokeObjectURL(item.url)), [previewUrls]);
   useAutosize(ref, value);
   const canSend = (!!value.trim() || files.length > 0) && !sending;
 
@@ -216,11 +257,11 @@ function CommentComposer({
           </div>
         ) : null}
 
-        {files.length ? (
+        {previewUrls.length ? (
           <div className={styles.attachmentsPreview}>
-            {files.map((file, index) => (
-              <div key={`${file.name}:${index}`} className={styles.attachmentItem}>
-                <img src={URL.createObjectURL(file)} alt="" className={styles.attachmentImage} />
+            {previewUrls.map((item, index) => (
+              <div key={`${item.url}:${index}`} className={styles.attachmentItem}>
+                <img src={item.url} alt="" className={styles.attachmentImage} />
                 <button type="button" className={styles.attachmentRemove} onClick={() => onRemoveFile(index)} aria-label="Удалить изображение">
                   <Icon name="close" size={12} />
                 </button>
@@ -302,6 +343,10 @@ export function PostModal({
   const [shareOpen, setShareOpen] = useState(false);
   const [likesOpen, setLikesOpen] = useState(false);
   const [textExpanded, setTextExpanded] = useState(false);
+  const [sortMode, setSortMode] = useState<SortMode>('new');
+  const [sortOpen, setSortOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -327,6 +372,10 @@ export function PostModal({
     setShareOpen(false);
     setLikesOpen(false);
     setTextExpanded(false);
+    setSortMode('new');
+    setSortOpen(false);
+    setMenuOpen(false);
+    setEditOpen(false);
   }, [open, postId]);
 
   const liked = !!me && !!post && (post.likes ?? []).some((item) => item.userId === me.id);
@@ -382,11 +431,13 @@ export function PostModal({
 
   if (!open) return null;
 
+  const sortedComments = sortComments(comments, sortMode);
+  const sortLabel = sortMode === 'new' ? 'Сначала новые' : sortMode === 'old' ? 'Сначала старые' : 'Самые интересные';
   const images = mediaPost?.images ?? [];
   const singleImage = images.length === 1 ? images[0] : null;
   const hasMedia = images.length > 0;
   const textContent = post?.text || (!hasMedia && mediaPost && mediaPost.id !== post?.id ? mediaPost.text || '' : '');
-  const longText = textContent.length > (hasMedia ? 320 : 700);
+  const longText = textContent.length > (hasMedia ? 420 : 920);
   const descriptionClassName = [
     styles.description,
     hasMedia ? styles.descriptionScrollable : styles.descriptionTextOnly,
@@ -403,62 +454,84 @@ export function PostModal({
           {post?._count?.likes ?? 0}
         </button>
       </div>
-      <button className={styles.metricBtn} type="button" disabled>
+      <button className={styles.metricBtn} type="button" onClick={() => document.querySelector('[data-comments-section=\"1\"]')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>
         <Icon name="comment" size={18} />
         <span>{post?._count?.comments ?? 0}</span>
       </button>
       <button className={styles.metricBtn} type="button" onClick={() => setShareOpen(true)}>
-        <Icon name="repeat" size={18} />
+        <Icon name="forward" size={18} />
         <span>{post?._count?.reposts ?? 0}</span>
       </button>
     </div>
   );
 
   const commentsSection = (
-    <div className={[styles.commentsSection, !hasMedia ? styles.commentsSectionTextOnly : ''].filter(Boolean).join(' ')}>
-      <div className={styles.commentsHeader}>Комментарии</div>
-      <div className={styles.commentsList}>
-        {comments.map((comment) => (
-          <CommentThread
-            key={comment.id}
-            rootComment={comment}
-            meId={me?.id}
-            isAdmin={me?.role === 'ADMIN'}
-            canDeleteIds={canDeleteIds}
-            deletingCommentId={deletingComment ? commentToDelete?.id ?? null : null}
-            onAskDelete={setCommentToDelete}
-            onReply={(target, rootParentId) =>
-              setReplyTarget({
-                commentId: target.id,
-                parentId: rootParentId ?? target.id,
-                username: target.author.username,
-              })
-            }
-          />
-        ))}
-
-        {isFetching && !comments.length ? (
-          <>
-            <div className={styles.comment}><Skeleton circle style={{ width: 34, height: 34 }} /><div className={styles.commentBody}><SkeletonText lines={3} /></div></div>
-            <div className={styles.comment}><Skeleton circle style={{ width: 34, height: 34 }} /><div className={styles.commentBody}><SkeletonText lines={2} /></div></div>
-          </>
-        ) : null}
-
-        {!comments.length && !isFetching ? (
-          <div className={styles.emptyComments}>
-            <Icon name="comment" size={26} />
-            <div>Пока нет комментариев</div>
-            <div className={styles.emptyCommentsHint}>Станьте первым, кто начнёт обсуждение.</div>
-          </div>
-        ) : null}
+    <section data-comments-section="1" className={[styles.commentsSection, !hasMedia ? styles.commentsSectionTextOnly : ''].filter(Boolean).join(' ')}>
+      <div className={styles.commentsTopBar}>
+        <div className={styles.commentsHeader}>Комментарии</div>
+        <div className={styles.sortWrap}>
+          <button type="button" className={styles.sortTrigger} onClick={() => setSortOpen((value) => !value)}>
+            <span>{sortLabel}</span>
+            <Icon name="chevronDown" size={14} />
+          </button>
+          {sortOpen ? (
+            <div className={styles.sortMenu}>
+              {[
+                ['new', 'Сначала новые'],
+                ['old', 'Сначала старые'],
+                ['top', 'Самые интересные'],
+              ].map(([value, label]) => (
+                <button key={value} type="button" className={[styles.sortOption, sortMode === value ? styles.sortOptionActive : ''].filter(Boolean).join(' ')} onClick={() => { setSortMode(value as SortMode); setSortOpen(false); }}>
+                  {label}
+                </button>
+              ))}
+            </div>
+          ) : null}
+        </div>
       </div>
+
+      {sortedComments.length ? (
+        <div className={styles.commentsList}>
+          {sortedComments.map((comment) => (
+            <CommentThread
+              key={comment.id}
+              rootComment={comment}
+              postId={postId!}
+              meId={me?.id}
+              isAdmin={me?.role === 'ADMIN'}
+              canDeleteIds={canDeleteIds}
+              deletingCommentId={deletingComment ? commentToDelete?.id ?? null : null}
+              sortMode={sortMode}
+              onAskDelete={setCommentToDelete}
+              onReply={(target, rootParentId) =>
+                setReplyTarget({
+                  commentId: target.id,
+                  parentId: rootParentId ?? target.id,
+                  username: target.author.username,
+                })
+              }
+            />
+          ))}
+        </div>
+      ) : isFetching ? (
+        <div className={styles.commentsList}>
+          <div className={styles.comment}><Skeleton circle style={{ width: 34, height: 34 }} /><div className={styles.commentBody}><SkeletonText lines={3} /></div></div>
+          <div className={styles.comment}><Skeleton circle style={{ width: 34, height: 34 }} /><div className={styles.commentBody}><SkeletonText lines={2} /></div></div>
+        </div>
+      ) : (
+        <div className={styles.emptyComments}>
+          <Icon name="comment" size={26} />
+          <div>Пока нет комментариев</div>
+          <div className={styles.emptyCommentsHint}>Станьте первым, кто начнёт обсуждение.</div>
+        </div>
+      )}
 
       {nextCursor ? (
         <button className={styles.loadMore} onClick={() => nextCursor && setCursor(nextCursor)} disabled={isFetching}>
           {isFetching ? 'Загрузка…' : 'Показать ещё комментарии'}
         </button>
       ) : null}
-    </div>
+    </section>
   );
 
   const composerElement = (
@@ -473,7 +546,6 @@ export function PostModal({
       onClearReply={() => setReplyTarget(null)}
       onSend={onSend}
       sending={sending}
-      compact={!hasMedia}
     />
   );
 
@@ -485,28 +557,9 @@ export function PostModal({
         </button>
 
         <div className={[styles.surface, !hasMedia ? styles.surfaceCompact : ''].filter(Boolean).join(' ')} onMouseDown={(e) => e.stopPropagation()}>
-          {hasMedia ? (
-            <div className={styles.mediaPane}>
-              {postFetching && !post ? <SkeletonCard className={styles.postSkeleton} /> : null}
-              {mediaPost ? (
-                <>
-                  {singleImage ? (
-                    <img
-                      src={singleImage.url}
-                      alt=""
-                      className={styles.mainImage}
-                      onClick={() => lightbox?.openLightbox([{ id: singleImage.id, url: singleImage.url }], 0)}
-                    />
-                  ) : null}
-                  {images.length > 1 ? <ImageGallery images={images} aspect="4 / 5" maxHeight={880} /> : null}
-                </>
-              ) : null}
-            </div>
-          ) : null}
-
-          <aside className={[styles.sidePane, !hasMedia ? styles.sidePaneTextOnly : ''].filter(Boolean).join(' ')}>
-            {post ? (
-              <>
+          {post ? (
+            <>
+              <div className={styles.postTop}>
                 <div className={styles.sideHeader}>
                   <div className={styles.author}>
                     <Avatar url={post.author.avatarUrl} name={post.author.username} size={42} />
@@ -522,16 +575,43 @@ export function PostModal({
 
                   <div className={styles.headerTools}>
                     {canDeletePost ? (
-                      <button className={styles.headerToolBtn} type="button" onClick={() => setConfirmDeletePostOpen(true)} aria-label="Удалить публикацию">
-                        <Icon name="trash" size={16} />
-                      </button>
+                      <div className={styles.modalMenuWrap}>
+                        <button className={styles.headerToolBtn} type="button" onClick={() => setMenuOpen((value) => !value)} aria-label="Действия с публикацией">
+                          <Icon name="dots" size={16} />
+                        </button>
+                        {menuOpen ? (
+                          <div className={styles.modalMenuPopover}>
+                            <button type="button" className={styles.modalMenuAction} onClick={() => { setMenuOpen(false); setEditOpen(true); }}>
+                              <Icon name="pencil" size={14} />
+                              <span>Редактировать</span>
+                            </button>
+                            <button type="button" className={[styles.modalMenuAction, styles.modalMenuActionDanger].join(' ')} onClick={() => { setMenuOpen(false); setConfirmDeletePostOpen(true); }}>
+                              <Icon name="trash" size={14} />
+                              <span>Удалить</span>
+                            </button>
+                          </div>
+                        ) : null}
+                      </div>
                     ) : null}
                   </div>
                 </div>
 
                 {hasMedia ? (
-                  <>
-                    {actionRow}
+                  <div className={styles.mediaPane}>
+                    {singleImage ? (
+                      <img
+                        src={singleImage.url}
+                        alt=""
+                        className={styles.mainImage}
+                        onClick={() => lightbox?.openLightbox([{ id: singleImage.id, url: singleImage.url }], 0)}
+                      />
+                    ) : null}
+                    {images.length > 1 ? <ImageGallery images={images} aspect="4 / 5" maxHeight={360} rounded={false} /> : null}
+                  </div>
+                ) : null}
+
+                {(textContent || (post.repostOf && originalPost)) ? (
+                  <div className={[styles.textBlock, !hasMedia ? styles.textBlockTextOnly : ''].filter(Boolean).join(' ')}>
                     {textContent ? <div className={descriptionClassName}>{textContent}</div> : null}
                     {longText ? (
                       <button type="button" className={styles.moreTextBtnModal} onClick={() => setTextExpanded((value) => !value)}>
@@ -539,7 +619,7 @@ export function PostModal({
                       </button>
                     ) : null}
                     {post.repostOf && originalPost ? (
-                      <div className={styles.repostRow}>
+                      <div className={styles.repostRowInline}>
                         <span className={styles.repostLabel}>Оригинал: @{originalPost.author.username}</span>
                         {onOpenPost ? (
                           <button type="button" className={styles.repostLinkBtn} onClick={() => onOpenPost(originalPost.id)}>
@@ -548,39 +628,19 @@ export function PostModal({
                         ) : null}
                       </div>
                     ) : null}
-                    <div className={styles.commentsDock}>
-                      {commentsSection}
-                      {composerElement}
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <div className={styles.textFlow}>
-                      {textContent ? <div className={descriptionClassName}>{textContent}</div> : null}
-                      {longText ? (
-                        <button type="button" className={styles.moreTextBtnModal} onClick={() => setTextExpanded((value) => !value)}>
-                          {textExpanded ? 'Свернуть' : 'Показать ещё'}
-                        </button>
-                      ) : null}
-                      {post.repostOf && originalPost ? (
-                        <div className={styles.repostRowInline}>
-                          <span className={styles.repostLabel}>Оригинал: @{originalPost.author.username}</span>
-                          {onOpenPost ? (
-                            <button type="button" className={styles.repostLinkBtn} onClick={() => onOpenPost(originalPost.id)}>
-                              Открыть оригинал
-                            </button>
-                          ) : null}
-                        </div>
-                      ) : null}
-                      {actionRow}
-                      {composerElement}
-                    </div>
-                    {commentsSection}
-                  </>
-                )}
-              </>
-            ) : null}
-          </aside>
+                  </div>
+                ) : null}
+
+                {actionRow}
+              </div>
+              {commentsSection}
+              {composerElement}
+            </>
+          ) : postFetching ? (
+            <div className={styles.modalSkeleton}>
+              <SkeletonText lines={3} />
+            </div>
+          ) : null}
         </div>
       </div>
 
@@ -608,6 +668,7 @@ export function PostModal({
 
       <RepostModal open={shareOpen} onClose={() => setShareOpen(false)} post={post ?? null} />
       <PostLikesModal open={likesOpen} onClose={() => setLikesOpen(false)} postId={post?.id ?? null} />
+      <EditPostModal open={editOpen} onClose={() => setEditOpen(false)} post={post ?? null} />
     </>
   );
 }

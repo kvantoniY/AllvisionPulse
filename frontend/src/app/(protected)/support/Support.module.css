@@ -488,3 +488,35 @@
 .questionCard, .ticketCard, .tipsCard, .detailCard, .replyCard, .answerCard, .statCard { border-radius: 16px !important; padding: 14px !important; }
 .filtersRow, .actionsRow, .questionMeta, .ticketMeta, .ticketTop, .questionTop { gap: 10px !important; }
 @media (max-width: 960px) { .summaryGrid, .grid { grid-template-columns: 1fr; } }
+
+
+/* adaptive-first global overrides */
+@media (max-width: 960px) {
+  .page {
+    gap: 14px;
+  }
+
+  .summaryGrid,
+  .grid,
+  .detailLayout,
+  .categoryGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .viewSwitch,
+  .kindToggle {
+    width: 100%;
+  }
+
+  .switch,
+  .kindButton {
+    min-height: 40px;
+  }
+
+  .summaryCard,
+  .ticketItem,
+  .questionItem,
+  .sideCard {
+    border-radius: 16px;
+  }
+}

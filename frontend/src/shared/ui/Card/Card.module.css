@@ -42,5 +42,6 @@
   .card {
     padding: 14px;
     border-radius: 16px;
+    box-shadow: none;
   }
 }

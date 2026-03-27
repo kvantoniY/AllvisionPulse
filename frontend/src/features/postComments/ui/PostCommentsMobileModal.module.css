@@ -1,11 +1,19 @@
 .sheet {
   min-height: 100%;
+  height: 100%;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;
+  background: var(--bg-elevated);
 }
 
-.sortRow {
-  padding: 12px 20px 10px;
+.sortBar {
+  position: relative;
+  padding: 10px 16px 6px;
+}
+
+.sortTrigger {
+  border: none;
+  background: transparent;
   color: #6da8ff;
   display: inline-flex;
   align-items: center;
@@ -13,10 +21,41 @@
   font-size: 15px;
 }
 
+.sortMenu {
+  position: absolute;
+  left: 16px;
+  top: calc(100% + 4px);
+  z-index: 6;
+  min-width: 188px;
+  padding: 6px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(12,14,18,0.98);
+  display: grid;
+  gap: 4px;
+}
+
+.sortOption {
+  min-height: 34px;
+  padding: 0 10px;
+  border-radius: 10px;
+  border: none;
+  background: transparent;
+  color: var(--text-soft);
+  text-align: left;
+}
+
+.sortOptionActive,
+.sortOption:hover {
+  background: rgba(255,255,255,0.05);
+  color: var(--text);
+}
+
 .list {
   min-height: 0;
   overflow: auto;
-  padding: 0 16px 112px;
+  padding: 0 16px 12px;
+  min-height: 0;
   display: grid;
   align-content: start;
   gap: 14px;
@@ -28,7 +67,9 @@
 }
 
 .replies {
-  margin-left: 44px;
+  margin-left: 22px;
+  padding-left: 14px;
+  border-left: 1px solid rgba(255,255,255,0.06);
   display: grid;
   gap: 10px;
 }
@@ -54,6 +95,7 @@
 .commentAuthor {
   font-size: 15px;
   font-weight: 700;
+  color: var(--text);
 }
 
 .replyTo,
@@ -67,27 +109,6 @@
   word-break: break-word;
   line-height: 1.45;
   font-size: 15px;
-}
-
-.commentMetaRow {
-  margin-top: 8px;
-  display: inline-flex;
-  align-items: center;
-  gap: 14px;
-  font-size: 13px;
-}
-
-.commentAction {
-  border: none;
-  background: transparent;
-  color: inherit;
-  padding: 0;
-}
-
-.commentLikes {
-  margin-left: auto;
-  display: inline-flex;
-  align-items: center;
 }
 
 .commentImages {
@@ -104,6 +125,36 @@
   border-radius: 14px;
 }
 
+.commentMetaRow {
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-size: 13px;
+}
+
+.commentAction {
+  border: none;
+  background: transparent;
+  color: inherit;
+  padding: 0;
+}
+
+.commentLikeBtn {
+  margin-left: auto;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+}
+
+.commentLikeBtnActive {
+  color: var(--accent-strong);
+}
+
 .moreBtn {
   justify-self: start;
   min-height: 34px;
@@ -118,17 +169,20 @@
   min-height: 180px;
   display: grid;
   place-items: center;
+  align-content: center;
   color: var(--muted);
   text-align: center;
+  padding: 32px 16px;
+  margin: auto 0;
 }
 
 .composerWrap {
-  position: sticky;
-  bottom: 0;
+  position: relative;
   z-index: 4;
-  padding: 10px 12px calc(10px + env(safe-area-inset-bottom, 0px));
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 10px 16px max(10px, env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid rgba(255,255,255,0.06);
   background: rgba(17,18,20,0.98);
+  margin: 0;
 }
 
 .previewStrip {
@@ -146,9 +200,7 @@
   border-radius: 12px;
   overflow: hidden;
 }
-
 .previewItem img { width: 100%; height: 100%; object-fit: cover; }
-
 .previewRemove {
   position: absolute;
   top: 4px;
@@ -174,14 +226,13 @@
   color: var(--muted);
   margin-bottom: 8px;
 }
-
 .replyChip button { border: none; background: transparent; color: inherit; padding: 0; display: grid; place-items: center; }
 
 .composer {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto auto;
   gap: 8px;
-  align-items: end;
+  align-items: center;
 }
 
 .inputShell {
@@ -218,5 +269,4 @@
   border-color: rgba(255,122,26,0.22);
   color: white;
 }
-
 .sendBtn:disabled { opacity: 0.4; }

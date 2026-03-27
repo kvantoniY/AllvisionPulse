@@ -5,6 +5,7 @@ export function lockBodyScroll() {
   if (current === 0) {
     body.dataset.scrollLockOverflow = body.style.overflow || '';
     body.style.overflow = 'hidden';
+    body.dataset.overlayOpen = '1';
   }
   body.dataset.scrollLockCount = String(current + 1);
   return () => {
@@ -13,8 +14,10 @@ export function lockBodyScroll() {
       body.style.overflow = body.dataset.scrollLockOverflow ?? '';
       delete body.dataset.scrollLockCount;
       delete body.dataset.scrollLockOverflow;
+      delete body.dataset.overlayOpen;
       return;
     }
     body.dataset.scrollLockCount = String(next);
+    body.dataset.overlayOpen = '1';
   };
 }

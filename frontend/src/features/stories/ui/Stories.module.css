@@ -75,7 +75,7 @@
   max-width: 100%;
   gap: 14px;
   overflow-x: auto;
-  padding: 0 0 2px;
+  padding: 14px 14px 10px;
   margin: 0;
   scrollbar-width: none;
   background: transparent !important;

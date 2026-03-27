@@ -100,6 +100,12 @@ const CreatePostSchema = z.object({
   repostOfId: z.string().uuid().optional().nullable(),
 });
 
+
+const UpdatePostSchema = z.object({
+  text: z.string().max(5000).optional().nullable(),
+  keepImageIds: z.union([z.string(), z.array(z.string())]).optional(),
+});
+
 router.post("/", upload.array("images", 10), asyncHandler(async (req: AuthedRequest, res) => {
   const body = CreatePostSchema.parse(req.body);
   const files = (req.files as Express.Multer.File[]) ?? [];
@@ -122,6 +128,49 @@ router.post("/", upload.array("images", 10), asyncHandler(async (req: AuthedRequ
     include: buildPostInclude(),
   });
   res.json({ post: created });
+}));
+
+
+router.put("/:postId", upload.array("images", 10), asyncHandler(async (req: AuthedRequest, res) => {
+  const postId = req.params.postId;
+  const body = UpdatePostSchema.parse(req.body);
+  const files = (req.files as Express.Multer.File[]) ?? [];
+
+  const post = await prisma.post.findUnique({ where: { id: postId }, include: { images: true } });
+  if (!post || post.deletedAt) throw new HttpError(404, "Post not found");
+  if (req.user!.role !== "ADMIN" && post.authorId !== req.user!.id) throw new HttpError(403, "Forbidden");
+
+  const keepImageIds = Array.isArray(body.keepImageIds)
+    ? body.keepImageIds
+    : typeof body.keepImageIds === 'string'
+      ? [body.keepImageIds]
+      : post.images.map((img) => img.id);
+
+  const removeIds = post.images.filter((img) => !keepImageIds.includes(img.id)).map((img) => img.id);
+  if (removeIds.length) {
+    await prisma.postImage.deleteMany({ where: { id: { in: removeIds }, postId } });
+  }
+
+  const remainingCount = await prisma.postImage.count({ where: { postId } });
+  if (files.length) {
+    await prisma.postImage.createMany({
+      data: files.map((f, idx) => ({
+        postId,
+        url: fileUrl(req, path.basename(f.filename)),
+        order: remainingCount + idx,
+      })),
+    });
+  }
+
+  const updated = await prisma.post.update({
+    where: { id: postId },
+    data: {
+      text: body.text == null ? post.text : (body.text || null),
+    },
+    include: buildPostInclude(),
+  });
+
+  res.json({ post: updated });
 }));
 
 router.get("/:postId", asyncHandler(async (req: AuthedRequest, res) => {

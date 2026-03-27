@@ -1,7 +1,8 @@
 .sidebar {
-  position: sticky;
+  position: fixed;
   top: 0;
-  height: 100vh;
+  left: 0;
+  height: 100dvh;
   padding: 14px 12px;
   border-right: 1px solid var(--stroke);
   background: rgba(9, 11, 14, 0.88);
@@ -150,6 +151,42 @@
   background: rgba(255,255,255,0.06);
   color: var(--text);
   border-color: var(--stroke-strong);
+}
+
+@media (max-width: 1180px) and (min-width: 961px) {
+  .sidebar {
+    padding-inline: 10px;
+  }
+
+  .brand {
+    justify-content: center;
+    padding-inline: 0;
+    font-size: 0;
+  }
+
+  .logo {
+    box-shadow: 0 0 0 5px rgba(255,122,26,0.08);
+  }
+
+  .item {
+    justify-content: center;
+    padding-inline: 0;
+  }
+
+  .label,
+  .handle,
+  .name {
+    display: none;
+  }
+
+  .footer {
+    justify-content: center;
+    padding-inline: 0;
+  }
+
+  .me {
+    justify-content: center;
+  }
 }
 
 @media (max-width: 960px) {

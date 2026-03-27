@@ -455,3 +455,41 @@
 .rankItem, .queueItem, .replyCard, .answerPreview, .sectionCard, .ticketCard, .questionCard, .detailCard, .summaryCard { border-radius: 16px !important; padding: 14px !important; }
 .queueItem:hover, .tabButton:hover { transform: translateY(-1px); }
 @media (max-width: 1100px) { .chartGrid, .insightsGrid, .metricsGrid { grid-template-columns: 1fr; } }
+
+
+/* adaptive-first global overrides */
+@media (max-width: 960px) {
+  .page,
+  .analyticsLayout,
+  .chartGrid,
+  .insightsGrid {
+    gap: 14px;
+  }
+
+  .hero {
+    gap: 14px;
+  }
+
+  .tabSwitch {
+    width: 100%;
+    grid-template-columns: 1fr;
+  }
+
+  .tabButton {
+    width: 100%;
+  }
+
+  .metricsGrid,
+  .chartGrid,
+  .insightsGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .metricCard,
+  .rankItem,
+  .queueItem,
+  .replyCard,
+  .answerPreview {
+    border-radius: 16px;
+  }
+}

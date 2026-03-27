@@ -88,6 +88,22 @@ export const postsApi = createApi({
       },
     ),
 
+    updatePost: build.mutation<PostResponse, { postId: string; text?: string; images?: File[]; keepImageIds?: string[] }>(
+      {
+        query: ({ postId, text, images, keepImageIds }) => {
+          const fd = new FormData();
+          if (text != null) fd.set('text', text);
+          for (const id of keepImageIds ?? []) fd.append('keepImageIds', id);
+          for (const f of images ?? []) fd.append('images', f);
+          return { url: `/backend/posts/${encodeURIComponent(postId)}`, method: 'PUT', body: fd };
+        },
+        invalidatesTags: (_r, _e, arg) => [
+          { type: 'Post' as const, id: arg.postId },
+          { type: 'Feed' as const, id: 'LIST' },
+        ],
+      },
+    ),
+
     deletePost: build.mutation<{ ok: true }, { postId: string }>({
       query: ({ postId }) => ({ url: `/backend/posts/${encodeURIComponent(postId)}`, method: 'DELETE' }),
       async onQueryStarted({ postId }, { dispatch, queryFulfilled }) {
@@ -252,6 +268,23 @@ export const postsApi = createApi({
       ],
     }),
 
+
+    likeComment: build.mutation<{ ok: true }, { commentId: string; postId: string; parentId?: string | null; userId?: string }>({
+      query: ({ commentId }) => ({ url: `/backend/posts/comments/${encodeURIComponent(commentId)}/like`, method: 'POST' }),
+      invalidatesTags: (_r, _e, arg) => [
+        { type: 'Comments', id: arg.postId },
+        ...(arg.parentId ? [{ type: 'Comments' as const, id: `replies:${arg.parentId}` }] : []),
+      ],
+    }),
+
+    unlikeComment: build.mutation<{ ok: true }, { commentId: string; postId: string; parentId?: string | null; userId?: string }>({
+      query: ({ commentId }) => ({ url: `/backend/posts/comments/${encodeURIComponent(commentId)}/like`, method: 'DELETE' }),
+      invalidatesTags: (_r, _e, arg) => [
+        { type: 'Comments', id: arg.postId },
+        ...(arg.parentId ? [{ type: 'Comments' as const, id: `replies:${arg.parentId}` }] : []),
+      ],
+    }),
+
     deleteComment: build.mutation<{ ok: true }, { commentId: string; postId: string; parentId?: string | null }>({
       query: ({ commentId }) => ({ url: `/backend/posts/comments/${encodeURIComponent(commentId)}`, method: 'DELETE' }),
       async onQueryStarted({ commentId, postId, parentId }, { dispatch, queryFulfilled }) {
@@ -301,6 +334,7 @@ export const {
   useLazyGetFeedQuery,
   useGetPostQuery,
   useCreatePostMutation,
+  useUpdatePostMutation,
   useDeletePostMutation,
   useLikePostMutation,
   useUnlikePostMutation,
@@ -310,5 +344,7 @@ export const {
   useLazyGetCommentsQuery,
   useGetLastCommentQuery,
   useCreateCommentMutation,
+  useLikeCommentMutation,
+  useUnlikeCommentMutation,
   useDeleteCommentMutation,
 } = postsApi;

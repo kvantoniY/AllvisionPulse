@@ -4401,3 +4401,55 @@
 .metricCard strong { font-size: 18px; }
 .sectionCard, .mealCard, .taskCard, .eventCard, .sleepCard, .insightCard, .statCard, .chartCard, .tableCard, .goalCard, .profileCard { border-radius: 16px !important; padding: 14px !important; }
 @media (max-width: 1100px) { .metricRow { grid-template-columns: 1fr; } }
+
+
+/* adaptive-first global overrides */
+@media (max-width: 1180px) {
+  .grid {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+
+  .span3,
+  .span4,
+  .span5,
+  .span8 {
+    grid-column: span 6;
+  }
+}
+
+@media (max-width: 960px) {
+  .page {
+    gap: 14px;
+  }
+
+  .hero,
+  .toolbar {
+    padding: 14px;
+    border-radius: 16px;
+  }
+
+  .hero {
+    align-items: stretch;
+  }
+
+  .heroActions {
+    width: 100%;
+  }
+
+  .grid,
+  .compactGrid,
+  .metricRow {
+    grid-template-columns: 1fr;
+  }
+
+  .span3,
+  .span4,
+  .span5,
+  .span8 {
+    grid-column: 1 / -1;
+  }
+
+  .ringsRow {
+    gap: 14px;
+  }
+}

@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import './styles/globals.css';
 import { StoreProvider } from './providers/StoreProvider';
 import { LightboxProvider } from '@/shared/ui/Lightbox/LightboxProvider';
@@ -6,6 +6,13 @@ import { LightboxProvider } from '@/shared/ui/Lightbox/LightboxProvider';
 export const metadata: Metadata = {
   title: 'Allvision Pulse',
   description: 'Allvision Pulse MVP',
+};
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
+  themeColor: '#060709',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

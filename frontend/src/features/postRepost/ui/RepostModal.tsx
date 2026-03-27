@@ -65,7 +65,7 @@ export function RepostModal({ open, onClose, post }: { open: boolean; onClose: (
   const [mode, setMode] = useState<Mode>('wall');
   const [note, setNote] = useState('');
   const [query, setQuery] = useState('');
-  const [selectedRecipient, setSelectedRecipient] = useState<Recipient | null>(null);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
   const { data: chatsData } = useGetChatsQuery(undefined, { skip: !open || mode !== 'direct' });
   const { data: followersData } = useGetUserConnectionsQuery(
@@ -86,7 +86,7 @@ export function RepostModal({ open, onClose, post }: { open: boolean; onClose: (
     setMode('wall');
     setNote('');
     setQuery('');
-    setSelectedRecipient(null);
+    setSelectedIds([]);
   }, [open, post?.id]);
 
   const directMap = useMemo(() => {
@@ -143,8 +143,15 @@ export function RepostModal({ open, onClose, post }: { open: boolean; onClose: (
     return mutualRecipients.filter((item) => item.username.toLowerCase().includes(q));
   }, [mutualRecipients, query]);
 
+  const selectedRecipients = useMemo(() => mutualRecipients.filter((item) => selectedIds.includes(item.id)), [mutualRecipients, selectedIds]);
+
   const busy = createState.isLoading || createChatState.isLoading || sendState.isLoading;
-  const canSubmit = !!post && !busy && (mode === 'wall' ? true : !!selectedRecipient && selectedRecipient.canMessage);
+  const canSubmit = !!post && !busy && (mode === 'wall' ? true : selectedRecipients.length > 0 && selectedRecipients.every((item) => item.canMessage));
+
+  const toggleRecipient = (item: Recipient) => {
+    if (!item.canMessage) return;
+    setSelectedIds((prev) => (prev.includes(item.id) ? prev.filter((id) => id !== item.id) : [...prev, item.id]));
+  };
 
   const onSubmit = async () => {
     if (!post || !canSubmit) return;
@@ -156,42 +163,44 @@ export function RepostModal({ open, onClose, post }: { open: boolean; onClose: (
       return;
     }
 
-    if (!selectedRecipient || !selectedRecipient.canMessage) return;
-
-    let chatId = selectedRecipient.chatId ?? null;
-    if (!chatId) {
-      const created = await createDirectChat({ userId: selectedRecipient.id }).unwrap().catch(() => null);
-      chatId = created?.chat?.id ?? null;
+    let firstChatId: string | null = null;
+    for (const recipient of selectedRecipients) {
+      let chatId = recipient.chatId ?? null;
+      if (!chatId) {
+        const created = await createDirectChat({ userId: recipient.id }).unwrap().catch(() => null);
+        chatId = created?.chat?.id ?? null;
+      }
+      if (!chatId) continue;
+      if (!firstChatId) firstChatId = chatId;
+      const text = buildMessageText(original, note);
+      await sendMessage({ chatId, text }).unwrap().catch(() => null);
     }
-    if (!chatId) return;
-
-    const text = buildMessageText(original, note);
-    await sendMessage({ chatId, text }).unwrap().catch(() => null);
     onClose();
-    router.push(`${ROUTES.app.messages}/${chatId}`);
+    if (firstChatId) router.push(`${ROUTES.app.messages}/${firstChatId}`);
   };
 
   const content = (
-      <div className={styles.stack}>
-        <div className={styles.segmented}>
-          <button
-            type="button"
-            className={[styles.segmentBtn, mode === 'wall' ? styles.segmentBtnActive : ''].filter(Boolean).join(' ')}
-            onClick={() => setMode('wall')}
-          >
-            <Icon name="user" size={16} />
-            <span>Себе на стену</span>
-          </button>
-          <button
-            type="button"
-            className={[styles.segmentBtn, mode === 'direct' ? styles.segmentBtnActive : ''].filter(Boolean).join(' ')}
-            onClick={() => setMode('direct')}
-          >
-            <Icon name="messages" size={16} />
-            <span>В личные сообщения</span>
-          </button>
-        </div>
+    <div className={styles.stack}>
+      <div className={styles.segmented}>
+        <button
+          type="button"
+          className={[styles.segmentBtn, mode === 'wall' ? styles.segmentBtnActive : ''].filter(Boolean).join(' ')}
+          onClick={() => setMode('wall')}
+        >
+          <Icon name="user" size={16} />
+          <span>Себе на стену</span>
+        </button>
+        <button
+          type="button"
+          className={[styles.segmentBtn, mode === 'direct' ? styles.segmentBtnActive : ''].filter(Boolean).join(' ')}
+          onClick={() => setMode('direct')}
+        >
+          <Icon name="messages" size={16} />
+          <span>В личные сообщения</span>
+        </button>
+      </div>
 
+      <div className={styles.scrollArea}>
         {mode === 'direct' ? (
           <div className={styles.fieldBlock}>
             <label className={styles.label}>Кому отправить</label>
@@ -204,6 +213,16 @@ export function RepostModal({ open, onClose, post }: { open: boolean; onClose: (
                 placeholder="Найти среди взаимных подписок"
               />
             </div>
+            {selectedRecipients.length ? (
+              <div className={styles.selectedStrip}>
+                {selectedRecipients.map((item) => (
+                  <button key={item.id} type="button" className={styles.selectedChip} onClick={() => toggleRecipient(item)}>
+                    <span>@{item.username}</span>
+                    <Icon name="close" size={12} />
+                  </button>
+                ))}
+              </div>
+            ) : null}
 
             <div className={styles.recipientList}>
               {filteredRecipients.map((item) => (
@@ -212,10 +231,10 @@ export function RepostModal({ open, onClose, post }: { open: boolean; onClose: (
                   key={`${item.id}:${item.chatId ?? 'user'}`}
                   className={[
                     styles.recipientRow,
-                    selectedRecipient?.id === item.id ? styles.recipientRowActive : '',
+                    selectedIds.includes(item.id) ? styles.recipientRowActive : '',
                     !item.canMessage ? styles.recipientRowDisabled : '',
                   ].filter(Boolean).join(' ')}
-                  onClick={() => item.canMessage && setSelectedRecipient(item)}
+                  onClick={() => toggleRecipient(item)}
                   disabled={!item.canMessage}
                 >
                   <Avatar url={item.avatarUrl} name={item.username} size={38} />
@@ -233,7 +252,7 @@ export function RepostModal({ open, onClose, post }: { open: boolean; onClose: (
                       {!item.canMessage ? item.disabledReason : item.chatId ? 'Уже есть диалог' : 'Создать новый диалог'}
                     </div>
                   </div>
-                  {selectedRecipient?.id === item.id ? <Icon name="check" size={16} /> : null}
+                  {selectedIds.includes(item.id) ? <Icon name="check" size={16} /> : null}
                 </button>
               ))}
 
@@ -259,30 +278,30 @@ export function RepostModal({ open, onClose, post }: { open: boolean; onClose: (
           />
           <div className={styles.counter}>{MAX_TEXT - note.length}</div>
         </div>
-
-        <div className={styles.footer}>
-          <button type="button" className={styles.cancelBtn} onClick={onClose} disabled={busy}>
-            Отмена
-          </button>
-          <button type="button" className={styles.submitBtn} onClick={() => void onSubmit()} disabled={!canSubmit}>
-            {busy ? 'Отправляем…' : mode === 'wall' ? 'Опубликовать' : 'Отправить'}
-          </button>
-        </div>
       </div>
+
+      <div className={styles.footer}>
+        <button type="button" className={styles.cancelBtn} onClick={onClose} disabled={busy}>
+          Отмена
+        </button>
+        <button type="button" className={styles.submitBtn} onClick={() => void onSubmit()} disabled={!canSubmit}>
+          {busy ? 'Отправляем…' : mode === 'wall' ? 'Опубликовать' : 'Отправить'}
+        </button>
+      </div>
+    </div>
   );
 
   if (isMobile) {
     return (
       <MobileSheet open={open} onClose={busy ? () => undefined : onClose} title="Поделиться">
-        <div style={{ padding: '10px 16px 0' }}>{content}</div>
+        <div className={styles.mobileWrap}>{content}</div>
       </MobileSheet>
     );
   }
 
   return (
-    <Modal open={open} onClose={busy ? () => undefined : onClose} title="Поделиться" icon={<Icon name="repeat" size={18} />} size="md">
+    <Modal open={open} onClose={busy ? () => undefined : onClose} title="Поделиться" icon={<Icon name="forward" size={18} />} size="md">
       {content}
     </Modal>
   );
-
 }

@@ -196,17 +196,16 @@
 
 
 .mobileTrigger {
-  width: calc(100% - 32px);
-  min-height: 60px;
-  margin: 10px 16px 0;
+  width: calc(100% - 28px);
+  min-height: 56px;
+  margin: 0 14px;
   border: none;
-  border-bottom: 1px solid rgba(255,255,255,0.06);
   background: transparent;
   color: var(--text-soft);
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 0 0 16px;
+  padding: 14px 0 14px;
   text-align: left;
 }
 

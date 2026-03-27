@@ -18,3 +18,8 @@
   box-shadow: 0 0 0 4px rgba(255,122,26,0.08);
 }
 .error { color: var(--danger); font-size: 12px; }
+@media (max-width: 960px) {
+  .input {
+    min-height: 42px;
+  }
+}
