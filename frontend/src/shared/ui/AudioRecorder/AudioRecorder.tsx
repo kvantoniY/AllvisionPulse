@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import styles from './AudioRecorder.module.css';
+import { requestMediaAccess } from '@/shared/lib/media/permissions';
 
 export interface AudioRecorderProps {
   onRecordingComplete: (blob: Blob, duration: number) => Promise<void> | void;
@@ -110,7 +111,7 @@ export function AudioRecorder({ onRecordingComplete, onCancel, className, varian
   const initializeRecording = async () => {
     try {
       setError(null);
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+      const stream = await requestMediaAccess({ audio: true }, { stopTracks: false });
       if (!isMountedRef.current) {
         stream.getTracks().forEach((track) => track.stop());
         return;
@@ -146,8 +147,8 @@ export function AudioRecorder({ onRecordingComplete, onCancel, className, varian
       }, 1000);
 
       drawWaveform();
-    } catch {
-      setError('Нет доступа к микрофону. Проверь разрешения браузера.');
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Нет доступа к микрофону. Проверь разрешения браузера.');
       setIsRecording(false);
     }
   };

@@ -43,6 +43,7 @@ import { SkeletonText } from '@/shared/ui/Skeleton/Skeleton';
 import { GameSessionPanel } from '@/features/games';
 import { parseGameSystemMessage, gameLabel, gameStatusLabel } from '@/shared/lib/gameMessages';
 import { useGetGameSessionsQuery } from '@/shared/api/gamesApi';
+import { requestMediaAccess } from '@/shared/lib/media/permissions';
 
 function getChatTitle(chat: any, meId: string | undefined) {
   if (!chat) return 'Чат';
@@ -210,6 +211,7 @@ export default function ChatPage() {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [isNearBottom, setIsNearBottom] = useState(true);
   const [forwarding, setForwarding] = useState(false);
+  const [mediaAccessHint, setMediaAccessHint] = useState<string | null>(null);
 
   const { data: gameSessionsData } = useGetGameSessionsQuery({ chatId }, { skip: !chatId });
   const activeGamesCount = useMemo(
@@ -513,6 +515,46 @@ export default function ChatPage() {
     }
   };
 
+  const ensureCallPermissions = useCallback(async () => {
+    setMediaAccessHint(null);
+
+    try {
+      await requestMediaAccess({ audio: true }, { stopTracks: true });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Не удалось получить доступ к микрофону.';
+      setMediaAccessHint(message);
+      throw error;
+    }
+
+    try {
+      await requestMediaAccess({ video: true }, { stopTracks: true });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Не удалось получить доступ к камере.';
+      setMediaAccessHint((prev) => prev ? `${prev} Камеру можно разрешить позже в браузере.` : message);
+    }
+  }, []);
+
+  const handleStartCall = useCallback(async () => {
+    if (!canCallInChat) return;
+    try {
+      await ensureCallPermissions();
+      setMediaAccessHint(null);
+      startCall(chatId);
+    } catch {
+      // message already shown in UI
+    }
+  }, [canCallInChat, chatId, ensureCallPermissions, startCall]);
+
+  const handleJoinCall = useCallback(async () => {
+    try {
+      await ensureCallPermissions();
+      setMediaAccessHint(null);
+      joinCall(chatId);
+    } catch {
+      // message already shown in UI
+    }
+  }, [chatId, ensureCallPermissions, joinCall]);
+
   const stopVideoRecorder = async () => {
     try {
       recorderRef.current?.stop();
@@ -524,8 +566,9 @@ export default function ChatPage() {
   const startVideoNoteRecording = async () => {
     if (isSending || isRecordingAudio || isRecordingVideoNote || text.trim() || files.length || pendingVoice || pendingVideo) return;
     closeComposerPickers();
+    setMediaAccessHint(null);
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: { facingMode: 'user' } });
+      const stream = await requestMediaAccess({ audio: true, video: { facingMode: 'user' } }, { stopTracks: false });
       activeStreamRef.current = stream;
       recorderChunksRef.current = [];
       const mimeType = MediaRecorder.isTypeSupported?.('video/webm;codecs=vp9,opus')
@@ -554,10 +597,11 @@ export default function ChatPage() {
         });
       };
       recorder.start();
-    } catch {
+    } catch (error) {
       setIsRecordingVideoNote(false);
       activeStreamRef.current?.getTracks().forEach((track) => track.stop());
       activeStreamRef.current = null;
+      setMediaAccessHint(error instanceof Error ? error.message : 'Не удалось получить доступ к камере и микрофону.');
     }
   };
 
@@ -742,7 +786,7 @@ export default function ChatPage() {
             {chat?.type === 'GROUP' && hasLiveCall ? (
               <div className={styles.returnBanner}>
                 <div className={styles.returnBannerText}>Групповой звонок всё ещё активен.</div>
-                <Button className={styles.returnBannerButton} iconOnly type="button" onClick={() => joinCall(chatId)} aria-label="Вернуться в звонок" title="Вернуться в звонок">
+                <Button className={styles.returnBannerButton} iconOnly type="button" onClick={() => void handleJoinCall()} aria-label="Вернуться в звонок" title="Вернуться в звонок">
                   <Icon name="play" size={16} />
                 </Button>
               </div>
@@ -779,7 +823,7 @@ export default function ChatPage() {
                 </Button>
 
                 {hasLiveCall ? (
-                  <Button className={styles.callActionJoin} iconOnly type="button" onClick={() => joinCall(chatId)} aria-label="Вернуться в звонок" title="Вернуться в звонок">
+                  <Button className={styles.callActionJoin} iconOnly type="button" onClick={() => void handleJoinCall()} aria-label="Вернуться в звонок" title="Вернуться в звонок">
                     <Icon name="play" size={18} />
                   </Button>
                 ) : null}
@@ -792,7 +836,7 @@ export default function ChatPage() {
                 ) : null}
 
                 {chat ? (
-                  <Button className={styles.callAction} iconOnly type="button" onClick={() => canCallInChat && startCall(chatId)} aria-label={chat.type === 'GROUP' ? 'Начать групповой звонок' : 'Начать звонок'} title={canCallInChat ? (chat.type === 'GROUP' ? 'Начать групповой звонок' : 'Начать звонок') : (callLockReason ?? 'Звонок недоступен')} disabled={!canCallInChat}>
+                  <Button className={styles.callAction} iconOnly type="button" onClick={() => void handleStartCall()} aria-label={chat.type === 'GROUP' ? 'Начать групповой звонок' : 'Начать звонок'} title={canCallInChat ? (chat.type === 'GROUP' ? 'Начать групповой звонок' : 'Начать звонок') : (callLockReason ?? 'Звонок недоступен')} disabled={!canCallInChat}>
                     <Icon name="phone" size={18} />
                   </Button>
                 ) : null}
@@ -920,7 +964,7 @@ export default function ChatPage() {
                     }
                     return (
                       <div key={message.id} className={styles.systemRow} id={`message-${message.id}`}>
-                        <button type="button" className={[styles.systemCard, clickable ? styles.systemCardInteractive : ''].filter(Boolean).join(' ')} onClick={clickable && canCallInChat ? () => (hasLiveCall ? joinCall(chatId) : startCall(chatId)) : undefined} disabled={!clickable || !canCallInChat}>
+                        <button type="button" className={[styles.systemCard, clickable ? styles.systemCardInteractive : ''].filter(Boolean).join(' ')} onClick={clickable && canCallInChat ? () => void (hasLiveCall ? handleJoinCall() : handleStartCall()) : undefined} disabled={!clickable || !canCallInChat}>
                           <div className={styles.systemText}>{message.text ?? 'Системное событие'}</div>
                           <div className={styles.systemMeta}>
                             <span>{formatMessageTime(message.createdAt)}</span>
@@ -1082,6 +1126,7 @@ export default function ChatPage() {
 
             <div className={styles.composer}>
               {composerLockReason ? <div className={styles.lockBanner}>{composerLockReason}</div> : null}
+              {!composerLockReason && mediaAccessHint ? <div className={styles.lockBanner}>{mediaAccessHint}</div> : null}
               {(replyTo || editingMessage) ? (
                 <div className={styles.composerMetaBar}>
                   <div className={styles.composerMetaText}>

@@ -228,7 +228,7 @@ export function RealtimeProvider({ children }: PropsWithChildren) {
       });
 
       socket.on('message:new', (payload: any) => {
-        const msg = payload?.message ?? payload;
+        const msg = normalizeAppMediaUrlsDeep(payload?.message ?? payload);
         const chatId = msg?.chatId;
         if (!chatId) return;
 
@@ -294,7 +294,7 @@ export function RealtimeProvider({ children }: PropsWithChildren) {
 
       socket.on('message:updated', (payload: any) => {
         const chatId = payload?.chatId;
-        const msg = payload?.message;
+        const msg = normalizeAppMediaUrlsDeep(payload?.message);
         if (!chatId || !msg?.id) return;
 
         dispatch(

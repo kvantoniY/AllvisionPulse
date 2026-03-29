@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { BACKEND_URL } from '@/shared/config/env';
 import { COOKIE_NAMES, cookieOptions } from '@/shared/lib/authCookies';
+import { normalizeAppMediaUrlsDeep } from '@/shared/lib/media/mediaUrl';
 
 function shouldRefreshAccessToken(token?: string | null) {
   if (!token) return true;
@@ -100,10 +101,11 @@ async function forward(req: Request, path: string[]) {
   const contentType = r.headers.get('content-type') ?? '';
   if (contentType.includes('application/json')) {
     const data = await r.json().catch(() => ({}));
+    const normalized = normalizeAppMediaUrlsDeep(data);
     if (r.status >= 500) {
-      console.error('[api-proxy:backend-error]', { method, url, status: r.status, data });
+      console.error('[api-proxy:backend-error]', { method, url, status: r.status, data: normalized });
     }
-    return NextResponse.json(data, { status: r.status });
+    return NextResponse.json(normalized, { status: r.status });
   }
 
   const blob = await r.blob();

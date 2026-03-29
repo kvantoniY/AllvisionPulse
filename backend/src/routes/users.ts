@@ -5,6 +5,7 @@ import { asyncHandler, HttpError } from "../utils/http";
 import { requireAuth, requireActiveUser, AuthedRequest } from "../middleware/auth";
 import { upload } from "../middleware/upload";
 import { activeUserWhere, isUserSuspended } from "../utils/userStatus";
+import { buildUploadUrl } from "../utils/uploads";
 
 const router = Router();
 
@@ -18,10 +19,8 @@ function firstParam(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value;
 }
 
-function fileUrl(req: any, filename: string) {
-  const proto = (req.headers["x-forwarded-proto"] as string | undefined) ?? req.protocol;
-  const host = (req.headers["x-forwarded-host"] as string | undefined) ?? req.get("host");
-  return `${proto}://${host}/uploads/${filename}`;
+function fileUrl(_req: any, filename: string) {
+  return buildUploadUrl(filename);
 }
 
 function emptyRelationship() {

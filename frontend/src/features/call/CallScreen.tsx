@@ -16,6 +16,7 @@ import { useGetMeQuery } from '@/shared/api/usersApi';
 import { CallChatPanel } from './CallChatPanel';
 import { GameSessionPanel } from '@/features/games';
 import { AdminBadge } from '@/shared/ui/AdminBadge/AdminBadge';
+import { requestMediaAccess } from '@/shared/lib/media/permissions';
 
 type Props = {
   open: boolean;
@@ -387,6 +388,11 @@ export function CallScreen({ open, stage, chat, callId, initiator, onConnected, 
 
     (async () => {
       try {
+        try {
+          await requestMediaAccess({ audio: true }, { stopTracks: true });
+        } catch (error) {
+          pushBanner(error instanceof Error ? error.message : 'Нет доступа к микрофону.', 'warning', 5200);
+        }
         await nextRoom.join();
         const stream = await nextRoom.initLocal({ micOn: true, camOn: false });
         setLocalStream(stream);

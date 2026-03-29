@@ -8,6 +8,7 @@ import { requireAuth, requireActiveUser, AuthedRequest } from '../middleware/aut
 import { asyncHandler, HttpError } from '../utils/http';
 import { getEnv } from '../config/env';
 import { activeUserWhere, isUserSuspended } from '../utils/userStatus';
+import { buildUploadUrl } from '../utils/uploads';
 
 const router = Router();
 router.use(requireAuth, requireActiveUser);
@@ -23,9 +24,8 @@ const storyUpload = multer({
   limits: { fileSize: 1000 * 1024 * 1024 },
 });
 
-function fileUrl(req: any, filename: string) {
-  const base = `${req.protocol}://${req.get('host')}`;
-  return `${base}/uploads/${filename}`;
+function fileUrl(_req: any, filename: string) {
+  return buildUploadUrl(filename);
 }
 
 async function getFriendIds(userId: string) {
