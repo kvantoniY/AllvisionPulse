@@ -2,17 +2,13 @@ FROM node:20-bookworm-slim
 
 WORKDIR /app
 
+ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
-COPY package.json package-lock.json ./
-
-RUN npm install --include=dev \
-  && test -f node_modules/next/dist/bin/next
-
-COPY . .
-
-RUN node node_modules/next/dist/bin/next build
+COPY .next/standalone ./
+COPY .next/static ./.next/static
+COPY public ./public
 
 EXPOSE 3000
 
-CMD ["node", "node_modules/next/dist/bin/next", "start", "-H", "0.0.0.0", "-p", "3000"]
+CMD ["node", "server.js"]
