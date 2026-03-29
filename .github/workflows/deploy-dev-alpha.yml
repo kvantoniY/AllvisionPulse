@@ -129,3 +129,69 @@ jobs:
 
           docker image prune -af --filter "until=72h" || true
           EOF
+
+      - name: Backend diagnostics
+        if: always()
+        shell: bash
+        run: |
+          set +e
+
+          ssh alpha 'bash -s' <<'EOF'
+          set +e
+
+          APP_ROOT=/opt/allvision-pulse
+          CURRENT_DIR="$APP_ROOT/current"
+
+          cd "$CURRENT_DIR" || exit 0
+
+          echo "=== docker compose ps ==="
+          docker compose \
+            --project-name allvision-alpha \
+            --env-file infra/alpha/.env \
+            -f infra/alpha/docker-compose.alpha.yml \
+            ps
+
+          echo
+          echo "=== backend logs ==="
+          docker compose \
+            --project-name allvision-alpha \
+            --env-file infra/alpha/.env \
+            -f infra/alpha/docker-compose.alpha.yml \
+            logs backend --tail=300
+
+          echo
+          echo "=== postgres logs ==="
+          docker compose \
+            --project-name allvision-alpha \
+            --env-file infra/alpha/.env \
+            -f infra/alpha/docker-compose.alpha.yml \
+            logs postgres --tail=120
+
+          echo
+          echo "=== frontend logs ==="
+          docker compose \
+            --project-name allvision-alpha \
+            --env-file infra/alpha/.env \
+            -f infra/alpha/docker-compose.alpha.yml \
+            logs frontend --tail=120
+
+          echo
+          echo "=== backend container id ==="
+          BACKEND_ID=$(docker compose \
+            --project-name allvision-alpha \
+            --env-file infra/alpha/.env \
+            -f infra/alpha/docker-compose.alpha.yml \
+            ps -q backend)
+
+          echo "$BACKEND_ID"
+
+          if [ -n "$BACKEND_ID" ]; then
+            echo
+            echo "=== docker inspect state ==="
+            docker inspect "$BACKEND_ID" --format '{{json .State}}'
+
+            echo
+            echo "=== docker inspect health ==="
+            docker inspect "$BACKEND_ID" --format '{{json .State.Health}}'
+          fi
+          EOF
