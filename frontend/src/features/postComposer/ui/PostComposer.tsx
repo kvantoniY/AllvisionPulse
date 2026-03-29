@@ -33,7 +33,7 @@ type HealthWidget = {
   pulse7Score: number | null;
 };
 
-export function PostComposer({ context = 'feed' }: { context?: 'feed' | 'profile' }) {
+export function PostComposer({ context = 'feed', hideMobileTrigger = false, surface = 'card' }: { context?: 'feed' | 'profile'; hideMobileTrigger?: boolean; surface?: 'card' | 'flat' }) {
   const { data, isFetching: meFetching } = useGetMeQuery();
   const me = data?.user;
   const isMobile = useIsMobile();
@@ -101,6 +101,7 @@ export function PostComposer({ context = 'feed' }: { context?: 'feed' | 'profile
   };
 
   if (meFetching && !me) {
+    if (isMobile && hideMobileTrigger) return null;
     return (
       <Card className={styles.card}>
         <div className={styles.row}>
@@ -122,6 +123,13 @@ export function PostComposer({ context = 'feed' }: { context?: 'feed' | 'profile
   if (isMobile) {
     return (
       <>
+        {!hideMobileTrigger ? (
+          <button type="button" className={styles.mobileTrigger} onClick={() => setMobileOpen(true)}>
+          <Avatar url={me.avatarUrl} name={me.username} size={40} />
+          <span className={styles.mobileTriggerText}>Напишите что-нибудь...</span>
+          </button>
+        ) : null}
+
         <Modal open={widgetOpen} onClose={() => setWidgetOpen(false)} title="Добавить виджет">
           <div style={{ display: 'grid', gap: 12 }}>
             <div style={{ color: 'var(--muted)', fontSize: 14, lineHeight: 1.5 }}>
@@ -155,7 +163,7 @@ export function PostComposer({ context = 'feed' }: { context?: 'feed' | 'profile
   }
 
   return (
-    <Card className={[styles.card, expanded ? styles.cardExpanded : ''].filter(Boolean).join(' ')}>
+    <Card className={[styles.card, expanded ? styles.cardExpanded : '', surface === 'flat' ? styles.cardFlat : ''].filter(Boolean).join(' ')}>
       <Modal open={widgetOpen} onClose={() => setWidgetOpen(false)} title="Добавить виджет">
         <div style={{ display: 'grid', gap: 12 }}>
           <div style={{ color: 'var(--muted)', fontSize: 14, lineHeight: 1.5 }}>

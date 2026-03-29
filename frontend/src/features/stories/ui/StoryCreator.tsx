@@ -269,7 +269,7 @@ export function StoryCreator({ open, onClose, onCreated }: { open: boolean; onCl
   const { data: mentalData } = useGetMentalDayQuery(today, { skip: !open });
   const { data: tasksData } = useGetTasksDayQuery(today, { skip: !open });
   const { data: nutritionData } = useGetNutritionQuery(today, { skip: !open });
-  const { data: highlightsData } = useGetStoryHighlightsQuery({ userId: meData?.user?.id ?? '' }, { skip: !open || !meData?.user?.id, pollingInterval: 5000, refetchOnFocus: true, refetchOnReconnect: true });
+  const { data: highlightsData } = useGetStoryHighlightsQuery({ userId: meData?.user?.id ?? '' }, { skip: !open || !meData?.user?.id, refetchOnFocus: true, refetchOnReconnect: true });
 
   const activeDraft = drafts.find((draft) => draft.id === activeDraftId) ?? null;
   const selectedItem = activeDraft?.items.find((item) => item.id === selectedItemId) ?? null;

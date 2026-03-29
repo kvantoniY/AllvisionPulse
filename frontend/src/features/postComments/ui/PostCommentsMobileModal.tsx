@@ -1,6 +1,6 @@
 'use client';
 
-import { ChangeEvent, useEffect, useMemo, useRef, useState } from 'react';
+import { ChangeEvent, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { MobileSheet } from '@/shared/ui/MobileSheet/MobileSheet';
 import { useCreateCommentMutation, useGetCommentRepliesQuery, useGetCommentsQuery, useLikeCommentMutation, useUnlikeCommentMutation } from '@/shared/api/postsApi';
 import { useGetMeQuery } from '@/shared/api/usersApi';
@@ -15,12 +15,32 @@ import { useLightbox } from '@/shared/ui/Lightbox/LightboxProvider';
 const MAX_TEXT = 5000;
 type ReplyTarget = { commentId: string; parentId: string; username: string };
 type SortMode = 'new' | 'old' | 'top';
+type PendingAttachment = { id: string; file: File; url: string };
+
+const createPendingAttachment = (file: File): PendingAttachment => ({
+  id: typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+  file,
+  url: URL.createObjectURL(file),
+});
+
+const revokePendingAttachments = (items: PendingAttachment[]) => {
+  for (const item of items) URL.revokeObjectURL(item.url);
+};
 
 function sortComments<T extends { createdAt: string; _count?: { likes?: number } }>(items: T[], mode: SortMode) {
   const list = [...items];
   if (mode === 'top') return list.sort((a, b) => (b._count?.likes ?? 0) - (a._count?.likes ?? 0) || +new Date(b.createdAt) - +new Date(a.createdAt));
   if (mode === 'old') return list.sort((a, b) => +new Date(a.createdAt) - +new Date(b.createdAt));
   return list.sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt));
+}
+
+function useAutosize(ref: React.RefObject<HTMLTextAreaElement>, value: string) {
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    el.style.height = '0px';
+    el.style.height = `${Math.min(Math.max(el.scrollHeight, 42), 120)}px`;
+  }, [ref, value]);
 }
 
 function CommentItem({ comment, postId, parentId, onReply }: { comment: Comment; postId: string; parentId?: string; onReply: (comment: Comment, parentId?: string) => void }) {
@@ -67,7 +87,7 @@ function CommentItem({ comment, postId, parentId, onReply }: { comment: Comment;
   );
 }
 
-function CommentThread({ comment, postId, sortMode, onReply }: { comment: Comment; postId: string; sortMode: SortMode; onReply: (comment: Comment, parentId?: string) => void }) {
+function CommentThread({ comment, postId, onReply }: { comment: Comment; postId: string; onReply: (comment: Comment, parentId?: string) => void }) {
   const hasReplies = (comment._count?.replies ?? 0) > 0;
   const { data } = useGetCommentRepliesQuery({ commentId: comment.id }, { skip: !hasReplies });
   const replies = useMemo(() => sortComments(data?.items ?? [], 'new'), [data?.items]);
@@ -103,30 +123,72 @@ export function PostCommentsMobileModal({ open, onClose, postId }: { open: boole
   const comments = useMemo(() => sortComments(data?.items ?? [], sortMode), [data?.items, sortMode]);
   const nextCursor = data?.nextCursor ?? null;
   const [text, setText] = useState('');
-  const [files, setFiles] = useState<File[]>([]);
+  const [attachments, setAttachments] = useState<PendingAttachment[]>([]);
   const [replyTarget, setReplyTarget] = useState<ReplyTarget | null>(null);
   const [createComment, { isLoading }] = useCreateCommentMutation();
-  const inputRef = useRef<HTMLInputElement | null>(null);
-  const previews = useMemo(() => files.map((file) => URL.createObjectURL(file)), [files]);
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const fileInputId = useId();
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const attachmentsRef = useRef<PendingAttachment[]>([]);
+  useAutosize(textareaRef, text);
+
+  const replaceAttachments = (updater: (prev: PendingAttachment[]) => PendingAttachment[]) => {
+    setAttachments((prev) => {
+      const next = updater(prev);
+      attachmentsRef.current = next;
+      return next;
+    });
+  };
+
+  const clearAttachments = () => {
+    setAttachments((prev) => {
+      revokePendingAttachments(prev);
+      attachmentsRef.current = [];
+      return [];
+    });
+  };
+
+  const handlePickFiles = (incoming: FileList | File[] | null) => {
+    const files = Array.isArray(incoming) ? incoming : incoming ? Array.from(incoming) : [];
+    if (!files.length) return;
+    replaceAttachments((prev) => {
+      const available = Math.max(0, 8 - prev.length);
+      if (!available) return prev;
+      const nextItems = files
+        .filter((file) => file.type.startsWith('image/'))
+        .slice(0, available)
+        .map(createPendingAttachment);
+      return nextItems.length ? [...prev, ...nextItems] : prev;
+    });
+  };
 
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      clearAttachments();
+      setReplyTarget(null);
+      setText('');
+      return;
+    }
+    clearAttachments();
+    setReplyTarget(null);
+    setText('');
     setCursor(null);
+    setSortOpen(false);
   }, [open, postId]);
 
-  useEffect(() => () => previews.forEach((url) => URL.revokeObjectURL(url)), [previews]);
+  useEffect(() => () => revokePendingAttachments(attachmentsRef.current), []);
 
   const onSend = async () => {
-    if (!postId || (!text.trim() && !files.length)) return;
+    if (!postId || (!text.trim() && !attachments.length)) return;
     await createComment({
       postId,
       text: text.trim() || undefined,
-      images: files,
+      images: attachments.map((item) => item.file),
       parentId: replyTarget?.parentId ?? null,
       widgetsJson: replyTarget ? { replyToUsername: replyTarget.username, replyToCommentId: replyTarget.commentId } : undefined,
     }).unwrap().catch(() => null);
     setText('');
-    setFiles([]);
+    clearAttachments();
     setReplyTarget(null);
   };
 
@@ -161,7 +223,6 @@ export function PostCommentsMobileModal({ open, onClose, postId }: { open: boole
               key={comment.id}
               comment={comment}
               postId={postId ?? ''}
-              sortMode={sortMode}
               onReply={(target, parentId) => setReplyTarget({ commentId: target.id, parentId: parentId ?? target.id, username: target.author.username })}
             />
           ))}
@@ -185,29 +246,66 @@ export function PostCommentsMobileModal({ open, onClose, postId }: { open: boole
         </div>
 
         <div className={styles.composerWrap}>
-          {previews.length ? (
+          {attachments.length ? (
             <div className={styles.previewStrip}>
-              {previews.map((preview, index) => (
-                <div key={`${preview}:${index}`} className={styles.previewItem}>
-                  <img src={preview} alt="" />
-                  <button type="button" className={styles.previewRemove} onClick={() => setFiles((prev) => prev.filter((_, i) => i !== index))}>
+              {attachments.map((attachment) => (
+                <div key={attachment.id} className={styles.previewItem}>
+                  <img src={attachment.url} alt="" />
+                  <button
+                    type="button"
+                    className={styles.previewRemove}
+                    onClick={() => replaceAttachments((prev) => {
+                      const removed = prev.find((item) => item.id === attachment.id);
+                      if (removed) URL.revokeObjectURL(removed.url);
+                      return prev.filter((item) => item.id !== attachment.id);
+                    })}
+                  >
                     <Icon name="close" size={12} />
                   </button>
                 </div>
               ))}
             </div>
           ) : null}
+
           {replyTarget ? (
-            <div className={styles.replyChip}>ответ {replyTarget.username}<button type="button" onClick={() => setReplyTarget(null)}><Icon name="close" size={12} /></button></div>
+            <div className={styles.replyChip}>
+              <span>ответ {replyTarget.username}</span>
+              <button type="button" onClick={() => setReplyTarget(null)}><Icon name="close" size={12} /></button>
+            </div>
           ) : null}
+
           <div className={styles.composer}>
             {me ? <Avatar url={me.avatarUrl} name={me.username} size={34} /> : <Skeleton circle style={{ width: 34, height: 34 }} />}
             <div className={styles.inputShell}>
-              <textarea className={styles.textarea} placeholder={replyTarget ? 'Написать ответ...' : 'Комментарий'} value={text} onChange={(event) => setText(event.target.value.slice(0, MAX_TEXT + 50))} rows={1} />
+              <textarea ref={textareaRef} className={styles.textarea} placeholder={replyTarget ? 'Написать ответ...' : 'Комментарий'} value={text} onChange={(event) => setText(event.target.value.slice(0, MAX_TEXT + 50))} rows={1} />
             </div>
-            <button type="button" className={styles.toolBtn} onClick={() => inputRef.current?.click()} aria-label="Добавить изображение"><Icon name="image" size={18} /></button>
-            <button type="button" className={styles.sendBtn} onClick={onSend} disabled={(!text.trim() && !files.length) || isLoading}><Icon name="send" size={19} /></button>
-            <input ref={inputRef} type="file" accept="image/*" multiple hidden onChange={(event: ChangeEvent<HTMLInputElement>) => { const list = event.target.files; if (list) setFiles((prev) => [...prev, ...Array.from(list)].slice(0, 8)); event.target.value = ''; }} />
+            <button
+              type="button"
+              className={styles.toolBtn}
+              aria-label="Добавить изображение"
+              onClick={() => {
+                const input = fileInputRef.current;
+                if (!input) return;
+                input.value = '';
+                input.click();
+              }}
+            >
+              <Icon name="image" size={18} />
+            </button>
+            <button type="button" className={styles.sendBtn} onClick={onSend} disabled={(!text.trim() && !attachments.length) || isLoading}><Icon name="send" size={19} /></button>
+            <input
+              ref={fileInputRef}
+              id={fileInputId}
+              className={styles.fileInput}
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={(event: ChangeEvent<HTMLInputElement>) => {
+                const files = event.target.files ? Array.from(event.target.files) : [];
+                handlePickFiles(files);
+                event.target.value = '';
+              }}
+            />
           </div>
         </div>
       </div>

@@ -82,7 +82,7 @@ const paths: Record<IconName, ReactNode> = {
   checkDouble: <><path d="M2.5 12.5 7 17l4.5-5" {...line} /><path d="M8.5 12.5 13 17l8.5-10" {...line} /></>,
   play: <path d="M8 5.14v13.72a1 1 0 0 0 1.53.85l10.9-6.86a1 1 0 0 0 0-1.7L9.53 4.29A1 1 0 0 0 8 5.14Z" fill="currentColor" />,
   reply: <path d="M10 8 5 12l5 4M6 12h9a4 4 0 0 1 4 4v0" {...line} />,
-  forward: <><path d="M14 5l5 5-5 5" {...line} /><path d="M19 10h-6a7 7 0 0 0-7 7" {...line} /></>,
+  forward: <path d="M14 8l5 4-5 4M5 12h13" {...line} />,
   dots: <><circle cx="5" cy="12" r="1.5" fill="currentColor"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/><circle cx="19" cy="12" r="1.5" fill="currentColor"/></>,
   chevronDown: <path d="m6 9 6 6 6-6" {...line} />,
   chevronUp: <path d="m6 15 6-6 6 6" {...line} />,

@@ -245,8 +245,8 @@ router.get('/highlights/user/:userId', requireAuth, asyncHandler(async (req: Aut
     },
   });
 
-  res.json({
-    items: highlights.map((highlight) => ({
+  const items = highlights
+    .map((highlight) => ({
       id: highlight.id,
       title: highlight.title,
       createdAt: highlight.createdAt,
@@ -257,8 +257,10 @@ router.get('/highlights/user/:userId', requireAuth, asyncHandler(async (req: Aut
         mediaType: highlight.entries[0].story.mediaType,
       } : null,
       items: highlight.entries.map((entry) => normalizeStory(entry.story, meId)),
-    })),
-  });
+    }))
+    .filter((highlight) => highlight.count > 0);
+
+  res.json({ items });
 }));
 
 const CreateHighlightSchema = z.object({ title: z.string().trim().min(1).max(80) });
@@ -305,7 +307,9 @@ router.delete('/highlights/:highlightId/stories/:storyId', requireAuth, asyncHan
   const highlight = await prisma.storyHighlight.findFirst({ where: { id: req.params.highlightId, userId: req.user!.id } });
   if (!highlight) throw new HttpError(404, 'Актуальное не найдено');
   await prisma.storyHighlightItem.deleteMany({ where: { highlightId: highlight.id, storyId: req.params.storyId } });
-  await prisma.storyHighlight.update({ where: { id: highlight.id }, data: { updatedAt: new Date() } });
+  const remaining = await prisma.storyHighlightItem.count({ where: { highlightId: highlight.id } });
+  if (remaining === 0) await prisma.storyHighlight.delete({ where: { id: highlight.id } });
+  else await prisma.storyHighlight.update({ where: { id: highlight.id }, data: { updatedAt: new Date() } });
   res.json({ ok: true });
 }));
 
@@ -332,7 +336,9 @@ router.delete('/:storyId/highlight/:highlightId', requireAuth, asyncHandler(asyn
   const highlight = await prisma.storyHighlight.findFirst({ where: { id: req.params.highlightId, userId: req.user!.id } });
   if (!highlight) throw new HttpError(404, 'Актуальное не найдено');
   await prisma.storyHighlightItem.deleteMany({ where: { highlightId: highlight.id, storyId: story.id } });
-  await prisma.storyHighlight.update({ where: { id: highlight.id }, data: { updatedAt: new Date() } });
+  const remaining = await prisma.storyHighlightItem.count({ where: { highlightId: highlight.id } });
+  if (remaining === 0) await prisma.storyHighlight.delete({ where: { id: highlight.id } });
+  else await prisma.storyHighlight.update({ where: { id: highlight.id }, data: { updatedAt: new Date() } });
   res.json({ ok: true });
 }));
 

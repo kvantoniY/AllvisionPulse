@@ -324,7 +324,7 @@ function TinyLineChart({
   return (
     <div className={styles.chartCard}>
       <div className={styles.rechartsCardShell}>
-        <ResponsiveContainer width="100%" height={220}>
+        <ResponsiveContainer width="100%" height={236}>
           <AreaChart data={chartData} margin={{ top: 16, right: 12, left: -12, bottom: 0 }}>
             <defs>
               <linearGradient id="pulsePrimaryArea" x1="0" y1="0" x2="0" y2="1">
@@ -337,8 +337,8 @@ function TinyLineChart({
               </linearGradient>
             </defs>
             <CartesianGrid vertical={false} stroke="rgba(255,255,255,0.08)" />
-            <XAxis dataKey="label" tickLine={false} axisLine={false} tick={{ fill: 'rgba(255,255,255,0.56)', fontSize: 11 }} />
-            <YAxis tickLine={false} axisLine={false} tick={{ fill: 'rgba(255,255,255,0.46)', fontSize: 11 }} tickFormatter={(value) => `${Math.round(Number(value))}`} width={36} />
+            <XAxis dataKey="label" tickLine={false} axisLine={false} tick={{ fill: 'rgba(255,255,255,0.64)', fontSize: 12 }} />
+            <YAxis tickLine={false} axisLine={false} tick={{ fill: 'rgba(255,255,255,0.54)', fontSize: 12 }} tickFormatter={(value) => `${Math.round(Number(value))}`} width={40} />
             <RechartsTooltip
               cursor={{ stroke: 'rgba(255,255,255,0.12)' }}
               contentStyle={{ background: '#0f141c', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, color: '#fff' }}
@@ -383,7 +383,7 @@ function FinanceTrendChart({ items }: { items: FinanceTrendPoint[] }) {
         <ResponsiveContainer width="100%" height={280}>
           <BarChart data={chartData} barGap={10} margin={{ top: 16, right: 12, left: -6, bottom: 12 }}>
             <CartesianGrid vertical={false} stroke="rgba(255,255,255,0.08)" />
-            <XAxis dataKey="label" tickLine={false} axisLine={false} tick={{ fill: 'rgba(255,255,255,0.56)', fontSize: 11 }} />
+            <XAxis dataKey="label" tickLine={false} axisLine={false} tick={{ fill: 'rgba(255,255,255,0.64)', fontSize: 12 }} />
             <YAxis tickLine={false} axisLine={false} tick={{ fill: 'rgba(255,255,255,0.46)', fontSize: 11 }} tickFormatter={(value) => formatMoneyCompact(Math.abs(Number(value)))} width={58} />
             <RechartsTooltip
               cursor={{ fill: 'rgba(255,255,255,0.04)' }}
@@ -472,19 +472,46 @@ function Segmented({
       label: option.label,
     }))
     .filter((option) => option.value);
+  const optionValues = normalizedOptions.map((option) => option.value).join('|');
+  const buttonRefs = useRef<Array<HTMLButtonElement | null>>([]);
+
+  useEffect(() => {
+    const activeIndex = normalizedOptions.findIndex((option) => option.value === value);
+    if (activeIndex < 0) return;
+
+    const node = buttonRefs.current[activeIndex];
+    if (!node) return;
+
+    const frame = window.requestAnimationFrame(() => {
+      node.scrollIntoView({ behavior: 'auto', block: 'nearest', inline: 'nearest' });
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [optionValues, value]);
 
   return (
-    <div className={styles.segmented}>
-      {normalizedOptions.map((option, index) => (
-        <button
-          key={`${option.value}-${index}`}
-          type="button"
-          className={[styles.segment, value === option.value ? styles.segmentActive : ''].filter(Boolean).join(' ')}
-          onClick={() => onChange(option.value)}
-        >
-          {option.label}
-        </button>
-      ))}
+    <div className={styles.segmented} role="tablist" aria-orientation="horizontal">
+      {normalizedOptions.map((option, index) => {
+        const isActive = value === option.value;
+
+        return (
+          <button
+            key={option.value}
+            ref={(node) => {
+              buttonRefs.current[index] = node;
+            }}
+            type="button"
+            role="tab"
+            aria-selected={isActive}
+            aria-pressed={isActive}
+            data-state={isActive ? 'active' : 'inactive'}
+            className={[styles.segment, isActive ? styles.segmentActive : ''].filter(Boolean).join(' ')}
+            onClick={() => onChange(option.value)}
+          >
+            {option.label}
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -922,6 +949,12 @@ function formatFullDate(value: string) {
   return new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' }).format(parsed);
 }
 
+function formatToolbarDate(value: string) {
+  const parsed = parseDate(value);
+  if (!parsed) return '—';
+  return new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'long' }).format(parsed);
+}
+
 function normalizeDateKey(value?: string | null) {
   const parsed = parseDate(value);
   return parsed ? fmtDate(parsed) : null;
@@ -1093,6 +1126,7 @@ export default function HealthPage() {
   const [healthSubTab, setHealthSubTab] = useState<'mental' | 'nutrition'>('mental');
   const [financeSubTab, setFinanceSubTab] = useState<'expenses' | 'income' | 'savings' | 'stats'>('expenses');
   const dateInputRef = useRef<HTMLInputElement | null>(null);
+  const weekButtonRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const [showProfileEditor, setShowProfileEditor] = useState(false);
   const [showAllRecommendations, setShowAllRecommendations] = useState(false);
   const [showNutritionGoalEditor, setShowNutritionGoalEditor] = useState(false);
@@ -1133,6 +1167,20 @@ export default function HealthPage() {
   const profileSuggestion = profileData?.suggestion;
   const weightDelta = profileData?.weightDelta;
   const weekDates = useMemo(() => getWeekDates(selectedDate), [selectedDate]);
+
+  useEffect(() => {
+    const activeIndex = weekDates.findIndex((date) => date === selectedDate);
+    if (activeIndex < 0) return;
+
+    const node = weekButtonRefs.current[activeIndex];
+    if (!node) return;
+
+    const frame = window.requestAnimationFrame(() => {
+      node.scrollIntoView({ behavior: 'auto', block: 'nearest', inline: 'nearest' });
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [selectedDate, weekDates]);
 
   const [profileForm, setProfileForm] = useState({
     heightCm: '',
@@ -1332,6 +1380,50 @@ export default function HealthPage() {
   const isNutritionEnabled = config?.nutritionEnabled ?? true;
   const isTasksEnabled = config?.tasksEnabled ?? true;
   const isFinanceEnabled = config?.financeEnabled ?? true;
+
+  const mainTabMeta = useMemo(() => {
+    if (mainTab === 'health') {
+      return {
+        title: 'Здоровье',
+        description: healthSubTab === 'nutrition'
+          ? 'Питание, калории и цели на каждый день'
+          : 'Сон, состояние, стресс и самочувствие в динамике',
+      };
+    }
+
+    if (mainTab === 'tasks') {
+      return {
+        title: 'Задачи',
+        description: 'План дня, привычки и выполнение задач без лишнего шума',
+      };
+    }
+
+    if (mainTab === 'finance') {
+      return {
+        title: 'Финансы',
+        description: 'Доходы, расходы, платежи и финансовые цели в одном месте',
+      };
+    }
+
+    if (mainTab === 'analytics') {
+      return {
+        title: 'Аналитика',
+        description: 'Ключевые показатели и тренды по вашему прогрессу',
+      };
+    }
+
+    if (mainTab === 'config') {
+      return {
+        title: 'Конфигурация',
+        description: 'Настройка модулей, целей и персональных параметров Pulse',
+      };
+    }
+
+    return {
+      title: 'Пульс',
+      description: 'Ваш ежедневный центр контроля',
+    };
+  }, [mainTab, healthSubTab]);
 
   useEffect(() => {
     if (healthSubTab === 'mental' && !(isHealthEnabled && isMentalEnabled)) {
@@ -1629,6 +1721,51 @@ export default function HealthPage() {
     return cards;
   }, [isHealthEnabled, isNutritionEnabled, profile?.age, profile?.currentWeightKg, profile?.heightCm, profile?.startWeightKg, profile?.targetWeightKg, weightDelta]);
 
+  const summaryPrimaryCards = useMemo(() => {
+    const primaryKeys = new Set(['current', 'target', 'progress', 'goal']);
+    return summaryCards.filter((card) => primaryKeys.has(card.key));
+  }, [summaryCards]);
+
+  const summarySecondaryCards = useMemo(() => {
+    const secondaryKeys = new Set(['height', 'age', 'start']);
+    return summaryCards.filter((card) => secondaryKeys.has(card.key));
+  }, [summaryCards]);
+
+  const goalSummary = useMemo(() => {
+    const current = profile?.currentWeightKg;
+    const target = profile?.targetWeightKg;
+    if (current == null || target == null) {
+      return { title: 'Цель', subtitle: 'заполни профиль' };
+    }
+
+    const delta = Math.abs(current - target);
+    if (delta === 0) {
+      return { title: 'Поддерживать', subtitle: 'цель достигнута' };
+    }
+
+    return {
+      title: current > target ? 'Сбросить' : 'Набрать',
+      subtitle: `ещё ${delta.toFixed(1)} кг`,
+    };
+  }, [profile?.currentWeightKg, profile?.targetWeightKg]);
+
+  const profileCardsVisible = isHealthEnabled || isNutritionEnabled;
+
+  function resetProfileForm() {
+    setProfileForm({
+      heightCm: profile?.heightCm?.toString() ?? '',
+      startWeightKg: profile?.startWeightKg?.toString() ?? '',
+      currentWeightKg: profile?.currentWeightKg?.toString() ?? '',
+      targetWeightKg: profile?.targetWeightKg?.toString() ?? '',
+      age: profile?.age?.toString() ?? '',
+    });
+  }
+
+  function closeProfileEditor() {
+    resetProfileForm();
+    setShowProfileEditor(false);
+  }
+
   function openDatePicker() {
     const input = dateInputRef.current;
     if (!input) return;
@@ -1648,6 +1785,7 @@ export default function HealthPage() {
       targetWeightKg: num(profileForm.targetWeightKg),
       age: intNum(profileForm.age),
     }).unwrap();
+    setShowProfileEditor(false);
   }
 
   async function handleMentalSave() {
@@ -1926,38 +2064,45 @@ export default function HealthPage() {
 
   return (
     <div className={styles.page}>
-      {mainTab === 'pulse' ? (
-        <div className={styles.hero}>
-          <div>
-            <h1 className={styles.pageTitle}>Пульс</h1>
-            <p className={styles.pageSubtitle}>Ваш ежедневный центр контроля</p>
-          </div>
+      <div className={styles.hero}>
+        <div className={styles.heroCopy}>
+          <h1 className={styles.pageTitle}>{mainTabMeta.title}</h1>
+          <p className={styles.pageSubtitle}>{mainTabMeta.description}</p>
         </div>
-      ) : null}
+      </div>
       <div className={styles.toolbarStack}>
         <div className={styles.toolbarHeadPanel}>
           <div className={styles.toolbarHead}>
           <div className={styles.dateSwitcher}>
             <button type="button" className={styles.dateNav} onClick={() => setSelectedDate(shiftDate(selectedDate, -1))} aria-label="Предыдущий день">‹</button>
             <button type="button" className={styles.dateTrigger} onClick={openDatePicker}>
-              {formatFullDate(selectedDate)}
+              {formatToolbarDate(selectedDate)}
             </button>
             <button type="button" className={styles.dateNav} onClick={() => setSelectedDate(shiftDate(selectedDate, 1))} aria-label="Следующий день">›</button>
             <input ref={dateInputRef} type="date" value={selectedDate} onChange={(event) => setSelectedDate(event.target.value)} className={styles.hiddenDateInput} />
           </div>
 
           <div className={styles.weekRow}>
-            {weekDates.map((date, index) => (
-              <button
-                key={date}
-                type="button"
-                className={[styles.weekDay, selectedDate === date ? styles.weekDayActive : ''].filter(Boolean).join(' ')}
-                onClick={() => setSelectedDate(date)}
-              >
-                <span>{weekdayLabels[index]}</span>
-                <strong>{(parseDate(date) ?? new Date()).getDate()}</strong>
-              </button>
-            ))}
+            {weekDates.map((date, index) => {
+              const isActive = selectedDate === date;
+
+              return (
+                <button
+                  key={date}
+                  ref={(node) => {
+                    weekButtonRefs.current[index] = node;
+                  }}
+                  type="button"
+                  aria-pressed={isActive}
+                  data-state={isActive ? 'active' : 'inactive'}
+                  className={[styles.weekDay, isActive ? styles.weekDayActive : ''].filter(Boolean).join(' ')}
+                  onClick={() => setSelectedDate(date)}
+                >
+                  <span>{weekdayLabels[index]}</span>
+                  <strong>{(parseDate(date) ?? new Date()).getDate()}</strong>
+                </button>
+              );
+            })}
           </div>
           </div>
         </div>
@@ -1969,70 +2114,142 @@ export default function HealthPage() {
 
       {mainTab === 'pulse' ? (
         <div className={styles.pulseScene}>
-          {summaryCards.length ? (
-            <>
-            <div className={styles.summaryRailWrap}>
-              <div className={styles.summaryRail}>
-                {summaryCards.map((card) => (
-                <div
-                  key={card.key}
-                  className={[
-                    styles.summaryCard,
-                    card.tone === 'accent' ? styles.summaryCardAccent : '',
-                    card.tone === 'success' ? styles.summaryCardSuccess : '',
-                    card.tone === 'danger' ? styles.summaryCardDanger : '',
-                    card.tone === 'goal' ? styles.summaryCardGoal : '',
-                  ].filter(Boolean).join(' ')}
-                >
-                  <div className={styles.summaryIconWrap}>
-                    <PulseIcon name={card.icon} className={styles.summaryIcon} />
-                  </div>
-                  <div className={styles.summaryCardText}>
-                    <span>{card.label}</span>
-                    <strong>
-                      {card.value}
-                      {card.unit ? <small>{card.unit}</small> : null}
-                    </strong>
-                    {card.description ? <em>{card.description}</em> : null}
-                  </div>
+          {profileCardsVisible ? (
+            <section className={styles.summarySurface}>
+              <div className={styles.summarySurfaceHead}>
+                <div className={styles.summarySurfaceCopy}>
+                  <div className={styles.summarySectionTitle}>Обзор профиля</div>
                 </div>
-                ))}
+
+                <div className={styles.summaryRailActions}>
+                  {showProfileEditor ? (
+                    <>
+                      <Button size="sm" onClick={closeProfileEditor}>Скрыть данные</Button>
+                      <Button size="sm" variant="primary" onClick={handleProfileSave} loading={profileSaving}>
+                        Сохранить профиль
+                      </Button>
+                    </>
+                  ) : (
+                    <Button size="sm" onClick={() => setShowProfileEditor(true)}>Редактировать данные</Button>
+                  )}
+                </div>
               </div>
 
-              <div className={styles.summaryRailActions}>
-              <Button size="sm" onClick={() => setShowProfileEditor((value) => !value)}>
-                {showProfileEditor ? 'Скрыть данные' : 'Редактировать данные'}
-              </Button>
-              {showProfileEditor ? (
-                <Button size="sm" variant="primary" onClick={handleProfileSave} loading={profileSaving}>
-                  Сохранить профиль
-                </Button>
-              ) : null}
-            </div>
-          </div>
+              <div className={styles.summaryCombinedGrid}>
+                {(isHealthEnabled || isNutritionEnabled) ? (
+                  <div className={styles.summaryComboCard}>
+                    <div className={styles.summaryComboTitle}>Параметры</div>
+                    <div className={styles.summaryMetricStack}>
+                      {isHealthEnabled ? (
+                        <div className={styles.summaryMetricLine}>
+                          <span>Рост</span>
+                          {showProfileEditor ? (
+                            <input
+                              className={styles.summaryInlineInput}
+                              value={profileForm.heightCm}
+                              onChange={(e) => setProfileForm((prev) => ({ ...prev, heightCm: e.target.value }))}
+                              inputMode="decimal"
+                              aria-label="Рост, см"
+                            />
+                          ) : (
+                            <strong>{profile?.heightCm ?? '—'}<small>см</small></strong>
+                          )}
+                        </div>
+                      ) : null}
+                      {isNutritionEnabled ? (
+                        <div className={styles.summaryMetricLine}>
+                          <span>Вес начальный</span>
+                          {showProfileEditor ? (
+                            <input
+                              className={styles.summaryInlineInput}
+                              value={profileForm.startWeightKg}
+                              onChange={(e) => setProfileForm((prev) => ({ ...prev, startWeightKg: e.target.value }))}
+                              inputMode="decimal"
+                              aria-label="Вес на старте, кг"
+                            />
+                          ) : (
+                            <strong>{profile?.startWeightKg ?? '—'}<small>кг</small></strong>
+                          )}
+                        </div>
+                      ) : null}
+                      {isHealthEnabled ? (
+                        <div className={styles.summaryMetricLine}>
+                          <span>Возраст</span>
+                          {showProfileEditor ? (
+                            <input
+                              className={styles.summaryInlineInput}
+                              value={profileForm.age}
+                              onChange={(e) => setProfileForm((prev) => ({ ...prev, age: e.target.value }))}
+                              inputMode="numeric"
+                              aria-label="Возраст"
+                            />
+                          ) : (
+                            <strong>{profile?.age ?? '—'}<small>лет</small></strong>
+                          )}
+                        </div>
+                      ) : null}
+                    </div>
+                  </div>
+                ) : null}
 
-          {showProfileEditor ? (
-            <div className={styles.editorPanel}>
-              <div className={styles.compactGrid}>
-                {isHealthEnabled ? <Field label="Рост, см"><input value={profileForm.heightCm} onChange={(e) => setProfileForm((prev) => ({ ...prev, heightCm: e.target.value }))} /></Field> : null}
-                {isNutritionEnabled ? <Field label="Вес на старте, кг"><input value={profileForm.startWeightKg} onChange={(e) => setProfileForm((prev) => ({ ...prev, startWeightKg: e.target.value }))} /></Field> : null}
-                {isNutritionEnabled ? <Field label="Текущий вес, кг"><input value={profileForm.currentWeightKg} onChange={(e) => setProfileForm((prev) => ({ ...prev, currentWeightKg: e.target.value }))} /></Field> : null}
-                {isNutritionEnabled ? <Field label="Целевой вес, кг"><input value={profileForm.targetWeightKg} onChange={(e) => setProfileForm((prev) => ({ ...prev, targetWeightKg: e.target.value }))} /></Field> : null}
-                {isHealthEnabled ? <Field label="Возраст"><input value={profileForm.age} onChange={(e) => setProfileForm((prev) => ({ ...prev, age: e.target.value }))} /></Field> : null}
+                {isNutritionEnabled ? (
+                  <div className={styles.summaryComboCard}>
+                    <div className={styles.summaryComboTitle}>Вес</div>
+                    <div className={styles.summaryMetricStack}>
+                      <div className={styles.summaryMetricLine}>
+                        <span>Текущий вес</span>
+                        {showProfileEditor ? (
+                          <input
+                            className={styles.summaryInlineInput}
+                            value={profileForm.currentWeightKg}
+                            onChange={(e) => setProfileForm((prev) => ({ ...prev, currentWeightKg: e.target.value }))}
+                            inputMode="decimal"
+                            aria-label="Текущий вес, кг"
+                          />
+                        ) : (
+                          <strong>{profile?.currentWeightKg ?? '—'}<small>кг</small></strong>
+                        )}
+                      </div>
+                      <div className={styles.summaryMetricLine}>
+                        <span>Желаемый вес</span>
+                        {showProfileEditor ? (
+                          <input
+                            className={styles.summaryInlineInput}
+                            value={profileForm.targetWeightKg}
+                            onChange={(e) => setProfileForm((prev) => ({ ...prev, targetWeightKg: e.target.value }))}
+                            inputMode="decimal"
+                            aria-label="Целевой вес, кг"
+                          />
+                        ) : (
+                          <strong>{profile?.targetWeightKg ?? '—'}<small>кг</small></strong>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
+
+                {isNutritionEnabled ? (
+                  <div className={[styles.summaryComboCard, styles.summaryComboCardAccent].join(' ')}>
+                    <div className={styles.summaryComboTitle}>Прогресс и цель</div>
+                    <div className={styles.summaryMetricStack}>
+                      <div className={styles.summaryMetricLine}><span>Прогресс</span><strong>{weightDelta ? `${weightDelta.delta > 0 ? '+' : ''}${weightDelta.delta}` : '—'}<small>кг</small></strong></div>
+                      <div className={styles.summaryMetricLine}><span>Цель</span><strong>{goalSummary.title}</strong></div>
+                      <div className={styles.summaryMetricHint}>{goalSummary.subtitle}</div>
+                    </div>
+                  </div>
+                ) : null}
               </div>
-            </div>
-          ) : null}
-            </>
+            </section>
           ) : null}
 
           <section className={styles.pulseDaySurface}>
             <div className={styles.pulseDayHeader}>
               <div className={styles.pulseSectionTitle}>
                 <PulseIcon name="pulse" className={styles.sectionIconAccent} />
-                <h2>Pulse дня</h2>
+                <h2>Пульс дня</h2>
               </div>
               <button type="button" className={styles.pulseDateChip} onClick={openDatePicker}>
-                {formatFullDate(selectedDate)}
+                {formatToolbarDate(selectedDate)}
               </button>
             </div>
 
@@ -2090,23 +2307,6 @@ export default function HealthPage() {
               ) : null}
             </div>
 
-            {isFinanceEnabled ? (
-              <button type="button" className={styles.paymentsBanner} onClick={() => setMainTab('finance')}>
-                <div className={styles.bannerLead}>
-                  <div className={styles.bannerIconWrap}><PulseIcon name="card" className={styles.bannerIcon} /></div>
-                  <div>
-                    <strong>Сегодня платежей: {paymentsToday.length}</strong>
-                    <span>
-                      {paymentsPreview.length
-                        ? paymentsPreview.map((item) => `${item.title} — ${formatMoney(item.amount)}`).join(' · ')
-                        : 'На выбранный день регулярных платежей нет.'}
-                    </span>
-                  </div>
-                </div>
-                <span className={styles.bannerAction}>Подробнее <PulseIcon name="arrow" className={styles.arrowIcon} /></span>
-              </button>
-            ) : null}
-
             <div className={styles.recommendationsSection}>
               <div className={styles.recommendationsHeader}>
                 <div className={styles.recommendationsTitle}><PulseIcon name="spark" className={styles.sectionIconMuted} />Рекомендации</div>
@@ -2157,101 +2357,99 @@ export default function HealthPage() {
                 </button>
               ) : null}
             </div>
-          </section>
 
-          <div className={styles.pulseLowerGrid}>
-            <div className={styles.pulseLowerMain}>
-              <section className={styles.panelSurface}>
-                <div className={styles.panelTitle}><PulseIcon name="spark" className={styles.sectionIconAccent} />Быстрые действия</div>
-                <div className={styles.quickActionsGrid}>
-                  {isNutritionEnabled ? (
-                    <button type="button" className={styles.quickActionCard} onClick={() => setMealModalOpen(true)}>
-                      <span className={styles.quickActionIcon}><PulseIcon name="meal" className={styles.summaryIcon} /></span>
-                      <strong>Добавить приём пищи</strong>
-                    </button>
-                  ) : null}
+            {(isTasksEnabled || isFinanceEnabled) ? (
+              <div className={styles.pulseInlineGrid}>
+                <div className={styles.inlineSection}>
                   {isTasksEnabled ? (
-                    <button type="button" className={styles.quickActionCard} onClick={() => setTaskModalOpen(true)}>
-                      <span className={styles.quickActionIcon}><PulseIcon name="check" className={styles.summaryIcon} /></span>
-                      <strong>Добавить задачу</strong>
-                    </button>
-                  ) : null}
-                  {isFinanceEnabled ? (
-                    <button type="button" className={styles.quickActionCard} onClick={() => { setFinanceForm((prev) => ({ ...prev, type: 'EXPENSE' })); setFinanceModalOpen(true); }}>
-                      <span className={styles.quickActionIcon}><PulseIcon name="wallet" className={styles.summaryIcon} /></span>
-                      <strong>Добавить расход</strong>
-                    </button>
-                  ) : null}
-                  {isMentalEnabled ? (
-                    <button type="button" className={styles.quickActionCard} onClick={() => setMainTab('health')}>
-                      <span className={styles.quickActionIcon}><PulseIcon name="heart" className={styles.summaryIcon} /></span>
-                      <strong>Записать состояние</strong>
-                    </button>
-                  ) : null}
-                </div>
-              </section>
-
-              {isTasksEnabled ? (
-                <section className={styles.panelSurface}>
-                  <div className={styles.panelTitle}><PulseIcon name="target" className={styles.sectionIconAccent} />Фокус на сегодня</div>
-                <div className={styles.focusTaskList}>
-                  {focusItems.map((task) => (
-                    <div key={task.id} className={styles.focusTaskRow}>
-                      <button
-                        type="button"
-                        className={[styles.taskToggle, task.completedForDate ? styles.taskToggleDone : ''].filter(Boolean).join(' ')}
-                        onClick={() => togglePulseTaskDate({ taskId: task.id, date: selectedDate })}
-                        aria-label={task.completedForDate ? 'Снять выполнение' : 'Отметить выполненным'}
-                      >
-                        {task.completedForDate ? '✓' : ''}
-                      </button>
-                      <div className={styles.focusTaskMeta}>
-                        <strong>{task.title}</strong>
-                        <span>{task.notes || (task.taskType === 'HABIT' ? 'Привычка' : task.taskType === 'REGULAR' ? 'Регулярная задача' : 'Разовая задача')}</span>
-                      </div>
-                      <span className={styles.focusTaskSide}>{task.completedForDate ? 'Готово' : 'Активно'}</span>
-                    </div>
-                  ))}
-                  {!focusItems.length ? <div className={styles.emptyText}>На выбранный день задач пока нет.</div> : null}
-                </div>
-                </section>
-              ) : null}
-            </div>
-
-            <div className={styles.pulseLowerAside}>
-              {isFinanceEnabled ? (
-                <section className={styles.panelSurface}>
-                  <div className={styles.panelTitle}><PulseIcon name="calendar" className={styles.sectionIconAccent} />Ближайшее</div>
-                <div className={styles.upcomingList}>
-                  {(financeOverview?.upcomingPayments ?? []).slice(0, 4).map((item) => (
-                    <div key={`${item.title}-${item.date}`} className={styles.upcomingRow}>
-                      <div className={styles.upcomingLead}>
-                        <span className={styles.upcomingIcon}><PulseIcon name="card" className={styles.summaryIcon} /></span>
-                        <div>
-                          <strong>{item.title}</strong>
-                          <span>{item.kind}</span>
+                    <>
+                      <div className={styles.inlineSectionHead}>
+                        <div className={styles.panelTitle}><PulseIcon name="spark" className={styles.sectionIconAccent} />Сегодня</div>
+                        <div className={styles.quickActionsInline}>
+                          {isNutritionEnabled ? (
+                            <button type="button" className={styles.quickActionChip} onClick={() => setMealModalOpen(true)}>
+                              <PulseIcon name="meal" className={styles.summaryIcon} />
+                              <span>Приём пищи</span>
+                            </button>
+                          ) : null}
+                          {isTasksEnabled ? (
+                            <button type="button" className={styles.quickActionChip} onClick={() => setTaskModalOpen(true)}>
+                              <PulseIcon name="check" className={styles.summaryIcon} />
+                              <span>Задача</span>
+                            </button>
+                          ) : null}
+                          {isFinanceEnabled ? (
+                            <button type="button" className={styles.quickActionChip} onClick={() => { setFinanceForm((prev) => ({ ...prev, type: 'EXPENSE' })); setFinanceModalOpen(true); }}>
+                              <PulseIcon name="wallet" className={styles.summaryIcon} />
+                              <span>Расход</span>
+                            </button>
+                          ) : null}
+                          {isMentalEnabled ? (
+                            <button type="button" className={styles.quickActionChip} onClick={() => setMainTab('health')}>
+                              <PulseIcon name="heart" className={styles.summaryIcon} />
+                              <span>Состояние</span>
+                            </button>
+                          ) : null}
                         </div>
                       </div>
-                      <div className={styles.upcomingSide}>
-                        <span>{formatShortDate(item.date)}</span>
-                        <strong>{formatMoney(item.amount)}</strong>
-                      </div>
-                    </div>
-                  ))}
-                  {!financeOverview?.upcomingPayments?.length ? <div className={styles.emptyText}>Пока нет ближайших платежей.</div> : null}
-                </div>
-                </section>
-              ) : null}
 
-              <section className={styles.panelSurface}>
-                <div className={styles.trendHeader}>
-                  <div className={styles.panelTitle}><PulseIcon name="trend" className={styles.sectionIconAccent} />Тренд недели</div>
-                  <span className={styles.trendBadge}>Средний: {trendAverage}</span>
+                      <div className={styles.focusTaskList}>
+                        {focusItems.map((task) => (
+                          <div key={task.id} className={styles.focusTaskRow}>
+                            <button
+                              type="button"
+                              className={[styles.taskToggle, task.completedForDate ? styles.taskToggleDone : ''].filter(Boolean).join(' ')}
+                              onClick={() => togglePulseTaskDate({ taskId: task.id, date: selectedDate })}
+                              aria-label={task.completedForDate ? 'Снять выполнение' : 'Отметить выполненным'}
+                            >
+                              {task.completedForDate ? '✓' : ''}
+                            </button>
+                            <div className={styles.focusTaskMeta}>
+                              <strong>{task.title}</strong>
+                              <span>{task.notes || (task.taskType === 'HABIT' ? 'Привычка' : task.taskType === 'REGULAR' ? 'Регулярная задача' : 'Разовая задача')}</span>
+                            </div>
+                          </div>
+                        ))}
+                        {!focusItems.length ? <div className={styles.emptyText}>На выбранный день задач пока нет.</div> : null}
+                      </div>
+                    </>
+                  ) : null}
+
+                  {isFinanceEnabled ? (
+                    <>
+                      <div className={styles.inlineDivider} />
+                      <div className={styles.inlineSectionHead}>
+                        <div className={styles.panelTitle}><PulseIcon name="calendar" className={styles.sectionIconAccent} />Финансы на сегодня</div>
+                      </div>
+                      <button type="button" className={[styles.paymentsBanner, styles.financeBanner].join(' ')} onClick={() => setMainTab('finance')}>
+                        <div className={styles.bannerLead}>
+                          <div className={styles.bannerIconWrap}><PulseIcon name="card" className={styles.bannerIcon} /></div>
+                          <div>
+                            <strong>Сегодня платежей: {paymentsToday.length}</strong>
+                            <span>
+                              {paymentsPreview.length
+                                ? paymentsPreview.map((item) => `${item.title} — ${formatMoney(item.amount)}`).join(' · ')
+                                : 'На выбранный день регулярных платежей нет.'}
+                            </span>
+                          </div>
+                        </div>
+                        <span className={styles.bannerAction}>Подробнее <PulseIcon name="arrow" className={styles.arrowIcon} /></span>
+                      </button>
+                      <div className={styles.inlineFinanceMeta}>
+                        {(financeOverview?.upcomingPayments ?? []).slice(0, 2).map((item) => (
+                          <div key={`${item.title}-${item.date}`} className={styles.inlineFinanceRow}>
+                            <span>{item.title}</span>
+                            <strong>{formatShortDate(item.date)} · {formatMoney(item.amount)}</strong>
+                          </div>
+                        ))}
+                        {!financeOverview?.upcomingPayments?.length ? <div className={styles.emptyText}>Пока нет ближайших платежей.</div> : null}
+                      </div>
+                    </>
+                  ) : null}
                 </div>
-                <TinyLineChart items={(analyticsData?.healthRows ?? []).map((row) => ({ date: row.date, todayScore: row.todayScore, pulse7Score: row.pulse7Score }))} keyProp="todayScore" secondaryKey="pulse7Score" />
-              </section>
-            </div>
-          </div>
+              </div>
+            ) : null}
+          </section>
         </div>
       ) : null}
 
@@ -2589,19 +2787,21 @@ export default function HealthPage() {
 
                     <div className={styles.taskRowContent}>
                       <strong className={styles.taskRowTitle}>{task.title}</strong>
+                      {task.notes && task.notes.trim() && task.notes.trim().toLowerCase() !== `${typeLabel} задача`.toLowerCase() ? (
+                        <div className={styles.taskRowNote}>{task.notes}</div>
+                      ) : null}
                       <div className={styles.taskRowMeta}>
-                        <span>{task.notes || `${typeLabel} задача`}</span>
-                        {task.priority ? <span>Приоритет {task.priority}</span> : null}
+                        <span className={[styles.taskMetaChip, styles.taskMetaChipType, task.taskType === 'HABIT' ? styles.taskMetaChipTypeHabit : task.taskType === 'REGULAR' ? styles.taskMetaChipTypeRegular : styles.taskMetaChipTypeOneTime].join(' ')}>{`${typeLabel} задача`}</span>
+                        {task.priority ? <span className={[styles.taskMetaChip, styles.taskMetaChipPriority].join(' ')}>Приоритет {task.priority}</span> : null}
                       </div>
                     </div>
                   </div>
 
                   <div className={styles.taskRowSide}>
-                    <div className={styles.taskBadgeGroup}>
-                      <span className={[styles.taskTypeBadge, task.taskType === 'HABIT' ? styles.taskTypeBadgeHabit : task.taskType === 'REGULAR' ? styles.taskTypeBadgeRegular : styles.taskTypeBadgeOneTime].join(' ')}>{typeLabel}</span>
-                      {task.completedForDate ? <span className={styles.taskDoneBadge}>Достигнуто!</span> : null}
-                    </div>
-                    <button type="button" className={styles.taskDeleteButton} onClick={() => deletePulseTask(task.id)}>Удалить</button>
+                    <button type="button" className={[styles.taskDeleteButton, styles.taskDeleteButtonDesktop].join(' ')} onClick={() => deletePulseTask(task.id)}>Удалить</button>
+                    <button type="button" className={[styles.taskDeleteIconButton, styles.taskDeleteIconButtonMobile].join(' ')} onClick={() => deletePulseTask(task.id)} aria-label="Удалить задачу">
+                      <PulseIcon name="trash" className={styles.taskDeleteIcon} />
+                    </button>
                   </div>
                 </article>
               );
@@ -2624,20 +2824,34 @@ export default function HealthPage() {
                 <article key={goal.id} className={[styles.goalCard, goal.achieved ? styles.goalCardDone : ''].filter(Boolean).join(' ')}>
                   <div className={styles.goalCardHeader}>
                     <div className={styles.goalCardLead}>
-                      <span className={styles.goalCardIcon}><PulseIcon name={goal.achieved ? 'check' : 'target'} className={styles.summaryIcon} /></span>
+                      <div className={styles.goalCardLeadCluster}>
+                        <span className={styles.goalCardIcon}><PulseIcon name={goal.achieved ? 'check' : 'target'} className={styles.summaryIcon} /></span>
+                        <button
+                          type="button"
+                          className={styles.goalDeleteIconButton}
+                          onClick={() => deletePulseGoal(goal.id)}
+                          disabled={pulseGoalUpdating}
+                          aria-label="Удалить цель"
+                        >
+                          <PulseIcon name="trash" className={styles.taskDeleteIcon} />
+                        </button>
+                      </div>
                       <div className={styles.goalCardText}>
                         <strong>{goal.title}</strong>
                         <span>{goal.achieved ? 'Достигнуто!' : goal.displayDescription || 'Разбейте цель на шаги, и прогресс будет считаться автоматически.'}</span>
                       </div>
                     </div>
-
-                    <div className={styles.goalCardControls}>
-                      <button type="button" className={[styles.goalStatusButton, goal.achieved ? styles.goalStatusButtonDone : ''].filter(Boolean).join(' ')} onClick={() => handleToggleGoalAchieved(goal)} disabled={pulseGoalUpdating}>
-                        {goal.achieved ? 'Снять статус' : 'Отметить достигнутой'}
-                      </button>
-                      <button type="button" className={styles.taskDeleteButton} onClick={() => deletePulseGoal(goal.id)} disabled={pulseGoalUpdating}>Удалить</button>
-                    </div>
                   </div>
+
+                  <button
+                    type="button"
+                    className={[styles.goalCheckbar, goal.achieved ? styles.goalCheckbarDone : ''].filter(Boolean).join(' ')}
+                    onClick={() => handleToggleGoalAchieved(goal)}
+                    disabled={pulseGoalUpdating}
+                  >
+                    <span className={[styles.goalCheckbarToggle, goal.achieved ? styles.goalCheckbarToggleDone : ''].filter(Boolean).join(' ')}>{goal.achieved ? '✓' : ''}</span>
+                    <span className={styles.goalCheckbarLabel}>{goal.achieved ? 'Цель достигнута' : 'Отметить достигнутой'}</span>
+                  </button>
 
                   <div className={styles.goalProgressHead}>
                     <span>{goal.subtaskCount ? `${goal.doneCount} из ${goal.subtaskCount} подзадач` : 'Прогресс по цели'}</span>

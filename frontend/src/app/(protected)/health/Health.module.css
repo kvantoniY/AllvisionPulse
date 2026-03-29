@@ -4453,3 +4453,3524 @@
     gap: 14px;
   }
 }
+
+/* --- Pulse UX refinement v2 --- */
+.hero {
+  padding: 0 2px;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+
+.pageTitle {
+  font-size: clamp(30px, 3.1vw, 40px);
+  line-height: 1;
+}
+
+.pageSubtitle {
+  margin-top: 8px;
+  font-size: 15px;
+  color: rgba(255,255,255,0.68);
+}
+
+.toolbarStack {
+  gap: 12px;
+}
+
+.toolbarHeadPanel,
+.toolbarTabsPanel {
+  border-radius: 24px;
+  border: 1px solid rgba(255,255,255,0.045);
+  background: linear-gradient(180deg, rgba(11, 13, 18, 0.96), rgba(7, 9, 13, 0.98));
+  box-shadow: 0 14px 32px rgba(0,0,0,0.2);
+}
+
+.toolbarHeadPanel {
+  padding: 12px 16px;
+}
+
+.toolbarTabsPanel {
+  padding: 10px;
+}
+
+.toolbarHead {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.dateSwitcher {
+  padding: 2px 0;
+}
+
+.dateTrigger {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.weekRow {
+  justify-content: flex-start;
+  gap: 8px;
+  padding-bottom: 0;
+  scroll-snap-type: x proximity;
+}
+
+.weekDay {
+  min-width: 62px;
+  padding: 8px 10px 10px;
+  border-radius: 16px;
+  scroll-snap-align: start;
+}
+
+.weekDay strong {
+  font-size: 15px;
+}
+
+.segmented {
+  gap: 8px;
+}
+
+.segment {
+  min-height: 40px;
+  padding: 0 15px;
+  border-radius: 14px;
+  font-size: 13px;
+}
+
+.summarySurface {
+  display: grid;
+  gap: 14px;
+  border-radius: 26px;
+  border: 1px solid rgba(255,255,255,0.05);
+  background: linear-gradient(180deg, rgba(14,14,18,0.98), rgba(8,9,12,0.98));
+  box-shadow: var(--shadow-sm);
+  padding: 18px;
+}
+
+.summarySurfaceHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.summarySurfaceCopy {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.summarySectionTitle {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.summarySectionText {
+  margin: 0;
+  max-width: 720px;
+  font-size: 13px;
+  line-height: 1.55;
+  color: rgba(255,255,255,0.62);
+}
+
+.summaryPrimaryGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.summarySecondaryGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.summaryCard {
+  min-width: 0;
+  min-height: 0;
+  align-items: flex-start;
+  padding: 14px 15px;
+  border-radius: 20px;
+  gap: 12px;
+}
+
+.summaryCardPrimary {
+  min-height: 92px;
+}
+
+.summaryCardSecondary {
+  min-height: 78px;
+  background: rgba(255,255,255,0.022);
+}
+
+.summaryCardGoal {
+  background: linear-gradient(180deg, rgba(36,23,8,0.92), rgba(23,16,8,0.96));
+  border-color: rgba(255, 137, 37, 0.22);
+}
+
+.summaryIconWrap {
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
+}
+
+.summaryCardText {
+  gap: 4px;
+}
+
+.summaryCardText span {
+  font-size: 12px;
+}
+
+.summaryCardText strong {
+  font-size: 18px;
+  line-height: 1.08;
+}
+
+.summaryCardPrimary .summaryCardText strong {
+  font-size: 22px;
+}
+
+.summaryCardText em {
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.summaryRailActions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.summaryRailActions :global(button) {
+  min-height: 40px;
+}
+
+.editorPanel {
+  margin-top: 2px;
+  padding: 16px;
+  border-radius: 20px;
+  background: rgba(255,255,255,0.025);
+}
+
+.pulseDaySurface,
+.panelSurface {
+  padding: 18px;
+  border-radius: 24px;
+}
+
+.pulseDayHeader,
+.trendHeader {
+  margin-bottom: 14px;
+}
+
+.pulseSectionTitle,
+.panelTitle,
+.recommendationsTitle {
+  font-size: 15px;
+}
+
+.pulseSectionTitle h2 {
+  font-size: 15px;
+}
+
+.pulseDateChip,
+.trendBadge {
+  font-size: 12px;
+}
+
+.pulseStatsGrid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.stateCard,
+.metricCompactCard {
+  min-height: 88px;
+  padding: 14px 15px;
+  border-radius: 18px;
+}
+
+.stateCardContent {
+  gap: 12px;
+}
+
+.stateMeta strong {
+  font-size: 14px;
+}
+
+.miniRing {
+  width: 54px;
+  height: 54px;
+}
+
+.metricCompactCard {
+  gap: 8px;
+}
+
+.metricCompactHeader {
+  gap: 8px;
+}
+
+.metricCompactTitle,
+.metricCompactValue {
+  font-size: 12px;
+}
+
+.compactProgress {
+  height: 8px;
+}
+
+.metricCompactAccent strong {
+  font-size: 12px;
+}
+
+.paymentsBanner,
+.recommendationRow,
+.focusTaskRow,
+.upcomingRow {
+  padding: 13px 15px;
+  border-radius: 16px;
+}
+
+.paymentsBanner {
+  margin-top: 10px;
+}
+
+.bannerLead,
+.recommendationLead,
+.upcomingLead {
+  gap: 10px;
+}
+
+.bannerLead strong,
+.upcomingLead strong,
+.focusTaskMeta strong {
+  font-size: 13px;
+}
+
+.bannerLead span,
+.recommendationLead,
+.focusTaskMeta span,
+.upcomingSide span,
+.upcomingSide strong {
+  font-size: 12px;
+}
+
+.bannerAction,
+.recommendationAction {
+  font-size: 12px;
+}
+
+.recommendationsSection {
+  margin-top: 16px;
+}
+
+.quickActionsGrid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.quickActionCard {
+  min-height: 88px;
+  padding: 14px;
+  gap: 10px;
+  border-radius: 18px;
+}
+
+.quickActionCard strong {
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.pulseLowerGrid {
+  grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
+  gap: 16px;
+}
+
+.chartCard {
+  margin-top: 10px;
+}
+
+.rechartsCardShell {
+  border: 1px solid rgba(255,255,255,0.04);
+  background: linear-gradient(180deg, rgba(15,16,20,0.96), rgba(11,12,16,0.96));
+}
+
+.panelSurface .emptyText,
+.pulseDaySurface .emptyText {
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: rgba(255,255,255,0.02);
+}
+
+@media (max-width: 1200px) {
+  .summaryPrimaryGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .summarySecondaryGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .pulseLowerGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 920px) {
+  .toolbarHead {
+    display: grid;
+    gap: 12px;
+  }
+
+  .summarySurfaceHead {
+    display: grid;
+    gap: 12px;
+  }
+
+  .summaryRailActions {
+    justify-content: stretch;
+  }
+
+  .summaryRailActions :global(button) {
+    flex: 1 1 0;
+  }
+
+  .pulseStatsGrid,
+  .quickActionsGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .page {
+    gap: 12px;
+    padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .hero {
+    padding: 4px 0 0;
+  }
+
+  .pageTitle {
+    font-size: 26px;
+  }
+
+  .pageSubtitle {
+    font-size: 13px;
+    margin-top: 6px;
+  }
+
+  .toolbarHeadPanel,
+  .toolbarTabsPanel,
+  .summarySurface,
+  .pulseDaySurface,
+  .panelSurface {
+    border-radius: 20px;
+  }
+
+  .toolbarHeadPanel {
+    padding: 10px 12px;
+  }
+
+  .toolbarTabsPanel {
+    padding: 8px;
+  }
+
+  .dateSwitcher {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .dateTrigger {
+    font-size: 15px;
+  }
+
+  .weekRow {
+    margin-right: -2px;
+    padding-bottom: 2px;
+  }
+
+  .weekDay {
+    min-width: 56px;
+    padding: 8px 8px 9px;
+  }
+
+  .segmented {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .segmented::-webkit-scrollbar {
+    display: none;
+  }
+
+  .segment {
+    white-space: nowrap;
+    min-height: 38px;
+    padding: 0 13px;
+    font-size: 13px;
+  }
+
+  .summarySurface {
+    padding: 14px;
+    gap: 12px;
+  }
+
+  .summarySectionText {
+    font-size: 12px;
+    line-height: 1.45;
+  }
+
+  .summaryPrimaryGrid,
+  .summarySecondaryGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .summaryCard,
+  .summaryCardPrimary,
+  .summaryCardSecondary {
+    min-height: 0;
+    padding: 12px;
+    gap: 10px;
+  }
+
+  .summaryCardGoal {
+    grid-column: 1 / -1;
+  }
+
+  .summaryIconWrap {
+    width: 30px;
+    height: 30px;
+    border-radius: 10px;
+  }
+
+  .summaryCardPrimary .summaryCardText strong {
+    font-size: 18px;
+  }
+
+  .summaryCardText strong {
+    font-size: 16px;
+  }
+
+  .summaryCardText span,
+  .summaryCardText em {
+    font-size: 11px;
+  }
+
+  .summaryRailActions {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .summaryRailActions :global(button) {
+    width: 100%;
+  }
+
+  .editorPanel,
+  .pulseDaySurface,
+  .panelSurface {
+    padding: 14px;
+    border-radius: 20px;
+  }
+
+  .pulseDayHeader,
+  .trendHeader {
+    margin-bottom: 12px;
+    gap: 10px;
+  }
+
+  .pulseDateChip,
+  .trendBadge {
+    font-size: 12px;
+  }
+
+  .pulseStatsGrid,
+  .quickActionsGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .compactGrid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .stateCard,
+  .metricCompactCard {
+    min-height: 82px;
+    padding: 13px 14px;
+  }
+
+  .miniRing {
+    width: 50px;
+    height: 50px;
+  }
+
+  .paymentsBanner,
+  .recommendationRow,
+  .focusTaskRow,
+  .upcomingRow {
+    display: grid;
+    gap: 10px;
+    align-items: start;
+    padding: 13px 14px;
+  }
+
+  .paymentsBanner {
+    justify-content: stretch;
+  }
+
+  .bannerAction,
+  .recommendationAction,
+  .focusTaskSide,
+  .upcomingSide {
+    margin-left: 42px;
+    text-align: left;
+  }
+
+  .quickActionCard {
+    min-height: 78px;
+  }
+
+  .chartCard {
+    margin-top: 8px;
+  }
+}
+
+
+@media (max-width: 420px) {
+  .pulseStatsGrid,
+  .quickActionsGrid,
+  .summaryPrimaryGrid,
+  .summarySecondaryGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .summaryCardGoal {
+    grid-column: auto;
+  }
+}
+
+/* v10 pulse simplification */
+.toolbarHeadPanel,
+.toolbarTabsPanel,
+.summarySurface,
+.pulseDaySurface,
+.panelSurface {
+  box-shadow: none;
+}
+
+.toolbarHeadPanel,
+.toolbarTabsPanel {
+  border-color: rgba(255,255,255,0.035);
+  background: linear-gradient(180deg, rgba(11, 13, 18, 0.9), rgba(7, 9, 13, 0.94));
+}
+
+.summarySurface,
+.pulseDaySurface,
+.panelSurface {
+  border-color: rgba(255,255,255,0.035);
+  background: linear-gradient(180deg, rgba(11,12,16,0.94), rgba(8,9,12,0.96));
+}
+
+.summarySurface {
+  gap: 12px;
+}
+
+.summarySectionText {
+  max-width: 560px;
+}
+
+.summaryPrimaryGrid {
+  gap: 10px;
+}
+
+.summarySecondaryGrid {
+  gap: 8px;
+}
+
+.summaryCard {
+  border: 0;
+  background: rgba(255,255,255,0.028);
+}
+
+.summaryCardSecondary {
+  background: rgba(255,255,255,0.016);
+}
+
+.summaryCardGoal {
+  background: linear-gradient(180deg, rgba(36,23,8,0.78), rgba(23,16,8,0.88));
+  border: 1px solid rgba(255, 137, 37, 0.12);
+}
+
+.summaryCardSuccess {
+  border: 1px solid rgba(46,194,126,0.16);
+}
+
+.editorPanel {
+  border: 1px solid rgba(255,255,255,0.035);
+  background: rgba(255,255,255,0.018);
+}
+
+.pulseDaySurface {
+  gap: 0;
+}
+
+.pulseStatsGrid {
+  gap: 8px;
+}
+
+.stateCard,
+.metricCompactCard {
+  border: 0;
+  background: rgba(255,255,255,0.022);
+}
+
+.stateCard {
+  min-height: 84px;
+}
+
+.metricCompactCard {
+  min-height: 84px;
+}
+
+.recommendationsSection {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255,255,255,0.04);
+}
+
+.recommendationsHeader {
+  margin-bottom: 8px;
+}
+
+.recommendationList {
+  display: grid;
+  gap: 6px;
+}
+
+.recommendationRow {
+  border: 0;
+  border-radius: 14px;
+  background: rgba(255,255,255,0.018);
+  padding: 12px 14px;
+}
+
+.recommendationInfo {
+  background: rgba(13, 54, 128, 0.18);
+}
+
+.recommendationWarning {
+  background: rgba(80, 56, 12, 0.2);
+}
+
+.recommendationDanger {
+  background: rgba(104, 27, 45, 0.18);
+}
+
+.pulseLowerGrid {
+  gap: 14px;
+  align-items: start;
+}
+
+.panelSurface {
+  display: grid;
+  gap: 12px;
+}
+
+.panelHeaderRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.todaySurface,
+.financeSurface,
+.trendSurface {
+  border-radius: 24px;
+}
+
+.quickActionsInline {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.quickActionChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.05);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.quickActionChip:hover {
+  background: rgba(255,255,255,0.08);
+}
+
+.quickActionChip span {
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.quickActionsGrid {
+  display: none;
+}
+
+.focusTaskList,
+.upcomingList {
+  display: grid;
+  gap: 8px;
+}
+
+.focusTaskRow,
+.upcomingRow {
+  border: 0;
+  background: rgba(255,255,255,0.018);
+  border-radius: 16px;
+  padding: 12px 14px;
+}
+
+.focusTaskRow {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+}
+
+.focusTaskMeta strong,
+.upcomingLead strong {
+  font-size: 14px;
+}
+
+.focusTaskMeta span,
+.upcomingLead span,
+.upcomingSide span,
+.upcomingSide strong {
+  color: rgba(255,255,255,0.68);
+}
+
+.financeBanner {
+  margin-top: 0;
+  border: 0;
+  background: rgba(255,255,255,0.018);
+  border-radius: 18px;
+}
+
+.paymentsBanner {
+  box-shadow: none;
+}
+
+.bannerLead strong {
+  font-size: 14px;
+}
+
+.bannerLead span {
+  color: rgba(255,255,255,0.68);
+}
+
+.trendHeader {
+  margin-bottom: 10px;
+}
+
+.trendBadge {
+  background: rgba(255,255,255,0.045);
+  border: 0;
+  color: rgba(255,255,255,0.74);
+}
+
+.rechartsCardShell {
+  border: 0;
+  background: linear-gradient(180deg, rgba(15,16,20,0.78), rgba(11,12,16,0.88));
+}
+
+.panelSurface .emptyText,
+.pulseDaySurface .emptyText {
+  padding: 12px 0 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+@media (max-width: 920px) {
+  .summarySurface {
+    padding: 16px;
+  }
+
+  .summarySecondaryGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .panelHeaderRow {
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 640px) {
+  .summarySurface,
+  .pulseDaySurface,
+  .panelSurface {
+    padding: 14px;
+    border-radius: 18px;
+  }
+
+  .summarySurfaceHead {
+    gap: 10px;
+  }
+
+  .summarySectionText {
+    display: none;
+  }
+
+  .summaryPrimaryGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .summarySecondaryGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .summaryCardSecondary {
+    padding: 10px 11px;
+    border-radius: 16px;
+  }
+
+  .summaryCardSecondary .summaryIconWrap {
+    width: 28px;
+    height: 28px;
+  }
+
+  .summaryCardSecondary .summaryCardText strong {
+    font-size: 15px;
+  }
+
+  .pulseStatsGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .stateCard,
+  .metricCompactCard {
+    padding: 12px;
+  }
+
+  .recommendationsSection {
+    margin-top: 10px;
+    padding-top: 10px;
+  }
+
+  .recommendationRow,
+  .focusTaskRow,
+  .upcomingRow,
+  .financeBanner {
+    padding: 12px;
+    border-radius: 14px;
+  }
+
+  .panelHeaderRow {
+    display: grid;
+    gap: 10px;
+  }
+
+  .quickActionsInline {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    width: 100%;
+  }
+
+  .quickActionChip {
+    justify-content: flex-start;
+    width: 100%;
+    min-height: 40px;
+    border-radius: 14px;
+  }
+
+  .focusTaskRow,
+  .upcomingRow {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .focusTaskSide,
+  .upcomingSide {
+    margin-left: 40px;
+    justify-self: start;
+    text-align: left;
+  }
+
+  .upcomingSide {
+    display: flex;
+    gap: 8px;
+    align-items: baseline;
+    flex-wrap: wrap;
+  }
+
+  .trendBadge {
+    justify-self: start;
+  }
+}
+
+@media (max-width: 420px) {
+  .summarySecondaryGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .quickActionsInline {
+    grid-template-columns: 1fr;
+  }
+
+  .summaryCardSecondary:last-child {
+    grid-column: 1 / -1;
+  }
+}
+
+/* v11 pulse consolidation */
+.toolbarHead {
+  align-items: center;
+}
+
+.dateSwitcher {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.dateNav,
+.dateTrigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.dateNav {
+  width: 32px;
+  height: 32px;
+}
+
+.dateTrigger {
+  min-height: 32px;
+  padding: 0;
+}
+
+.segmented {
+  padding: 4px;
+  border-radius: 18px;
+  background: rgba(255,255,255,0.025);
+  gap: 4px;
+}
+
+.segment {
+  background: transparent;
+  border: 0;
+  color: rgba(255,255,255,0.72);
+}
+
+.segment:hover {
+  background: rgba(255,255,255,0.04);
+}
+
+.segmentActive {
+  background: rgba(255,122,26,0.16);
+  border: 0;
+  color: #fff;
+  box-shadow: inset 0 0 0 1px rgba(255,122,26,0.18);
+}
+
+.summarySurface {
+  gap: 16px;
+}
+
+.summarySurfaceHead {
+  align-items: center;
+}
+
+.summarySurfaceCopy {
+  gap: 0;
+}
+
+.summaryCombinedGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.summaryComboCard {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 22px;
+  border: 1px solid rgba(255,255,255,0.035);
+  background: rgba(255,255,255,0.02);
+  min-width: 0;
+}
+
+.summaryComboCardAccent {
+  background: linear-gradient(180deg, rgba(36,23,8,0.72), rgba(22,15,7,0.86));
+  border-color: rgba(255,122,26,0.14);
+}
+
+.summaryComboTitle {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.summaryMetricStack {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.summaryMetricLine {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.summaryMetricLine span {
+  min-width: 0;
+  font-size: 12px;
+  color: rgba(255,255,255,0.62);
+}
+
+.summaryMetricLine strong {
+  font-size: 18px;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+.summaryMetricLine small {
+  margin-left: 6px;
+  font-size: 12px;
+  color: rgba(255,255,255,0.62);
+}
+
+.summaryMetricHint {
+  font-size: 12px;
+  line-height: 1.45;
+  color: rgba(255,255,255,0.68);
+}
+
+.summaryComboCard .field {
+  gap: 6px;
+}
+
+.summaryComboCard .field span {
+  font-size: 12px;
+  color: rgba(255,255,255,0.62);
+}
+
+.summaryComboCard .field input {
+  min-height: 46px;
+}
+
+.pulseInlineGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(280px, 0.9fr);
+  gap: 16px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(255,255,255,0.04);
+}
+
+.inlineSection {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.inlineSectionHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.inlineFinanceMeta {
+  display: grid;
+  gap: 6px;
+}
+
+.inlineFinanceRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 2px 0;
+}
+
+.inlineFinanceRow span {
+  min-width: 0;
+  color: rgba(255,255,255,0.68);
+}
+
+.inlineFinanceRow strong {
+  flex: 0 0 auto;
+  color: rgba(255,255,255,0.84);
+  font-size: 13px;
+}
+
+.financeBanner {
+  margin-top: 0;
+}
+
+.financeBanner,
+.focusTaskRow {
+  background: rgba(255,255,255,0.018);
+}
+
+@media (max-width: 1100px) {
+  .summaryCombinedGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .summaryComboCardAccent {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 920px) {
+  .pulseInlineGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .dateSwitcher {
+    gap: 10px;
+  }
+
+  .dateNav {
+    width: 28px;
+    height: 28px;
+  }
+
+  .segment {
+    min-height: 36px;
+    padding: 0 12px;
+  }
+
+  .summaryCombinedGrid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .summaryComboCardAccent {
+    grid-column: auto;
+  }
+
+  .summaryComboCard {
+    padding: 14px;
+    border-radius: 18px;
+  }
+
+  .summaryMetricLine strong {
+    font-size: 17px;
+  }
+
+  .pulseInlineGrid {
+    margin-top: 12px;
+    padding-top: 12px;
+    gap: 12px;
+  }
+
+  .inlineSectionHead {
+    align-items: flex-start;
+  }
+
+  .inlineFinanceRow {
+    display: grid;
+    gap: 4px;
+    justify-content: stretch;
+  }
+}
+
+/* v12 pulse refinement */
+.toolbarTabsPanel {
+  padding: 0 18px;
+}
+
+.segmented {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  min-height: 56px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 0;
+  background: transparent;
+}
+
+.segment {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 56px;
+  padding: 0 22px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: rgba(255,255,255,0.72);
+  font-weight: 600;
+}
+
+.segment:hover {
+  background: rgba(255,255,255,0.025);
+}
+
+.segmentActive {
+  height: 100%;
+  background: rgba(255,122,26,0.16);
+  color: #fff;
+  border: 0;
+  border-radius: 16px;
+  box-shadow: none;
+}
+
+.summaryMetricLine {
+  align-items: center;
+}
+
+.summaryMetricLine strong {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0;
+}
+
+.summaryInlineInput {
+  width: min(150px, 46%);
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.06);
+  background: rgba(255,255,255,0.04);
+  color: var(--text);
+  text-align: right;
+  font: inherit;
+  font-weight: 700;
+}
+
+.summaryComboCardAccent .summaryMetricLine,
+.summaryComboCardAccent .summaryMetricHint {
+  color: rgba(255,255,255,0.9);
+}
+
+.pulseInlineGrid {
+  grid-template-columns: 1fr;
+  gap: 0;
+}
+
+.inlineSection {
+  gap: 14px;
+}
+
+.inlineDivider {
+  height: 1px;
+  background: rgba(255,255,255,0.06);
+  margin: 2px 0 2px;
+}
+
+.financeBanner {
+  margin-top: 0;
+}
+
+.inlineFinanceMeta {
+  gap: 8px;
+}
+
+@media (max-width: 640px) {
+  .toolbarTabsPanel {
+    padding: 0 12px;
+  }
+
+  .segment,
+  .segmentActive {
+    min-height: 48px;
+    padding: 0 16px;
+    font-size: 13px;
+  }
+
+  .summaryInlineInput {
+    width: min(118px, 48%);
+    min-height: 36px;
+    padding: 0 12px;
+  }
+}
+
+
+/* v13 mobile pulse adaptive cleanup */
+.page {
+  overflow-x: clip;
+}
+
+.page *,
+.page *::before,
+.page *::after {
+  box-sizing: border-box;
+}
+
+.page > *,
+.page section,
+.page article,
+.page div,
+.page aside {
+  min-width: 0;
+}
+
+@media (max-width: 768px) {
+  .page {
+    gap: 12px;
+    padding-bottom: calc(92px + env(safe-area-inset-bottom));
+  }
+
+  .hero {
+    padding: 0;
+    gap: 10px;
+  }
+
+  .title,
+  .pageTitle {
+    font-size: 34px;
+    line-height: 1;
+  }
+
+  .subtitle,
+  .pageSubtitle {
+    font-size: 15px;
+    line-height: 1.45;
+  }
+
+  .toolbarStack {
+    gap: 10px;
+  }
+
+  .toolbarHeadPanel,
+  .toolbarTabsPanel,
+  .summarySurface,
+  .pulseDaySurface,
+  .healthSurface,
+  .taskSummarySurface,
+  .tasksListSurface,
+  .goalPanelSurface,
+  .financeHeroSurface,
+  .financePanelSurface,
+  .financeSectionSurface,
+  .financeComparisonSurface,
+  .configHeroCard,
+  .configSectionCard,
+  .configActiveCard {
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    background: transparent !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+
+  .toolbarHeadPanel,
+  .toolbarTabsPanel {
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+  }
+
+  .summarySurface,
+  .pulseDaySurface,
+  .healthSurface,
+  .taskSummarySurface,
+  .tasksListSurface,
+  .goalPanelSurface,
+  .financeHeroSurface,
+  .financePanelSurface,
+  .financeSectionSurface,
+  .financeComparisonSurface,
+  .configHeroCard,
+  .configSectionCard,
+  .configActiveCard {
+    padding-top: 10px !important;
+    padding-bottom: 10px !important;
+  }
+
+  .toolbarHead {
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .dateSwitcher {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .dateNav {
+    width: 28px;
+    height: 28px;
+  }
+
+  .dateTrigger {
+    min-height: 28px;
+    font-size: 18px;
+    line-height: 1;
+  }
+
+  .weekRow,
+  .segmented,
+  .healthSubnav,
+  .financeSubnav,
+  .taskFilters {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .weekRow::-webkit-scrollbar,
+  .segmented::-webkit-scrollbar,
+  .healthSubnav::-webkit-scrollbar,
+  .financeSubnav::-webkit-scrollbar,
+  .taskFilters::-webkit-scrollbar {
+    display: none;
+  }
+
+  .weekRow {
+    gap: 8px;
+    padding-bottom: 2px;
+  }
+
+  .weekDay {
+    min-width: 56px !important;
+    padding: 8px 10px !important;
+    border-radius: 16px !important;
+  }
+
+  .weekDay strong {
+    font-size: 18px !important;
+  }
+
+  .toolbarTabsPanel {
+    margin: 0 -16px;
+    padding: 0 16px !important;
+    overflow: hidden;
+  }
+
+  .segmented {
+    min-height: 48px;
+    border-radius: 0;
+    padding: 0;
+    background: transparent;
+    gap: 0;
+  }
+
+  .segment,
+  .segmentActive {
+    min-height: 48px;
+    padding: 0 14px !important;
+    font-size: 13px;
+    border-radius: 0;
+  }
+
+  .segmentActive {
+    border-radius: 14px;
+  }
+
+  .summarySurfaceHead,
+  .inlineSectionHead,
+  .healthSectionHeader,
+  .healthActionRow,
+  .taskToolbar,
+  .financeCategoryHead,
+  .financeHeroSurface,
+  .financePanelHeader,
+  .financeSavingsHead,
+  .financeDebtHead,
+  .configHeroCard,
+  .configModuleRow {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .summarySurfaceHead {
+    margin-bottom: 12px;
+  }
+
+  .summaryRailActions,
+  .actionsRow,
+  .heroActions,
+  .financeHeroActions,
+  .healthActionGroup,
+  .financeDebtActions {
+    width: 100%;
+  }
+
+  .summaryRailActions > *,
+  .actionsRow > *,
+  .heroActions > *,
+  .financeHeroActions > *,
+  .healthActionGroup > *,
+  .financeDebtActions > * {
+    width: 100%;
+  }
+
+  .summaryCombinedGrid,
+  .pulseInlineGrid,
+  .healthTopGrid,
+  .nutritionTopGrid,
+  .financeSplitGrid,
+  .financeStatsDashboard,
+  .financeCategoryGrid,
+  .financeMetricGrid,
+  .financeComparisonGrid,
+  .financeStatMetricGrid,
+  .financeDebtMetrics,
+  .financeDebtMetricsEnhanced,
+  .financeDebtPaymentSummary,
+  .foodGrid,
+  .compactGrid,
+  .profileStatGrid,
+  .focusStats,
+  .miniStats,
+  .metricRow {
+    grid-template-columns: 1fr !important;
+  }
+
+  .summaryComboCard,
+  .stateCard,
+  .taskRowCard,
+  .goalCard,
+  .mealRowCard,
+  .financeMetricCard,
+  .financeCategoryCard,
+  .financeSavingsCard,
+  .financeDebtCard,
+  .financeComparisonCard,
+  .financeStatsRowCard,
+  .financeInsightCard,
+  .configModuleRow,
+  .taskFilters,
+  .paymentsBanner,
+  .financeBanner,
+  .focusTaskRow,
+  .switchRow,
+  .listItem,
+  .foodCard,
+  .tipItem,
+  .chartCard,
+  .financeDebtPaymentSummary > div {
+    border: 0 !important;
+    box-shadow: none !important;
+    background: rgba(255,255,255,0.025) !important;
+  }
+
+  .summaryComboCardAccent,
+  .recommendationWarning,
+  .recommendationInfo,
+  .recommendationDanger {
+    background: rgba(255,122,26,0.08) !important;
+  }
+
+  .summaryComboCard,
+  .stateCard,
+  .taskRowCard,
+  .goalCard,
+  .mealRowCard,
+  .financeMetricCard,
+  .financeCategoryCard,
+  .financeSavingsCard,
+  .financeDebtCard,
+  .financeComparisonCard,
+  .financeStatsRowCard,
+  .financeInsightCard,
+  .configModuleRow,
+  .paymentsBanner,
+  .financeBanner,
+  .focusTaskRow,
+  .foodCard,
+  .tipItem,
+  .chartCard {
+    border-radius: 18px !important;
+    padding: 14px !important;
+  }
+
+  .stateCard,
+  .stateCardContent,
+  .taskSummarySurface,
+  .taskSummaryLead,
+  .taskSummaryProgressMeta,
+  .financeEntryRow,
+  .financePaymentRow,
+  .financeEntrySide,
+  .financePaymentSide,
+  .financeSavingsSide,
+  .financeCategoryMeta,
+  .financeDebtFooter,
+  .financeSavingsFooter,
+  .financeStatsBarWrap,
+  .mealSide,
+  .focusTaskRow {
+    width: 100%;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: flex-start;
+    text-align: left;
+    gap: 10px;
+  }
+
+  .taskSummaryProgressMeta {
+    min-width: 0;
+    justify-items: start;
+  }
+
+  .taskSummaryBar,
+  .financeProgress,
+  .progressBar,
+  .compactProgress {
+    width: 100%;
+  }
+
+  .taskFilters,
+  .financeSubnav {
+    overflow-x: auto;
+    padding: 0;
+    background: transparent;
+  }
+
+  .taskFilterButton,
+  .financeSubnavButton,
+  .healthSubnavButton {
+    min-height: 40px;
+    padding: 0 12px;
+    font-size: 13px;
+    white-space: nowrap;
+  }
+
+  .taskFilterButtonActive,
+  .financeSubnavButtonActive {
+    border-radius: 12px;
+    background: rgba(255,255,255,0.06);
+    border-bottom-color: transparent;
+  }
+
+  .healthSubnav {
+    gap: 14px;
+    padding-bottom: 0;
+  }
+
+  .healthSubnavButton {
+    padding-bottom: 10px;
+  }
+
+  .panelTitle,
+  .summarySectionTitle,
+  .pulseSectionTitle,
+  .financeSectionTitle,
+  .configSectionTitle,
+  .healthSectionTitle {
+    font-size: 20px;
+  }
+
+  .inlineSection {
+    gap: 12px;
+  }
+
+  .inlineDivider {
+    margin: 8px 0 4px;
+  }
+
+  .quickActionsInline {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .quickActionChip {
+    min-width: 0;
+    justify-content: center;
+  }
+
+  .focusTaskList,
+  .inlineFinanceMeta,
+  .list,
+  .recommendationList,
+  .configModuleList {
+    gap: 10px;
+  }
+
+  .inlineFinanceRow {
+    display: grid;
+    gap: 2px;
+    justify-content: stretch;
+  }
+
+  .financeEntryRow,
+  .financePaymentRow {
+    padding: 14px 0;
+  }
+
+  .financeHeroText strong,
+  .taskSummaryText strong {
+    font-size: 28px;
+  }
+
+  .metricCompactGrid,
+  .pulseStatsGrid,
+  .summaryPrimaryGrid,
+  .summarySecondaryGrid,
+  .quickActionsGrid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* v14 pulse mobile/header refinement */
+.heroCopy {
+  display: grid;
+  gap: 8px;
+}
+
+.dateSwitcher {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dateTrigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.toolbarStack {
+  gap: 0;
+  overflow: hidden;
+}
+
+.toolbarHeadPanel,
+.toolbarTabsPanel {
+  background: transparent !important;
+  border-radius: 0 !important;
+}
+
+.toolbarTabsPanel {
+  border-top: 1px solid rgba(255,255,255,0.05) !important;
+  padding: 0 12px !important;
+}
+
+.segmented {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 0;
+  min-width: 100%;
+  width: max-content;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 0;
+  background: transparent !important;
+  border: 0 !important;
+}
+
+.segmented::-webkit-scrollbar {
+  display: none;
+}
+
+.segment {
+  flex: 0 0 auto;
+  min-height: 54px;
+  padding: 0 22px;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  white-space: nowrap;
+  color: rgba(255,255,255,0.78);
+}
+
+.segment:hover {
+  background: rgba(255,255,255,0.02) !important;
+}
+
+.segmentActive {
+  background: linear-gradient(180deg, rgba(255,122,26,0.24), rgba(255,122,26,0.18)) !important;
+  color: #fff;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: inset 0 0 0 1px rgba(255,122,26,0.22);
+}
+
+.segmented > :first-child {
+  border-top-left-radius: 18px;
+  border-bottom-left-radius: 18px;
+}
+
+.segmented > :last-child {
+  border-top-right-radius: 18px;
+  border-bottom-right-radius: 18px;
+}
+
+.segmented > :first-child.segmentActive {
+  border-top-left-radius: 18px !important;
+  border-bottom-left-radius: 18px !important;
+}
+
+.segmented > :last-child.segmentActive {
+  border-top-right-radius: 18px !important;
+  border-bottom-right-radius: 18px !important;
+}
+
+@media (max-width: 768px) {
+  .page {
+    padding-inline: 16px;
+    gap: 14px;
+  }
+
+  .hero {
+    padding: 0 4px;
+    gap: 6px;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+
+  .pageTitle,
+  .title {
+    font-size: 32px !important;
+    line-height: 1.02;
+  }
+
+  .pageSubtitle,
+  .subtitle {
+    margin-top: 4px;
+    font-size: 15px !important;
+    line-height: 1.4;
+    color: rgba(255,255,255,0.72);
+  }
+
+  .toolbarStack {
+    margin-inline: -16px;
+    border-left: 0 !important;
+    border-right: 0 !important;
+    border-radius: 0 !important;
+  }
+
+  .toolbarHeadPanel {
+    padding: 10px 16px 12px !important;
+  }
+
+  .toolbarTabsPanel {
+    padding: 0 16px !important;
+  }
+
+  .toolbarHead {
+    gap: 12px;
+  }
+
+  .dateSwitcher {
+    width: auto;
+    justify-content: flex-start;
+    padding: 0;
+  }
+
+  .dateTrigger {
+    min-height: 32px;
+    font-size: 18px;
+  }
+
+  .weekRow {
+    gap: 8px;
+    padding-bottom: 2px;
+  }
+
+  .weekDay {
+    min-width: 60px !important;
+    border-radius: 16px !important;
+  }
+
+  .segmented {
+    min-height: 56px;
+    min-width: max-content;
+  }
+
+  .segment,
+  .segmentActive {
+    min-height: 56px;
+    padding: 0 18px !important;
+    font-size: 15px;
+  }
+
+  .summarySurface,
+  .pulseDaySurface,
+  .healthSurface,
+  .healthInfoSurface,
+  .taskSummarySurface,
+  .tasksListSurface,
+  .goalPanelSurface,
+  .financeHeroSurface,
+  .financePanelSurface,
+  .financeSectionSurface,
+  .financeComparisonSurface,
+  .configHeroCard,
+  .configSectionCard,
+  .configActiveCard,
+  .mealListSurface {
+    background: transparent !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+
+  .summaryComboCard,
+  .stateCard,
+  .metricCompactCard,
+  .metricCard,
+  .taskRowCard,
+  .goalCard,
+  .mealRowCard,
+  .foodCard,
+  .sliderCard,
+  .healthSliderCard,
+  .financeMetricCard,
+  .financeCategoryCard,
+  .financeSavingsCard,
+  .financeDebtCard,
+  .financeComparisonCard,
+  .financeStatsRowCard,
+  .financeInsightCard,
+  .chartCard,
+  .focusTaskRow,
+  .listItem,
+  .configModuleRow,
+  .healthRingMetric {
+    background: transparent !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    padding: 14px 0 !important;
+  }
+
+  .summaryCombinedGrid,
+  .pulseStatsGrid,
+  .pulseInlineGrid,
+  .healthTopGrid,
+  .nutritionTopGrid,
+  .financeSplitGrid,
+  .financeCategoryGrid,
+  .financeMetricGrid,
+  .financeComparisonGrid,
+  .financeStatMetricGrid,
+  .financeStatsDashboard,
+  .quickActionsGrid,
+  .profileStatGrid,
+  .compactGrid,
+  .metricRow,
+  .focusStats,
+  .miniStats {
+    gap: 0 !important;
+  }
+
+  .summaryCombinedGrid > *,
+  .pulseStatsGrid > *,
+  .healthTopGrid > *,
+  .nutritionTopGrid > *,
+  .financeSplitGrid > *,
+  .financeCategoryGrid > *,
+  .financeMetricGrid > *,
+  .financeComparisonGrid > *,
+  .financeStatMetricGrid > *,
+  .financeStatsDashboard > *,
+  .quickActionsGrid > *,
+  .profileStatGrid > *,
+  .compactGrid > *,
+  .metricRow > * {
+    border-top: 1px solid rgba(255,255,255,0.06);
+  }
+
+  .summaryRailActions :global(button),
+  .actionsRow :global(button),
+  .heroActions > *,
+  .healthPrimaryButton,
+  .healthGhostButton,
+  .financeActionButton,
+  .financeActionButtonPrimary,
+  .quickActionChip {
+    min-height: 38px !important;
+    padding: 0 14px !important;
+    border-radius: 12px !important;
+    font-size: 14px !important;
+  }
+
+  .quickActionsInline {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .recommendationList,
+  .inlineFinanceMeta,
+  .focusTaskList,
+  .list,
+  .configModuleList,
+  .healthInsightList {
+    gap: 0 !important;
+  }
+
+  .recommendationRow,
+  .paymentsBanner,
+  .financeBanner {
+    margin-inline: -16px;
+    width: calc(100% + 32px);
+    border-radius: 0 !important;
+    border-left: 0 !important;
+    border-right: 0 !important;
+    padding: 14px 16px !important;
+    box-shadow: none !important;
+  }
+
+  .recommendationRow + .recommendationRow,
+  .paymentsBanner + .inlineFinanceMeta,
+  .focusTaskRow + .focusTaskRow,
+  .taskRowCard + .taskRowCard,
+  .mealRowCard + .mealRowCard,
+  .financeEntryRow + .financeEntryRow,
+  .financePaymentRow + .financePaymentRow {
+    border-top: 1px solid rgba(255,255,255,0.06);
+  }
+
+  .stateCardContent,
+  .taskSummaryLead,
+  .taskSummaryProgressMeta,
+  .financeEntryRow,
+  .financePaymentRow,
+  .financeEntrySide,
+  .financePaymentSide,
+  .financeSavingsSide,
+  .financeCategoryMeta,
+  .financeDebtFooter,
+  .financeSavingsFooter,
+  .financeStatsBarWrap,
+  .mealSide,
+  .healthRingsRow {
+    width: 100%;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: flex-start;
+    text-align: left;
+    gap: 10px;
+    min-height: 0;
+  }
+
+  .healthRingMetric {
+    gap: 14px;
+  }
+
+  .healthRingMeta strong,
+  .stateMeta strong,
+  .taskSummaryText strong,
+  .financeHeroText strong {
+    font-size: 16px !important;
+  }
+
+  .healthRingMeta span,
+  .stateMeta span,
+  .taskSummaryText span,
+  .financeHeroText span {
+    font-size: 13px !important;
+  }
+
+  .inlineDivider {
+    margin: 10px 0 0;
+  }
+}
+
+/* v15 pulse mobile system */
+@media (max-width: 768px) {
+  .page {
+    padding-inline: 16px !important;
+    padding-bottom: calc(104px + env(safe-area-inset-bottom)) !important;
+    gap: 18px !important;
+    overflow-x: clip;
+  }
+
+  .page :where(section, article, div, header, footer, aside, button) {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .hero {
+    padding: 0 !important;
+    gap: 8px !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+
+  .heroCopy {
+    gap: 6px !important;
+  }
+
+  .pageTitle,
+  .title {
+    margin: 0 !important;
+    font-size: 30px !important;
+    line-height: 1.04 !important;
+    letter-spacing: -0.03em;
+  }
+
+  .pageSubtitle,
+  .subtitle {
+    margin: 0 !important;
+    max-width: none !important;
+    font-size: 14px !important;
+    line-height: 1.45 !important;
+    color: rgba(255,255,255,0.72) !important;
+  }
+
+  .toolbarStack {
+    margin-inline: -16px !important;
+    gap: 0 !important;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.05);
+    border-radius: 24px;
+    background: linear-gradient(180deg, rgba(11, 13, 18, 0.96), rgba(7, 9, 13, 0.98));
+    box-shadow: 0 18px 42px rgba(0,0,0,0.22);
+  }
+
+  .toolbarHeadPanel,
+  .toolbarTabsPanel {
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+
+  .toolbarHeadPanel {
+    padding: 12px 16px 10px !important;
+  }
+
+  .toolbarTabsPanel {
+    padding: 0 16px 12px !important;
+    border-top: 1px solid rgba(255,255,255,0.06) !important;
+  }
+
+  .toolbarHead {
+    display: grid !important;
+    gap: 12px !important;
+    align-items: stretch !important;
+  }
+
+  .dateSwitcher {
+    width: 100% !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    gap: 10px !important;
+    padding: 0 !important;
+  }
+
+  .dateNav {
+    width: 34px !important;
+    height: 34px !important;
+    min-width: 34px !important;
+    border: 0 !important;
+    border-radius: 999px !important;
+    background: rgba(255,255,255,0.04) !important;
+    box-shadow: none !important;
+  }
+
+  .dateTrigger {
+    flex: 1 1 auto;
+    min-width: 0;
+    min-height: 38px !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    font-size: 18px !important;
+    font-weight: 700;
+  }
+
+  .weekRow,
+  .segmented,
+  .financeSubnav,
+  .taskFilters {
+    flex-wrap: nowrap !important;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    scroll-snap-type: x mandatory;
+    scroll-padding-inline: 16px;
+    overscroll-behavior-x: contain;
+  }
+
+  .weekRow::-webkit-scrollbar,
+  .segmented::-webkit-scrollbar,
+  .financeSubnav::-webkit-scrollbar,
+  .taskFilters::-webkit-scrollbar {
+    display: none;
+  }
+
+  .weekRow {
+    gap: 8px !important;
+    padding-bottom: 2px !important;
+  }
+
+  .weekDay,
+  .segment,
+  .financeSubnavButton,
+  .taskFilterButton {
+    flex: 0 0 auto;
+    scroll-snap-align: start;
+    white-space: nowrap;
+  }
+
+  .weekDay {
+    min-width: 64px !important;
+    padding: 10px 12px !important;
+    border-radius: 14px !important;
+    border: 1px solid rgba(255,255,255,0.06) !important;
+    background: rgba(255,255,255,0.03) !important;
+    box-shadow: none !important;
+  }
+
+  .weekDay strong {
+    font-size: 18px !important;
+  }
+
+  .weekDayActive,
+  .weekDay[data-state='active'] {
+    background: rgba(255,122,26,0.16) !important;
+    border-color: rgba(255,122,26,0.22) !important;
+    box-shadow: none !important;
+  }
+
+  .toolbarTabsPanel .segmented {
+    min-height: 50px;
+    min-width: 100%;
+    width: max-content;
+    padding: 0 !important;
+    gap: 0 !important;
+    border: 1px solid rgba(255,255,255,0.06) !important;
+    border-radius: 18px !important;
+    background: rgba(255,255,255,0.025) !important;
+    contain: layout paint;
+  }
+
+  .toolbarTabsPanel .segment,
+  .toolbarTabsPanel .segmentActive {
+    min-height: 50px !important;
+    padding: 0 18px !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    color: rgba(255,255,255,0.72) !important;
+    font-size: 14px !important;
+    font-weight: 700;
+    transition: background-color 0.16s ease, color 0.16s ease, opacity 0.16s ease !important;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .toolbarTabsPanel .segment:hover,
+  .toolbarTabsPanel .segment:focus-visible,
+  .toolbarTabsPanel .segment:active {
+    border: 0 !important;
+    outline: none !important;
+    box-shadow: none !important;
+    background: rgba(255,122,26,0.12) !important;
+    color: #fff !important;
+  }
+
+  .toolbarTabsPanel .segmentActive,
+  .toolbarTabsPanel .segment[data-state='active'],
+  .toolbarTabsPanel .segmentActive:hover,
+  .toolbarTabsPanel .segmentActive:focus-visible,
+  .toolbarTabsPanel .segmentActive:active {
+    border: 0 !important;
+    outline: none !important;
+    box-shadow: none !important;
+    background: linear-gradient(180deg, rgba(255,122,26,0.24), rgba(255,122,26,0.18)) !important;
+    color: #fff !important;
+  }
+
+  .toolbarTabsPanel .segmented > :first-child {
+    border-radius: 18px 0 0 18px !important;
+  }
+
+  .toolbarTabsPanel .segmented > :last-child {
+    border-radius: 0 18px 18px 0 !important;
+  }
+
+  .summarySurface,
+  .pulseDaySurface,
+  .healthSurface,
+  .healthInfoSurface,
+  .mealListSurface,
+  .tasksListSurface,
+  .goalPanelSurface,
+  .financePanelSurface,
+  .financeSectionSurface,
+  .financeComparisonSurface,
+  .configHeroCard,
+  .configSectionCard,
+  .configActiveCard {
+    padding-top: 8px !important;
+    padding-bottom: 4px !important;
+  }
+
+  .taskSummarySurface,
+  .tasksListSurface,
+  .goalPanelSurface,
+  .financeHeroSurface,
+  .financePanelSurface,
+  .financeSectionSurface,
+  .financeComparisonSurface,
+  .configHeroCard,
+  .configSectionCard,
+  .configActiveCard {
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+
+  .taskSummarySurface {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 10px 12px !important;
+    padding: 10px 0 12px !important;
+  }
+
+  .taskSummaryLead {
+    gap: 12px !important;
+    align-items: center !important;
+    min-width: 0;
+  }
+
+  .taskSummaryIcon {
+    width: 48px !important;
+    height: 48px !important;
+    min-width: 48px !important;
+    border-radius: 16px !important;
+  }
+
+  .taskSummaryText {
+    gap: 4px !important;
+  }
+
+  .taskSummaryText span {
+    font-size: 13px !important;
+  }
+
+  .taskSummaryText strong {
+    font-size: 21px !important;
+  }
+
+  .taskSummaryProgressMeta {
+    grid-column: 1 / -1;
+    min-width: 0 !important;
+    width: 100% !important;
+    gap: 8px !important;
+    justify-items: stretch !important;
+  }
+
+  .taskSummaryProgressMeta strong {
+    justify-self: start;
+    font-size: 15px !important;
+  }
+
+  .taskSummaryBar,
+  .goalProgressBar,
+  .financeProgress {
+    height: 8px !important;
+  }
+
+  .taskToolbar {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px !important;
+    align-items: stretch !important;
+  }
+
+  .taskFilters {
+    gap: 0 !important;
+    padding: 4px !important;
+    border-radius: 16px !important;
+    border: 1px solid rgba(255,255,255,0.06) !important;
+    background: rgba(255,255,255,0.025) !important;
+  }
+
+  .taskFilterButton,
+  .taskFilterButtonActive {
+    min-height: 40px !important;
+    padding: 0 16px !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    color: rgba(255,255,255,0.72) !important;
+  }
+
+  .taskFilterButton:active,
+  .taskFilterButton:focus-visible,
+  .taskFilterButtonActive,
+  .taskFilterButtonActive:hover {
+    color: #fff !important;
+    background: rgba(255,255,255,0.06) !important;
+    box-shadow: none !important;
+  }
+
+  .healthPrimaryButton,
+  .goalAddButton,
+  .financeActionButtonPrimary,
+  .financeActionButton,
+  .financeSecondaryAction,
+  .taskDeleteButton,
+  .goalStatusButton {
+    min-height: 40px !important;
+    padding: 0 14px !important;
+    border-radius: 14px !important;
+    box-shadow: none !important;
+  }
+
+  .healthPrimaryButton {
+    width: 100%;
+    min-height: 44px !important;
+  }
+
+  .tasksListSurface,
+  .goalPanelSurface,
+  .financePanelSurface,
+  .financeSectionSurface {
+    padding-top: 0 !important;
+  }
+
+  .tasksListSurface,
+  .goalList,
+  .financeEntryList,
+  .financeCategoryGrid,
+  .financeSavingsList,
+  .financeDebtList,
+  .configModuleList,
+  .list,
+  .healthInsightList {
+    gap: 0 !important;
+  }
+
+  .taskRowCard,
+  .goalCard,
+  .financeCategoryCard,
+  .financeMetricCard,
+  .financeSavingsCard,
+  .financeDebtCard,
+  .financeComparisonCard,
+  .financeStatsRowCard,
+  .configModuleRow {
+    padding: 14px 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+
+  .taskRowCard + .taskRowCard,
+  .goalCard + .goalCard,
+  .financeCategoryCard + .financeCategoryCard,
+  .financeSavingsCard + .financeSavingsCard,
+  .financeDebtCard + .financeDebtCard,
+  .configModuleRow + .configModuleRow {
+    border-top: 1px solid rgba(255,255,255,0.06);
+  }
+
+  .taskRowCard {
+    min-height: 0 !important;
+    gap: 12px !important;
+  }
+
+  .taskRowSide {
+    width: 100%;
+    justify-content: flex-start !important;
+  }
+
+  .goalPanelHeader {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center !important;
+    gap: 10px 12px !important;
+    margin-bottom: 8px !important;
+  }
+
+  .goalPanelTitle {
+    min-width: 0;
+    line-height: 1.15;
+    white-space: normal;
+  }
+
+  .goalAddButton {
+    max-width: 100%;
+  }
+
+  .goalCard {
+    gap: 12px !important;
+  }
+
+  .goalCardHeader {
+    align-items: flex-start !important;
+    gap: 12px !important;
+  }
+
+  .goalCardLead {
+    gap: 12px !important;
+  }
+
+  .goalCardIcon {
+    width: 40px !important;
+    height: 40px !important;
+    min-width: 40px !important;
+    border-radius: 14px !important;
+  }
+
+  .goalCardText {
+    gap: 4px !important;
+  }
+
+  .goalCardText strong {
+    font-size: 17px !important;
+  }
+
+  .goalCardControls {
+    width: 100%;
+    gap: 8px !important;
+  }
+
+  .goalStatusButton,
+  .taskDeleteButton {
+    min-height: 34px !important;
+    padding: 0 12px !important;
+    border-radius: 12px !important;
+    font-size: 13px !important;
+  }
+
+  .goalProgressHead {
+    gap: 8px !important;
+    align-items: center !important;
+  }
+
+  .goalSubtaskList {
+    gap: 0 !important;
+  }
+
+  .goalSubtaskRow {
+    padding: 12px 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+  }
+
+  .goalSubtaskRow + .goalSubtaskRow {
+    border-top: 1px solid rgba(255,255,255,0.06);
+  }
+
+  .goalEmptyHint {
+    padding: 12px 14px !important;
+    border-radius: 16px !important;
+    background: rgba(255,122,26,0.08) !important;
+    border: 1px solid rgba(255,122,26,0.14) !important;
+    line-height: 1.45;
+  }
+
+  .emptyText {
+    padding: 12px 0 !important;
+    font-size: 14px !important;
+  }
+
+  .financeScene {
+    gap: 18px !important;
+  }
+
+  .financeSubnav {
+    gap: 6px !important;
+    padding: 0 0 6px !important;
+    border-bottom: 0 !important;
+  }
+
+  .financeSubnavButton,
+  .financeSubnavButtonActive {
+    min-height: 40px !important;
+    padding: 0 14px !important;
+    border: 0 !important;
+    border-radius: 12px !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    color: rgba(255,255,255,0.72) !important;
+  }
+
+  .financeSubnavButton:active,
+  .financeSubnavButton:focus-visible,
+  .financeSubnavButtonActive,
+  .financeSubnavButtonActive:hover {
+    color: #fff !important;
+    background: rgba(255,255,255,0.06) !important;
+    border: 0 !important;
+  }
+
+  .financeHeroSurface {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 12px !important;
+    padding: 8px 0 4px !important;
+  }
+
+  .financeHeroLead,
+  .financeMetricLead,
+  .financeCategoryLead,
+  .financeEntryLead {
+    gap: 12px !important;
+    min-width: 0;
+  }
+
+  .financeHeroIconWrap,
+  .financeMetricIconWrap,
+  .financeCategoryIconWrap,
+  .financeEntryIconWrap {
+    width: 44px !important;
+    height: 44px !important;
+    min-width: 44px !important;
+    border-radius: 14px !important;
+  }
+
+  .financeHeroText,
+  .financeEntryText {
+    gap: 4px !important;
+    min-width: 0;
+  }
+
+  .financeHeroText strong {
+    font-size: 22px !important;
+  }
+
+  .financeHeroActions {
+    width: 100%;
+    grid-column: 1 / -1;
+    justify-content: space-between !important;
+    gap: 8px !important;
+  }
+
+  .financeSecondaryAction {
+    flex: 1 1 auto;
+    justify-content: center;
+    background: rgba(255,255,255,0.03) !important;
+  }
+
+  .financeSquareAction {
+    width: 40px !important;
+    height: 40px !important;
+    min-width: 40px !important;
+    border-radius: 14px !important;
+    box-shadow: none !important;
+  }
+
+  .financeCategoryGrid,
+  .financeMetricGrid,
+  .financeComparisonGrid,
+  .financeStatMetricGrid {
+    grid-template-columns: 1fr !important;
+    gap: 0 !important;
+  }
+
+  .financeCategoryCard {
+    display: grid !important;
+    gap: 10px !important;
+  }
+
+  .financeCategoryHead,
+  .financeSavingsHead,
+  .financeDebtHead,
+  .financePanelHeader {
+    align-items: flex-start !important;
+    gap: 12px !important;
+  }
+
+  .financeCategoryMeta,
+  .financeSavingsMetrics,
+  .financeSavingsFooter,
+  .financeDebtFooter,
+  .financeDebtHeadBadges {
+    gap: 8px !important;
+    flex-wrap: wrap !important;
+  }
+
+  .financePanelSurface,
+  .financeSectionSurface,
+  .financeComparisonSurface {
+    padding: 8px 0 4px !important;
+  }
+
+  .financeEntryList,
+  .financePaymentsList,
+  .financeStatsList,
+  .financeSavingsList,
+  .financeDebtList {
+    gap: 0 !important;
+  }
+
+  .financeEntryRow,
+  .financePaymentRow {
+    padding: 14px 0 !important;
+    gap: 10px !important;
+  }
+
+  .financeEntrySide,
+  .financePaymentSide {
+    width: auto !important;
+    align-items: flex-end !important;
+    gap: 4px !important;
+    text-align: right !important;
+  }
+
+  .financeToolbarTop {
+    width: 100%;
+  }
+
+  .financeToolbarTop .goalAddButton {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .financeSavingsActions,
+  .financeDebtActions {
+    width: 100%;
+    gap: 8px !important;
+  }
+
+  .financeDebtMetricsEnhanced {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 12px !important;
+  }
+
+  .financeDebtMetricsEnhanced > div {
+    gap: 4px !important;
+  }
+
+  .configHeroCard,
+  .configSectionCard,
+  .configActiveCard {
+    padding-top: 8px !important;
+    padding-bottom: 4px !important;
+  }
+
+  .configModuleRow {
+    padding: 14px 0 !important;
+  }
+}
+
+@media (max-width: 420px) {
+  .goalPanelHeader {
+    grid-template-columns: 1fr !important;
+    align-items: stretch !important;
+  }
+
+  .goalAddButton {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .taskRowCard,
+  .goalCardHeader,
+  .financeSavingsHead,
+  .financeDebtHead {
+    gap: 10px !important;
+  }
+
+  .financeHeroActions {
+    flex-wrap: nowrap !important;
+  }
+
+  .financeSecondaryAction {
+    min-width: 0;
+  }
+}
+
+.taskRowNote {
+  font-size: 13px;
+  line-height: 1.45;
+  color: rgba(255,255,255,0.62);
+}
+
+.taskMetaChip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.45;
+  white-space: nowrap;
+}
+
+.taskMetaChipType,
+.taskMetaChipTypeOneTime,
+.taskMetaChipTypeRegular,
+.taskMetaChipTypeHabit,
+.taskMetaChipPriority {
+  color: var(--muted);
+}
+
+.taskDeleteButtonDesktop {
+  display: inline-flex;
+}
+
+.taskDeleteIconButtonMobile {
+  display: none;
+}
+
+.taskDeleteIconButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 12px;
+  background: rgba(255,255,255,0.03);
+  color: rgba(255,255,255,0.78);
+  cursor: pointer;
+}
+
+.taskDeleteIconButton:hover,
+.taskDeleteIconButton:focus-visible {
+  background: rgba(255,255,255,0.06);
+  outline: none;
+}
+
+.taskDeleteIcon {
+  width: 16px;
+  height: 16px;
+}
+
+@media (max-width: 720px) {
+  .toolbarStack {
+    margin-inline: -16px !important;
+    gap: 0 !important;
+    overflow: visible !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+
+  .toolbarHeadPanel,
+  .toolbarTabsPanel {
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+
+  .toolbarHead {
+    gap: 8px !important;
+  }
+
+  .dateSwitcher {
+    display: grid !important;
+    grid-template-columns: 40px minmax(0, 1fr) 40px;
+    align-items: center !important;
+    gap: 8px !important;
+    width: 100% !important;
+    padding: 0 16px !important;
+  }
+
+  .dateNav {
+    width: 40px !important;
+    height: 40px !important;
+    min-width: 40px !important;
+  }
+
+  .dateTrigger {
+    width: 100%;
+    justify-content: center !important;
+    text-align: center !important;
+  }
+
+  .weekRow {
+    width: 100% !important;
+    gap: 8px !important;
+    padding: 0 16px 6px !important;
+    justify-content: flex-start !important;
+    scroll-padding-inline: 16px !important;
+    background: transparent !important;
+  }
+
+  .toolbarTabsPanel .segmented {
+    width: 100% !important;
+    min-width: 0 !important;
+    padding: 0 16px !important;
+    gap: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    transition: none !important;
+  }
+
+  .toolbarTabsPanel .segment,
+  .toolbarTabsPanel .segmentActive,
+  .toolbarTabsPanel .segment[data-state='active'] {
+    min-height: 46px !important;
+    padding: 0 18px !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    transition: none !important;
+  }
+
+  .toolbarTabsPanel .segment {
+    color: rgba(255,255,255,0.72) !important;
+  }
+
+  .toolbarTabsPanel .segment:hover,
+  .toolbarTabsPanel .segment:focus-visible,
+  .toolbarTabsPanel .segment:active {
+    background: rgba(255,122,26,0.08) !important;
+    color: #fff !important;
+  }
+
+  .toolbarTabsPanel .segmentActive,
+  .toolbarTabsPanel .segment[data-state='active'],
+  .toolbarTabsPanel .segmentActive:hover,
+  .toolbarTabsPanel .segmentActive:focus-visible,
+  .toolbarTabsPanel .segmentActive:active {
+    background: rgba(255,122,26,0.22) !important;
+    color: #fff !important;
+  }
+
+  .toolbarTabsPanel .segmented > :first-child,
+  .toolbarTabsPanel .segmented > :last-child {
+    border-radius: 0 !important;
+  }
+
+  .taskSummarySurface {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center !important;
+    gap: 10px 12px !important;
+    padding: 10px 0 12px !important;
+  }
+
+  .taskSummaryLead {
+    width: 100%;
+    min-width: 0;
+    align-items: center !important;
+  }
+
+  .taskSummaryProgressMeta {
+    grid-column: 1 / -1;
+    width: 100% !important;
+    min-width: 0 !important;
+    justify-items: stretch !important;
+  }
+
+  .taskSummaryProgressMeta strong {
+    justify-self: end !important;
+  }
+
+  .taskSummaryBar {
+    width: 100% !important;
+  }
+
+  .taskFilters {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    width: 100%;
+    gap: 0 !important;
+    padding: 4px !important;
+  }
+
+  .taskFilterButton,
+  .taskFilterButtonActive {
+    min-width: 0;
+    width: 100%;
+    padding: 0 10px !important;
+    border-radius: 12px !important;
+  }
+
+  .taskRowCard {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start !important;
+    gap: 10px !important;
+  }
+
+  .taskRowMain {
+    align-items: flex-start !important;
+    flex-direction: row !important;
+    gap: 12px !important;
+    min-width: 0;
+  }
+
+  .taskRowContent {
+    gap: 6px !important;
+  }
+
+  .taskRowMeta {
+    display: flex !important;
+    align-items: center;
+    gap: 8px !important;
+    flex-wrap: wrap;
+    font-size: 0;
+  }
+
+  .taskRowSide {
+    width: auto !important;
+    justify-content: flex-end !important;
+    align-items: flex-start !important;
+  }
+
+  .taskMetaChip {
+    min-height: 24px;
+    padding: 0 10px;
+    border-radius: 999px;
+    border: 1px solid rgba(255,255,255,0.1);
+    background: transparent;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1;
+  }
+
+  .taskMetaChipType {
+    color: #d8b4fe;
+  }
+
+  .taskMetaChipTypeOneTime,
+  .taskMetaChipTypeRegular,
+  .taskMetaChipTypeHabit {
+    border-color: rgba(168, 85, 247, 0.5);
+  }
+
+  .taskMetaChipPriority {
+    color: #86efac;
+    border-color: rgba(34, 197, 94, 0.45);
+  }
+
+  .taskDeleteButtonDesktop {
+    display: none !important;
+  }
+
+  .taskDeleteIconButtonMobile {
+    display: inline-flex;
+  }
+
+  .taskDeleteIconButton {
+    margin-top: 2px;
+  }
+}
+
+/* v16 pulse layout corrections */
+.goalCardLead {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: flex-start;
+}
+
+.goalCardLeadCluster {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  flex: 0 0 auto;
+}
+
+.goalDeleteIconButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 12px;
+  background: rgba(255,255,255,0.03);
+  color: rgba(255,255,255,0.78);
+  cursor: pointer;
+}
+
+.goalDeleteIconButton:hover,
+.goalDeleteIconButton:focus-visible {
+  background: rgba(255,255,255,0.06);
+  outline: none;
+}
+
+.goalCheckbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 14px;
+  background: rgba(255,255,255,0.025);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.goalCheckbar:hover,
+.goalCheckbar:focus-visible {
+  background: rgba(255,255,255,0.05);
+  outline: none;
+}
+
+.goalCheckbarDone {
+  border-color: rgba(46, 194, 126, 0.22);
+  background: rgba(46, 194, 126, 0.08);
+}
+
+.goalCheckbarToggle {
+  width: 22px;
+  height: 22px;
+  min-width: 22px;
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.14);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: transparent;
+  font-size: 12px;
+}
+
+.goalCheckbarToggleDone {
+  border-color: rgba(46, 194, 126, 0.34);
+  background: rgba(46, 194, 126, 0.16);
+  color: #b9f7d3;
+}
+
+.goalCheckbarLabel {
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.toolbarTabsPanel {
+  border-top: 1px solid rgba(255,255,255,0.06) !important;
+}
+
+.toolbarTabsPanel .segmented {
+  width: 100%;
+  min-width: 0;
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+}
+
+.toolbarTabsPanel .segment,
+.toolbarTabsPanel .segmentActive,
+.toolbarTabsPanel .segment[data-state='active'] {
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+.toolbarTabsPanel .segment {
+  color: rgba(255,255,255,0.76) !important;
+}
+
+.toolbarTabsPanel .segment:hover,
+.toolbarTabsPanel .segment:focus-visible,
+.toolbarTabsPanel .segment:active {
+  background: transparent !important;
+  color: rgba(255,255,255,0.96) !important;
+  outline: none !important;
+}
+
+.toolbarTabsPanel .segmentActive,
+.toolbarTabsPanel .segment[data-state='active'],
+.toolbarTabsPanel .segmentActive:hover,
+.toolbarTabsPanel .segmentActive:focus-visible,
+.toolbarTabsPanel .segmentActive:active {
+  background: transparent !important;
+  color: var(--accent) !important;
+  outline: none !important;
+}
+
+.recommendationLead,
+.bannerLead,
+.bannerLead > div,
+.recommendationRow,
+.paymentsBanner,
+.financeBanner,
+.inlineSection,
+.inlineSectionHead,
+.taskSummaryLead,
+.taskSummaryProgressMeta,
+.healthRingsRow,
+.healthRingMetric,
+.goalCardHeader,
+.goalCardLead,
+.goalCardText,
+.summarySurfaceHead,
+.summarySurfaceCopy,
+.summaryRailActions,
+.taskRowMain,
+.taskRowContent,
+.taskRowMeta {
+  min-width: 0;
+}
+
+@media (min-width: 721px) {
+  .toolbarTabsPanel {
+    padding: 0 18px !important;
+  }
+
+  .toolbarTabsPanel .segment {
+    min-height: 54px;
+    padding: 0 22px !important;
+    font-size: 15px;
+    font-weight: 700;
+  }
+}
+
+@media (max-width: 720px) {
+  .toolbarStack {
+    overflow: visible !important;
+  }
+
+  .toolbarHeadPanel,
+  .toolbarTabsPanel {
+    overflow: visible !important;
+  }
+
+  .dateSwitcher {
+    grid-template-columns: 40px minmax(0, 1fr) 40px !important;
+    width: 100% !important;
+    padding-inline: 16px !important;
+    box-sizing: border-box;
+  }
+
+  .weekRow {
+    width: 100% !important;
+    padding: 0 16px 8px !important;
+    box-sizing: border-box;
+  }
+
+  .toolbarTabsPanel {
+    padding: 0 0 8px !important;
+  }
+
+  .toolbarTabsPanel .segmented {
+    width: 100% !important;
+    min-width: 0 !important;
+    padding: 0 16px !important;
+    box-sizing: border-box;
+    scroll-padding-inline: 16px !important;
+  }
+
+  .toolbarTabsPanel .segment,
+  .toolbarTabsPanel .segmentActive,
+  .toolbarTabsPanel .segment[data-state='active'] {
+    min-height: 46px !important;
+    padding: 0 18px !important;
+  }
+
+  .summarySurfaceHead {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center !important;
+    gap: 10px !important;
+    margin-bottom: 10px;
+  }
+
+  .summaryRailActions {
+    width: auto !important;
+    justify-content: flex-end;
+  }
+
+  .summaryRailActions > * {
+    width: auto !important;
+  }
+
+  .summaryRailActions :global(button) {
+    min-height: 34px !important;
+    padding: 0 12px !important;
+    border-radius: 12px !important;
+    font-size: 13px !important;
+  }
+
+  .taskSummarySurface {
+    grid-template-columns: 1fr !important;
+    justify-items: stretch !important;
+    gap: 10px !important;
+  }
+
+  .taskSummaryLead {
+    width: 100%;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    text-align: center !important;
+    gap: 10px !important;
+  }
+
+  .taskSummaryText {
+    justify-items: center;
+    text-align: center;
+  }
+
+  .taskSummaryProgressMeta {
+    grid-column: auto !important;
+    width: 100% !important;
+    justify-items: stretch !important;
+    gap: 8px !important;
+  }
+
+  .taskSummaryProgressMeta strong {
+    justify-self: start !important;
+  }
+
+  .taskSummaryBar {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  .taskFilters {
+    gap: 0 !important;
+  }
+
+  .taskFilterButton,
+  .taskFilterButtonActive {
+    border-radius: 0 !important;
+  }
+
+  .taskFilters > :first-child {
+    border-top-left-radius: 12px !important;
+    border-bottom-left-radius: 12px !important;
+  }
+
+  .taskFilters > :last-child {
+    border-top-right-radius: 12px !important;
+    border-bottom-right-radius: 12px !important;
+  }
+
+  .taskRowMain {
+    display: grid !important;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: start !important;
+  }
+
+  .taskToggle {
+    margin-top: 2px;
+  }
+
+  .healthRingsRow {
+    min-height: 0;
+    justify-content: space-between !important;
+    align-items: flex-start !important;
+    flex-direction: row !important;
+    gap: 18px !important;
+  }
+
+  .healthRingMetric {
+    flex: 1 1 0;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 12px !important;
+  }
+
+  .recommendationRow,
+  .paymentsBanner,
+  .financeBanner {
+    width: 100% !important;
+    margin-inline: 0 !important;
+    border-radius: 16px !important;
+    padding: 14px !important;
+  }
+
+  .recommendationRow,
+  .paymentsBanner {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px !important;
+    align-items: start !important;
+  }
+
+  .recommendationLead,
+  .bannerLead {
+    width: 100%;
+  }
+
+  .recommendationAction,
+  .bannerAction {
+    margin-left: 0 !important;
+    white-space: normal;
+    justify-self: start;
+    text-align: left;
+  }
+
+  .focusTaskRow {
+    grid-template-columns: auto minmax(0, 1fr) !important;
+    align-items: start !important;
+  }
+
+  .goalCardHeader {
+    align-items: flex-start !important;
+  }
+
+  .goalCardLead {
+    width: 100%;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 12px !important;
+  }
+
+  .goalCardLeadCluster {
+    align-self: start;
+  }
+
+  .goalDeleteIconButton {
+    width: 34px;
+    height: 34px;
+    min-width: 34px;
+    border-radius: 12px;
+  }
+
+  .goalCheckbar {
+    min-height: 40px !important;
+    padding: 0 12px !important;
+    border-radius: 12px !important;
+  }
+
+  .goalCheckbarLabel {
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 520px) {
+  .summarySurfaceHead {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .goalCardLeadCluster {
+    gap: 8px;
+  }
+}

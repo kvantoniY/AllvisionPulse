@@ -9,7 +9,7 @@ import { StoryRingAvatar } from './StoryRingAvatar';
 import { useStoriesUi } from './StoriesContext';
 
 export function StoriesRail() {
-  const { data, isFetching } = useGetStoriesRailQuery(undefined, { pollingInterval: 5000, refetchOnFocus: true, refetchOnReconnect: true });
+  const { data, isFetching } = useGetStoriesRailQuery(undefined, { refetchOnFocus: true, refetchOnReconnect: true });
   const { data: meData } = useGetMeQuery();
   const { openCreator, openViewer } = useStoriesUi();
   const me = meData?.user;

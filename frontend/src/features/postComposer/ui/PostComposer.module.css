@@ -7,6 +7,20 @@
   border-color: rgba(255, 122, 26, 0.12);
 }
 
+.cardFlat {
+  padding: 16px 0 18px;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07) !important;
+}
+
+.cardFlat::before,
+.cardFlat::after {
+  display: none !important;
+}
+
 .row {
   display: flex;
   gap: 12px;

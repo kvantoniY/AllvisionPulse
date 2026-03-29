@@ -9,7 +9,7 @@ import { StoriesUiContext, type StoriesUiContextValue } from './StoriesContext';
 type ViewerState = { userId: string; storyId?: string | null } | null;
 
 export function StoriesProvider({ children }: PropsWithChildren) {
-  useGetStoriesRailQuery(undefined, { pollingInterval: 5000, refetchOnFocus: true, refetchOnReconnect: true });
+  useGetStoriesRailQuery(undefined, { refetchOnFocus: true, refetchOnReconnect: true });
 
   const [viewer, setViewer] = useState<ViewerState>(null);
   const [creatorOpen, setCreatorOpen] = useState(false);

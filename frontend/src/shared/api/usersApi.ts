@@ -3,7 +3,7 @@ import { baseQuery } from './baseQuery';
 import type { User, UserPrivacy } from '@/shared/types/models';
 import type { FollowRecord, FollowRelationship } from '@/shared/types/social';
 
-export type UserSearchItem = Pick<User, 'id' | 'username' | 'avatarUrl' | 'bio' | 'lastSeenAt' | 'privacy'>;
+export type UserSearchItem = Pick<User, 'id' | 'username' | 'firstName' | 'lastName' | 'avatarUrl' | 'bio' | 'lastSeenAt' | 'privacy'>;
 
 export const usersApi = createApi({
   reducerPath: 'usersApi',
@@ -24,8 +24,20 @@ export const usersApi = createApi({
     getUserConnections: build.query<{ canView: boolean; items: FollowRecord[] }, { username: string; tab: 'followers' | 'following' }>({
       query: ({ username, tab }) => ({ url: `/backend/users/${encodeURIComponent(username)}/connections?tab=${tab}`, method: 'GET' }),
     }),
-    updateProfile: build.mutation<{ user: Partial<User> }, { avatarUrl?: string | null; bio?: string | null }>({
-      query: (body) => ({ url: '/backend/users/me/profile', method: 'PATCH', body }),
+    updateProfile: build.mutation<{ user: Partial<User> }, { avatarUrl?: string | null; bio?: string | null; firstName?: string | null; lastName?: string | null; avatar?: File | null }>({
+      query: (body) => {
+        if (body.avatar instanceof File) {
+          const fd = new FormData();
+          fd.set('avatar', body.avatar);
+          if ('avatarUrl' in body && body.avatarUrl !== undefined) fd.set('avatarUrl', body.avatarUrl ?? '');
+          if ('bio' in body && body.bio !== undefined) fd.set('bio', body.bio ?? '');
+          if ('firstName' in body && body.firstName !== undefined) fd.set('firstName', body.firstName ?? '');
+          if ('lastName' in body && body.lastName !== undefined) fd.set('lastName', body.lastName ?? '');
+          return { url: '/backend/users/me/profile', method: 'PATCH', body: fd };
+        }
+        const { avatar, ...jsonBody } = body;
+        return { url: '/backend/users/me/profile', method: 'PATCH', body: jsonBody };
+      },
       invalidatesTags: ['Me'],
       async onQueryStarted(_arg, { dispatch, queryFulfilled, getState }) {
         try {

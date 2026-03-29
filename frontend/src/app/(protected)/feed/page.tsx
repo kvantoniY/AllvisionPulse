@@ -49,24 +49,30 @@ export default function FeedPage() {
   }, [nearEnd, isFetching, nextCursor, fetchPage]);
 
   return (
-    <div className={["container", "appPage", isMobile ? styles.pageMobile : ''].join(' ')}>
-      {!isMobile ? <PostModal postId={openPostId} open={!!openPostId} onClose={() => setOpenPostId(null)} onOpenPost={setOpenPostId} /> : null}
+    <div className={["container", "appPage", isMobile ? styles.pageMobile : styles.pageDesktop].join(' ')}>
+      <PostModal postId={openPostId} open={!!openPostId} onClose={() => setOpenPostId(null)} onOpenPost={setOpenPostId} />
 
       <div className={styles.stack}>
         {!isMobile ? <div className={styles.eyebrow}>Главная лента</div> : null}
 
-        <StoriesRail />
+        <div className={styles.storiesSection}>
+          <StoriesRail />
+        </div>
 
-        <PostComposer context="feed" />
+        <div className={styles.composerSection}>
+          <PostComposer context="feed" hideMobileTrigger={isMobile} surface={isMobile ? 'card' : 'flat'} />
+        </div>
 
         {isError ? (
-          <Card>
-            <CardMuted>Не удалось загрузить ленту.</CardMuted>
-          </Card>
+          <div className={styles.messageSection}>
+            <Card>
+              <CardMuted>Не удалось загрузить ленту.</CardMuted>
+            </Card>
+          </div>
         ) : null}
 
         {items.map((p) => (
-          <PostCard key={p.id} post={p} onOpenPost={setOpenPostId} onOpen={() => setOpenPostId(p.id)} />
+          <PostCard key={p.id} post={p} onOpenPost={setOpenPostId} surface={isMobile ? 'card' : 'flat'} />
         ))}
 
         {isFetching && !items.length ? (

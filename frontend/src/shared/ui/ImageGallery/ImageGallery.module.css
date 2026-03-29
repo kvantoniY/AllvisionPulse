@@ -7,10 +7,33 @@
   overflow: hidden;
 }
 
-.img { width: 100%; height: 100%; display: block; object-fit: cover; }
-.slider { position: relative; }
-.track { position: absolute; inset: 0; display: flex; transition: transform 220ms ease; will-change: transform; }
-.slide { flex: 0 0 100%; height: 100%; }
+.img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
+.imgContain {
+  object-fit: contain;
+  background: #000;
+}
+
+.slider {
+  position: relative;
+}
+
+.track {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  transition: transform 220ms ease;
+}
+
+.slide {
+  flex: 0 0 100%;
+  height: 100%;
+}
 
 .navLeft,
 .navRight {
@@ -26,7 +49,6 @@
   display: grid;
   place-items: center;
   cursor: pointer;
-  backdrop-filter: blur(10px);
   box-shadow: 0 10px 24px rgba(0, 0, 0, 0.24);
 }
 
@@ -43,6 +65,41 @@
 .dot { width: 7px; height: 7px; border-radius: 999px; border: 1px solid rgba(255, 255, 255, 0.35); background: rgba(0, 0, 0, 0.25); cursor: pointer; }
 .dotActive { background: rgba(255,122,26,0.95); border-color: rgba(255,122,26,0.95); }
 
+.modal {
+  width: 100%;
+  aspect-ratio: var(--gallery-ratio, 1.35);
+  max-height: min(var(--gallery-height, 760px), 72vh);
+  background: #000;
+  overflow: hidden;
+}
+
+.modal.single {
+  display: grid;
+  place-items: center;
+}
+
+.modal.slider {
+  position: relative;
+}
+
+.imgModal {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: #000;
+}
+
+.modal .track {
+  position: absolute;
+  inset: 0;
+}
+
+.modal .slide {
+  display: grid;
+  place-items: center;
+  height: 100%;
+}
+
 @media (max-width: 640px) {
   .navLeft,
   .navRight { width: 30px; height: 30px; }
@@ -50,9 +107,26 @@
   .navIcon { font-size: 22px; }
 }
 
+.single,
+.slider {
+  border-radius: 14px;
+}
 
-/* redesign overrides */
-.single, .slider { border-radius: 14px; }
-.dots { bottom: 10px; }
+.dots {
+  bottom: 10px;
+}
 
-.noRadius { border-radius: 0 !important; }
+.noRadius {
+  border-radius: 0 !important;
+}
+
+.adaptive {
+  height: min(var(--gallery-height, 760px), 72vh);
+  max-height: min(var(--gallery-height, 760px), 72vh);
+}
+
+.modal.adaptive {
+  aspect-ratio: auto;
+  height: min(var(--gallery-height, 760px), 72vh);
+  max-height: min(var(--gallery-height, 760px), 72vh);
+}

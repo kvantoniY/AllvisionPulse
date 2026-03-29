@@ -1,5 +1,8 @@
 .card {
   padding: 14px 16px 16px;
+  content-visibility: auto;
+  contain: layout style;
+  contain-intrinsic-size: 620px auto;
 }
 
 .cardCompact {
@@ -7,6 +10,24 @@
   border: none;
   background: transparent;
   box-shadow: none;
+  content-visibility: visible;
+  contain: none;
+  transform: none;
+}
+
+.cardFlat {
+  padding: 18px 0 22px;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  overflow: visible !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07) !important;
+}
+
+.cardFlat::before,
+.cardFlat::after {
+  display: none !important;
 }
 
 .header {
@@ -14,6 +35,8 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .author {
@@ -21,16 +44,22 @@
   align-items: center;
   gap: 12px;
   min-width: 0;
+  flex: 1 1 auto;
 }
 
 .authorLink {
+  display: block;
   min-width: 0;
+  max-width: 100%;
+  flex: 1 1 auto;
 }
 
 .nameRow {
   display: flex;
   align-items: center;
   gap: 6px;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .name {
@@ -45,6 +74,7 @@
 .quoteTime {
   color: var(--muted);
   font-size: 12px;
+  overflow-wrap: anywhere;
 }
 
 .repostMeta {
@@ -57,6 +87,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  min-width: 0;
   flex-shrink: 0;
 }
 
@@ -119,8 +150,11 @@
 
 .text {
   margin-top: 12px;
+  min-width: 0;
+  max-width: 100%;
   white-space: pre-wrap;
   word-break: break-word;
+  overflow-wrap: anywhere;
   line-height: 1.58;
   font-size: 14px;
   color: var(--text-soft);
@@ -182,8 +216,9 @@
 .quoteSingleImage {
   width: 100%;
   display: block;
-  object-fit: cover;
+  object-fit: contain;
   cursor: zoom-in;
+  background: #050608;
 }
 
 .singleImage {
@@ -201,6 +236,41 @@
   display: flex;
   align-items: center;
   gap: 10px;
+  min-width: 0;
+}
+
+.authorLink,
+.quoteCard,
+.quoteHeader,
+.quoteMeta,
+.quoteNameRow,
+.quoteText,
+.quoteMediaSingle,
+.quoteGalleryWrap,
+.repostWrap,
+.mediaSingle,
+.galleryWrap,
+.footer,
+.widget {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.quoteCard,
+.quoteMediaSingle,
+.quoteGalleryWrap {
+  width: 100%;
+}
+
+.quoteMeta {
+  flex: 1 1 auto;
+}
+
+.name,
+.quoteName,
+.quoteText {
+  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 .quoteMeta {
@@ -223,6 +293,7 @@
   margin-top: 10px;
   white-space: pre-wrap;
   word-break: break-word;
+  overflow-wrap: anywhere;
   line-height: 1.5;
   font-size: 14px;
   color: var(--text-soft);
@@ -304,6 +375,16 @@
 .actionCount {
   color: inherit;
 }
+
+.quoteCardPressable {
+  cursor: pointer;
+}
+
+.timeClickable,
+.textClickable {
+  cursor: pointer;
+}
+
 @media (max-width: 640px) {
   .card {
     padding: 12px 12px 14px;
@@ -333,21 +414,21 @@
 
 
 .cardMobile {
-  padding: 14px 0 18px;
-  margin: 0;
-  border: none !important;
+  width: 100%;
+  padding: 0 16px 18px;
+  contain-intrinsic-size: 520px auto;
+  margin: 0 0 18px;
+  border: 0 !important;
   border-radius: 0 !important;
   background: transparent !important;
   box-shadow: none !important;
-  overflow: visible;
+  outline: none;
+  overflow: visible !important;
 }
 
-.cardMobile + .cardMobile {
-  margin-top: 8px;
-}
-
-.cardMobile::before {
-  display: none;
+.cardMobile::before,
+.cardMobile::after {
+  display: none !important;
 }
 
 .textCollapsed {
@@ -377,25 +458,31 @@
   .cardMobile .galleryWrap,
   .cardMobile .repostWrap {
     margin-top: 10px;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .cardMobile .mediaSingle,
+  .cardMobile .galleryWrap {
+    margin-inline: 0;
   }
 
   .cardMobile .mediaSingle {
-    margin-inline: 0;
-    border-radius: 0;
-    border-left: none;
-    border-right: none;
-    background: transparent;
+    border-radius: 16px;
+    border-left: 1px solid rgba(255, 255, 255, 0.06);
+    border-right: 1px solid rgba(255, 255, 255, 0.06);
+    background: #050608;
   }
 
   .cardMobile .singleImage {
-    max-height: none;
+    max-height: 70svh;
     width: 100%;
   }
 
   .cardMobile .actions {
     width: 100%;
     justify-content: flex-start;
-    gap: 6px;
+    gap: 14px;
   }
 }
 
@@ -405,7 +492,8 @@
 .cardMobile .widget,
 .cardMobile .footer,
 .cardMobile .repostWrap {
-  margin-inline: 16px;
+  margin-inline: 0;
+  max-width: 100%;
 }
 
 .cardMobile .header {
@@ -416,20 +504,34 @@
   margin-top: 12px;
 }
 
-.cardMobile .actions {
-  gap: 16px;
-}
-
 .cardMobile .repostWrap {
-  width: auto;
+  width: 100%;
 }
 
 .cardMobile .galleryWrap :global(img) {
   border-radius: 0;
 }
 
-.cardMobile .menuBtn {
-  width: 34px;
-  height: 34px;
-  border-radius: 12px;
+.cardMobile .author,
+.cardMobile .authorLink,
+.cardMobile .header,
+.cardMobile .text,
+.cardMobile .moreTextBtn,
+.cardMobile .widget,
+.cardMobile .footer,
+.cardMobile .repostWrap,
+.cardMobile .quoteCard,
+.cardMobile .quoteHeader,
+.cardMobile .quoteMeta,
+.cardMobile .quoteText,
+.cardMobile .mediaSingle,
+.cardMobile .galleryWrap {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.cardMobile .galleryWrap :global(.single),
+.cardMobile .galleryWrap :global(.slider) {
+  border-radius: 16px !important;
 }

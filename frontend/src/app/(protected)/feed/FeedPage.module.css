@@ -1,7 +1,28 @@
+.pageDesktop {
+  width: calc(100% + (var(--page-gutter) * 2));
+  max-width: none;
+  margin: 0 calc(var(--page-gutter) * -1);
+  margin-top: -20px;
+  padding-inline: 0;
+  padding-top: 20px;
+  background: linear-gradient(180deg, rgba(17, 20, 24, 0.96), rgba(12, 14, 17, 0.985));
+  min-height: calc(100dvh - var(--header-height) - 20px);
+}
+
 
 .stack {
+  width: 100%;
   display: grid;
-  gap: 14px;
+  gap: 0;
+  padding: 18px 0 28px;
+  background: linear-gradient(180deg, rgba(17, 20, 24, 0.96), rgba(12, 14, 17, 0.985));
+}
+
+.stack > * {
+  width: min(100%, 1040px);
+  min-width: 0;
+  max-width: 100%;
+  margin-inline: auto;
 }
 
 .eyebrow {
@@ -11,32 +32,68 @@
   letter-spacing: 0.12em;
   color: var(--muted);
   font-weight: 700;
-  margin: 2px 2px -2px;
+  margin: 2px auto 10px;
+  padding-inline: 2px;
+}
+
+.storiesSection {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.composerSection,
+.messageSection {
+  min-width: 0;
 }
 
 @media (max-width: 640px) {
+  .pageDesktop {
+    padding-inline: 0;
+  }
+
   .stack {
-    gap: 12px;
+    width: 100%;
   }
 
   .eyebrow {
-    margin-inline: 0;
+    margin-inline: auto;
   }
 }
 
 .pageMobile {
   padding-inline: 0;
   background: var(--bg-elevated);
-  position: relative;
+  min-width: 0;
+  overflow-x: hidden;
 }
 
 .pageMobile .stack {
   gap: 18px;
   padding-top: 0;
   background: var(--bg-elevated);
+  min-width: 0;
+  overflow-x: hidden;
 }
 
 .pageMobile .stack > * {
+  min-width: 0;
+  max-width: 100%;
+  border: 0 !important;
+  border-radius: 0 !important;
   border-bottom: none;
-  background: transparent;
+  background: transparent !important;
+  box-shadow: none !important;
+  overflow: visible !important;
+}
+
+.pageMobile .stack > *::before,
+.pageMobile .stack > *::after {
+  display: none !important;
+}
+
+@media (min-width: 961px) and (max-width: 1180px) {
+  .pageDesktop,
+  .page {
+    width: calc(100% + 40px);
+    margin-inline: -20px;
+  }
 }

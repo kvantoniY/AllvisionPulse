@@ -13,7 +13,7 @@ import { ImageGallery } from '@/shared/ui/ImageGallery/ImageGallery';
 import { useLightbox } from '@/shared/ui/Lightbox/LightboxProvider';
 import { Icon } from '@/shared/ui/Icon/Icon';
 import { AdminBadge } from '@/shared/ui/AdminBadge/AdminBadge';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import { ConfirmDialog } from '@/shared/ui/ConfirmDialog/ConfirmDialog';
 import { RepostModal } from '@/features/postRepost/ui/RepostModal';
 import { PostLikesModal } from '@/features/postLikes/ui/PostLikesModal';
@@ -33,7 +33,13 @@ function QuoteCard({ post, onOpenOriginal, mobile }: { post: Post; onOpenOrigina
   const singleImage = images.length === 1 ? images[0] : null;
 
   return (
-    <div className={[styles.quoteCard, mobile ? styles.quoteCardMobile : ''].filter(Boolean).join(' ')}>
+    <div
+      className={[styles.quoteCard, mobile ? styles.quoteCardMobile : '', mobile && onOpenOriginal ? styles.quoteCardPressable : ''].filter(Boolean).join(' ')}
+      onClick={mobile && onOpenOriginal ? onOpenOriginal : undefined}
+      role={mobile && onOpenOriginal ? 'button' : undefined}
+      tabIndex={mobile && onOpenOriginal ? 0 : undefined}
+      onKeyDown={mobile && onOpenOriginal ? (event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onOpenOriginal(); } } : undefined}
+    >
       <div className={styles.quoteHeader}>
         <Avatar url={post.author.avatarUrl} name={post.author.username} size={34} />
         <div className={styles.quoteMeta}>
@@ -54,14 +60,14 @@ function QuoteCard({ post, onOpenOriginal, mobile }: { post: Post; onOpenOrigina
             alt=""
             className={styles.quoteSingleImage}
             loading="lazy"
-            onClick={() => lightbox?.openLightbox([{ id: singleImage.id, url: singleImage.url }], 0)}
+            onClick={(event) => { event.stopPropagation(); lightbox?.openLightbox([{ id: singleImage.id, url: singleImage.url }], 0); }}
           />
         </div>
       ) : null}
 
       {images.length > 1 ? (
-        <div className={styles.quoteGalleryWrap}>
-          <ImageGallery images={images} aspect="4 / 5" maxHeight={580} rounded={!mobile} />
+        <div className={styles.quoteGalleryWrap} onClick={(event) => event.stopPropagation()}>
+          <ImageGallery images={images} aspect="4 / 5" maxHeight={580} rounded={!mobile} fit="contain" />
         </div>
       ) : null}
 
@@ -75,16 +81,18 @@ function QuoteCard({ post, onOpenOriginal, mobile }: { post: Post; onOpenOrigina
   );
 }
 
-export function PostCard({
+function PostCardComponent({
   post,
   onOpen,
   onOpenPost,
   compact = false,
+  surface = 'card',
 }: {
   post: Post;
   onOpen?: () => void;
   onOpenPost?: (postId: string) => void;
   compact?: boolean;
+  surface?: 'card' | 'flat';
 }) {
   const { data } = useGetMeQuery();
   const me = data?.user;
@@ -98,9 +106,11 @@ export function PostCard({
   const [likesOpen, setLikesOpen] = useState(false);
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [textExpanded, setTextExpanded] = useState(false);
+  const [showTextToggle, setShowTextToggle] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
+  const textRef = useRef<HTMLDivElement | null>(null);
   const isMobile = useIsMobile();
 
   useEffect(() => {
@@ -112,16 +122,29 @@ export function PostCard({
     return () => document.removeEventListener('mousedown', onDoc);
   }, [menuOpen]);
 
+  useEffect(() => {
+    if (textExpanded) return;
+    const frame = requestAnimationFrame(() => {
+      const node = textRef.current;
+      setShowTextToggle(Boolean(node && node.scrollHeight > node.clientHeight + 2));
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [post.text, isMobile, textExpanded]);
+
   const canDeletePost = !!me && (post.authorId === me.id || me.role === 'ADMIN');
   const originalPost = useMemo(() => (post.repostOf ? getOriginalPost(post.repostOf) : null), [post.repostOf]);
   const images = post.repostOf ? [] : post.images ?? [];
   const singleImage = images.length === 1 ? images[0] : null;
-  const longText = (post.text ?? '').length > (isMobile ? 280 : 360);
 
   const openCurrent = () => {
     if (isMobile) return;
     if (onOpenPost) onOpenPost(post.id);
     else onOpen?.();
+  };
+
+  const openOriginalOnMobile = () => {
+    if (!isMobile || !originalPost || !onOpenPost) return;
+    onOpenPost(originalPost.id);
   };
 
   const onToggleLike = async () => {
@@ -137,11 +160,11 @@ export function PostCard({
   };
 
   const onOpenOriginal = originalPost && onOpenPost ? () => onOpenPost(originalPost.id) : undefined;
-  const textClass = [styles.text, !textExpanded && longText ? styles.textCollapsed : ''].filter(Boolean).join(' ');
+  const textClass = [styles.text, !textExpanded ? styles.textCollapsed : ''].filter(Boolean).join(' ');
 
   return (
     <>
-      <Card className={[styles.card, compact ? styles.cardCompact : '', isMobile ? styles.cardMobile : ''].filter(Boolean).join(' ')}>
+      <Card className={[styles.card, compact ? styles.cardCompact : '', isMobile ? styles.cardMobile : '', surface === 'flat' && !isMobile ? styles.cardFlat : ''].filter(Boolean).join(' ')}>
         <div className={styles.header}>
           <div className={styles.author}>
             <Avatar url={post.author.avatarUrl} name={post.author.username} size={isMobile ? 42 : 44} />
@@ -156,7 +179,7 @@ export function PostCard({
           </div>
 
           <div className={styles.right}>
-            <div className={styles.time}>{formatRelative(post.createdAt)}</div>
+            <div className={[styles.time, isMobile && originalPost ? styles.timeClickable : ''].filter(Boolean).join(' ')} onClick={originalPost ? openOriginalOnMobile : undefined}>{formatRelative(post.createdAt)}</div>
             {canDeletePost ? (
               <div className={styles.menuWrap} ref={menuRef}>
                 <button className={styles.menuBtn} type="button" onClick={() => setMenuOpen((value) => !value)} disabled={deleting} aria-label="Действия с публикацией">
@@ -181,10 +204,15 @@ export function PostCard({
 
         {post.text ? (
           <>
-            <div className={textClass} onClick={!isMobile ? openCurrent : undefined} style={{ cursor: !isMobile && (onOpen || onOpenPost) ? 'pointer' : 'default' }}>
+            <div
+              ref={textRef}
+              className={[textClass, isMobile && originalPost ? styles.textClickable : ''].filter(Boolean).join(' ')}
+              onClick={!isMobile ? openCurrent : originalPost ? openOriginalOnMobile : undefined}
+              style={{ cursor: !isMobile && (onOpen || onOpenPost) ? 'pointer' : isMobile && originalPost ? 'pointer' : 'default' }}
+            >
               {post.text}
             </div>
-            {longText ? (
+            {showTextToggle ? (
               <button type="button" className={styles.moreTextBtn} onClick={() => setTextExpanded((value) => !value)}>
                 {textExpanded ? 'Свернуть' : 'Показать ещё'}
               </button>
@@ -207,7 +235,7 @@ export function PostCard({
 
         {originalPost ? (
           <div className={styles.repostWrap}>
-            <QuoteCard post={originalPost} onOpenOriginal={onOpenOriginal} mobile={isMobile} />
+            <QuoteCard post={originalPost} onOpenOriginal={isMobile ? openOriginalOnMobile : onOpenOriginal} mobile={isMobile} />
           </div>
         ) : null}
 
@@ -218,14 +246,14 @@ export function PostCard({
               alt=""
               className={styles.singleImage}
               loading="lazy"
-              onClick={() => lightbox?.openLightbox([{ id: singleImage.id, url: singleImage.url }], 0)}
+              onClick={(event) => { event.stopPropagation(); lightbox?.openLightbox([{ id: singleImage.id, url: singleImage.url }], 0); }}
             />
           </div>
         ) : null}
 
         {!originalPost && images.length > 1 ? (
           <div className={styles.galleryWrap}>
-            <ImageGallery images={images} aspect="4 / 5" maxHeight={isMobile ? 560 : 760} rounded={!isMobile} />
+            <ImageGallery images={images} aspect="4 / 5" maxHeight={isMobile ? 560 : 760} rounded={!isMobile} fit="contain" />
           </div>
         ) : null}
 
@@ -247,21 +275,27 @@ export function PostCard({
         </div>
       </Card>
 
-      <ConfirmDialog
-        open={confirmOpen}
-        onClose={() => setConfirmOpen(false)}
-        onConfirm={onDelete}
-        title="Удалить публикацию?"
-        description="Пост исчезнет из ленты и профиля. Это действие нельзя быстро отменить."
-        confirmLabel="Удалить"
-        loading={deleting}
-        icon="trash"
-      />
+      {confirmOpen ? (
+        <ConfirmDialog
+          open={confirmOpen}
+          onClose={() => setConfirmOpen(false)}
+          onConfirm={onDelete}
+          title="Удалить публикацию?"
+          description="Пост исчезнет из ленты и профиля. Это действие нельзя быстро отменить."
+          confirmLabel="Удалить"
+          loading={deleting}
+          icon="trash"
+        />
+      ) : null}
 
-      <RepostModal open={shareOpen} onClose={() => setShareOpen(false)} post={post} />
-      <PostLikesModal open={likesOpen} onClose={() => setLikesOpen(false)} postId={post.id} />
-      <PostCommentsMobileModal open={commentsOpen} onClose={() => setCommentsOpen(false)} postId={post.id} />
-      <EditPostModal open={editOpen} onClose={() => setEditOpen(false)} post={post} />
+      {shareOpen ? <RepostModal open={shareOpen} onClose={() => setShareOpen(false)} post={post} /> : null}
+      {likesOpen ? <PostLikesModal open={likesOpen} onClose={() => setLikesOpen(false)} postId={post.id} /> : null}
+      {commentsOpen ? <PostCommentsMobileModal open={commentsOpen} onClose={() => setCommentsOpen(false)} postId={post.id} /> : null}
+      {editOpen ? <EditPostModal open={editOpen} onClose={() => setEditOpen(false)} post={post} /> : null}
     </>
   );
 }
+
+
+export const PostCard = memo(PostCardComponent, (prev, next) => prev.post === next.post && prev.compact === next.compact && prev.surface === next.surface && prev.onOpenPost === next.onOpenPost && prev.onOpen === next.onOpen);
+PostCard.displayName = 'PostCard';

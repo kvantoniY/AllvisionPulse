@@ -113,8 +113,8 @@ export function StoryViewer({
   const open = Boolean(viewer?.userId);
   const router = useRouter();
   const { data: meData } = useGetMeQuery();
-  const { data: railData } = useGetStoriesRailQuery(undefined, { skip: !open, pollingInterval: 5000, refetchOnFocus: true, refetchOnReconnect: true });
-  const { data, isFetching } = useGetUserStoriesQuery({ userId: viewer?.userId ?? '' }, { skip: !open || !viewer?.userId, pollingInterval: 5000, refetchOnFocus: true, refetchOnReconnect: true });
+  const { data: railData } = useGetStoriesRailQuery(undefined, { skip: !open, refetchOnFocus: true, refetchOnReconnect: true });
+  const { data, isFetching } = useGetUserStoriesQuery({ userId: viewer?.userId ?? '' }, { skip: !open || !viewer?.userId, refetchOnFocus: true, refetchOnReconnect: true });
   const [markViewed] = useMarkStoryViewedMutation();
   const [reactToStory, reactState] = useReactToStoryMutation();
   const [deleteStory, deleteState] = useDeleteStoryMutation();
@@ -141,8 +141,8 @@ export function StoryViewer({
   const storyDurationMs = getDurationMs(current);
   const currentTrimStart = Number(current?.trimStartMs ?? 0) / 1000;
   const currentTrimEnd = Number(current?.trimEndMs ?? current?.durationMs ?? storyDurationMs) / 1000;
-  const { data: viewersData } = useGetStoryViewersQuery({ storyId: current?.id ?? '' }, { skip: !viewersOpen || !current || !isOwn, pollingInterval: 5000, refetchOnFocus: true, refetchOnReconnect: true });
-  const { data: highlightsData } = useGetStoryHighlightsQuery({ userId: me?.id ?? '' }, { skip: !open || !isOwn || !me?.id, pollingInterval: 5000, refetchOnFocus: true, refetchOnReconnect: true });
+  const { data: viewersData } = useGetStoryViewersQuery({ storyId: current?.id ?? '' }, { skip: !viewersOpen || !current || !isOwn, refetchOnFocus: true, refetchOnReconnect: true });
+  const { data: highlightsData } = useGetStoryHighlightsQuery({ userId: me?.id ?? '' }, { skip: !open || !isOwn || !me?.id, refetchOnFocus: true, refetchOnReconnect: true });
 
   useEffect(() => {
     setMyReaction(current?.myReaction ?? null);

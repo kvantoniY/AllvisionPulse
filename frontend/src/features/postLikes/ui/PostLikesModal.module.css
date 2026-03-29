@@ -65,7 +65,7 @@ a.row:hover {
   text-align: center;
   color: var(--muted);
   padding: 36px 16px 48px;
-  margin: 0;
+  margin: auto 0;
 }
 
 .emptyTitle {

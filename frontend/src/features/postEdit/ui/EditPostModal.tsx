@@ -51,8 +51,8 @@ export function EditPostModal({ open, onClose, post }: { open: boolean; onClose:
   };
 
   const body = (
-    <div className={styles.body}>
-      <div className={styles.content}>
+    <div className={[styles.body, isMobile ? styles.bodyMobile : styles.bodyDesktop].join(' ')}>
+      <div className={[styles.content, isMobile ? styles.contentMobile : styles.contentDesktop].join(' ')}>
         {existingImages.length || previews.length ? (
           <div className={styles.previewRail}>
             {existingImages.map((img) => (
@@ -83,17 +83,19 @@ export function EditPostModal({ open, onClose, post }: { open: boolean; onClose:
         />
       </div>
 
-      <div className={styles.footer}>
+      <div className={[styles.footer, isMobile ? styles.footerMobile : styles.footerDesktop].join(' ')}>
         <label className={styles.attachBtn}>
           <Icon name="image" size={18} />
           <span>Фото</span>
           <input type="file" accept="image/*" multiple hidden onChange={(event) => onPickImages(event.target.files)} />
         </label>
-        <div className={styles.counter}>{remaining}</div>
-        <div className={styles.actions}>
+
+        <div className={[styles.actions, isMobile ? styles.actionsMobile : styles.actionsDesktop].join(' ')}>
           <button type="button" className={styles.secondaryBtn} onClick={onClose}>Отмена</button>
           <button type="button" className={styles.primaryBtn} onClick={onSubmit} disabled={!canSave}>{isLoading ? 'Сохранение…' : 'Сохранить'}</button>
         </div>
+
+        <div className={[styles.counter, isMobile ? styles.counterMobile : styles.counterDesktop].join(' ')}>{remaining}</div>
       </div>
     </div>
   );

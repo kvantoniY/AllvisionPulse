@@ -29,10 +29,10 @@ function Preview({ item }: { item: StoryItem }) {
   return <img src={item.mediaUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />;
 }
 
-export function ProfileStoriesPanel({ userId, isSelf }: { userId: string; isSelf: boolean }) {
-  const { data: highlightsData } = useGetStoryHighlightsQuery({ userId }, { pollingInterval: 5000, refetchOnFocus: true, refetchOnReconnect: true });
-  const { data: archiveData } = useGetStoriesArchiveQuery(undefined, { skip: !isSelf, pollingInterval: 5000, refetchOnFocus: true, refetchOnReconnect: true });
-  const { data: liveStoriesData } = useGetUserStoriesQuery({ userId }, { skip: !isSelf, pollingInterval: 5000, refetchOnFocus: true, refetchOnReconnect: true });
+export function ProfileStoriesPanel({ userId, isSelf, embedded = false }: { userId: string; isSelf: boolean; embedded?: boolean }) {
+  const { data: highlightsData } = useGetStoryHighlightsQuery({ userId }, { refetchOnFocus: true, refetchOnReconnect: true });
+  const { data: archiveData } = useGetStoriesArchiveQuery(undefined, { skip: !isSelf, refetchOnFocus: true, refetchOnReconnect: true });
+  const { data: liveStoriesData } = useGetUserStoriesQuery({ userId }, { skip: !isSelf, refetchOnFocus: true, refetchOnReconnect: true });
   const [createHighlight, createState] = useCreateHighlightMutation();
   const [updateHighlight] = useUpdateHighlightMutation();
   const [deleteHighlight] = useDeleteHighlightMutation();
@@ -53,12 +53,25 @@ export function ProfileStoriesPanel({ userId, isSelf }: { userId: string; isSelf
   const [previewItem, setPreviewItem] = useState<StoryItem | null>(null);
   const [titleInput, setTitleInput] = useState('');
   const [archiveSelection, setArchiveSelection] = useState<Record<string, string>>({});
-  const highlights = highlightsData?.items ?? [];
+  const [createSelection, setCreateSelection] = useState<Record<string, boolean>>({});
+  const cleanupRef = useRef<Set<string>>(new Set());
+  const pendingPopulateRef = useRef<Set<string>>(new Set());
+  const allHighlights = highlightsData?.items ?? [];
   const archiveItems = archiveData?.items ?? [];
   const liveStories = liveStoriesData?.items ?? [];
+  const highlights = useMemo(() => allHighlights.filter((item) => item.count > 0 && item.items.length > 0), [allHighlights]);
+  const emptyHighlights = useMemo(() => isSelf ? allHighlights.filter((item) => item.count === 0 || item.items.length === 0) : [], [allHighlights, isSelf]);
   const totalCount = useMemo(() => highlights.reduce((sum, item) => sum + item.count, 0), [highlights]);
+  const availableCreateItems = useMemo(() => {
+    const map = new Map<string, StoryItem>();
+    for (const item of [...liveStories, ...archiveItems]) {
+      if (!map.has(item.id)) map.set(item.id, item);
+    }
+    return Array.from(map.values()).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }, [archiveItems, liveStories]);
+  const createStoryIds = useMemo(() => Object.entries(createSelection).filter(([, value]) => value).map(([storyId]) => storyId), [createSelection]);
   const currentHighlightItem = selectedHighlight?.items[highlightIndex] ?? null;
-  const { data: highlightViewersData } = useGetStoryViewersQuery({ storyId: currentHighlightItem?.id ?? '' }, { skip: !Boolean(currentHighlightItem), pollingInterval: 5000, refetchOnFocus: true, refetchOnReconnect: true });
+  const { data: highlightViewersData } = useGetStoryViewersQuery({ storyId: currentHighlightItem?.id ?? '' }, { skip: !Boolean(currentHighlightItem), refetchOnFocus: true, refetchOnReconnect: true });
 
   useEffect(() => {
     if (!selectedHighlight) return;
@@ -75,6 +88,17 @@ export function ProfileStoriesPanel({ userId, isSelf }: { userId: string; isSelf
       setHighlightViewersOpen(false);
     }
   }, [selectedHighlight]);
+
+  useEffect(() => {
+    if (!isSelf || !emptyHighlights.length) return;
+    emptyHighlights.forEach((highlight) => {
+      if (cleanupRef.current.has(highlight.id) || pendingPopulateRef.current.has(highlight.id)) return;
+      cleanupRef.current.add(highlight.id);
+      deleteHighlight({ highlightId: highlight.id }).unwrap().catch(() => null).finally(() => {
+        cleanupRef.current.delete(highlight.id);
+      });
+    });
+  }, [deleteHighlight, emptyHighlights, isSelf]);
 
   useEffect(() => {
     if (!currentHighlightItem || highlightPaused || manageHighlight) return;
@@ -124,61 +148,106 @@ export function ProfileStoriesPanel({ userId, isSelf }: { userId: string; isSelf
     setHighlightIndex((value) => direction === 'prev' ? Math.max(0, value - 1) : Math.min(selectedHighlight.items.length - 1, value + 1));
   };
 
+  const closeCreateModal = () => {
+    setCreateOpen(false);
+    setTitleInput('');
+    setCreateSelection({});
+  };
+
   const handleCreateHighlight = async () => {
     const title = titleInput.trim();
-    if (!title) return;
+    if (!title || !createStoryIds.length) return;
     const result = await createHighlight({ title }).unwrap().catch(() => null);
-    if (result) {
-      setCreateOpen(false);
-      setTitleInput('');
+    const highlightId = result?.highlight?.id;
+    if (!highlightId) return;
+    pendingPopulateRef.current.add(highlightId);
+    try {
+      for (const storyId of createStoryIds) {
+        await addToHighlight({ storyId, highlightId }).unwrap().catch(() => null);
+      }
+      closeCreateModal();
+    } finally {
+      pendingPopulateRef.current.delete(highlightId);
     }
   };
 
   return (
-    <div style={{ margin: '18px 0 6px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 12 }}>
-        <div style={{ fontWeight: 800, fontSize: 18 }}>Моменты {totalCount ? <span style={{ color: 'rgba(255,255,255,.52)' }}>{totalCount}</span> : null}</div>
+    <div className={[styles.profilePanel, embedded ? styles.profilePanelEmbedded : ""].filter(Boolean).join(" ")}>
+      <div className={[styles.profileSectionHeader, embedded ? styles.profileSectionHeaderEmbedded : ""].filter(Boolean).join(" ")}>
+        <div className={styles.profileTitle}>Моменты {totalCount ? <span className={styles.profileCount}>{totalCount}</span> : null}</div>
         {isSelf ? (
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <div className={styles.profileSectionActions}>
             <Button size="sm" onClick={() => setArchiveOpen(true)}>Архив</Button>
           </div>
         ) : null}
       </div>
 
-      <div style={{ display: 'flex', gap: 18, overflowX: 'auto', paddingBottom: 4 }}>
+      <div className={[styles.profileRail, embedded ? styles.profileRailEmbedded : ""].filter(Boolean).join(" ")}>
         {isSelf ? (
-          <button type="button" onClick={() => setCreateOpen(true)} style={{ background: 'transparent', border: 'none', color: 'inherit', display: 'grid', gap: 10, justifyItems: 'center', minWidth: 92 }}>
-            <span style={{ width: 78, height: 78, borderRadius: '999px', padding: 3, background: 'rgba(255,255,255,.12)', display: 'inline-flex' }}>
-              <span style={{ width: '100%', height: '100%', borderRadius: '999px', overflow: 'hidden', background: '#191a1d', display: 'grid', placeItems: 'center', color: 'white', fontSize: 30 }}>+</span>
+          <button
+            type="button"
+            onClick={() => { setTitleInput(''); setCreateSelection({}); setCreateOpen(true); }}
+            className={styles.profileHighlightButton}
+          >
+            <span className={[styles.profileHighlightThumbOuter, styles.profileAddThumbOuter].join(' ')}>
+              <span className={[styles.profileHighlightThumbInner, styles.profileAddThumbInner].join(' ')}>+</span>
             </span>
-            <span style={{ fontSize: 13, color: 'rgba(255,255,255,.78)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 86 }}>Добавить</span>
+            <span className={styles.profileHighlightLabel}>Добавить</span>
           </button>
         ) : null}
 
         {highlights.map((highlight) => (
-          <button key={highlight.id} type="button" onClick={() => { setSelectedHighlight(highlight); setHighlightIndex(0); setManageHighlight(false); setManageTab('selected'); }} style={{ background: 'transparent', border: 'none', color: 'inherit', display: 'grid', gap: 10, justifyItems: 'center', minWidth: 92 }}>
-            <span style={{ width: 78, height: 78, borderRadius: '999px', padding: 3, background: 'rgba(255,255,255,.16)', display: 'inline-flex' }}>
-              <span style={{ width: '100%', height: '100%', borderRadius: '999px', overflow: 'hidden', background: '#191a1d', display: 'block' }}>
+          <button
+            key={highlight.id}
+            type="button"
+            onClick={() => { setSelectedHighlight(highlight); setHighlightIndex(0); setManageHighlight(false); setManageTab('selected'); }}
+            className={styles.profileHighlightButton}
+          >
+            <span className={styles.profileHighlightThumbOuter}>
+              <span className={styles.profileHighlightThumbInner}>
                 {highlight.cover?.mediaUrl ? (
-                  highlight.cover.mediaType.startsWith('video/') ? <video src={highlight.cover.mediaUrl} playsInline muted style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <img src={highlight.cover.mediaUrl} alt={highlight.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  highlight.cover.mediaType.startsWith('video/') ? <video src={highlight.cover.mediaUrl} playsInline muted className={styles.profileHighlightMedia} /> : <img src={highlight.cover.mediaUrl} alt={highlight.title} className={styles.profileHighlightMedia} />
                 ) : null}
               </span>
             </span>
-            <span style={{ fontSize: 13, color: 'rgba(255,255,255,.78)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 86 }}>{highlight.title}</span>
+            <span className={styles.profileHighlightLabel}>{highlight.title}</span>
           </button>
         ))}
       </div>
 
       {!highlights.length ? (
-        <div style={{ marginTop: 12 }}>
+        <div className={[styles.profileEmptyHint, embedded ? styles.profileEmptyHintEmbedded : ""].filter(Boolean).join(" ")}>
           <CardMuted>{isSelf ? 'После 24 часов сторис будут попадать в архив. Из архива можно собирать актуальное.' : 'Актуального пока нет.'}</CardMuted>
         </div>
       ) : null}
 
-      <Modal open={createOpen} onClose={() => setCreateOpen(false)} title="Новое актуальное">
-        <div style={{ display: 'grid', gap: 12 }}>
-          <input value={titleInput} onChange={(event) => setTitleInput(event.target.value)} placeholder="Название" maxLength={80} style={{ width: '100%', height: 44, borderRadius: 14, border: '1px solid rgba(255,255,255,.08)', background: 'rgba(255,255,255,.04)', color: 'white', padding: '0 14px' }} />
-          <Button variant="primary" onClick={handleCreateHighlight} loading={createState.isLoading}>Создать</Button>
+      <Modal open={createOpen} onClose={closeCreateModal} title="Новое актуальное" size="lg">
+        <div className={styles.createHighlightBody}>
+          <input value={titleInput} onChange={(event) => setTitleInput(event.target.value)} placeholder="Название" maxLength={80} className={styles.createHighlightInput} />
+          {availableCreateItems.length ? (
+            <div className={styles.createHighlightGrid}>
+              {availableCreateItems.map((item) => {
+                const active = Boolean(createSelection[item.id]);
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => setCreateSelection((prev) => ({ ...prev, [item.id]: !prev[item.id] }))}
+                    className={[styles.createHighlightItem, active ? styles.createHighlightItemActive : ''].filter(Boolean).join(' ')}
+                  >
+                    <span className={styles.createHighlightPreview}><Preview item={item} /></span>
+                    <span className={styles.createHighlightMeta}>
+                      <span className={styles.createHighlightDate}>{new Date(item.createdAt).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })}</span>
+                      <span className={styles.createHighlightCheck}>{active ? 'Выбрано' : 'Выбрать'}</span>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          ) : (
+            <CardMuted>Нет сторис, которые можно добавить в актуальное.</CardMuted>
+          )}
+          <Button variant="primary" onClick={handleCreateHighlight} loading={createState.isLoading} disabled={!titleInput.trim() || !createStoryIds.length}>Создать актуальное</Button>
         </div>
       </Modal>
 

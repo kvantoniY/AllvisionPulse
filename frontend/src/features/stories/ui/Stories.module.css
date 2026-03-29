@@ -1389,3 +1389,222 @@
   .railItem { min-width: 66px; gap: 6px; }
   .railName { max-width: 70px; font-size: 11px; }
 }
+
+.profilePanel {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.profileSectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.profileTitle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 800;
+  font-size: clamp(1.05rem, 2vw, 1.2rem);
+  letter-spacing: -0.03em;
+}
+
+.profileCount {
+  color: rgba(255,255,255,.52);
+}
+
+.profileSectionActions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.profileRail {
+  display: flex;
+  gap: 18px;
+  overflow-x: auto;
+  padding: 4px 0 6px;
+  scrollbar-width: none;
+  min-width: 0;
+}
+
+.profileRail::-webkit-scrollbar {
+  display: none;
+}
+
+.profileHighlightButton {
+  background: transparent;
+  border: none;
+  color: inherit;
+  display: grid;
+  gap: 10px;
+  justify-items: center;
+  min-width: 92px;
+  padding: 0;
+}
+
+.profileHighlightThumbOuter {
+  width: 78px;
+  height: 78px;
+  border-radius: 999px;
+  padding: 3px;
+  background: rgba(255,255,255,.16);
+  display: inline-flex;
+}
+
+.profileAddThumbOuter {
+  background: rgba(255,255,255,.12);
+}
+
+.profileHighlightThumbInner {
+  width: 100%;
+  height: 100%;
+  border-radius: 999px;
+  overflow: hidden;
+  background: #191a1d;
+  display: block;
+}
+
+.profileAddThumbInner {
+  display: grid;
+  place-items: center;
+  color: white;
+  font-size: 30px;
+}
+
+.profileHighlightMedia {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.profileHighlightLabel {
+  max-width: 86px;
+  font-size: 13px;
+  color: rgba(255,255,255,.78);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: center;
+}
+
+.profileEmptyHint {
+  margin-top: 2px;
+}
+
+
+.profilePanelEmbedded {
+  gap: 10px;
+}
+
+.profileSectionHeaderEmbedded {
+  padding-inline: 0;
+}
+
+.profileRailEmbedded {
+  padding-inline: 0;
+  padding-top: 2px;
+}
+
+.profileEmptyHintEmbedded {
+  margin-top: 0;
+}
+
+.createHighlightBody {
+  display: grid;
+  gap: 14px;
+}
+
+.createHighlightInput {
+  width: 100%;
+  height: 44px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,.08);
+  background: rgba(255,255,255,.04);
+  color: white;
+  padding: 0 14px;
+}
+
+.createHighlightGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 10px;
+  max-height: min(46vh, 420px);
+  overflow: auto;
+}
+
+.createHighlightItem {
+  border: 1px solid rgba(255,255,255,.08);
+  background: rgba(255,255,255,.03);
+  border-radius: 18px;
+  padding: 0;
+  overflow: hidden;
+  color: white;
+  text-align: left;
+}
+
+.createHighlightItemActive {
+  border-color: rgba(255, 122, 26, 0.42);
+  box-shadow: inset 0 0 0 1px rgba(255, 122, 26, 0.18);
+}
+
+.createHighlightPreview {
+  display: block;
+  width: 100%;
+  aspect-ratio: 9 / 16;
+  overflow: hidden;
+  background: #121316;
+}
+
+.createHighlightMeta {
+  display: grid;
+  gap: 4px;
+  padding: 10px 10px 12px;
+}
+
+.createHighlightDate {
+  font-size: 11px;
+  color: rgba(255,255,255,.58);
+}
+
+.createHighlightCheck {
+  font-size: 12px;
+  font-weight: 700;
+  color: rgba(255,255,255,.9);
+}
+
+@media (max-width: 640px) {
+  .profileSectionHeader {
+    padding-inline: 14px;
+  }
+
+  .profileSectionHeaderEmbedded {
+    padding-inline: 0;
+  }
+
+  .profileRail {
+    padding-inline: 14px;
+    padding-bottom: 8px;
+    gap: 16px;
+  }
+
+  .profileRailEmbedded {
+    padding-inline: 0;
+    gap: 14px;
+  }
+
+  .profileHighlightButton {
+    min-width: 88px;
+  }
+
+  .profileHighlightLabel {
+    max-width: 82px;
+  }
+
+  .createHighlightGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

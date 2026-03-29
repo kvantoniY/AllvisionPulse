@@ -1,5 +1,6 @@
 .nav {
   position: fixed;
+  contain: paint;
   left: 0;
   right: 0;
   bottom: 0;
@@ -8,7 +9,7 @@
   z-index: 80;
   background: rgba(10, 12, 15, 0.98);
   border-top: 1px solid rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(20px);
+  backdrop-filter: blur(10px);
   box-shadow: 0 -10px 36px rgba(0, 0, 0, 0.32);
 }
 
@@ -108,4 +109,9 @@
   background: rgba(255, 255, 255, 0.025);
   display: grid;
   place-items: center;
+}
+
+
+@media (pointer: coarse), (prefers-reduced-motion: reduce) {
+  .header, .sidebar, .nav { backdrop-filter: none; }
 }

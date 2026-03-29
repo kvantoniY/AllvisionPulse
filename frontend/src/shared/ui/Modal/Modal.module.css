@@ -6,7 +6,7 @@
   place-items: center;
   z-index: 260;
   padding: 18px;
-  backdrop-filter: blur(14px);
+  overscroll-behavior: contain;
 }
 
 .modal {
@@ -16,7 +16,7 @@
   border-radius: 20px;
   border: 1px solid var(--stroke);
   background: linear-gradient(180deg, rgba(12, 14, 17, 0.98), rgba(8, 10, 13, 0.985));
-  box-shadow: var(--shadow-lg);
+  box-shadow: 0 20px 52px rgba(0, 0, 0, 0.28);
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
 }
@@ -86,6 +86,8 @@
   padding: 16px 18px 18px;
   max-height: calc(min(88vh, 920px) - 74px);
   overflow: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
 }
 
 .modalLg { width: min(960px, 100%); }
@@ -137,4 +139,9 @@
     min-height: 0;
     padding: 14px 14px calc(18px + env(safe-area-inset-bottom, 0px));
   }
+}
+
+
+@media (pointer: coarse), (prefers-reduced-motion: reduce) {
+  .backdrop { backdrop-filter: none; }
 }

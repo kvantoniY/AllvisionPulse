@@ -4,6 +4,41 @@ import type { Comment, CommentsResponse, FeedResponse, PostResponse } from '@/sh
 
 type FeedArg = { take?: number; cursor?: string | null } | void;
 
+function updatePostCommentCountEverywhere(
+  dispatch: any,
+  getState: () => unknown,
+  postId: string,
+  updater: (current: number) => number,
+) {
+  dispatch(
+    postsApi.util.updateQueryData('getFeed', undefined as any, (draft) => {
+      const post = draft.items.find((item) => item.id === postId);
+      if (post?._count) post._count.comments = updater(post._count.comments ?? 0);
+    }),
+  );
+
+  const cachedUserPostsArgs = postsApi.util.selectCachedArgsForQuery(getState() as any, 'getUserPosts') as Array<{
+    username: string;
+    take?: number;
+    cursor?: string | null;
+  }>;
+
+  for (const arg of cachedUserPostsArgs) {
+    dispatch(
+      postsApi.util.updateQueryData('getUserPosts', arg as any, (draft) => {
+        const post = draft.items.find((item) => item.id === postId);
+        if (post?._count) post._count.comments = updater(post._count.comments ?? 0);
+      }),
+    );
+  }
+
+  dispatch(
+    postsApi.util.updateQueryData('getPost', { postId } as any, (draft) => {
+      if (draft.post?._count) draft.post._count.comments = updater(draft.post._count.comments ?? 0);
+    }),
+  );
+}
+
 /**
  * RTK Query infinite feed cache:
  * - serializeQueryArgs => one cache entry for the whole feed
@@ -13,7 +48,7 @@ type FeedArg = { take?: number; cursor?: string | null } | void;
 export const postsApi = createApi({
   reducerPath: 'postsApi',
   baseQuery,
-  tagTypes: ['Feed', 'Post', 'Comments'],
+  tagTypes: ['Feed', 'Post', 'Comments', 'UserPosts'],
   endpoints: (build) => ({
     getFeed: build.query<FeedResponse, FeedArg>({
       query: (arg) => {
@@ -54,6 +89,42 @@ export const postsApi = createApi({
           : [{ type: 'Feed' as const, id: 'LIST' }],
     }),
 
+    getUserPosts: build.query<FeedResponse, { username: string; take?: number; cursor?: string | null }>({
+      query: ({ username, take = 20, cursor }) => {
+        const params = new URLSearchParams();
+        params.set('take', String(take));
+        if (cursor) params.set('cursor', cursor);
+        return { url: `/backend/users/${encodeURIComponent(username)}/posts?${params.toString()}`, method: 'GET' };
+      },
+      serializeQueryArgs: ({ endpointName, queryArgs }) => `${endpointName}:${queryArgs.username}`,
+      merge: (currentCache, newItems, { arg }) => {
+        if (!arg.cursor) {
+          currentCache.items = newItems.items;
+          currentCache.nextCursor = newItems.nextCursor;
+          return;
+        }
+        const seen = new Set(currentCache.items.map((x) => x.id));
+        for (const it of newItems.items) {
+          if (!seen.has(it.id)) currentCache.items.push(it);
+        }
+        currentCache.nextCursor = newItems.nextCursor;
+      },
+      forceRefetch({ currentArg, previousArg }) {
+        return currentArg?.cursor !== previousArg?.cursor || currentArg?.username !== previousArg?.username;
+      },
+      providesTags: (result, _error, arg) =>
+        result
+          ? [
+              { type: 'UserPosts' as const, id: 'LIST' },
+              { type: 'UserPosts' as const, id: arg.username },
+              ...result.items.map((p) => ({ type: 'Post' as const, id: p.id })),
+            ]
+          : [
+              { type: 'UserPosts' as const, id: 'LIST' },
+              { type: 'UserPosts' as const, id: arg.username },
+            ],
+    }),
+
     getPost: build.query<PostResponse, { postId: string }>({
       query: ({ postId }) => ({ url: `/backend/posts/${encodeURIComponent(postId)}`, method: 'GET' }),
       providesTags: (_r, _e, arg) => [{ type: 'Post', id: arg.postId }],
@@ -84,7 +155,10 @@ export const postsApi = createApi({
           } catch {
           }
         },
-        invalidatesTags: (_r, _e, arg) => arg.repostOfId ? [{ type: 'Post' as const, id: arg.repostOfId }] : [],
+        invalidatesTags: (_r, _e, arg) => [
+          ...(arg.repostOfId ? [{ type: 'Post' as const, id: arg.repostOfId }] : []),
+          { type: 'UserPosts' as const, id: 'LIST' },
+        ],
       },
     ),
 
@@ -100,6 +174,7 @@ export const postsApi = createApi({
         invalidatesTags: (_r, _e, arg) => [
           { type: 'Post' as const, id: arg.postId },
           { type: 'Feed' as const, id: 'LIST' },
+          { type: 'UserPosts' as const, id: 'LIST' },
         ],
       },
     ),
@@ -118,7 +193,7 @@ export const postsApi = createApi({
           patch.undo();
         }
       },
-      invalidatesTags: (_r, _e, arg) => [{ type: 'Post', id: arg.postId }],
+      invalidatesTags: (_r, _e, arg) => [{ type: 'Post', id: arg.postId }, { type: 'UserPosts' as const, id: 'LIST' }],
     }),
 
     likePost: build.mutation<{ ok: true }, { postId: string; userId?: string }>({
@@ -215,7 +290,7 @@ export const postsApi = createApi({
         for (const f of images ?? []) fd.append('images', f);
         return { url: `/backend/posts/${encodeURIComponent(postId)}/comments`, method: 'POST', body: fd };
       },
-      async onQueryStarted({ postId, parentId }, { dispatch, queryFulfilled }) {
+      async onQueryStarted({ postId, parentId }, { dispatch, getState, queryFulfilled }) {
         try {
           const { data } = await queryFulfilled;
           const comment = data.comment;
@@ -240,13 +315,7 @@ export const postsApi = createApi({
             );
           }
 
-          // Update feed post counts
-          dispatch(
-            postsApi.util.updateQueryData('getFeed', undefined as any, (draft) => {
-              const p = draft.items.find((x) => x.id === postId);
-              if (p?._count) p._count.comments = (p._count.comments ?? 0) + 1;
-            }),
-          );
+          updatePostCommentCountEverywhere(dispatch, getState, postId, (current) => current + 1);
 
           if (!parentId) {
             dispatch(
@@ -287,7 +356,7 @@ export const postsApi = createApi({
 
     deleteComment: build.mutation<{ ok: true }, { commentId: string; postId: string; parentId?: string | null }>({
       query: ({ commentId }) => ({ url: `/backend/posts/comments/${encodeURIComponent(commentId)}`, method: 'DELETE' }),
-      async onQueryStarted({ commentId, postId, parentId }, { dispatch, queryFulfilled }) {
+      async onQueryStarted({ commentId, postId, parentId }, { dispatch, getState, queryFulfilled }) {
         const patch = dispatch(
           postsApi.util.updateQueryData('getComments', { postId } as any, (draft) => {
             if (parentId) {
@@ -305,18 +374,13 @@ export const postsApi = createApi({
               }),
             )
           : null;
-        const patchFeed = dispatch(
-          postsApi.util.updateQueryData('getFeed', undefined as any, (draft) => {
-            const p = draft.items.find((x) => x.id === postId);
-            if (p?._count) p._count.comments = Math.max(0, (p._count.comments ?? 0) - 1);
-          }),
-        );
+        updatePostCommentCountEverywhere(dispatch, getState, postId, (current) => Math.max(0, current - 1));
         try {
           await queryFulfilled;
         } catch {
           patch.undo();
           patchReplies?.undo?.();
-          patchFeed.undo();
+          updatePostCommentCountEverywhere(dispatch, getState, postId, (current) => current + 1);
         }
       },
       invalidatesTags: (_r, _e, arg) => [
@@ -332,6 +396,8 @@ export const postsApi = createApi({
 export const {
   useGetFeedQuery,
   useLazyGetFeedQuery,
+  useGetUserPostsQuery,
+  useLazyGetUserPostsQuery,
   useGetPostQuery,
   useCreatePostMutation,
   useUpdatePostMutation,

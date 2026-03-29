@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "../db/prisma";
 import { asyncHandler, HttpError } from "../utils/http";
 import { requireAuth, requireActiveUser, AuthedRequest } from "../middleware/auth";
+import { upload } from "../middleware/upload";
 import { activeUserWhere, isUserSuspended } from "../utils/userStatus";
 
 const router = Router();
@@ -12,6 +13,12 @@ const CONTACT_VISIBILITY = ["everyone", "followers", "none"] as const;
 
 type ProfileVisibility = (typeof PROFILE_VISIBILITY)[number];
 type ContactVisibility = (typeof CONTACT_VISIBILITY)[number];
+
+function fileUrl(req: any, filename: string) {
+  const proto = (req.headers["x-forwarded-proto"] as string | undefined) ?? req.protocol;
+  const host = (req.headers["x-forwarded-host"] as string | undefined) ?? req.get("host");
+  return `${proto}://${host}/uploads/${filename}`;
+}
 
 function emptyRelationship() {
   return {
@@ -34,6 +41,8 @@ function topLevelUserSearchFilter(q: string) {
     OR: [
       { username: { contains: q, mode: "insensitive" as const } },
       { email: { contains: q, mode: "insensitive" as const } },
+      { firstName: { contains: q, mode: "insensitive" as const } },
+      { lastName: { contains: q, mode: "insensitive" as const } },
     ],
   };
 }
@@ -113,6 +122,35 @@ function ensureVisibleUserForViewer(args: {
   throw new HttpError(404, "User not found");
 }
 
+function buildProfilePostInclude(depth = 1): any {
+  return {
+    author: { select: { id: true, username: true, avatarUrl: true, role: true } },
+    images: true,
+    likes: { select: { userId: true } },
+    _count: { select: { comments: true, likes: true, reposts: true } },
+    ...(depth > 0
+      ? {
+          repostOf: {
+            include: buildProfilePostInclude(depth - 1),
+          },
+        }
+      : {}),
+  };
+}
+
+function visibleUserPostsWhere(authorId: string, isAdmin: boolean) {
+  const now = new Date();
+  return {
+    authorId,
+    deletedAt: null,
+    ...(isAdmin ? {} : { author: { is: activeUserWhere(now) } }),
+    OR: [
+      { repostOfId: null },
+      { repostOf: { is: { deletedAt: null, ...(isAdmin ? {} : { author: { is: activeUserWhere(now) } }) } } },
+    ],
+  };
+}
+
 async function serializeProfile(viewerId: string, username: string, viewerRole: string) {
   const now = new Date();
   const user = await prisma.user.findUnique({
@@ -120,6 +158,8 @@ async function serializeProfile(viewerId: string, username: string, viewerRole: 
     select: {
       id: true,
       username: true,
+      firstName: true,
+      lastName: true,
       avatarUrl: true,
       role: true,
       bio: true,
@@ -170,6 +210,8 @@ async function serializeProfile(viewerId: string, username: string, viewerRole: 
     user: {
       id: user.id,
       username: user.username,
+      firstName: user.firstName,
+      lastName: user.lastName,
       avatarUrl: user.avatarUrl,
       bio: profileAllowed || isSelf ? user.bio : null,
       lastSeenAt: user.lastSeenAt,
@@ -200,6 +242,8 @@ router.get("/me", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
       id: true,
       email: true,
       username: true,
+      firstName: true,
+      lastName: true,
       role: true,
       avatarUrl: true,
       bio: true,
@@ -237,7 +281,7 @@ router.get("/search", requireAuth, asyncHandler(async (req: AuthedRequest, res) 
           AND: [activeUserWhere(now), ...(queryFilter ? [queryFilter] : [])],
         },
     take: 20,
-    select: { id: true, username: true, avatarUrl: true, role: true, bio: true, lastSeenAt: true, privacy: true },
+    select: { id: true, username: true, firstName: true, lastName: true, avatarUrl: true, role: true, bio: true, lastSeenAt: true, privacy: true },
   });
   res.json({ users });
 }));
@@ -279,13 +323,43 @@ router.get("/:username/connections", requireAuth, asyncHandler(async (req: Authe
           : { receiver: { is: activeUserWhere(now) } }),
     },
     include: {
-      sender: { select: { id: true, username: true, avatarUrl: true, role: true, bio: true, lastSeenAt: true, privacy: true } },
-      receiver: { select: { id: true, username: true, avatarUrl: true, role: true, bio: true, lastSeenAt: true, privacy: true } },
+      sender: { select: { id: true, username: true, firstName: true, lastName: true, avatarUrl: true, role: true, bio: true, lastSeenAt: true, privacy: true } },
+      receiver: { select: { id: true, username: true, firstName: true, lastName: true, avatarUrl: true, role: true, bio: true, lastSeenAt: true, privacy: true } },
     },
     orderBy: { updatedAt: "desc" },
   });
 
   res.json({ canView: true, items });
+}));
+
+router.get("/:username/posts", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
+  const username = req.params.username;
+  const payload = await serializeProfile(req.user!.id, username, req.user!.role);
+  const user = payload.user;
+  const relationship = payload.relationship;
+  const isSelf = req.user!.id === user.id;
+  const isAdmin = req.user!.role === "ADMIN";
+
+  if (!isSelf && !relationship.canViewProfile) {
+    return res.json({ items: [], nextCursor: null });
+  }
+
+  const cursor = req.query.cursor?.toString();
+  const take = Math.min(Number(req.query.take ?? 20), 50);
+
+  const posts = await prisma.post.findMany({
+    where: visibleUserPostsWhere(user.id, isAdmin),
+    orderBy: { createdAt: "desc" },
+    take: take + 1,
+    ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
+    include: buildProfilePostInclude(),
+  });
+
+  const hasMore = posts.length > take;
+  const items = hasMore ? posts.slice(0, take) : posts;
+  const nextCursor = hasMore ? items[items.length - 1].id : null;
+
+  res.json({ items, nextCursor });
 }));
 
 router.get("/:username", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
@@ -296,14 +370,27 @@ router.get("/:username", requireAuth, asyncHandler(async (req: AuthedRequest, re
 const UpdateProfileSchema = z.object({
   avatarUrl: z.string().url().optional().nullable(),
   bio: z.string().max(280).optional().nullable(),
+  firstName: z.string().trim().max(60).optional().nullable(),
+  lastName: z.string().trim().max(60).optional().nullable(),
 });
 
-router.patch("/me/profile", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
-  const body = UpdateProfileSchema.parse(req.body);
+router.patch("/me/profile", requireAuth, upload.single("avatar"), asyncHandler(async (req: AuthedRequest, res) => {
+  const body = UpdateProfileSchema.parse({
+    avatarUrl: req.body?.avatarUrl === "" ? null : req.body?.avatarUrl,
+    bio: req.body?.bio === "" ? null : req.body?.bio,
+    firstName: req.body?.firstName === "" ? null : req.body?.firstName,
+    lastName: req.body?.lastName === "" ? null : req.body?.lastName,
+  });
+  const nextAvatarUrl = req.file ? fileUrl(req, req.file.filename) : body.avatarUrl;
   const user = await prisma.user.update({
     where: { id: req.user!.id },
-    data: { avatarUrl: body.avatarUrl ?? undefined, bio: body.bio ?? undefined },
-    select: { id: true, username: true, avatarUrl: true, role: true, bio: true },
+    data: {
+      ...(nextAvatarUrl !== undefined ? { avatarUrl: nextAvatarUrl } : {}),
+      ...(body.bio !== undefined ? { bio: body.bio } : {}),
+      ...(body.firstName !== undefined ? { firstName: body.firstName } : {}),
+      ...(body.lastName !== undefined ? { lastName: body.lastName } : {}),
+    },
+    select: { id: true, username: true, firstName: true, lastName: true, avatarUrl: true, role: true, bio: true },
   });
   res.json({ user });
 }));

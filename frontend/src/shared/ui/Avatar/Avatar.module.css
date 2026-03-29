@@ -28,14 +28,15 @@
 
 .statusDot {
   position: absolute;
-  right: -1px;
-  bottom: -1px;
-  width: 10px;
-  height: 10px;
+  right: var(--avatar-status-inset, 2px);
+  bottom: var(--avatar-status-inset, 2px);
+  width: var(--avatar-status-size, 10px);
+  height: var(--avatar-status-size, 10px);
   border-radius: 999px;
-  border: 2px solid var(--bg-elevated);
+  border: var(--avatar-status-border, 2px) solid var(--bg-elevated);
   background: rgba(255,255,255,0.3);
   z-index: 3;
+  box-shadow: 0 0 0 1px rgba(0,0,0,0.18);
 }
 
 .statusDotOnline { background: var(--success); }

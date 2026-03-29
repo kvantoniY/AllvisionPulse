@@ -33,6 +33,8 @@ export type User = {
   id: string;
   email: string | null;
   username: string;
+  firstName?: string | null;
+  lastName?: string | null;
   role: Role;
   avatarUrl: string | null;
   bio: string | null;

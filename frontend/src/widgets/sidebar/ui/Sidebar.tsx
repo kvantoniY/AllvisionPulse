@@ -4,7 +4,7 @@ import type { ComponentProps } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import styles from './Sidebar.module.css';
-import { APP_NAME, ROUTES } from '@/shared/config/app';
+import { ROUTES } from '@/shared/config/app';
 import { useGetMeQuery } from '@/shared/api/usersApi';
 import { StoryRingAvatar } from '@/features/stories';
 import { useLogoutMutation } from '@/shared/api/authApi';
@@ -55,10 +55,6 @@ export function Sidebar() {
 
   return (
     <aside className={styles.sidebar}>
-      <div className={styles.brand}>
-        <div className={styles.logo} />
-        {APP_NAME}
-      </div>
 
       <nav className={styles.nav}>
         <NavItem href={ROUTES.app.feed} label="Лента" icon="home" active={pathname === '/' || pathname.startsWith('/feed')} />

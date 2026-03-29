@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useMemo } from 'react';
 import { usePathname } from 'next/navigation';
 import styles from './Header.module.css';
-import { ROUTES } from '@/shared/config/app';
+import { APP_NAME, ROUTES } from '@/shared/config/app';
 import { useGetMeQuery } from '@/shared/api/usersApi';
 import { UserSearch } from '@/features/userSearch/ui/UserSearch';
 import { NotificationsBell } from '@/widgets/notificationsBell/ui/NotificationsBell';
@@ -70,9 +70,17 @@ export function Header() {
   return (
     <header className={styles.header}>
       <div className={styles.inner}>
-        <div className={styles.searchWrap}>
-          <UserSearch />
+        <div className={styles.left}>
+          <Link href={ROUTES.app.feed} className={styles.brand} aria-label={APP_NAME}>
+            <span className={styles.brandLogo} aria-hidden />
+            <span className={styles.brandText}>{APP_NAME}</span>
+          </Link>
+
+          <div className={styles.searchWrap}>
+            <UserSearch />
+          </div>
         </div>
+
         <div className={styles.right}>
           <NotificationsBell />
           <Link href={ROUTES.app.settings} className={styles.settings} aria-label="Настройки">

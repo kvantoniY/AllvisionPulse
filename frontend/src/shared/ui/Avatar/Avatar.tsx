@@ -1,3 +1,6 @@
+'use client';
+
+import { useEffect, useState } from 'react';
 import styles from './Avatar.module.css';
 
 export function Avatar({
@@ -14,10 +17,35 @@ export function Avatar({
   className?: string;
 }) {
   const initials = (name ?? 'U').slice(0, 1).toUpperCase();
+  const [hasImageError, setHasImageError] = useState(false);
+
+  useEffect(() => {
+    setHasImageError(false);
+  }, [url]);
+
+  const showImage = Boolean(url && !hasImageError);
+
+  const statusSize = Math.max(10, Math.round(size * 0.15));
+  const statusInset = Math.max(2, Math.round(size * 0.05));
+  const statusBorder = Math.max(2, Math.round(size * 0.03));
+
   return (
-    <div className={[styles.avatar, className ?? ''].filter(Boolean).join(' ')} style={{ width: size, height: size }}>
+    <div
+      className={[styles.avatar, className ?? ''].filter(Boolean).join(' ')}
+      style={{
+        width: size,
+        height: size,
+        ['--avatar-status-size' as any]: `${statusSize}px`,
+        ['--avatar-status-inset' as any]: `${statusInset}px`,
+        ['--avatar-status-border' as any]: `${statusBorder}px`,
+      }}
+    >
       <div className={styles.inner}>
-        {url ? <img className={styles.img} src={url} alt="avatar" /> : <span className={styles.fallback}>{initials}</span>}
+        {showImage ? (
+          <img className={styles.img} src={url ?? undefined} alt="" onError={() => setHasImageError(true)} />
+        ) : (
+          <span className={styles.fallback}>{initials}</span>
+        )}
       </div>
       {status ? (
         <span

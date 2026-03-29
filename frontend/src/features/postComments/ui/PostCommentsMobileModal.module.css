@@ -3,7 +3,7 @@
   height: 100%;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;
-  background: var(--bg-elevated);
+  overflow: hidden;
 }
 
 .sortBar {
@@ -29,8 +29,8 @@
   min-width: 188px;
   padding: 6px;
   border-radius: 14px;
-  border: 1px solid rgba(255,255,255,0.08);
-  background: rgba(12,14,18,0.98);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(12, 14, 18, 0.98);
   display: grid;
   gap: 4px;
 }
@@ -47,7 +47,7 @@
 
 .sortOptionActive,
 .sortOption:hover {
-  background: rgba(255,255,255,0.05);
+  background: rgba(255, 255, 255, 0.05);
   color: var(--text);
 }
 
@@ -55,7 +55,6 @@
   min-height: 0;
   overflow: auto;
   padding: 0 16px 12px;
-  min-height: 0;
   display: grid;
   align-content: start;
   gap: 14px;
@@ -69,7 +68,7 @@
 .replies {
   margin-left: 22px;
   padding-left: 14px;
-  border-left: 1px solid rgba(255,255,255,0.06);
+  border-left: 1px solid rgba(255, 255, 255, 0.06);
   display: grid;
   gap: 10px;
 }
@@ -121,7 +120,8 @@
 .commentImg {
   width: 100%;
   aspect-ratio: 1 / 1;
-  object-fit: cover;
+  object-fit: contain;
+  background: #050608;
   border-radius: 14px;
 }
 
@@ -160,8 +160,8 @@
   min-height: 34px;
   padding: 0 12px;
   border-radius: 12px;
-  border: 1px solid rgba(255,255,255,0.08);
-  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
   color: var(--text-soft);
 }
 
@@ -169,27 +169,26 @@
   min-height: 180px;
   display: grid;
   place-items: center;
-  align-content: center;
   color: var(--muted);
   text-align: center;
-  padding: 32px 16px;
-  margin: auto 0;
 }
 
 .composerWrap {
-  position: relative;
+  position: sticky;
+  bottom: 0;
   z-index: 4;
-  padding: 10px 16px max(10px, env(safe-area-inset-bottom, 0px));
-  border-top: 1px solid rgba(255,255,255,0.06);
-  background: rgba(17,18,20,0.98);
-  margin: 0;
+  padding: 10px 16px calc(10px + env(safe-area-inset-bottom, 0px));
+  display: grid;
+  gap: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(17, 18, 20, 0.98);
 }
 
 .previewStrip {
   display: flex;
   gap: 8px;
   overflow-x: auto;
-  padding-bottom: 8px;
+  padding-bottom: 2px;
 }
 
 .previewItem {
@@ -199,8 +198,16 @@
   min-width: 56px;
   border-radius: 12px;
   overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
-.previewItem img { width: 100%; height: 100%; object-fit: cover; }
+
+.previewItem img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: #050608;
+}
+
 .previewRemove {
   position: absolute;
   top: 4px;
@@ -209,7 +216,7 @@
   height: 18px;
   border-radius: 999px;
   border: none;
-  background: rgba(0,0,0,0.65);
+  background: rgba(0, 0, 0, 0.65);
   color: white;
   display: grid;
   place-items: center;
@@ -222,51 +229,82 @@
   min-height: 26px;
   padding: 0 10px;
   border-radius: 999px;
-  background: rgba(255,255,255,0.05);
+  background: rgba(255, 255, 255, 0.05);
   color: var(--muted);
-  margin-bottom: 8px;
 }
-.replyChip button { border: none; background: transparent; color: inherit; padding: 0; display: grid; place-items: center; }
+
+.replyChip button {
+  border: none;
+  background: transparent;
+  color: inherit;
+  padding: 0;
+  display: grid;
+  place-items: center;
+}
 
 .composer {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto auto;
   gap: 8px;
-  align-items: center;
+  align-items: end;
 }
 
 .inputShell {
   min-width: 0;
+  display: flex;
+  align-items: stretch;
 }
 
 .textarea {
   width: 100%;
-  min-height: 42px;
+  min-height: 44px;
   max-height: 120px;
   resize: none;
   border-radius: 14px;
-  border: 1px solid rgba(255,255,255,0.08);
-  background: rgba(255,255,255,0.03);
-  padding: 10px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+  padding: 11px 12px;
   color: var(--text);
   outline: none;
+  overflow: auto;
 }
 
 .toolBtn,
 .sendBtn {
+  cursor: pointer;
+  touch-action: manipulation;
   width: 40px;
+  min-width: 40px;
   height: 40px;
   border-radius: 14px;
-  border: 1px solid rgba(255,255,255,0.08);
-  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
   color: var(--text-soft);
   display: grid;
   place-items: center;
 }
 
 .sendBtn {
-  background: rgba(255,122,26,0.16);
-  border-color: rgba(255,122,26,0.22);
+  background: rgba(255, 122, 26, 0.16);
+  border-color: rgba(255, 122, 26, 0.22);
   color: white;
 }
-.sendBtn:disabled { opacity: 0.4; }
+
+.sendBtn:disabled {
+  opacity: 0.4;
+}
+
+
+.fileInput {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+  opacity: 0;
+  pointer-events: none;
+}
