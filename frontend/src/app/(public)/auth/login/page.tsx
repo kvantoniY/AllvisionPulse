@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -27,7 +28,7 @@ function getErrorMessage(error: unknown, fallback: string) {
   return fallback;
 }
 
-export default function LoginPage() {
+function LoginPageContent() {
   const router = useRouter();
   const sp = useSearchParams();
   const next = sp.get('next') ?? ROUTES.app.home;
@@ -91,5 +92,14 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginPageContent />
+    </Suspense>
   );
 }
