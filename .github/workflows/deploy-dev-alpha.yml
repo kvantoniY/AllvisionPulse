@@ -52,7 +52,7 @@ jobs:
           set -euo pipefail
 
           mkdir -p ~/.ssh
-          printf '%s' "${{ secrets.ALPHA_SSH_PRIVATE_KEY }}" | tr -d '' > ~/.ssh/id_ed25519
+          printf '%s\n' "${{ secrets.ALPHA_SSH_PRIVATE_KEY }}" | perl -pe 's/\r$//' > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
 
           cat > ~/.ssh/config <<EOF
@@ -75,15 +75,19 @@ jobs:
         run: |
           set -euo pipefail
 
+          RELEASE_DIR=/tmp/allvision-alpha-release
           ARCHIVE=/tmp/allvision-alpha-release.tgz
+
+          rm -rf "$RELEASE_DIR"
           rm -f "$ARCHIVE"
+          mkdir -p "$RELEASE_DIR"
 
-          git archive --format=tar.gz -o "$ARCHIVE" HEAD
+          git archive --format=tar HEAD | tar -xf - -C "$RELEASE_DIR"
 
-          mkdir -p /tmp/allvision-frontend-build
-          cp -R frontend/.next /tmp/allvision-frontend-build/.next
-          tar -rzf "$ARCHIVE" -C /tmp/allvision-frontend-build .next
+          mkdir -p "$RELEASE_DIR/frontend"
+          cp -R frontend/.next "$RELEASE_DIR/frontend/.next"
 
+          tar -czf "$ARCHIVE" -C "$RELEASE_DIR" .
           scp "$ARCHIVE" alpha:/tmp/allvision-alpha-release.tgz
 
       - name: Deploy on server
@@ -115,7 +119,11 @@ jobs:
 
           cd "$CURRENT_DIR"
 
-          docker compose             --project-name allvision-alpha             --env-file infra/alpha/.env             -f infra/alpha/docker-compose.alpha.yml             up -d --build --remove-orphans
+          docker compose \
+            --project-name allvision-alpha \
+            --env-file infra/alpha/.env \
+            -f infra/alpha/docker-compose.alpha.yml \
+            up -d --build --remove-orphans
 
           docker image prune -af --filter "until=72h" || true
           EOF
