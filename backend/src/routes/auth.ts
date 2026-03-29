@@ -5,7 +5,7 @@ import { asyncHandler, HttpError } from "../utils/http";
 import { hashPassword, verifyPassword } from "../utils/password";
 import { signAccessToken, signRefreshToken, verifyRefreshToken } from "../utils/jwt";
 import { requireAuth, AuthedRequest } from "../middleware/auth";
-import { v4 as uuid } from "uuid";
+import { randomUUID } from "crypto";
 
 const router = Router();
 
@@ -34,7 +34,7 @@ router.post("/register", asyncHandler(async (req, res) => {
     select: { id: true, username: true, email: true, role: true, createdAt: true },
   });
 
-  const sessionId = uuid();
+  const sessionId = randomUUID();
   const refresh = signRefreshToken({ sub: user.id, sessionId });
   await prisma.session.create({
     data: {
@@ -65,7 +65,7 @@ router.post("/login", asyncHandler(async (req, res) => {
   const ok = await verifyPassword(body.password, user.passwordHash);
   if (!ok) throw new HttpError(401, "Invalid credentials");
 
-  const sessionId = uuid();
+  const sessionId = randomUUID();
   const refresh = signRefreshToken({ sub: user.id, sessionId });
   await prisma.session.create({
     data: {

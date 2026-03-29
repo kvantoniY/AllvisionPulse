@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import path from 'path';
 import multer from 'multer';
-import { v4 as uuid } from 'uuid';
+import { randomUUID } from 'crypto';
 import { z } from 'zod';
 import { prisma } from '../db/prisma';
 import { requireAuth, requireActiveUser, AuthedRequest } from '../middleware/auth';
@@ -15,7 +15,7 @@ const env = getEnv();
 
 const storyStorage = multer.diskStorage({
   destination: (_req, _file, cb) => cb(null, path.resolve(process.cwd(), env.UPLOAD_DIR)),
-  filename: (_req, file, cb) => cb(null, `${uuid()}${path.extname(file.originalname)}`),
+  filename: (_req, file, cb) => cb(null, `${randomUUID()}${path.extname(file.originalname)}`),
 });
 
 const storyUpload = multer({
