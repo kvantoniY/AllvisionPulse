@@ -40,7 +40,6 @@ jobs:
           EOF
 
           chmod 600 ~/.ssh/config
-
           ssh -o BatchMode=yes alpha "echo SSH_OK"
 
       - name: Upload release archive
@@ -48,14 +47,12 @@ jobs:
         run: |
           set -euo pipefail
 
-          tar \
-            --exclude='.git' \
-            --exclude='**/node_modules' \
-            --exclude='**/.next' \
-            --exclude='**/dist' \
-            -czf release.tgz .
+          ARCHIVE=/tmp/allvision-alpha-release.tgz
+          rm -f "$ARCHIVE"
 
-          scp release.tgz alpha:/tmp/allvision-alpha-release.tgz
+          git archive --format=tar.gz -o "$ARCHIVE" HEAD
+
+          scp "$ARCHIVE" alpha:/tmp/allvision-alpha-release.tgz
 
       - name: Deploy on server
         shell: bash
