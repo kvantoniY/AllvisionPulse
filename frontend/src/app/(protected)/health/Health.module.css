@@ -557,7 +557,7 @@
   display: grid;
   grid-template-columns: minmax(0, 1.45fr) minmax(320px, 0.8fr);
   gap: 18px;
-  align-items: start;
+  align-items: flex-start;
 }
 
 .pulseMain,
@@ -624,7 +624,7 @@
   display: flex;
   justify-content: space-between;
   gap: 12px;
-  align-items: start;
+  align-items: flex-start;
   margin-bottom: 18px;
 }
 
@@ -5021,7 +5021,7 @@
   .upcomingRow {
     display: grid;
     gap: 10px;
-    align-items: start;
+    align-items: flex-start;
     padding: 13px 14px;
   }
 
@@ -5179,7 +5179,7 @@
 
 .pulseLowerGrid {
   gap: 14px;
-  align-items: start;
+  align-items: flex-start;
 }
 
 .panelSurface {

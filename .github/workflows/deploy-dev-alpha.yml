@@ -21,15 +21,17 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20.20.1
-          package-manager-cache: false
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
 
-      - name: Verify toolchain
+      - name: Upgrade npm
         shell: bash
         run: |
           set -euo pipefail
-          node --version
+          npm install -g npm@11.12.1
           npm --version
+          node --version
 
       - name: Build frontend on runner
         shell: bash
@@ -40,8 +42,9 @@ jobs:
         run: |
           set -euo pipefail
           cd frontend
-          rm -rf node_modules .next
-          npm ci --no-audit --no-fund
+          rm -rf node_modules
+          npm cache clean --force || true
+          npm ci --include=dev --no-audit --no-fund
           test -f node_modules/next/dist/bin/next
           npm run build
           test -f .next/standalone/server.js
@@ -52,7 +55,7 @@ jobs:
           set -euo pipefail
 
           mkdir -p ~/.ssh
-          printf '%s\n' "${{ secrets.ALPHA_SSH_PRIVATE_KEY }}" | perl -pe 's/\r$//' > ~/.ssh/id_ed25519
+          printf '%s' "${{ secrets.ALPHA_SSH_PRIVATE_KEY }}" | tr -d '\r' > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
 
           cat > ~/.ssh/config <<EOF
@@ -75,19 +78,15 @@ jobs:
         run: |
           set -euo pipefail
 
-          RELEASE_DIR=/tmp/allvision-alpha-release
           ARCHIVE=/tmp/allvision-alpha-release.tgz
-
-          rm -rf "$RELEASE_DIR"
           rm -f "$ARCHIVE"
-          mkdir -p "$RELEASE_DIR"
 
-          git archive --format=tar HEAD | tar -xf - -C "$RELEASE_DIR"
+          git archive --format=tar.gz -o "$ARCHIVE" HEAD
 
-          mkdir -p "$RELEASE_DIR/frontend"
-          cp -R frontend/.next "$RELEASE_DIR/frontend/.next"
+          mkdir -p /tmp/allvision-frontend-build
+          cp -R frontend/.next /tmp/allvision-frontend-build/.next
+          tar -rzf "$ARCHIVE" -C /tmp/allvision-frontend-build .next
 
-          tar -czf "$ARCHIVE" -C "$RELEASE_DIR" .
           scp "$ARCHIVE" alpha:/tmp/allvision-alpha-release.tgz
 
       - name: Deploy on server
