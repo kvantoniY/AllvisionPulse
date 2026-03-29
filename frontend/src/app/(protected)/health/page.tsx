@@ -84,6 +84,10 @@ function formatLongDate(value: string) {
   return new Intl.DateTimeFormat('ru-RU', { weekday: 'long', day: 'numeric', month: 'long' }).format(parsed);
 }
 
+function getDayOfMonthOrToday(value?: string | Date | null) {
+  return (parseDate(value) ?? new Date()).getDate();
+}
+
 function formatShortDate(value: string) {
   const parsed = parseDate(value);
   if (!parsed) return '—';
@@ -114,10 +118,6 @@ function shiftDate(value: string, delta: number) {
   return fmtDate(date);
 }
 
-function getDayOfMonthOrToday(value?: string | Date | null) {
-  return (parseDate(value) ?? new Date()).getDate();
-}
-
 function getWeekDates(selectedDate: string) {
   const date = parseDate(selectedDate) ?? new Date();
   const jsDay = date.getDay();
@@ -141,24 +141,6 @@ function intNum(v: string) {
   const parsed = num(v);
   return parsed == null ? null : Math.round(parsed);
 }
-
-
-function getWeightGoalSummary(current: number | null | undefined, target: number | null | undefined) {
-  if (current == null || target == null) {
-    return { title: 'Цель', subtitle: 'заполни профиль' };
-  }
-
-  const delta = Math.abs(current - target);
-  if (delta === 0) {
-    return { title: 'Поддерживать', subtitle: 'цель достигнута' };
-  }
-
-  return {
-    title: current > target ? 'Сбросить' : 'Набрать',
-    subtitle: `ещё ${delta.toFixed(1)} кг`,
-  };
-}
-
 
 const GOAL_META_MARKER = '[PULSE_META]';
 
@@ -1300,7 +1282,7 @@ export default function HealthPage() {
     taskType: 'ONE_TIME',
     scheduleType: 'NONE',
     daysOfWeek: [0],
-    daysOfMonth: [getDayOfMonthOrToday(selectedDate)],
+    daysOfMonth: [(parseDate(selectedDate) ?? new Date()).getDate()],
   });
 
   const [globalGoalForm, setGlobalGoalForm] = useState({
@@ -1320,7 +1302,7 @@ export default function HealthPage() {
     recurring: false,
     scheduleType: 'MONTHLY',
     daysOfWeek: [0],
-    daysOfMonth: [getDayOfMonthOrToday(selectedDate)],
+    daysOfMonth: [(parseDate(selectedDate) ?? new Date()).getDate()],
   });
 
   const [categoryForm, setCategoryForm] = useState({ name: '', limitAmount: '' });
@@ -1716,7 +1698,11 @@ export default function HealthPage() {
   }, [mentalForm.activityLevel, mentalForm.nutrition, mentalForm.sleepHours, mentalForm.stress]);
 
   const summaryCards = useMemo<SummaryCard[]>(() => {
-    const goalSummary = getWeightGoalSummary(profile?.currentWeightKg, profile?.targetWeightKg);
+    const current = profile?.currentWeightKg;
+    const target = profile?.targetWeightKg;
+    const goalDelta = current != null && target != null ? Math.abs(current - target) : null;
+    const goalDirection = goalDelta == null ? 'Цель' : goalDelta === 0 ? 'Поддерживать' : (current ?? 0) > (target ?? 0) ? 'Сбросить' : 'Набрать';
+    const goalSuffix = goalDelta == null ? 'заполни профиль' : goalDelta === 0 ? 'цель достигнута' : `ещё ${goalDelta.toFixed(1)} кг`;
     const cards: SummaryCard[] = [];
 
     if (isHealthEnabled) {
@@ -1732,7 +1718,7 @@ export default function HealthPage() {
         { key: 'current', icon: 'scale' as const, label: 'Вес текущий', value: profile?.currentWeightKg ?? '—', unit: 'кг', tone: 'accent' as const },
         { key: 'target', icon: 'target' as const, label: 'Желаемый вес', value: profile?.targetWeightKg ?? '—', unit: 'кг' },
         { key: 'progress', icon: 'trend' as const, label: 'Прогресс', value: weightDelta ? `${weightDelta.delta > 0 ? '+' : ''}${weightDelta.delta}` : '—', unit: 'кг', tone: weightDelta?.tone ?? 'neutral' },
-        { key: 'goal', icon: 'target' as const, label: 'Цель', value: goalSummary.title, description: goalSummary.subtitle, tone: 'goal' as const },
+        { key: 'goal', icon: 'target' as const, label: 'Цель', value: goalDirection, description: goalSuffix, tone: 'goal' as const },
       );
     }
 
@@ -1749,10 +1735,23 @@ export default function HealthPage() {
     return summaryCards.filter((card) => secondaryKeys.has(card.key));
   }, [summaryCards]);
 
-  const goalSummary = useMemo(
-    () => getWeightGoalSummary(profile?.currentWeightKg, profile?.targetWeightKg),
-    [profile?.currentWeightKg, profile?.targetWeightKg],
-  );
+  const goalSummary = useMemo(() => {
+    const current = profile?.currentWeightKg;
+    const target = profile?.targetWeightKg;
+    if (current == null || target == null) {
+      return { title: 'Цель', subtitle: 'заполни профиль' };
+    }
+
+    const delta = Math.abs(current - target);
+    if (delta === 0) {
+      return { title: 'Поддерживать', subtitle: 'цель достигнута' };
+    }
+
+    return {
+      title: current > target ? 'Сбросить' : 'Набрать',
+      subtitle: `ещё ${delta.toFixed(1)} кг`,
+    };
+  }, [profile?.currentWeightKg, profile?.targetWeightKg]);
 
   const profileCardsVisible = isHealthEnabled || isNutritionEnabled;
 

@@ -1,5 +1,21 @@
-export function extractApiError(error: unknown) {
-  const fallback = { message: 'Не удалось выполнить запрос', status: null as number | null, code: null as string | null, raw: error };
+type NormalizedApiError = {
+  message: string;
+  status: number | null;
+  code: string | null;
+  details: unknown;
+  meta: unknown;
+  raw: unknown;
+};
+
+export function extractApiError(error: unknown): NormalizedApiError {
+  const fallback: NormalizedApiError = {
+    message: 'Не удалось выполнить запрос',
+    status: null,
+    code: null,
+    details: null,
+    meta: null,
+    raw: error,
+  };
 
   if (!error || typeof error !== 'object') return fallback;
 

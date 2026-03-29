@@ -3,7 +3,7 @@ import { baseQuery } from './baseQuery';
 import type { User, UserPrivacy } from '@/shared/types/models';
 import type { FollowRecord, FollowRelationship } from '@/shared/types/social';
 
-export type UserSearchItem = Pick<User, 'id' | 'username' | 'firstName' | 'lastName' | 'avatarUrl' | 'bio' | 'lastSeenAt' | 'privacy'>;
+export type UserSearchItem = Pick<User, 'id' | 'username' | 'firstName' | 'lastName' | 'avatarUrl' | 'bio' | 'lastSeenAt' | 'privacy' | 'role'>;
 
 export const usersApi = createApi({
   reducerPath: 'usersApi',

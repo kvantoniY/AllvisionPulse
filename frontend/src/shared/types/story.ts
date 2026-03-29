@@ -1,3 +1,5 @@
+import type { Role } from '@/shared/types/models';
+
 export type StoryWidgetType = 'pulse' | 'focus' | 'health' | 'tasks' | 'nutrition';
 
 export type StoryMediaTransform = {
@@ -51,6 +53,7 @@ export type StoryAuthor = {
   id: string;
   username: string;
   avatarUrl?: string | null;
+  role?: Role | null;
 };
 
 export type StoryItem = {

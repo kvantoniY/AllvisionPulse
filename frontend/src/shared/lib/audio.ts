@@ -39,8 +39,18 @@ async function getSharedContext() {
   return sharedCtx;
 }
 
-export async function playUiBeep({ frequency = 880, durationMs = 120, gainValue = 0.04 }: { frequency?: number; durationMs?: number; gainValue?: number } = {}) {
+type UiBeepPreset = 'start' | 'message';
+type UiBeepOptions = { frequency?: number; durationMs?: number; gainValue?: number };
+
+const UI_BEEP_PRESETS: Record<UiBeepPreset, Required<UiBeepOptions>> = {
+  start: { frequency: 720, durationMs: 140, gainValue: 0.05 },
+  message: { frequency: 880, durationMs: 120, gainValue: 0.04 },
+};
+
+export async function playUiBeep(presetOrOptions: UiBeepPreset | UiBeepOptions = {}) {
   if (!canPlayUiSounds()) return false;
+  const options = typeof presetOrOptions === 'string' ? UI_BEEP_PRESETS[presetOrOptions] : presetOrOptions;
+  const { frequency = 880, durationMs = 120, gainValue = 0.04 } = options;
   const ctx = await getSharedContext();
   if (!ctx) return false;
   const osc = ctx.createOscillator();
