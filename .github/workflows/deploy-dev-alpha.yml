@@ -18,13 +18,41 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.20.1
+          package-manager-cache: false
+
+      - name: Verify toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --version
+          npm --version
+
+      - name: Build frontend on runner
+        shell: bash
+        env:
+          NEXT_PUBLIC_BACKEND_URL: http://${{ secrets.ALPHA_HOST }}
+          AUTH_COOKIE_SECURE: "false"
+          NEXT_TELEMETRY_DISABLED: "1"
+        run: |
+          set -euo pipefail
+          cd frontend
+          rm -rf node_modules .next
+          npm ci --no-audit --no-fund
+          test -f node_modules/next/dist/bin/next
+          npm run build
+          test -f .next/standalone/server.js
+
       - name: Prepare SSH
         shell: bash
         run: |
           set -euo pipefail
 
           mkdir -p ~/.ssh
-          printf '%s' "${{ secrets.ALPHA_SSH_PRIVATE_KEY }}" | tr -d '\r' > ~/.ssh/id_ed25519
+          printf '%s' "${{ secrets.ALPHA_SSH_PRIVATE_KEY }}" | tr -d '' > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
 
           cat > ~/.ssh/config <<EOF
@@ -51,6 +79,11 @@ jobs:
           rm -f "$ARCHIVE"
 
           git archive --format=tar.gz -o "$ARCHIVE" HEAD
+
+          mkdir -p /tmp/allvision-frontend-build
+          cp -R frontend/.next /tmp/allvision-frontend-build/.next
+          tar -rzf "$ARCHIVE" -C /tmp/allvision-frontend-build .next
+
           scp "$ARCHIVE" alpha:/tmp/allvision-alpha-release.tgz
 
       - name: Deploy on server
@@ -82,11 +115,7 @@ jobs:
 
           cd "$CURRENT_DIR"
 
-          docker compose \
-            --project-name allvision-alpha \
-            --env-file infra/alpha/.env \
-            -f infra/alpha/docker-compose.alpha.yml \
-            up -d --build --remove-orphans
+          docker compose             --project-name allvision-alpha             --env-file infra/alpha/.env             -f infra/alpha/docker-compose.alpha.yml             up -d --build --remove-orphans
 
           docker image prune -af --filter "until=72h" || true
           EOF

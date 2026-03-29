@@ -1,33 +1,4 @@
-FROM oven/bun:1.3.10 AS deps
-
-WORKDIR /app
-
-COPY package.json package-lock.json ./
-RUN bun install --lockfile-only
-RUN bun install --frozen-lockfile
-
-FROM oven/bun:1.3.10 AS builder
-
-WORKDIR /app
-
-ARG NEXT_PUBLIC_BACKEND_URL=http://localhost:4000
-ARG NEXT_PUBLIC_TURN_URLS=
-ARG NEXT_PUBLIC_TURN_USERNAME=
-ARG NEXT_PUBLIC_TURN_PASSWORD=
-
-ENV NEXT_TELEMETRY_DISABLED=1
-ENV NEXT_PUBLIC_BACKEND_URL=${NEXT_PUBLIC_BACKEND_URL}
-ENV NEXT_PUBLIC_TURN_URLS=${NEXT_PUBLIC_TURN_URLS}
-ENV NEXT_PUBLIC_TURN_USERNAME=${NEXT_PUBLIC_TURN_USERNAME}
-ENV NEXT_PUBLIC_TURN_PASSWORD=${NEXT_PUBLIC_TURN_PASSWORD}
-
-COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app/bun.lock ./bun.lock
-COPY . ./
-
-RUN bun --bun node_modules/next/dist/bin/next build
-
-FROM node:20.20.1-bookworm-slim AS runner
+FROM node:20.20.1-bookworm-slim
 
 WORKDIR /app
 
@@ -35,9 +6,9 @@ ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3000
 
-COPY --from=builder /app/.next/standalone ./
-COPY --from=builder /app/.next/static ./.next/static
-COPY --from=builder /app/public ./public
+COPY .next/standalone ./
+COPY .next/static ./.next/static
+COPY public ./public
 
 EXPOSE 3000
 
