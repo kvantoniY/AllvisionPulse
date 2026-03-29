@@ -1296,7 +1296,7 @@ export default function HealthPage() {
     taskType: 'ONE_TIME',
     scheduleType: 'NONE',
     daysOfWeek: [0],
-    daysOfMonth: [(parseDate(selectedDate) ?? new Date()).getDate()],
+    daysOfMonth: [getDayOfMonthOrToday(selectedDate)],
   });
 
   const [globalGoalForm, setGlobalGoalForm] = useState({
@@ -1316,7 +1316,7 @@ export default function HealthPage() {
     recurring: false,
     scheduleType: 'MONTHLY',
     daysOfWeek: [0],
-    daysOfMonth: [(parseDate(selectedDate) ?? new Date()).getDate()],
+    daysOfMonth: [getDayOfMonthOrToday(selectedDate)],
   });
 
   const [categoryForm, setCategoryForm] = useState({ name: '', limitAmount: '' });
@@ -1876,7 +1876,7 @@ export default function HealthPage() {
       daysOfWeek: taskForm.taskType === 'REGULAR' && taskForm.scheduleType === 'WEEKLY' ? taskForm.daysOfWeek : [],
       daysOfMonth: taskForm.taskType === 'REGULAR' && taskForm.scheduleType === 'MONTHLY' ? taskForm.daysOfMonth : [],
     }).unwrap();
-    setTaskForm({ title: '', notes: '', taskType: 'ONE_TIME', scheduleType: 'NONE', daysOfWeek: [0], daysOfMonth: [parseDate(selectedDate).getDate()] });
+    setTaskForm({ title: '', notes: '', taskType: 'ONE_TIME', scheduleType: 'NONE', daysOfWeek: [0], daysOfMonth: [getDayOfMonthOrToday(selectedDate)] });
     setTaskModalOpen(false);
   }
 
@@ -1945,7 +1945,7 @@ export default function HealthPage() {
           }
         : null,
     }).unwrap();
-    setFinanceForm({ title: '', amount: '', type: 'EXPENSE', categoryId: '', notes: '', recurring: false, scheduleType: 'MONTHLY', daysOfWeek: [0], daysOfMonth: [parseDate(selectedDate).getDate()] });
+    setFinanceForm({ title: '', amount: '', type: 'EXPENSE', categoryId: '', notes: '', recurring: false, scheduleType: 'MONTHLY', daysOfWeek: [0], daysOfMonth: [getDayOfMonthOrToday(selectedDate)] });
     setFinanceModalOpen(false);
   }
 
