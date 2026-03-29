@@ -21,9 +21,17 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
           cache-dependency-path: frontend/package-lock.json
+
+      - name: Upgrade npm
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install -g npm@11.12.1
+          npm --version
+          node --version
 
       - name: Build frontend on runner
         shell: bash
@@ -34,7 +42,10 @@ jobs:
         run: |
           set -euo pipefail
           cd frontend
-          npm ci --no-audit --no-fund
+          rm -rf node_modules
+          npm cache clean --force || true
+          npm ci --include=dev --no-audit --no-fund
+          test -f node_modules/next/dist/bin/next
           npm run build
           test -f .next/standalone/server.js
 
@@ -47,7 +58,7 @@ jobs:
           printf '%s' "${{ secrets.ALPHA_SSH_PRIVATE_KEY }}" | tr -d '\r' > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
 
-          cat > ~/.ssh/config <<EOF2
+          cat > ~/.ssh/config <<EOF
           Host alpha
             HostName ${{ secrets.ALPHA_HOST }}
             User ${{ secrets.ALPHA_USER }}
@@ -57,7 +68,7 @@ jobs:
             IdentitiesOnly yes
             ServerAliveInterval 30
             ServerAliveCountMax 6
-          EOF2
+          EOF
 
           chmod 600 ~/.ssh/config
           ssh -o BatchMode=yes alpha "echo SSH_OK"
@@ -70,12 +81,11 @@ jobs:
           ARCHIVE=/tmp/allvision-alpha-release.tgz
           rm -f "$ARCHIVE"
 
-          tar \
-            --exclude='.git' \
-            --exclude='backend/node_modules' \
-            --exclude='frontend/node_modules' \
-            --exclude='backend/dist' \
-            -czf "$ARCHIVE" .
+          git archive --format=tar.gz -o "$ARCHIVE" HEAD
+
+          mkdir -p /tmp/allvision-frontend-build
+          cp -R frontend/.next /tmp/allvision-frontend-build/.next
+          tar -rzf "$ARCHIVE" -C /tmp/allvision-frontend-build .next
 
           scp "$ARCHIVE" alpha:/tmp/allvision-alpha-release.tgz
 
@@ -84,7 +94,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          ssh alpha 'bash -s' <<'EOF2'
+          ssh alpha 'bash -s' <<'EOF'
           set -euo pipefail
 
           APP_ROOT=/opt/allvision-pulse
@@ -115,4 +125,4 @@ jobs:
             up -d --build --remove-orphans
 
           docker image prune -af --filter "until=72h" || true
-          EOF2
+          EOF
