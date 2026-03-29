@@ -114,6 +114,10 @@ function shiftDate(value: string, delta: number) {
   return fmtDate(date);
 }
 
+function getDayOfMonthOrToday(value?: string | Date | null) {
+  return (parseDate(value) ?? new Date()).getDate();
+}
+
 function getWeekDates(selectedDate: string) {
   const date = parseDate(selectedDate) ?? new Date();
   const jsDay = date.getDay();
