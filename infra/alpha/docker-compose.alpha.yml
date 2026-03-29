@@ -41,10 +41,10 @@ services:
       - uploads_data:/app/uploads
     healthcheck:
       test: ["CMD-SHELL", "node -e \"fetch('http://127.0.0.1:${BACKEND_PORT}/healthz').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))\""]
-      start_period: 120s
       interval: 15s
       timeout: 5s
       retries: 20
+      start_period: 120s
 
   frontend:
     build:
@@ -57,6 +57,8 @@ services:
         condition: service_healthy
     environment:
       NODE_ENV: production
+      PORT: ${FRONTEND_PORT}
+      HOSTNAME: 0.0.0.0
       AUTH_COOKIE_SECURE: ${AUTH_COOKIE_SECURE}
       BACKEND_URL: http://backend:${BACKEND_PORT}
       NEXT_PUBLIC_BACKEND_URL: ${PUBLIC_APP_URL}
@@ -64,10 +66,11 @@ services:
       NEXT_PUBLIC_TURN_USERNAME:
       NEXT_PUBLIC_TURN_PASSWORD:
     healthcheck:
-      test: ["CMD-SHELL", "node -e \"fetch('http://127.0.0.1:${FRONTEND_PORT}').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))\""]
+      test: ["CMD-SHELL", "node -e \"fetch('http://127.0.0.1:${FRONTEND_PORT}/auth/login').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))\""]
       interval: 15s
       timeout: 5s
-      retries: 10
+      retries: 20
+      start_period: 30s
 
   nginx:
     image: nginx:1.27-alpine
