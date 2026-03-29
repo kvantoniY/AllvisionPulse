@@ -14,6 +14,10 @@ const CONTACT_VISIBILITY = ["everyone", "followers", "none"] as const;
 type ProfileVisibility = (typeof PROFILE_VISIBILITY)[number];
 type ContactVisibility = (typeof CONTACT_VISIBILITY)[number];
 
+function firstParam(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] : value;
+}
+
 function fileUrl(req: any, filename: string) {
   const proto = (req.headers["x-forwarded-proto"] as string | undefined) ?? req.protocol;
   const host = (req.headers["x-forwarded-host"] as string | undefined) ?? req.get("host");
@@ -599,17 +603,26 @@ router.post("/me/friends/request", requireAuth, asyncHandler(async (req: AuthedR
 }));
 
 router.post("/me/friends/:friendshipId/accept", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
-  const friendship = await prisma.friendship.update({ where: { id: req.params.friendshipId }, data: { status: "ACCEPTED" } });
+  const friendshipId = firstParam(req.params.friendshipId);
+  if (!friendshipId) throw new HttpError(400, "Missing friendship id");
+
+  const friendship = await prisma.friendship.update({ where: { id: friendshipId }, data: { status: "ACCEPTED" } });
   res.json({ friendship });
 }));
 
 router.post("/me/friends/:friendshipId/decline", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
-  const friendship = await prisma.friendship.update({ where: { id: req.params.friendshipId }, data: { status: "DECLINED" } });
+  const friendshipId = firstParam(req.params.friendshipId);
+  if (!friendshipId) throw new HttpError(400, "Missing friendship id");
+
+  const friendship = await prisma.friendship.update({ where: { id: friendshipId }, data: { status: "DECLINED" } });
   res.json({ friendship });
 }));
 
 router.delete("/me/friends/:userId", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
-  await prisma.friendship.deleteMany({ where: { senderId: req.user!.id, receiverId: req.params.userId } });
+  const userId = firstParam(req.params.userId);
+  if (!userId) throw new HttpError(400, "Missing user id");
+
+  await prisma.friendship.deleteMany({ where: { senderId: req.user!.id, receiverId: userId } });
   res.json({ ok: true });
 }));
 

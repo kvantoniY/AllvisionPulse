@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client';
 import { prisma } from '../db/prisma';
 
 export type AnalyticsEventInput = {
@@ -17,6 +18,12 @@ export function normalizePath(input?: string | null) {
   if (!value) return '/unknown';
   if (!value.startsWith('/')) return `/${value}`;
   return value.slice(0, 240) || '/unknown';
+}
+
+function toPrismaJson(value: unknown): Prisma.InputJsonValue | Prisma.NullableJsonNullValueInput | undefined {
+  if (value === undefined) return undefined;
+  if (value === null) return Prisma.JsonNull;
+  return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
 }
 
 function normalizeSessionKey(input?: string | null) {
@@ -75,7 +82,7 @@ export async function trackAnalyticsEvent(input: AnalyticsEventInput) {
       referrerPath: input.referrerPath?.trim() ? normalizePath(input.referrerPath) : null,
       actionKey: input.actionKey?.trim() ? input.actionKey.trim().slice(0, 120) : null,
       durationSec,
-      metadata: input.metadata === undefined ? undefined : input.metadata,
+      metadata: toPrismaJson(input.metadata),
     },
   });
 }
