@@ -21,17 +21,14 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 22
-          cache: npm
-          cache-dependency-path: frontend/package-lock.json
+          node-version: 20.20.1
 
-      - name: Upgrade npm
+      - name: Verify toolchain
         shell: bash
         run: |
           set -euo pipefail
-          npm install -g npm@11.12.1
-          npm --version
           node --version
+          npm --version
 
       - name: Build frontend on runner
         shell: bash
@@ -42,9 +39,8 @@ jobs:
         run: |
           set -euo pipefail
           cd frontend
-          rm -rf node_modules
-          npm cache clean --force || true
-          npm ci --include=dev --no-audit --no-fund
+          rm -rf node_modules .next
+          npm ci --no-audit --no-fund
           test -f node_modules/next/dist/bin/next
           npm run build
           test -f .next/standalone/server.js
