@@ -41,10 +41,10 @@ services:
       - uploads_data:/app/uploads
     healthcheck:
       test: ["CMD-SHELL", "node -e \"fetch('http://127.0.0.1:${BACKEND_PORT}/healthz').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))\""]
+      start_period: 120s
       interval: 15s
       timeout: 5s
-      retries: 10
-      start_period: 90s
+      retries: 20
 
   frontend:
     build:
