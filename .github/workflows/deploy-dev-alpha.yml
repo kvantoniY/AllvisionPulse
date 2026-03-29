@@ -22,15 +22,32 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+
           mkdir -p ~/.ssh
-          echo "${{ secrets.ALPHA_SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
+          printf '%s' "${{ secrets.ALPHA_SSH_PRIVATE_KEY }}" | tr -d '\r' > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
-          ssh-keyscan -H "${{ secrets.ALPHA_HOST }}" >> ~/.ssh/known_hosts
+
+          cat > ~/.ssh/config <<EOF
+          Host alpha
+            HostName ${{ secrets.ALPHA_HOST }}
+            User ${{ secrets.ALPHA_USER }}
+            IdentityFile ~/.ssh/id_ed25519
+            StrictHostKeyChecking no
+            UserKnownHostsFile /dev/null
+            IdentitiesOnly yes
+            ServerAliveInterval 30
+            ServerAliveCountMax 6
+          EOF
+
+          chmod 600 ~/.ssh/config
+
+          ssh -o BatchMode=yes alpha "echo SSH_OK"
 
       - name: Upload release archive
         shell: bash
         run: |
           set -euo pipefail
+
           tar \
             --exclude='.git' \
             --exclude='**/node_modules' \
@@ -38,13 +55,14 @@ jobs:
             --exclude='**/dist' \
             -czf release.tgz .
 
-          scp release.tgz "${{ secrets.ALPHA_USER }}@${{ secrets.ALPHA_HOST }}:/tmp/allvision-alpha-release.tgz"
+          scp release.tgz alpha:/tmp/allvision-alpha-release.tgz
 
       - name: Deploy on server
         shell: bash
         run: |
           set -euo pipefail
-          ssh "${{ secrets.ALPHA_USER }}@${{ secrets.ALPHA_HOST }}" 'bash -s' <<'EOF'
+
+          ssh alpha 'bash -s' <<'EOF'
           set -euo pipefail
 
           APP_ROOT=/opt/allvision-pulse
@@ -67,6 +85,7 @@ jobs:
           mv "$NEXT_DIR" "$CURRENT_DIR"
 
           cd "$CURRENT_DIR"
+
           docker compose \
             --project-name allvision-alpha \
             --env-file infra/alpha/.env \
