@@ -4,7 +4,6 @@ import path from "path";
 import { prisma } from "../db/prisma";
 import { asyncHandler, HttpError } from "../utils/http";
 import { requireAuth, requireActiveUser, AuthedRequest } from "../middleware/auth";
-import { buildUploadUrl } from "../utils/uploads";
 import { upload } from "../middleware/upload";
 import { activeUserWhere } from "../utils/userStatus";
 
@@ -12,7 +11,7 @@ const router = Router();
 router.use(requireAuth, requireActiveUser);
 
 function fileUrl(_req: any, filename: string) {
-  return buildUploadUrl(filename);
+  return `/uploads/${encodeURIComponent(filename)}`;
 }
 
 function visiblePostWhere(postId?: string) {

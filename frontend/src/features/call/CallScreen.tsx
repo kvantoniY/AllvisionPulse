@@ -16,7 +16,6 @@ import { useGetMeQuery } from '@/shared/api/usersApi';
 import { CallChatPanel } from './CallChatPanel';
 import { GameSessionPanel } from '@/features/games';
 import { AdminBadge } from '@/shared/ui/AdminBadge/AdminBadge';
-import { requestMediaAccess } from '@/shared/lib/media/permissions';
 
 type Props = {
   open: boolean;
@@ -60,6 +59,62 @@ type Banner = {
   text: string;
   tone: 'info' | 'warning' | 'error';
 };
+
+
+type RequestedMedia = {
+  audio?: boolean | MediaTrackConstraints;
+  video?: boolean | MediaTrackConstraints;
+};
+
+async function requestMediaAccess(
+  requested: RequestedMedia,
+  options?: { stopTracks?: boolean },
+): Promise<MediaStream> {
+  const wantsAudio = Boolean(requested.audio);
+  const wantsVideo = Boolean(requested.video);
+  const label = wantsAudio && wantsVideo ? 'камере и микрофону' : wantsVideo ? 'камере' : 'микрофону';
+
+  if (typeof window === 'undefined') {
+    throw new Error(`Доступ к ${label} доступен только в браузере.`);
+  }
+
+  if (!window.isSecureContext) {
+    throw new Error(`Браузер блокирует доступ к ${label} на небезопасном соединении. Открой сайт по HTTPS или на localhost.`);
+  }
+
+  if (!navigator.mediaDevices?.getUserMedia) {
+    throw new Error(`Браузер не поддерживает доступ к ${label}.`);
+  }
+
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      audio: requested.audio ?? false,
+      video: requested.video ?? false,
+    });
+
+    if (options?.stopTracks) {
+      stream.getTracks().forEach((track) => track.stop());
+    }
+
+    return stream;
+  } catch (error) {
+    const name = typeof error === 'object' && error && 'name' in error ? String((error as { name?: unknown }).name ?? '') : '';
+
+    if (name === 'NotAllowedError' || name === 'SecurityError' || name === 'PermissionDeniedError') {
+      throw new Error(`Нет доступа к ${label}. Разреши его в браузере и попробуй ещё раз.`);
+    }
+
+    if (name === 'NotFoundError' || name === 'DevicesNotFoundError' || name === 'OverconstrainedError') {
+      throw new Error(wantsVideo ? 'Камера или микрофон не найдены на устройстве.' : 'Микрофон не найден на устройстве.');
+    }
+
+    if (name === 'NotReadableError' || name === 'TrackStartError') {
+      throw new Error(wantsVideo ? 'Камера или микрофон уже заняты другим приложением.' : 'Микрофон уже занят другим приложением.');
+    }
+
+    throw new Error(`Не удалось получить доступ к ${label}. Попробуй ещё раз.`);
+  }
+}
 
 function fmtDuration(ms: number) {
   const totalSeconds = Math.floor(ms / 1000);

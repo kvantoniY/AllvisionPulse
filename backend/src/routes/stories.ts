@@ -8,7 +8,6 @@ import { requireAuth, requireActiveUser, AuthedRequest } from '../middleware/aut
 import { asyncHandler, HttpError } from '../utils/http';
 import { getEnv } from '../config/env';
 import { activeUserWhere, isUserSuspended } from '../utils/userStatus';
-import { buildUploadUrl } from '../utils/uploads';
 
 const router = Router();
 router.use(requireAuth, requireActiveUser);
@@ -25,7 +24,7 @@ const storyUpload = multer({
 });
 
 function fileUrl(_req: any, filename: string) {
-  return buildUploadUrl(filename);
+  return `/uploads/${encodeURIComponent(filename)}`;
 }
 
 async function getFriendIds(userId: string) {

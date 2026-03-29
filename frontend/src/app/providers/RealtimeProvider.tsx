@@ -14,6 +14,45 @@ import { presenceActions } from '@/entities/presence';
 import { setRealtimeSocket } from '@/shared/lib/realtimeSocket';
 import { bindAudioUnlock, playUiBeep } from '@/shared/lib/audio';
 
+
+function normalizeAppMediaUrl(value?: string | null): string | null {
+  if (typeof value !== 'string') return value ?? null;
+  const source = value.trim();
+  if (!source) return null;
+
+  if (source.startsWith('/uploads/')) return source;
+  if (source.startsWith('uploads/')) return `/${source}`;
+
+  try {
+    const parsed = new URL(source);
+    if (parsed.pathname.startsWith('/uploads/')) {
+      return `${parsed.pathname}${parsed.search}${parsed.hash}`;
+    }
+    return source;
+  } catch {
+    const uploadIndex = source.indexOf('/uploads/');
+    if (uploadIndex >= 0) return source.slice(uploadIndex);
+    return source;
+  }
+}
+
+function normalizeAppMediaUrlsDeep<T>(input: T): T {
+  if (typeof input === 'string') {
+    return normalizeAppMediaUrl(input) as T;
+  }
+
+  if (Array.isArray(input)) {
+    return input.map((item) => normalizeAppMediaUrlsDeep(item)) as T;
+  }
+
+  if (input && typeof input === 'object') {
+    const entries = Object.entries(input as Record<string, unknown>).map(([key, value]) => [key, normalizeAppMediaUrlsDeep(value)]);
+    return Object.fromEntries(entries) as T;
+  }
+
+  return input;
+}
+
 function playNotify() {
   void playUiBeep({ frequency: 880, durationMs: 120, gainValue: 0.04 }).catch(() => null);
 }
