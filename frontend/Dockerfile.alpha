@@ -1,13 +1,43 @@
-FROM node:20.20.1-bookworm-slim
+FROM node:20.20.1-bookworm-slim AS deps
+
+WORKDIR /app
+
+ENV NEXT_TELEMETRY_DISABLED=1
+
+COPY package*.json ./
+RUN npm ci --no-audit --no-fund
+
+FROM node:20.20.1-bookworm-slim AS builder
+
+WORKDIR /app
+
+ARG NEXT_PUBLIC_BACKEND_URL=http://localhost:4000
+ARG NEXT_PUBLIC_TURN_URLS=
+ARG NEXT_PUBLIC_TURN_USERNAME=
+ARG NEXT_PUBLIC_TURN_PASSWORD=
+
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV NEXT_PUBLIC_BACKEND_URL=${NEXT_PUBLIC_BACKEND_URL}
+ENV NEXT_PUBLIC_TURN_URLS=${NEXT_PUBLIC_TURN_URLS}
+ENV NEXT_PUBLIC_TURN_USERNAME=${NEXT_PUBLIC_TURN_USERNAME}
+ENV NEXT_PUBLIC_TURN_PASSWORD=${NEXT_PUBLIC_TURN_PASSWORD}
+
+COPY --from=deps /app/node_modules ./node_modules
+COPY . ./
+
+RUN npm run build
+
+FROM node:20.20.1-bookworm-slim AS runner
 
 WORKDIR /app
 
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
+ENV PORT=3000
 
-COPY .next/standalone ./
-COPY .next/static ./.next/static
-COPY public ./public
+COPY --from=builder /app/.next/standalone ./
+COPY --from=builder /app/.next/static ./.next/static
+COPY --from=builder /app/public ./public
 
 EXPOSE 3000
 

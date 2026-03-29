@@ -49,6 +49,11 @@ services:
     build:
       context: ../../frontend
       dockerfile: Dockerfile.alpha
+      args:
+        NEXT_PUBLIC_BACKEND_URL: ${PUBLIC_APP_URL}
+        NEXT_PUBLIC_TURN_URLS: ${NEXT_PUBLIC_TURN_URLS-}
+        NEXT_PUBLIC_TURN_USERNAME: ${NEXT_PUBLIC_TURN_USERNAME-}
+        NEXT_PUBLIC_TURN_PASSWORD: ${NEXT_PUBLIC_TURN_PASSWORD-}
     container_name: allvision-alpha-frontend
     restart: unless-stopped
     depends_on:
