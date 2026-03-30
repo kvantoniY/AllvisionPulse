@@ -1,23 +1,22 @@
 'use client';
 
 import styles from './Messages.module.css';
-import { Card, CardHeader, CardMuted } from '@/shared/ui/Card/Card';
 import { ChatSidebar } from '@/features/messages';
 
 export default function MessagesPage() {
   return (
-    <div className="container appPage">
+    <div className={["container", "appPage", styles.page].join(' ')}>
       <div className={styles.grid}>
-        <Card className={styles.listCard}>
+        <section className={styles.listPanel}>
           <ChatSidebar activeChatId={null} />
-        </Card>
+        </section>
 
-        <div className={styles.right}>
-          <Card className={styles.placeholder}>
-            <CardHeader title="Выберите чат" />
-            <CardMuted>Откройте диалог из списка слева, чтобы продолжить переписку.</CardMuted>
-          </Card>
-        </div>
+        <section className={styles.right}>
+          <div className={styles.placeholder}>
+            <div className={styles.placeholderTitle}>Выберите чат</div>
+            <div className={styles.placeholderText}>Откройте диалог из списка слева, чтобы продолжить переписку.</div>
+          </div>
+        </section>
       </div>
     </div>
   );

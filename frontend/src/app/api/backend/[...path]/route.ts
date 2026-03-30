@@ -92,6 +92,17 @@ async function forward(req: Request, path: string[]) {
   headers.delete('host');
   headers.delete('connection');
   headers.delete('content-length');
+  headers.delete('origin');
+  headers.delete('referer');
+  headers.delete('sec-fetch-site');
+  headers.delete('sec-fetch-mode');
+  headers.delete('sec-fetch-dest');
+
+  const requestUrl = new URL(req.url);
+  const forwardedHost = req.headers.get('x-forwarded-host') ?? requestUrl.host;
+  const forwardedProto = req.headers.get('x-forwarded-proto') ?? requestUrl.protocol.replace(':', '');
+  if (forwardedHost) headers.set('x-forwarded-host', forwardedHost);
+  if (forwardedProto) headers.set('x-forwarded-proto', forwardedProto);
 
   if (access) headers.set('authorization', `Bearer ${access}`);
 

@@ -5,7 +5,6 @@ import { useParams, useRouter } from 'next/navigation';
 import styles from './Chat.module.css';
 import gridStyles from '../Messages.module.css';
 import { ChatSidebar } from '@/features/messages';
-import { Card } from '@/shared/ui/Card/Card';
 import { StoryRingAvatar, useStoriesUi } from '@/features/stories';
 import { useGetMeQuery, useGetUserByUsernameQuery } from '@/shared/api/usersApi';
 import {
@@ -267,6 +266,8 @@ export default function ChatPage() {
   const [isNearBottom, setIsNearBottom] = useState(true);
   const [forwarding, setForwarding] = useState(false);
   const [mediaAccessHint, setMediaAccessHint] = useState<string | null>(null);
+  const [attachMenuOpen, setAttachMenuOpen] = useState(false);
+  const [mobileHeaderMenuOpen, setMobileHeaderMenuOpen] = useState(false);
 
   const { data: gameSessionsData } = useGetGameSessionsQuery({ chatId }, { skip: !chatId });
   const activeGamesCount = useMemo(
@@ -310,6 +311,8 @@ export default function ChatPage() {
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const didInitialScrollRef = useRef(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const attachMenuRef = useRef<HTMLDivElement | null>(null);
+  const mobileHeaderMenuRef = useRef<HTMLDivElement | null>(null);
   const textAreaRef = useRef<HTMLTextAreaElement | null>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const recorderChunksRef = useRef<BlobPart[]>([]);
@@ -350,6 +353,32 @@ export default function ChatPage() {
   }, [pendingVoice, pendingVideo]);
 
   useEffect(() => {
+    if (!attachMenuOpen) return;
+
+    const handlePointerDown = (event: MouseEvent) => {
+      if (attachMenuRef.current && !attachMenuRef.current.contains(event.target as Node)) {
+        setAttachMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handlePointerDown);
+    return () => document.removeEventListener('mousedown', handlePointerDown);
+  }, [attachMenuOpen]);
+
+  useEffect(() => {
+    if (!mobileHeaderMenuOpen) return;
+
+    const handlePointerDown = (event: MouseEvent) => {
+      if (mobileHeaderMenuRef.current && !mobileHeaderMenuRef.current.contains(event.target as Node)) {
+        setMobileHeaderMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handlePointerDown);
+    return () => document.removeEventListener('mousedown', handlePointerDown);
+  }, [mobileHeaderMenuOpen]);
+
+  useEffect(() => {
     dispatch(chatUiActions.setActiveChatId(chatId));
     dispatch(chatUiActions.clearUnread({ chatId }));
     didInitialScrollRef.current = false;
@@ -361,6 +390,8 @@ export default function ChatPage() {
     setReplyTo(null);
     setEditingMessage(null);
     setPendingMessages([]);
+    setAttachMenuOpen(false);
+    setMobileHeaderMenuOpen(false);
     return () => {
       dispatch(chatUiActions.setActiveChatId(null));
     };
@@ -448,7 +479,9 @@ export default function ChatPage() {
 
   const closeComposerPickers = () => {
     setShowEmojiPicker(false);
+    setAttachMenuOpen(false);
     setIsRecordingAudio(false);
+    setAttachMenuOpen(false);
   };
 
   const updateCachesWithMessage = useCallback((message: any) => {
@@ -830,14 +863,14 @@ export default function ChatPage() {
   }, [messages]);
 
   return (
-    <div className="container appPage">
-      <div className={gridStyles.grid}>
-        <Card className={[gridStyles.listCard, gridStyles.hideOnMobile].filter(Boolean).join(' ')}>
+    <div className={["container", "appPage", gridStyles.page, styles.pageMobileNoHeader].join(' ')}>
+      <div className={[gridStyles.grid, gridStyles.gridChat].filter(Boolean).join(' ')}>
+        <div className={[gridStyles.listPanel, gridStyles.hideOnMobile].filter(Boolean).join(' ')}>
           <ChatSidebar activeChatId={chatId} />
-        </Card>
+        </div>
 
-        <div className={gridStyles.rightChat}>
-          <Card className={styles.wrap}>
+        <div className={[gridStyles.rightChat, gridStyles.chatPanel].filter(Boolean).join(' ')}>
+          <div className={styles.wrap}>
             {chat?.type === 'GROUP' && hasLiveCall ? (
               <div className={styles.returnBanner}>
                 <div className={styles.returnBannerText}>Групповой звонок всё ещё активен.</div>
@@ -866,7 +899,7 @@ export default function ChatPage() {
                 </div>
               </div>
 
-              <div className={styles.headerActions}>
+              <div className={[styles.headerActions, styles.desktopHeaderActions].join(' ')}>
                 <Button className={styles.mediaLink} iconOnly type="button" onClick={() => setSearchOpen((value) => !value)} aria-label={searchOpen ? 'Закрыть поиск' : 'Открыть поиск'} title={searchOpen ? 'Закрыть поиск' : 'Открыть поиск'}>
                   <Icon name="search" size={18} />
                 </Button>
@@ -894,6 +927,103 @@ export default function ChatPage() {
                   <Button className={styles.callAction} iconOnly type="button" onClick={() => void handleStartCall()} aria-label={chat.type === 'GROUP' ? 'Начать групповой звонок' : 'Начать звонок'} title={canCallInChat ? (chat.type === 'GROUP' ? 'Начать групповой звонок' : 'Начать звонок') : (callLockReason ?? 'Звонок недоступен')} disabled={!canCallInChat}>
                     <Icon name="phone" size={18} />
                   </Button>
+                ) : null}
+              </div>
+
+              <div className={styles.mobileHeaderMenuWrap} ref={mobileHeaderMenuRef}>
+                <Button
+                  className={styles.mobileHeaderMore}
+                  iconOnly
+                  type="button"
+                  onClick={() => setMobileHeaderMenuOpen((value) => !value)}
+                  aria-label={mobileHeaderMenuOpen ? 'Закрыть меню действий' : 'Открыть меню действий'}
+                  title={mobileHeaderMenuOpen ? 'Закрыть меню действий' : 'Открыть меню действий'}
+                >
+                  <Icon name="dots" size={18} />
+                </Button>
+
+                {mobileHeaderMenuOpen ? (
+                  <div className={styles.mobileHeaderMenu}>
+                    <button
+                      className={styles.mobileHeaderMenuItem}
+                      type="button"
+                      onClick={() => {
+                        setSearchOpen((value) => !value);
+                        setMobileHeaderMenuOpen(false);
+                      }}
+                    >
+                      <Icon name="search" size={16} />
+                      <span>{searchOpen ? 'Скрыть поиск' : 'Поиск по сообщениям'}</span>
+                    </button>
+
+                    <button
+                      className={styles.mobileHeaderMenuItem}
+                      type="button"
+                      onClick={() => {
+                        setMediaOpen((value) => !value);
+                        setMobileHeaderMenuOpen(false);
+                      }}
+                    >
+                      <Icon name="image" size={16} />
+                      <span>{mediaOpen ? 'Скрыть медиа' : 'Показать медиа'}</span>
+                    </button>
+
+                    <button
+                      className={styles.mobileHeaderMenuItem}
+                      type="button"
+                      onClick={() => {
+                        setSelectionMode((value) => !value);
+                        setSelectedIds([]);
+                        setMobileHeaderMenuOpen(false);
+                      }}
+                    >
+                      <Icon name="select" size={16} />
+                      <span>{selectionMode ? 'Отменить выбор' : 'Выбрать сообщения'}</span>
+                    </button>
+
+                    {hasLiveCall ? (
+                      <button
+                        className={styles.mobileHeaderMenuItem}
+                        type="button"
+                        onClick={() => {
+                          setMobileHeaderMenuOpen(false);
+                          void handleJoinCall();
+                        }}
+                      >
+                        <Icon name="play" size={16} />
+                        <span>Вернуться в звонок</span>
+                      </button>
+                    ) : null}
+
+                    {chat ? (
+                      <button
+                        className={styles.mobileHeaderMenuItem}
+                        type="button"
+                        onClick={() => {
+                          setGamesOpen(true);
+                          setMobileHeaderMenuOpen(false);
+                        }}
+                      >
+                        <Icon name="game" size={16} />
+                        <span>{activeGamesCount > 0 ? `Игры (${activeGamesCount})` : 'Игры в чате'}</span>
+                      </button>
+                    ) : null}
+
+                    {chat ? (
+                      <button
+                        className={styles.mobileHeaderMenuItem}
+                        type="button"
+                        onClick={() => {
+                          setMobileHeaderMenuOpen(false);
+                          void handleStartCall();
+                        }}
+                        disabled={!canCallInChat}
+                      >
+                        <Icon name="phone" size={16} />
+                        <span>{chat.type === 'GROUP' ? 'Начать групповой звонок' : 'Позвонить'}</span>
+                      </button>
+                    ) : null}
+                  </div>
                 ) : null}
               </div>
             </div>
@@ -1019,13 +1149,22 @@ export default function ChatPage() {
                     }
                     return (
                       <div key={message.id} className={styles.systemRow} id={`message-${message.id}`}>
-                        <button type="button" className={[styles.systemCard, clickable ? styles.systemCardInteractive : ''].filter(Boolean).join(' ')} onClick={clickable && canCallInChat ? () => void (hasLiveCall ? handleJoinCall() : handleStartCall()) : undefined} disabled={!clickable || !canCallInChat}>
+                        <div className={[styles.systemCard, clickable ? styles.systemCardWithAction : ''].filter(Boolean).join(' ')}>
                           <div className={styles.systemText}>{message.text ?? 'Системное событие'}</div>
                           <div className={styles.systemMeta}>
                             <span>{formatMessageTime(message.createdAt)}</span>
-                            {clickable ? <span className={styles.systemAction}>{hasLiveCall ? 'Вернуться в звонок' : 'Перезвонить'}</span> : null}
+                            {clickable ? (
+                              <button
+                                type="button"
+                                className={styles.systemActionButton}
+                                onClick={() => void (hasLiveCall ? handleJoinCall() : handleStartCall())}
+                                disabled={!canCallInChat}
+                              >
+                                {hasLiveCall ? 'Вернуться в звонок' : 'Перезвонить'}
+                              </button>
+                            ) : null}
                           </div>
-                        </button>
+                        </div>
                       </div>
                     );
                   }
@@ -1250,28 +1389,85 @@ export default function ChatPage() {
                   <EmojiPicker className={styles.inlineEmojiPicker} onSelect={(emoji) => insertEmojiAtCursor(emoji)} onClose={() => { setShowEmojiPicker(false); textAreaRef.current?.focus(); }} />
                 ) : null}
 
-                <div className={styles.composerRow}>
-                  <button className={styles.toolBtn} type="button" onClick={() => fileInputRef.current?.click()} aria-label="Прикрепить изображение" title="Прикрепить изображение" disabled={!canWriteInChat || Boolean(pendingVoice || pendingVideo || isRecordingVideoNote)}>
-                    <Icon name="image" size={18} />
-                  </button>
-                  <button className={[styles.toolBtn, showEmojiPicker ? styles.toolBtnActive : ''].filter(Boolean).join(' ')} type="button" onClick={() => { setIsRecordingAudio(false); setShowEmojiPicker((value) => !value); }} aria-label="Открыть эмодзи" title="Эмодзи" disabled={!canWriteInChat || Boolean(pendingVoice || pendingVideo || isRecordingVideoNote)}>
-                    <Icon name="sparkles" size={18} />
-                  </button>
-                  <button className={[styles.toolBtn, isRecordingAudio ? styles.toolBtnActive : ''].filter(Boolean).join(' ')} type="button" onClick={() => { if (!canWriteInChat || isRecordingVideoNote || text.trim() || files.length || pendingVoice || pendingVideo) return; setShowEmojiPicker(false); setIsRecordingAudio((value) => !value); }} aria-label="Записать голосовое сообщение" title="Голосовое сообщение" disabled={!canWriteInChat || isSending || isRecordingVideoNote || Boolean(text.trim() || files.length || pendingVoice || pendingVideo)}>
-                    <Icon name="mic" size={18} />
-                  </button>
-                  <button className={[styles.toolBtn, isRecordingVideoNote ? styles.toolBtnDanger : ''].filter(Boolean).join(' ')} type="button" onClick={() => (isRecordingVideoNote ? stopVideoRecorder() : void startVideoNoteRecording())} aria-label="Записать видеосообщение" title="Видеосообщение" disabled={!canWriteInChat || isSending || isRecordingAudio || Boolean(text.trim() || files.length || pendingVoice || pendingVideo)}>
-                    <Icon name={isRecordingVideoNote ? 'close' : 'video'} size={18} />
-                  </button>
+                <div className={styles.composerInputShell}>
+                  <div className={styles.attachWrap} ref={attachMenuRef}>
+                    <button
+                      className={styles.innerActionBtn}
+                      type="button"
+                      onClick={() => {
+                        if (!canWriteInChat || pendingVoice || pendingVideo || isRecordingVideoNote) return;
+                        setShowEmojiPicker(false);
+                        setAttachMenuOpen((value) => !value);
+                      }}
+                      aria-label="Открыть вложения"
+                      title="Вложения"
+                      disabled={!canWriteInChat || Boolean(pendingVoice || pendingVideo || isRecordingVideoNote)}
+                    >
+                      <Icon name="paperclip" size={18} />
+                    </button>
 
-                  <textarea ref={textAreaRef} className={styles.input} placeholder={editingMessage ? 'Измените текст сообщения…' : isRecordingAudio ? 'Идёт запись голосового сообщения…' : 'Сообщение…'} value={text} onChange={(event) => setText(event.target.value.slice(0, 5000).normalize('NFC'))} onPaste={handleTextPaste} onKeyDown={handleTextKeyDown} rows={1} disabled={!canWriteInChat || isRecordingAudio || Boolean(pendingVoice || pendingVideo)} />
-                  <Button className={styles.send} iconOnly type="button" onClick={onSend} loading={isSending} disabled={(!text.trim() && !files.length && !pendingVoice && !pendingVideo) || isRecordingAudio} aria-label={editingMessage ? 'Сохранить сообщение' : 'Отправить сообщение'} title={editingMessage ? 'Сохранить сообщение' : 'Отправить сообщение'}>
-                    <Icon name={editingMessage ? 'check' : 'send'} size={18} />
-                  </Button>
+                    {attachMenuOpen ? (
+                      <div className={styles.attachMenu}>
+                        <button
+                          className={styles.attachMenuItem}
+                          type="button"
+                          onClick={() => {
+                            setAttachMenuOpen(false);
+                            fileInputRef.current?.click();
+                          }}
+                        >
+                          <Icon name="image" size={16} />
+                          <span>Фото</span>
+                        </button>
+                        <button
+                          className={styles.attachMenuItem}
+                          type="button"
+                          onClick={() => {
+                            setAttachMenuOpen(false);
+                            setIsRecordingAudio(false);
+                            setShowEmojiPicker((value) => !value);
+                          }}
+                        >
+                          <Icon name="sparkles" size={16} />
+                          <span>Виджет</span>
+                        </button>
+                      </div>
+                    ) : null}
+                  </div>
+
+                  <textarea
+                    ref={textAreaRef}
+                    className={styles.input}
+                    placeholder={editingMessage ? 'Измените текст сообщения…' : isRecordingAudio ? 'Идёт запись голосового сообщения…' : 'Сообщение…'}
+                    value={text}
+                    onChange={(event) => setText(event.target.value.slice(0, 5000).normalize('NFC'))}
+                    onFocus={() => setAttachMenuOpen(false)}
+                    onPaste={handleTextPaste}
+                    onKeyDown={handleTextKeyDown}
+                    rows={1}
+                    disabled={!canWriteInChat || isRecordingAudio || Boolean(pendingVoice || pendingVideo)}
+                  />
+
+                  <div className={styles.trailingActions}>
+                    {(editingMessage || text.trim() || files.length || pendingVoice || pendingVideo) ? (
+                      <Button className={[styles.innerActionBtn, styles.innerActionBtnPrimary].join(' ')} iconOnly type="button" onClick={onSend} loading={isSending} disabled={(!text.trim() && !files.length && !pendingVoice && !pendingVideo) || isRecordingAudio} aria-label={editingMessage ? 'Сохранить сообщение' : 'Отправить сообщение'} title={editingMessage ? 'Сохранить сообщение' : 'Отправить сообщение'}>
+                        <Icon name={editingMessage ? 'check' : 'send'} size={18} />
+                      </Button>
+                    ) : (
+                      <>
+                        <button className={[styles.innerActionBtn, isRecordingVideoNote ? styles.innerActionBtnDanger : ''].filter(Boolean).join(' ')} type="button" onClick={() => (isRecordingVideoNote ? stopVideoRecorder() : void startVideoNoteRecording())} aria-label="Записать видеосообщение" title="Видеосообщение" disabled={!canWriteInChat || isSending || isRecordingAudio || Boolean(text.trim() || files.length || pendingVoice || pendingVideo)}>
+                          <Icon name={isRecordingVideoNote ? 'close' : 'video'} size={18} />
+                        </button>
+                        <button className={[styles.innerActionBtn, isRecordingAudio ? styles.innerActionBtnActive : ''].filter(Boolean).join(' ')} type="button" onClick={() => { if (!canWriteInChat || isRecordingVideoNote || text.trim() || files.length || pendingVoice || pendingVideo) return; setShowEmojiPicker(false); setAttachMenuOpen(false); setIsRecordingAudio((value) => !value); }} aria-label="Записать голосовое сообщение" title="Голосовое сообщение" disabled={!canWriteInChat || isSending || isRecordingVideoNote || Boolean(text.trim() || files.length || pendingVoice || pendingVideo)}>
+                          <Icon name="mic" size={18} />
+                        </button>
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
-          </Card>
+          </div>
         </div>
       </div>
 

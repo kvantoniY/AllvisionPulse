@@ -1,9 +1,10 @@
 'use client';
 
-import { PropsWithChildren, ReactNode, useEffect } from 'react';
+import { PropsWithChildren, ReactNode, useEffect, useState } from 'react';
 import { lockBodyScroll } from '@/shared/lib/dom/scrollLock';
 import { Icon } from '@/shared/ui/Icon/Icon';
 import styles from './MobileSheet.module.css';
+import { createPortal } from 'react-dom';
 
 export function MobileSheet({
   open,
@@ -17,6 +18,12 @@ export function MobileSheet({
   title?: string;
   action?: ReactNode;
 }>) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   useEffect(() => {
     if (!open) return;
     const onKey = (event: KeyboardEvent) => {
@@ -30,9 +37,9 @@ export function MobileSheet({
     };
   }, [open, onClose]);
 
-  if (!open) return null;
+  if (!open || !mounted) return null;
 
-  return (
+  return createPortal(
     <div className={styles.backdrop} role="dialog" aria-modal="true" onMouseDown={onClose}>
       <div className={styles.sheet} onMouseDown={(event) => event.stopPropagation()}>
         <div className={styles.header}>
@@ -44,6 +51,7 @@ export function MobileSheet({
         </div>
         <div className={styles.body}>{children}</div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

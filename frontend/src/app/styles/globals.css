@@ -62,6 +62,7 @@
   --page-gutter: 24px;
   --page-gutter-mobile: 16px;
   --page-gutter-tight: 12px;
+  --content-bottom-pad-desktop: 80px;
 }
 
 * { box-sizing: border-box; }

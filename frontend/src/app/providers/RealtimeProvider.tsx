@@ -163,7 +163,9 @@ export function RealtimeProvider({ children }: PropsWithChildren) {
       const token = await getAccessToken();
       if (!alive || !token) return;
 
-      const socket = io(PUBLIC_BACKEND_URL, {
+      const realtimeBaseUrl = typeof window === 'undefined' ? PUBLIC_BACKEND_URL : window.location.origin;
+
+      const socket = io(realtimeBaseUrl, {
         transports: ['websocket'],
         auth: { token },
         withCredentials: true,

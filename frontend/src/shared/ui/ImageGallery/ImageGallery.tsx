@@ -4,6 +4,7 @@ import type { CSSProperties } from 'react';
 import { useEffect, useMemo, useState } from 'react';
 import styles from './ImageGallery.module.css';
 import { useLightbox } from '@/shared/ui/Lightbox/LightboxProvider';
+import { Icon } from '@/shared/ui/Icon/Icon';
 
 export type GalleryImage = { id: string; url: string };
 
@@ -15,20 +16,31 @@ const ratioCache = new Map<string, number>();
 
 function useImageRatios(images: GalleryImage[], enabled = false) {
   const [ratios, setRatios] = useState<Record<string, number>>({});
+  const imagesKey = useMemo(() => images.map((img) => `${img.id}:${img.url}`).join('|'), [images]);
 
   useEffect(() => {
     if (!enabled || typeof window === 'undefined') return;
+
+    setRatios((prev) => {
+      let changed = false;
+      const next: Record<string, number> = {};
+
+      for (const img of images) {
+        const cachedRatio = ratioCache.get(img.url);
+        const currentRatio = cachedRatio ?? prev[img.id];
+        if (currentRatio) next[img.id] = currentRatio;
+        if (prev[img.id] !== currentRatio) changed = true;
+      }
+
+      if (!changed && Object.keys(prev).length === Object.keys(next).length) {
+        return prev;
+      }
+
+      return next;
+    });
+
     let cancelled = false;
-    const pending = images.filter((img) => !ratios[img.id] && !ratioCache.has(img.url));
-    if (!pending.length) {
-      const cached = images.reduce<Record<string, number>>((acc, img) => {
-        const ratio = ratioCache.get(img.url);
-        if (ratio) acc[img.id] = ratio;
-        return acc;
-      }, {});
-      if (Object.keys(cached).length) setRatios((prev) => ({ ...cached, ...prev }));
-      return;
-    }
+    const pending = images.filter((img) => !ratioCache.has(img.url));
     if (!pending.length) return;
 
     const loaders = pending.map((img) => {
@@ -37,7 +49,7 @@ function useImageRatios(images: GalleryImage[], enabled = false) {
         const safeRatio = ratio > 0 ? ratio : 1;
         ratioCache.set(img.url, safeRatio);
         if (cancelled) return;
-        setRatios((prev) => (prev[img.id] ? prev : { ...prev, [img.id]: safeRatio }));
+        setRatios((prev) => (prev[img.id] === safeRatio ? prev : { ...prev, [img.id]: safeRatio }));
       };
       probe.onload = () => {
         const nextRatio = probe.naturalWidth > 0 && probe.naturalHeight > 0 ? probe.naturalWidth / probe.naturalHeight : 1;
@@ -55,10 +67,11 @@ function useImageRatios(images: GalleryImage[], enabled = false) {
         probe.onerror = null;
       }
     };
-  }, [enabled, images, ratios]);
+  }, [enabled, imagesKey]);
 
   return ratios;
 }
+
 
 export function ImageGallery({
   images,
@@ -99,12 +112,17 @@ export function ImageGallery({
 
   if (!list.length) return null;
 
-  const modalStyle = mode === 'modal'
+  const galleryStyle = mode === 'modal'
     ? ({
         ['--gallery-height' as string]: `${maxHeight}px`,
         ['--gallery-ratio' as string]: `${activeRatio}`,
       } as CSSProperties)
-    : undefined;
+    : adaptive
+      ? ({
+          ['--gallery-height' as string]: `${maxHeight}px`,
+          ['--gallery-ratio' as string]: `${activeRatio}`,
+        } as CSSProperties)
+      : undefined;
 
   if (!many) {
     const img = list[0];
@@ -116,7 +134,7 @@ export function ImageGallery({
           mode === 'modal' ? styles.modal : '',
           !rounded ? styles.noRadius : '',
         ].filter(Boolean).join(' ')}
-        style={mode === 'modal' ? modalStyle : adaptive ? ({ ['--gallery-height' as string]: `${maxHeight}px` } as CSSProperties) : { aspectRatio: aspect, maxHeight }}
+        style={galleryStyle ?? { aspectRatio: aspect, maxHeight }}
       >
         <img
           src={img.url}
@@ -136,7 +154,7 @@ export function ImageGallery({
   return (
     <div
       className={[styles.slider, adaptive ? styles.adaptive : '', mode === 'modal' ? styles.modal : '', !rounded ? styles.noRadius : ''].filter(Boolean).join(' ')}
-      style={mode === 'modal' ? modalStyle : adaptive ? ({ ['--gallery-height' as string]: `${maxHeight}px` } as CSSProperties) : { aspectRatio: aspect, maxHeight }}
+      style={galleryStyle ?? { aspectRatio: aspect, maxHeight }}
     >
       <div className={styles.track} style={{ transform: `translateX(-${safeIdx * 100}%)` }}>
         {list.map((img, i) => (
@@ -169,7 +187,7 @@ export function ImageGallery({
           }}
           aria-label="Предыдущая картинка"
         >
-          <span className={styles.navIcon}>‹</span>
+          <Icon name="chevronLeft" size={18} className={styles.navIcon} />
         </button>
       ) : null}
       {safeIdx < list.length - 1 ? (
@@ -183,7 +201,7 @@ export function ImageGallery({
           }}
           aria-label="Следующая картинка"
         >
-          <span className={styles.navIcon}>›</span>
+          <Icon name="chevronRight" size={18} className={styles.navIcon} />
         </button>
       ) : null}
 

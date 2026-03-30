@@ -33,8 +33,12 @@ export function Header() {
 
   const mobileTitle = useMemo(() => getMobileTitle(pathname), [pathname]);
   const canOpenComposer = pathname === '/' || pathname.startsWith('/feed');
+  const hideMobileHeader = /^\/messages\/[^/]+$/.test(pathname);
 
   if (isMobile) {
+    if (hideMobileHeader) {
+      return null;
+    }
     return (
       <header className={[styles.header, styles.headerMobile].join(' ')}>
         <div className={[styles.inner, styles.innerMobile].join(' ')}>

@@ -15,14 +15,14 @@
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 0 var(--page-gutter) 0 calc(var(--sidebar-width) + var(--page-gutter));
+  padding: 0 20px;
 }
 
 .left {
   min-width: 0;
   display: flex;
   align-items: center;
-  gap: 24px;
+  gap: 18px;
   flex: 1 1 auto;
 }
 
@@ -30,6 +30,7 @@
   display: inline-flex;
   align-items: center;
   gap: 12px;
+  width: max(184px, calc(var(--sidebar-width) - 24px));
   min-width: max-content;
   flex-shrink: 0;
   color: var(--text);
@@ -51,9 +52,9 @@
 }
 
 .searchWrap {
-  flex: 0 1 500px;
-  width: min(100%, 500px);
-  max-width: 500px;
+  flex: 0 1 460px;
+  width: min(100%, 460px);
+  max-width: 460px;
 }
 
 .right {
@@ -160,12 +161,15 @@
 
 @media (max-width: 1180px) {
   .inner {
-    padding-right: 20px;
-    padding-left: calc(var(--sidebar-width) + 20px);
+    padding-inline: 18px;
   }
 
   .left {
-    gap: 18px;
+    gap: 16px;
+  }
+
+  .brand {
+    width: 184px;
   }
 
   .searchWrap {

@@ -6,6 +6,7 @@ import path from "path";
 import fs from "fs";
 import { createApp } from "./app";
 import { getEnv } from "./config/env";
+import { getAllowedOrigins } from "./config/cors";
 import { createSocket } from "./realtime/socket";
 
 const env = getEnv();
@@ -18,7 +19,7 @@ fs.mkdirSync(uploadDir, { recursive: true });
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: env.CORS_ORIGIN.split(",").map(s => s.trim()),
+    origin: getAllowedOrigins(env.CORS_ORIGIN),
     credentials: true,
   },
   connectionStateRecovery: {

@@ -67,7 +67,7 @@ function QuoteCard({ post, onOpenOriginal, mobile }: { post: Post; onOpenOrigina
 
       {images.length > 1 ? (
         <div className={styles.quoteGalleryWrap} onClick={(event) => event.stopPropagation()}>
-          <ImageGallery images={images} aspect="4 / 5" maxHeight={580} rounded={!mobile} fit="contain" />
+          <ImageGallery images={images} aspect="4 / 5" maxHeight={580} rounded={!mobile} fit="contain" adaptive />
         </div>
       ) : null}
 
@@ -253,7 +253,7 @@ function PostCardComponent({
 
         {!originalPost && images.length > 1 ? (
           <div className={styles.galleryWrap}>
-            <ImageGallery images={images} aspect="4 / 5" maxHeight={isMobile ? 560 : 760} rounded={!isMobile} fit="contain" />
+            <ImageGallery images={images} aspect="4 / 5" maxHeight={isMobile ? 560 : 760} rounded={!isMobile} fit="contain" adaptive />
           </div>
         ) : null}
 

@@ -1,9 +1,10 @@
 'use client';
 
-import { PropsWithChildren, ReactNode, useEffect } from 'react';
+import { PropsWithChildren, ReactNode, useEffect, useState } from 'react';
 import { lockBodyScroll } from '@/shared/lib/dom/scrollLock';
 import styles from './Modal.module.css';
 import { Icon } from '@/shared/ui/Icon/Icon';
+import { createPortal } from 'react-dom';
 
 export function Modal({
   open,
@@ -14,6 +15,12 @@ export function Modal({
   subtitle,
   icon,
 }: PropsWithChildren<{ open: boolean; onClose: () => void; title?: string; subtitle?: string; icon?: ReactNode; size?: 'md' | 'lg' | 'xl' | 'game' }>) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
@@ -28,9 +35,9 @@ export function Modal({
     return lockBodyScroll();
   }, [open]);
 
-  if (!open) return null;
+  if (!open || !mounted) return null;
 
-  return (
+  return createPortal(
     <div className={styles.backdrop} role="dialog" aria-modal="true" onMouseDown={onClose}>
       <div
         className={[
@@ -57,6 +64,7 @@ export function Modal({
         </div>
         <div className={[styles.body, size === 'game' ? styles.bodyGame : ''].filter(Boolean).join(' ')}>{children}</div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

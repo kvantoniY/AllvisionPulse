@@ -13,7 +13,7 @@
 
 .content {
   min-width: 0;
-  padding: calc(var(--header-height) + 20px) var(--page-gutter) 80px;
+  padding: calc(var(--header-height) + 20px) var(--page-gutter) var(--content-bottom-pad-desktop);
 }
 
 @media (max-width: 1180px) {

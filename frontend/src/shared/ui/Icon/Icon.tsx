@@ -40,9 +40,12 @@ type IconName =
   | 'dots'
   | 'chevronDown'
   | 'chevronUp'
+  | 'chevronLeft'
+  | 'chevronRight'
   | 'select'
   | 'clock'
-  | 'menu';
+  | 'menu'
+  | 'paperclip';
 
 const line = { fill: 'none', stroke: 'currentColor', strokeWidth: '1.8', strokeLinecap: 'round', strokeLinejoin: 'round' } as const;
 
@@ -86,9 +89,12 @@ const paths: Record<IconName, ReactNode> = {
   dots: <><circle cx="5" cy="12" r="1.5" fill="currentColor"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/><circle cx="19" cy="12" r="1.5" fill="currentColor"/></>,
   chevronDown: <path d="m6 9 6 6 6-6" {...line} />,
   chevronUp: <path d="m6 15 6-6 6 6" {...line} />,
+  chevronLeft: <path d="m14.5 5.5-6 6 6 6" {...line} />,
+  chevronRight: <path d="m9.5 5.5 6 6-6 6" {...line} />,
   select: <><rect x="4" y="4" width="16" height="16" rx="4" {...line}/><path d="M8 12.5 11 15l5-6" {...line}/></>,
   clock: <><circle cx="12" cy="12" r="8" {...line}/><path d="M12 8v4.5l3 1.5" {...line}/></>,
   menu: <><path d="M4 7h16" {...line}/><path d="M4 12h16" {...line}/><path d="M4 17h16" {...line}/></>,
+  paperclip: <path d="M9.5 12.5 16 6a3 3 0 1 1 4.24 4.24l-8.13 8.13a5 5 0 1 1-7.07-7.07l8.48-8.49" {...line} />,
 };
 
 export function Icon({ name, size = 20, className, ...props }: SVGProps<SVGSVGElement> & { name: IconName; size?: number }) {

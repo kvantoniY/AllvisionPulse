@@ -6,6 +6,7 @@ import helmet from "helmet";
 import cookieParser from "cookie-parser";
 import path from "path";
 import { getEnv } from "./config/env";
+import { getAllowedOrigins, isOriginAllowed, normalizeOrigin } from "./config/cors";
 import { errorHandler, notFound } from "./utils/http";
 
 import authRouter from "./routes/auth";
@@ -24,7 +25,7 @@ import analyticsRouter from "./routes/analytics";
 export function createApp() {
   const env = getEnv();
   const app = express();
-  const allowedOrigins = env.CORS_ORIGIN.split(",").map((value) => value.trim()).filter(Boolean);
+  const allowedOrigins = getAllowedOrigins(env.CORS_ORIGIN);
 
   app.set("trust proxy", true);
   app.use(
@@ -35,11 +36,11 @@ export function createApp() {
   app.use(
     cors({
       origin: (origin, callback) => {
-        if (!origin || allowedOrigins.includes(origin)) {
+        if (isOriginAllowed(origin ?? undefined, allowedOrigins)) {
           callback(null, true);
           return;
         }
-        callback(new Error(`CORS blocked for origin: ${origin}`));
+        callback(new Error(`CORS blocked for origin: ${normalizeOrigin(origin)}`));
       },
       credentials: true,
       methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
@@ -55,8 +56,8 @@ export function createApp() {
     "/uploads",
     (req, res, next) => {
       const requestOrigin = typeof req.headers.origin === "string" ? req.headers.origin : "";
-      if (requestOrigin && allowedOrigins.includes(requestOrigin)) {
-        res.setHeader("Access-Control-Allow-Origin", requestOrigin);
+      if (requestOrigin && isOriginAllowed(requestOrigin, allowedOrigins)) {
+        res.setHeader("Access-Control-Allow-Origin", normalizeOrigin(requestOrigin));
       }
       res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
       next();
