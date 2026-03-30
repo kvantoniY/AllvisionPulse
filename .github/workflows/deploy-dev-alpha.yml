@@ -96,10 +96,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-
           ssh alpha 'bash -s' <<'EOF'
           set -euo pipefail
-
           APP_ROOT=/opt/allvision-pulse
           CURRENT_DIR="$APP_ROOT/current"
           NEXT_DIR="$APP_ROOT/next"
@@ -108,7 +106,6 @@ jobs:
           mkdir -p "$APP_ROOT"
           rm -rf "$NEXT_DIR"
           mkdir -p "$NEXT_DIR"
-
           tar -xzf "$RELEASE_ARCHIVE" -C "$NEXT_DIR"
 
           if [ -f "$CURRENT_DIR/infra/alpha/.env" ]; then
@@ -117,33 +114,13 @@ jobs:
           fi
 
           if [ -f "$NEXT_DIR/infra/alpha/.env" ]; then
-            python3 - <<PY
-from pathlib import Path
+            CORS_ORIGIN="http://${{ secrets.ALPHA_HOST }},https://${{ secrets.ALPHA_HOST }},http://allvision-pulse.ru,http://www.allvision-pulse.ru,https://allvision-pulse.ru,https://www.allvision-pulse.ru"
 
-env_path = Path("$NEXT_DIR/infra/alpha/.env")
-text = env_path.read_text()
-origins = [
-    "http://${{ secrets.ALPHA_HOST }}",
-    "https://${{ secrets.ALPHA_HOST }}",
-    "http://allvision-pulse.ru",
-    "http://www.allvision-pulse.ru",
-    "https://allvision-pulse.ru",
-    "https://www.allvision-pulse.ru",
-]
-value = ",".join(dict.fromkeys([item.strip() for item in origins if item.strip()]))
-lines = text.splitlines()
-updated = False
-for index, line in enumerate(lines):
-    if line.startswith("CORS_ORIGIN="):
-        lines[index] = f"CORS_ORIGIN={value}"
-        updated = True
-        break
-if not updated:
-    if lines and lines[-1] != "":
-        lines.append("")
-    lines.append(f"CORS_ORIGIN={value}")
-env_path.write_text("\n".join(lines) + "\n")
-PY
+            if grep -q '^CORS_ORIGIN=' "$NEXT_DIR/infra/alpha/.env"; then
+              sed -i "s|^CORS_ORIGIN=.*|CORS_ORIGIN=$CORS_ORIGIN|" "$NEXT_DIR/infra/alpha/.env"
+            else
+              printf '\nCORS_ORIGIN=%s\n' "$CORS_ORIGIN" >> "$NEXT_DIR/infra/alpha/.env"
+            fi
           fi
 
           rm -rf "$CURRENT_DIR"
