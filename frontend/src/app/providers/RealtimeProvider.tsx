@@ -8,7 +8,6 @@ import { friendsApi } from '@/shared/api/friendsApi';
 import { chatsApi, useGetChatsQuery } from '@/shared/api/chatsApi';
 import { gamesApi } from '@/shared/api/gamesApi';
 import { chatUiActions } from '@/entities/chat';
-import { PUBLIC_BACKEND_URL } from '@/shared/config/env';
 import { useGetMeQuery } from '@/shared/api/usersApi';
 import { presenceActions } from '@/entities/presence';
 import { setRealtimeSocket } from '@/shared/lib/realtimeSocket';
@@ -163,10 +162,11 @@ export function RealtimeProvider({ children }: PropsWithChildren) {
       const token = await getAccessToken();
       if (!alive || !token) return;
 
-      const realtimeBaseUrl = typeof window === 'undefined' ? PUBLIC_BACKEND_URL : window.location.origin;
-
-      const socket = io(realtimeBaseUrl, {
-        transports: ['websocket'],
+      const socket = io(window.location.origin, {
+        path: '/socket.io/',
+        transports: ['polling', 'websocket'],
+        upgrade: true,
+        rememberUpgrade: true,
         auth: { token },
         withCredentials: true,
         reconnection: true,
@@ -190,9 +190,15 @@ export function RealtimeProvider({ children }: PropsWithChildren) {
         }
       };
 
-      socket.on('connect_error', async (_err: any) => {
-        // access might be expired; try to refresh via /api/auth/access and reconnect
-        await refreshAndReconnect();
+      socket.on('connect_error', async (err: any) => {
+        const message = String(err?.message ?? '').toUpperCase();
+        const isUnauthorized = message.includes('UNAUTHORIZED') || Number(err?.description) === 401;
+
+        // Let socket.io handle ordinary transport/proxy reconnects on its own.
+        // We only force token refresh when the server explicitly rejects auth.
+        if (isUnauthorized) {
+          await refreshAndReconnect();
+        }
       });
 
       socket.on('disconnect', async (reason: any) => {

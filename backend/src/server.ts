@@ -18,6 +18,7 @@ fs.mkdirSync(uploadDir, { recursive: true });
 
 const server = http.createServer(app);
 const io = new Server(server, {
+  path: "/socket.io/",
   cors: {
     origin: getAllowedOrigins(env.CORS_ORIGIN),
     credentials: true,

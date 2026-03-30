@@ -153,6 +153,9 @@ jobs:
           echo "=== nginx health ==="
           curl --retry 10 --retry-delay 2 --retry-connrefused -fsS http://127.0.0.1/healthz >/dev/null
 
+          echo "=== socket.io polling health ==="
+          curl --retry 10 --retry-delay 2 --retry-connrefused -fsS "http://127.0.0.1/socket.io/?EIO=4&transport=polling" | grep -q "\"sid\""
+
           docker image prune -af --filter "until=72h" || true
           EOF
 
@@ -200,6 +203,16 @@ jobs:
             --env-file infra/alpha/.env \
             -f infra/alpha/docker-compose.alpha.yml \
             logs nginx --tail=120
+          echo
+          echo "=== nginx rendered config ==="
+          NGINX_ID=$(docker compose \
+            --project-name allvision-alpha \
+            --env-file infra/alpha/.env \
+            -f infra/alpha/docker-compose.alpha.yml \
+            ps -q nginx)
+          if [ -n "$NGINX_ID" ]; then
+            docker exec "$NGINX_ID" nginx -T 2>/dev/null | sed -n "1,220p"
+          fi
           echo
           echo "=== backend container id ==="
           BACKEND_ID=$(docker compose \

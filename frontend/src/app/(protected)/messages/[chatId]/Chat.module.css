@@ -1296,7 +1296,7 @@
     position: sticky;
     bottom: 0;
     z-index: 8;
-    padding: 0 12px max(2px, env(safe-area-inset-bottom, 0px));
+    padding: 0 10px max(0px, env(safe-area-inset-bottom, 0px));
     background: transparent;
     border-top: 0;
   }
@@ -1331,11 +1331,11 @@
   }
 
   .messages {
-    padding: 10px 12px 8px;
+    padding: 10px 12px 6px;
   }
 
   .composer {
-    padding: 0 12px max(0px, env(safe-area-inset-bottom, 0px));
+    padding: 0 8px max(0px, env(safe-area-inset-bottom, 0px));
   }
 
   .composerStage {
@@ -1343,6 +1343,6 @@
   }
 
   .composerInputShell {
-    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.26);
+    box-shadow: 0 10px 22px rgba(0, 0, 0, 0.22);
   }
 }
