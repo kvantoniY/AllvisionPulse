@@ -52,11 +52,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-
           mkdir -p ~/.ssh
           printf '%s\n' "${{ secrets.ALPHA_SSH_PRIVATE_KEY }}" | perl -pe 's/\r$//' > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
-
           cat > ~/.ssh/config <<EOF
           Host alpha
             HostName ${{ secrets.ALPHA_HOST }}
@@ -68,7 +66,6 @@ jobs:
             ServerAliveInterval 30
             ServerAliveCountMax 6
           EOF
-
           chmod 600 ~/.ssh/config
           ssh -o BatchMode=yes alpha "echo SSH_OK"
 
@@ -76,19 +73,14 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-
           RELEASE_DIR=/tmp/allvision-alpha-release
           ARCHIVE=/tmp/allvision-alpha-release.tgz
-
           rm -rf "$RELEASE_DIR"
           rm -f "$ARCHIVE"
           mkdir -p "$RELEASE_DIR"
-
           git archive --format=tar HEAD | tar -xf - -C "$RELEASE_DIR"
-
           mkdir -p "$RELEASE_DIR/frontend"
           cp -R frontend/.next "$RELEASE_DIR/frontend/.next"
-
           tar -czf "$ARCHIVE" -C "$RELEASE_DIR" .
           scp "$ARCHIVE" alpha:/tmp/allvision-alpha-release.tgz
 
@@ -98,9 +90,11 @@ jobs:
           set -euo pipefail
           ssh alpha 'bash -s' <<'EOF'
           set -euo pipefail
+
           APP_ROOT=/opt/allvision-pulse
           CURRENT_DIR="$APP_ROOT/current"
           NEXT_DIR="$APP_ROOT/next"
+          PREV_DIR="$APP_ROOT/previous"
           RELEASE_ARCHIVE=/tmp/allvision-alpha-release.tgz
 
           mkdir -p "$APP_ROOT"
@@ -115,7 +109,6 @@ jobs:
 
           if [ -f "$NEXT_DIR/infra/alpha/.env" ]; then
             CORS_ORIGIN="http://${{ secrets.ALPHA_HOST }},https://${{ secrets.ALPHA_HOST }},http://allvision-pulse.ru,http://www.allvision-pulse.ru,https://allvision-pulse.ru,https://www.allvision-pulse.ru"
-
             if grep -q '^CORS_ORIGIN=' "$NEXT_DIR/infra/alpha/.env"; then
               sed -i "s|^CORS_ORIGIN=.*|CORS_ORIGIN=$CORS_ORIGIN|" "$NEXT_DIR/infra/alpha/.env"
             else
@@ -123,16 +116,36 @@ jobs:
             fi
           fi
 
-          rm -rf "$CURRENT_DIR"
+          rm -rf "$PREV_DIR"
+          if [ -d "$CURRENT_DIR" ]; then
+            mv "$CURRENT_DIR" "$PREV_DIR"
+          fi
           mv "$NEXT_DIR" "$CURRENT_DIR"
-
           cd "$CURRENT_DIR"
 
-          docker compose \
+          if ! docker compose \
             --project-name allvision-alpha \
             --env-file infra/alpha/.env \
             -f infra/alpha/docker-compose.alpha.yml \
-            up -d --build --remove-orphans
+            up -d --build --remove-orphans; then
+            if [ -d "$PREV_DIR" ]; then
+              rm -rf "$CURRENT_DIR"
+              mv "$PREV_DIR" "$CURRENT_DIR"
+              cd "$CURRENT_DIR"
+              docker compose \
+                --project-name allvision-alpha \
+                --env-file infra/alpha/.env \
+                -f infra/alpha/docker-compose.alpha.yml \
+                up -d --build --remove-orphans || true
+            fi
+            exit 1
+          fi
+
+          echo "=== current CORS_ORIGIN ==="
+          grep '^CORS_ORIGIN=' infra/alpha/.env || true
+
+          echo "=== nginx health ==="
+          curl -fsS http://127.0.0.1/healthz >/dev/null
 
           docker image prune -af --filter "until=72h" || true
           EOF
@@ -142,22 +155,17 @@ jobs:
         shell: bash
         run: |
           set +e
-
           ssh alpha 'bash -s' <<'EOF'
           set +e
-
           APP_ROOT=/opt/allvision-pulse
           CURRENT_DIR="$APP_ROOT/current"
-
           cd "$CURRENT_DIR" || exit 0
-
           echo "=== docker compose ps ==="
           docker compose \
             --project-name allvision-alpha \
             --env-file infra/alpha/.env \
             -f infra/alpha/docker-compose.alpha.yml \
             ps
-
           echo
           echo "=== backend logs ==="
           docker compose \
@@ -165,7 +173,6 @@ jobs:
             --env-file infra/alpha/.env \
             -f infra/alpha/docker-compose.alpha.yml \
             logs backend --tail=300
-
           echo
           echo "=== postgres logs ==="
           docker compose \
@@ -173,7 +180,6 @@ jobs:
             --env-file infra/alpha/.env \
             -f infra/alpha/docker-compose.alpha.yml \
             logs postgres --tail=120
-
           echo
           echo "=== frontend logs ==="
           docker compose \
@@ -181,7 +187,13 @@ jobs:
             --env-file infra/alpha/.env \
             -f infra/alpha/docker-compose.alpha.yml \
             logs frontend --tail=120
-
+          echo
+          echo "=== nginx logs ==="
+          docker compose \
+            --project-name allvision-alpha \
+            --env-file infra/alpha/.env \
+            -f infra/alpha/docker-compose.alpha.yml \
+            logs nginx --tail=120
           echo
           echo "=== backend container id ==="
           BACKEND_ID=$(docker compose \
@@ -189,14 +201,11 @@ jobs:
             --env-file infra/alpha/.env \
             -f infra/alpha/docker-compose.alpha.yml \
             ps -q backend)
-
           echo "$BACKEND_ID"
-
           if [ -n "$BACKEND_ID" ]; then
             echo
             echo "=== docker inspect state ==="
             docker inspect "$BACKEND_ID" --format '{{json .State}}'
-
             echo
             echo "=== docker inspect health ==="
             docker inspect "$BACKEND_ID" --format '{{json .State.Health}}'
