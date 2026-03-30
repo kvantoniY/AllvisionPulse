@@ -124,10 +124,18 @@ router.post("/password", requireAuth, asyncHandler(async (req: AuthedRequest, re
 router.get("/sessions", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
   const sessions = await prisma.session.findMany({
     where: { userId: req.user!.id },
-    orderBy: { createdAt: "desc" },
+    orderBy: [{ revokedAt: "asc" }, { lastUsedAt: "desc" }, { createdAt: "desc" }],
     select: { id: true, createdAt: true, lastUsedAt: true, revokedAt: true, userAgent: true, ip: true },
   });
-  res.json({ sessions });
+  res.json({ sessions, currentSessionId: req.user!.sessionId });
+}));
+
+router.post("/sessions/revoke-others", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
+  const result = await prisma.session.updateMany({
+    where: { userId: req.user!.id, id: { not: req.user!.sessionId }, revokedAt: null },
+    data: { revokedAt: new Date() },
+  });
+  res.json({ ok: true, revokedCount: result.count });
 }));
 
 router.delete("/sessions/:sessionId", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {

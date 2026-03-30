@@ -66,9 +66,9 @@ async function getAccessToken(): Promise<string | null> {
 export function RealtimeProvider({ children }: PropsWithChildren) {
   const dispatch = useAppDispatch();
   const activeChatId = useAppSelector((s) => s.chatUi.activeChatId);
-  const { data: meData } = useGetMeQuery();
+  const { data: meData } = useGetMeQuery(undefined, { refetchOnMountOrArgChange: true, refetchOnFocus: true, refetchOnReconnect: true });
   const meId = meData?.user?.id;
-  const { data: chatsData } = useGetChatsQuery();
+  const { data: chatsData } = useGetChatsQuery(undefined, { refetchOnMountOrArgChange: true, refetchOnFocus: true, refetchOnReconnect: true });
   const knownUsers = useMemo(() => {
     const map = new Map<string, { username?: string; lastSeenAt?: string | null }>();
     const chats = chatsData?.items ?? [];

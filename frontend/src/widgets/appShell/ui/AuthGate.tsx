@@ -29,14 +29,15 @@ function buildSuspensionText(user: any) {
 
 export function AuthGate({ children }: PropsWithChildren) {
   const router = useRouter();
-  const { data, isLoading, isError } = useGetMeQuery(undefined, {
+  const { data, error, isLoading, isFetching, isError, refetch } = useGetMeQuery(undefined, {
     pollingInterval: 30_000,
+    refetchOnMountOrArgChange: true,
     refetchOnFocus: true,
     refetchOnReconnect: true,
   });
   const [logout, { isLoading: loggingOut }] = useLogoutMutation();
 
-  if (isLoading) {
+  if (isLoading || (isFetching && !data)) {
     return (
       <div className="container" style={{ paddingTop: 32 }}>
         <div style={{ display: 'grid', gap: 16 }}>
@@ -52,9 +53,24 @@ export function AuthGate({ children }: PropsWithChildren) {
   }
 
   if (isError || !data?.user) {
+    const status = typeof (error as any)?.status === 'number' ? Number((error as any).status) : null;
+    const isUnauthorized = status === 401 || (!data?.user && !status);
+
     return (
       <div className="container" style={{ padding: 48 }}>
-        <div className="panel" style={{ padding: 20 }}>Требуется авторизация</div>
+        <div className="panel" style={{ padding: 20, display: 'grid', gap: 12 }}>
+          <div style={{ fontWeight: 700 }}>{isUnauthorized ? 'Требуется авторизация' : 'Не удалось проверить сессию'}</div>
+          <div style={{ color: 'var(--muted)' }}>
+            {isUnauthorized ? 'Сессия недействительна или истекла. Войдите снова.' : 'Похоже, сервер временно не ответил. Попробуйте повторить.'}
+          </div>
+          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+            {isUnauthorized ? (
+              <Button variant="primary" onClick={() => router.replace('/auth/login')}>Перейти ко входу</Button>
+            ) : (
+              <Button variant="primary" onClick={() => refetch()}>Повторить</Button>
+            )}
+          </div>
+        </div>
       </div>
     );
   }

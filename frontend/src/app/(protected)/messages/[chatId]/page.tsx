@@ -215,11 +215,11 @@ export default function ChatPage() {
   const { openViewer } = useStoriesUi();
   const { startCall, joinCall, hasReturnableCall } = useContext(CallContext);
 
-  const { data: meData } = useGetMeQuery();
+  const { data: meData } = useGetMeQuery(undefined, { refetchOnMountOrArgChange: true, refetchOnFocus: true, refetchOnReconnect: true });
   const me = meData?.user;
   const meId = me?.id;
 
-  const { data: chatsData } = useGetChatsQuery();
+  const { data: chatsData } = useGetChatsQuery(undefined, { refetchOnMountOrArgChange: true, refetchOnFocus: true, refetchOnReconnect: true });
   const chat = (chatsData?.items ?? []).find((item) => item.id === chatId);
   const otherUser = getOtherUser(chat, meId);
   const otherPresence = otherUser?.id ? presence[otherUser.id] : null;
@@ -290,7 +290,7 @@ export default function ChatPage() {
     return Array.from(map.entries()).map(([id, url]) => ({ id, url }));
   }, [mediaMessages]);
 
-  const { data: latestData, isFetching: fetchingLatest } = useGetMessagesQuery({ chatId, take: 50, cursor: null });
+  const { data: latestData, isFetching: fetchingLatest } = useGetMessagesQuery({ chatId, take: 50, cursor: null }, { refetchOnMountOrArgChange: true, refetchOnFocus: true, refetchOnReconnect: true });
   const [fetchOlder, olderRes] = useLazyGetMessagesQuery();
   const [runSearch, searchRes] = useLazySearchMessagesQuery();
   const [olderAsc, setOlderAsc] = useState<Message[]>([]);
@@ -1390,49 +1390,67 @@ export default function ChatPage() {
                 ) : null}
 
                 <div className={styles.composerInputShell}>
-                  <div className={styles.attachWrap} ref={attachMenuRef}>
+                  <div className={styles.leadingActions}>
+                    <div className={styles.attachWrap} ref={attachMenuRef}>
+                      <button
+                        className={styles.innerActionBtn}
+                        type="button"
+                        onClick={() => {
+                          if (!canWriteInChat || pendingVoice || pendingVideo || isRecordingVideoNote) return;
+                          setShowEmojiPicker(false);
+                          setAttachMenuOpen((value) => !value);
+                        }}
+                        aria-label="Открыть вложения"
+                        title="Вложения"
+                        disabled={!canWriteInChat || Boolean(pendingVoice || pendingVideo || isRecordingVideoNote)}
+                      >
+                        <Icon name="paperclip" size={18} />
+                      </button>
+
+                      {attachMenuOpen ? (
+                        <div className={styles.attachMenu}>
+                          <button
+                            className={styles.attachMenuItem}
+                            type="button"
+                            onClick={() => {
+                              setAttachMenuOpen(false);
+                              fileInputRef.current?.click();
+                            }}
+                          >
+                            <Icon name="image" size={16} />
+                            <span>Фото</span>
+                          </button>
+                          <button
+                            className={styles.attachMenuItem}
+                            type="button"
+                            onClick={() => {
+                              setAttachMenuOpen(false);
+                              setShowEmojiPicker(false);
+                              setIsRecordingAudio(false);
+                              setGamesOpen(true);
+                            }}
+                          >
+                            <Icon name="sparkles" size={16} />
+                            <span>Виджет</span>
+                          </button>
+                        </div>
+                      ) : null}
+                    </div>
+
                     <button
-                      className={styles.innerActionBtn}
+                      className={[styles.innerActionBtn, showEmojiPicker ? styles.innerActionBtnHover : ''].filter(Boolean).join(' ')}
                       type="button"
                       onClick={() => {
-                        if (!canWriteInChat || pendingVoice || pendingVideo || isRecordingVideoNote) return;
-                        setShowEmojiPicker(false);
-                        setAttachMenuOpen((value) => !value);
+                        if (!canWriteInChat || pendingVoice || pendingVideo || isRecordingVideoNote || isRecordingAudio) return;
+                        setAttachMenuOpen(false);
+                        setShowEmojiPicker((value) => !value);
                       }}
-                      aria-label="Открыть вложения"
-                      title="Вложения"
-                      disabled={!canWriteInChat || Boolean(pendingVoice || pendingVideo || isRecordingVideoNote)}
+                      aria-label="Открыть эмодзи"
+                      title="Эмодзи"
+                      disabled={!canWriteInChat || isRecordingAudio || Boolean(pendingVoice || pendingVideo || isRecordingVideoNote)}
                     >
-                      <Icon name="paperclip" size={18} />
+                      <Icon name="smile" size={18} />
                     </button>
-
-                    {attachMenuOpen ? (
-                      <div className={styles.attachMenu}>
-                        <button
-                          className={styles.attachMenuItem}
-                          type="button"
-                          onClick={() => {
-                            setAttachMenuOpen(false);
-                            fileInputRef.current?.click();
-                          }}
-                        >
-                          <Icon name="image" size={16} />
-                          <span>Фото</span>
-                        </button>
-                        <button
-                          className={styles.attachMenuItem}
-                          type="button"
-                          onClick={() => {
-                            setAttachMenuOpen(false);
-                            setIsRecordingAudio(false);
-                            setShowEmojiPicker((value) => !value);
-                          }}
-                        >
-                          <Icon name="sparkles" size={16} />
-                          <span>Виджет</span>
-                        </button>
-                      </div>
-                    ) : null}
                   </div>
 
                   <textarea

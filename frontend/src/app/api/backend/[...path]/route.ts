@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { BACKEND_URL } from '@/shared/config/env';
-import { COOKIE_NAMES, cookieOptions } from '@/shared/lib/authCookies';
+import { COOKIE_NAMES, accessCookieOptions, expiredCookieOptions } from '@/shared/lib/authCookies';
 
 
 function normalizeAppMediaUrl(value?: string | null): string | null {
@@ -79,10 +79,10 @@ async function forward(req: Request, path: string[]) {
     const nextAccess = await refreshAccess(refresh);
     if (nextAccess) {
       access = nextAccess;
-      c.set(COOKIE_NAMES.access, access, cookieOptions);
+      c.set(COOKIE_NAMES.access, access, accessCookieOptions);
     } else if (access) {
       access = undefined;
-      c.set(COOKIE_NAMES.access, '', { ...cookieOptions, maxAge: 0 });
+      c.set(COOKIE_NAMES.access, '', expiredCookieOptions);
     }
   }
 
@@ -131,7 +131,7 @@ async function forward(req: Request, path: string[]) {
     const nextAccess = await refreshAccess(refresh);
     if (nextAccess) {
       access = nextAccess;
-      c.set(COOKIE_NAMES.access, access, cookieOptions);
+      c.set(COOKIE_NAMES.access, access, accessCookieOptions);
       try {
         r = await doFetch(access);
       } catch (e: any) {
@@ -142,8 +142,8 @@ async function forward(req: Request, path: string[]) {
       }
     } else {
       // refresh invalid — clear cookies
-      c.set(COOKIE_NAMES.access, '', { ...cookieOptions, maxAge: 0 });
-      c.set(COOKIE_NAMES.refresh, '', { ...cookieOptions, maxAge: 0 });
+      c.set(COOKIE_NAMES.access, '', expiredCookieOptions);
+      c.set(COOKIE_NAMES.refresh, '', expiredCookieOptions);
     }
   }
 

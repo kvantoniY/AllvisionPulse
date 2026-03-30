@@ -45,7 +45,8 @@ type IconName =
   | 'select'
   | 'clock'
   | 'menu'
-  | 'paperclip';
+  | 'paperclip'
+  | 'smile';
 
 const line = { fill: 'none', stroke: 'currentColor', strokeWidth: '1.8', strokeLinecap: 'round', strokeLinejoin: 'round' } as const;
 
@@ -95,6 +96,12 @@ const paths: Record<IconName, ReactNode> = {
   clock: <><circle cx="12" cy="12" r="8" {...line}/><path d="M12 8v4.5l3 1.5" {...line}/></>,
   menu: <><path d="M4 7h16" {...line}/><path d="M4 12h16" {...line}/><path d="M4 17h16" {...line}/></>,
   paperclip: <path d="M9.5 12.5 16 6a3 3 0 1 1 4.24 4.24l-8.13 8.13a5 5 0 1 1-7.07-7.07l8.48-8.49" {...line} />,
+  smile: <>
+    <circle cx="12" cy="12" r="8.5" {...line} />
+    <path d="M8.5 14.5c.9 1.3 2.08 2 3.5 2s2.6-.7 3.5-2" {...line} />
+    <circle cx="9" cy="10" r="1" fill="currentColor" />
+    <circle cx="15" cy="10" r="1" fill="currentColor" />
+  </>,
 };
 
 export function Icon({ name, size = 20, className, ...props }: SVGProps<SVGSVGElement> & { name: IconName; size?: number }) {

@@ -11,7 +11,6 @@
   justify-content: space-between;
   gap: 14px;
   padding: 18px 0 16px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .eyebrow {
@@ -69,7 +68,6 @@
 
 .itemActive {
   background: linear-gradient(90deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0));
-  border-bottom-color: rgba(255, 122, 26, 0.22);
 }
 
 .itemTop {

@@ -35,8 +35,12 @@ jobs:
       - name: Build frontend on runner
         shell: bash
         env:
-          NEXT_PUBLIC_BACKEND_URL: http://${{ secrets.ALPHA_HOST }}
-          AUTH_COOKIE_SECURE: "false"
+          NEXT_PUBLIC_BACKEND_URL: https://allvision-pulse.ru
+          PUBLIC_APP_URL: https://allvision-pulse.ru
+          AUTH_COOKIE_SECURE: "true"
+          AUTH_COOKIE_DOMAIN: .allvision-pulse.ru
+          ACCESS_TTL_MIN: "15"
+          REFRESH_TTL_DAYS: "30"
           NEXT_TELEMETRY_DISABLED: "1"
           NPM_CONFIG_REGISTRY: https://registry.npmjs.org/
         run: |

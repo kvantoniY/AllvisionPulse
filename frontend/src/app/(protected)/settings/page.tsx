@@ -7,7 +7,14 @@ import { Card, CardHeader, CardMuted } from '@/shared/ui/Card/Card';
 import { Button } from '@/shared/ui/Button/Button';
 import { AdminBadge } from '@/shared/ui/AdminBadge/AdminBadge';
 import { Switch } from '@/shared/ui/Switch/Switch';
-import { useLogoutMutation, useChangePasswordMutation } from '@/shared/api/authApi';
+import {
+  useLogoutMutation,
+  useChangePasswordMutation,
+  useGetSessionsQuery,
+  useRevokeSessionMutation,
+  useRevokeOtherSessionsMutation,
+  type AuthSession,
+} from '@/shared/api/authApi';
 import { ROUTES } from '@/shared/config/app';
 import { useGetMeQuery, useUpdatePrivacyMutation } from '@/shared/api/usersApi';
 import { useGetBlacklistQuery, useUnblockUserMutation } from '@/shared/api/friendsApi';
@@ -28,13 +35,7 @@ const contactOptions: { value: ContactPrivacy; label: string; hint: string }[] =
   { value: 'none', label: 'Никто', hint: 'Только ты сможешь инициировать общение.' },
 ];
 
-function SettingsSegment({
-  value,
-  onChange,
-}: {
-  value: SettingsTab;
-  onChange: (tab: SettingsTab) => void;
-}) {
+function SettingsSegment({ value, onChange }: { value: SettingsTab; onChange: (tab: SettingsTab) => void; }) {
   const options: Array<{ value: SettingsTab; label: string }> = [
     { value: 'privacy', label: 'Приватность' },
     { value: 'security', label: 'Безопасность' },
@@ -57,17 +58,7 @@ function SettingsSegment({
   );
 }
 
-function ChoicePills<T extends string>({
-  value,
-  options,
-  onChange,
-  disabled,
-}: {
-  value: T | undefined;
-  options: Array<{ value: T; label: string }>;
-  onChange: (next: T) => void;
-  disabled?: boolean;
-}) {
+function ChoicePills<T extends string>({ value, options, onChange, disabled }: { value: T | undefined; options: Array<{ value: T; label: string }>; onChange: (next: T) => void; disabled?: boolean; }) {
   return (
     <div className={styles.choicePills}>
       {options.map((option) => (
@@ -85,6 +76,59 @@ function ChoicePills<T extends string>({
   );
 }
 
+function formatSessionDate(value?: string | null) {
+  if (!value) return '—';
+  const date = new Date(value);
+  if (!Number.isFinite(date.getTime())) return '—';
+  return date.toLocaleString('ru-RU', { dateStyle: 'medium', timeStyle: 'short' });
+}
+
+function describeDevice(userAgent?: string | null) {
+  const ua = String(userAgent ?? '').toLowerCase();
+  const browser = ua.includes('edg/') ? 'Microsoft Edge'
+    : ua.includes('opr/') || ua.includes('opera') ? 'Opera'
+    : ua.includes('chrome/') && !ua.includes('edg/') ? 'Google Chrome'
+    : ua.includes('firefox/') ? 'Mozilla Firefox'
+    : ua.includes('safari/') && !ua.includes('chrome/') ? 'Safari'
+    : 'Браузер';
+
+  const os = ua.includes('windows') ? 'Windows'
+    : ua.includes('android') ? 'Android'
+    : ua.includes('iphone') || ua.includes('ipad') || ua.includes('ios') ? 'iOS'
+    : ua.includes('mac os x') || ua.includes('macintosh') ? 'macOS'
+    : ua.includes('linux') ? 'Linux'
+    : 'Неизвестная ОС';
+
+  const device = ua.includes('mobile') || ua.includes('android') || ua.includes('iphone') ? 'Мобильное устройство' : 'Компьютер';
+  return { title: `${browser} • ${os}`, subtitle: device };
+}
+
+function SessionRow({ session, isCurrent, busy, onRevoke }: { session: AuthSession; isCurrent: boolean; busy: boolean; onRevoke: () => void; }) {
+  const device = describeDevice(session.userAgent);
+  const isRevoked = Boolean(session.revokedAt);
+
+  return (
+    <div className={[styles.sessionRow, isCurrent ? styles.sessionRowCurrent : ''].filter(Boolean).join(' ')}>
+      <div className={styles.sessionMeta}>
+        <div className={styles.sessionTopLine}>
+          <div className={styles.sessionTitle}>{device.title}</div>
+          <div className={styles.sessionBadges}>
+            {isCurrent ? <span className={styles.sessionBadgeCurrent}>Текущая</span> : null}
+            {isRevoked ? <span className={styles.sessionBadgeMuted}>Завершена</span> : null}
+          </div>
+        </div>
+        <div className={styles.sessionHint}>{device.subtitle}</div>
+        <div className={styles.sessionFacts}>
+          <span>IP: {session.ip || 'не определён'}</span>
+          <span>Последняя активность: {formatSessionDate(session.lastUsedAt)}</span>
+          <span>Вход: {formatSessionDate(session.createdAt)}</span>
+        </div>
+      </div>
+      {!isCurrent && !isRevoked ? <Button variant="ghost" onClick={onRevoke} loading={busy}>Завершить</Button> : null}
+    </div>
+  );
+}
+
 export default function SettingsPage() {
   const router = useRouter();
   const [tab, setTab] = useState<SettingsTab>('privacy');
@@ -96,8 +140,17 @@ export default function SettingsPage() {
   const { data: blacklistData } = useGetBlacklistQuery();
   const [unblockUser, { isLoading: unblocking }] = useUnblockUserMutation();
   const [changePassword, { isLoading: changingPassword }] = useChangePasswordMutation();
+  const { data: sessionsData, isFetching: sessionsFetching, refetch: refetchSessions } = useGetSessionsQuery(undefined, {
+    skip: tab !== 'security',
+    refetchOnMountOrArgChange: true,
+    refetchOnFocus: true,
+    refetchOnReconnect: true,
+  });
+  const [revokeSession, revokeSessionState] = useRevokeSessionMutation();
+  const [revokeOtherSessions, revokeOtherSessionsState] = useRevokeOtherSessionsMutation();
   const [passwordForm, setPasswordForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
   const [passwordMessage, setPasswordMessage] = useState<string | null>(null);
+  const [revokingSessionId, setRevokingSessionId] = useState<string | null>(null);
 
   const summary = useMemo(() => {
     const profileLabel = privacy?.profileVisibility === 'private' ? 'Закрытый профиль' : privacy?.profileVisibility === 'followers' ? 'Профиль для подписчиков' : 'Открытый профиль';
@@ -105,6 +158,10 @@ export default function SettingsPage() {
     const callsLabel = privacy?.allowCallsFrom === 'none' ? 'Звонки выключены' : privacy?.allowCallsFrom === 'followers' ? 'Звонки от подписчиков' : 'Звонки от всех';
     return [profileLabel, messagesLabel, callsLabel];
   }, [privacy?.allowCallsFrom, privacy?.allowMessagesFrom, privacy?.profileVisibility]);
+
+  const sessions = sessionsData?.sessions ?? [];
+  const currentSessionId = sessionsData?.currentSessionId ?? null;
+  const activeSessionsCount = sessions.filter((session) => !session.revokedAt).length;
 
   const updatePrivacyField = async (patch: Record<string, unknown>) => {
     await updatePrivacy(patch as never).unwrap().catch(() => null);
@@ -129,12 +186,12 @@ export default function SettingsPage() {
       setPasswordMessage('Подтверждение пароля не совпадает.');
       return;
     }
-    const ok = await changePassword({ currentPassword: passwordForm.currentPassword, newPassword: passwordForm.newPassword })
-      .unwrap()
-      .then(() => true)
-      .catch(() => false);
+    const ok = await changePassword({ currentPassword: passwordForm.currentPassword, newPassword: passwordForm.newPassword }).unwrap().then(() => true).catch(() => false);
     setPasswordMessage(ok ? 'Пароль обновлён. Остальные сессии завершены.' : 'Не удалось обновить пароль. Проверь текущий пароль.');
-    if (ok) setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+    if (ok) {
+      setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+      refetchSessions();
+    }
   };
 
   return (
@@ -162,13 +219,7 @@ export default function SettingsPage() {
             <CardMuted>Это влияет и на страницу пользователя, и на доступ к подписчикам и подпискам.</CardMuted>
             <div className={styles.optionList}>
               {profileOptions.map((option) => (
-                <button
-                  key={option.value}
-                  type="button"
-                  className={[styles.optionRow, privacy?.profileVisibility === option.value ? styles.optionRowActive : ''].filter(Boolean).join(' ')}
-                  onClick={() => updatePrivacyField({ profileVisibility: option.value })}
-                  disabled={savingPrivacy}
-                >
+                <button key={option.value} type="button" className={[styles.optionRow, privacy?.profileVisibility === option.value ? styles.optionRowActive : ''].filter(Boolean).join(' ')} onClick={() => updatePrivacyField({ profileVisibility: option.value })} disabled={savingPrivacy}>
                   <div>
                     <div className={styles.optionTitle}>{option.label}</div>
                     <div className={styles.optionHint}>{option.hint}</div>
@@ -216,22 +267,38 @@ export default function SettingsPage() {
             <CardHeader title="Смена пароля" />
             <CardMuted>После обновления пароля все другие активные сессии будут завершены.</CardMuted>
             <div className={styles.formGrid}>
-              <label className={styles.field}>
-                <span>Текущий пароль</span>
-                <input type="password" className={styles.input} value={passwordForm.currentPassword} onChange={(e) => setPasswordForm((prev) => ({ ...prev, currentPassword: e.target.value }))} />
-              </label>
-              <label className={styles.field}>
-                <span>Новый пароль</span>
-                <input type="password" className={styles.input} value={passwordForm.newPassword} onChange={(e) => setPasswordForm((prev) => ({ ...prev, newPassword: e.target.value }))} />
-              </label>
-              <label className={styles.field}>
-                <span>Подтверждение</span>
-                <input type="password" className={styles.input} value={passwordForm.confirmPassword} onChange={(e) => setPasswordForm((prev) => ({ ...prev, confirmPassword: e.target.value }))} />
-              </label>
+              <label className={styles.field}><span>Текущий пароль</span><input type="password" className={styles.input} value={passwordForm.currentPassword} onChange={(e) => setPasswordForm((prev) => ({ ...prev, currentPassword: e.target.value }))} /></label>
+              <label className={styles.field}><span>Новый пароль</span><input type="password" className={styles.input} value={passwordForm.newPassword} onChange={(e) => setPasswordForm((prev) => ({ ...prev, newPassword: e.target.value }))} /></label>
+              <label className={styles.field}><span>Подтверждение</span><input type="password" className={styles.input} value={passwordForm.confirmPassword} onChange={(e) => setPasswordForm((prev) => ({ ...prev, confirmPassword: e.target.value }))} /></label>
             </div>
             {passwordMessage ? <div className={passwordMessage.includes('обновлён') ? styles.success : styles.error}>{passwordMessage}</div> : null}
-            <div className={styles.footerActions}>
-              <Button variant="primary" onClick={submitPassword} loading={changingPassword}>Обновить пароль</Button>
+            <div className={styles.footerActions}><Button variant="primary" onClick={submitPassword} loading={changingPassword}>Обновить пароль</Button></div>
+          </Card>
+
+          <Card>
+            <CardHeader title="Активные сессии" />
+            <CardMuted>Здесь видно, где сейчас выполнен вход. Используй один канонический адрес сайта, чтобы не плодить отдельные сессии на разных host.</CardMuted>
+            <div className={styles.sessionSummaryRow}>
+              <div className={styles.sessionSummaryCard}><div className={styles.sessionSummaryValue}>{activeSessionsCount}</div><div className={styles.sessionSummaryLabel}>Активно сейчас</div></div>
+              <div className={styles.sessionSummaryActions}>
+                <Button variant="ghost" onClick={() => refetchSessions()} loading={sessionsFetching}>Обновить список</Button>
+                <Button variant="ghost" onClick={() => revokeOtherSessions().unwrap().then(() => refetchSessions()).catch(() => null)} loading={revokeOtherSessionsState.isLoading} disabled={activeSessionsCount <= 1 || Boolean(revokingSessionId)}>Завершить остальные</Button>
+              </div>
+            </div>
+            <div className={styles.sessionList}>
+              {sessions.map((session) => (
+                <SessionRow
+                  key={session.id}
+                  session={session}
+                  isCurrent={session.id === currentSessionId}
+                  busy={revokeSessionState.isLoading && revokingSessionId === session.id}
+                  onRevoke={() => {
+                    setRevokingSessionId(session.id);
+                    revokeSession({ sessionId: session.id }).unwrap().then(() => refetchSessions()).catch(() => null).finally(() => setRevokingSessionId(null));
+                  }}
+                />
+              ))}
+              {!sessions.length ? <div className={styles.empty}>Сессии пока не найдены.</div> : null}
             </div>
           </Card>
 

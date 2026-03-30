@@ -55,7 +55,9 @@
   .optionRow,
   .settingRow,
   .blacklistRow,
-  .accountBox {
+  .accountBox,
+  .sessionRow,
+  .sessionSummaryRow {
     gap: 12px;
   }
 
@@ -76,3 +78,23 @@
     width: 100%;
   }
 }
+
+.sessionSummaryRow { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 12px; }
+.sessionSummaryCard { min-width: 120px; padding: 12px 14px; border-radius: 14px; border: 1px solid var(--stroke); background: rgba(255,255,255,0.03); }
+.sessionSummaryValue { font-size: 24px; font-weight: 800; letter-spacing: -0.03em; }
+.sessionSummaryLabel { margin-top: 4px; color: var(--muted); font-size: 12px; }
+.sessionSummaryActions { display: flex; gap: 10px; flex-wrap: wrap; }
+.sessionList { display: grid; gap: 10px; margin-top: 14px; }
+.sessionRow { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px; border-radius: 14px; border: 1px solid var(--stroke); background: rgba(255,255,255,0.02); }
+.sessionRowCurrent { border-color: rgba(255,122,26,0.28); background: rgba(255,122,26,0.08); }
+.sessionMeta { min-width: 0; display: grid; gap: 6px; }
+.sessionTopLine { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.sessionTitle { font-weight: 700; font-size: 14px; }
+.sessionBadges { display: flex; gap: 8px; flex-wrap: wrap; }
+.sessionBadgeCurrent, .sessionBadgeMuted { padding: 5px 10px; border-radius: 999px; font-size: 11px; font-weight: 700; }
+.sessionBadgeCurrent { background: rgba(255,122,26,0.14); color: #ffd1aa; }
+.sessionBadgeMuted { background: rgba(255,255,255,0.06); color: var(--muted); }
+.sessionHint, .sessionFacts { color: var(--muted); font-size: 12px; }
+.sessionFacts { display: flex; gap: 12px; flex-wrap: wrap; }
+
+@media (max-width: 880px) { .sessionRow, .sessionSummaryRow { flex-direction: column; align-items: stretch; } }

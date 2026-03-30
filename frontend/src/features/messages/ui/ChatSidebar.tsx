@@ -83,7 +83,7 @@ export function ChatSidebar({ activeChatId }: { activeChatId?: string | null }) 
   const { data: meData } = useGetMeQuery();
   const meId = meData?.user?.id;
 
-  const { data, isFetching } = useGetChatsQuery();
+  const { data, isFetching, isError, refetch } = useGetChatsQuery(undefined, { refetchOnMountOrArgChange: true, refetchOnFocus: true, refetchOnReconnect: true });
   const chats = data?.items ?? [];
   const unreadByChat = useAppSelector((s) => s.chatUi.unreadByChat);
   const presence = useAppSelector((s) => s.presence.byUserId);
@@ -124,6 +124,12 @@ export function ChatSidebar({ activeChatId }: { activeChatId?: string | null }) 
       </div>
 
       {isFetching && !chats.length ? <ChatListSkeleton /> : null}
+      {isError && !chats.length ? (
+        <div className={styles.list}>
+          <div className={styles.state}>Не удалось загрузить чаты.</div>
+          <Button className={styles.actionBtn} type="button" onClick={() => refetch()}>Повторить</Button>
+        </div>
+      ) : null}
       {!isFetching || chats.length ? (
         <div className={styles.list}>
           {chats.map((c) => (

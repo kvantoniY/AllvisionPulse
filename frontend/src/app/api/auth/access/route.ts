@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { BACKEND_URL } from '@/shared/config/env';
-import { COOKIE_NAMES, cookieOptions } from '@/shared/lib/authCookies';
+import { COOKIE_NAMES, accessCookieOptions, expiredCookieOptions } from '@/shared/lib/authCookies';
 
 function shouldRefreshAccessToken(token?: string | null) {
   if (!token) return true;
@@ -42,7 +42,10 @@ export async function GET() {
     const nextAccess = await refreshAccess(refresh);
     if (nextAccess) {
       access = nextAccess;
-      c.set(COOKIE_NAMES.access, access, cookieOptions);
+      c.set(COOKIE_NAMES.access, access, accessCookieOptions);
+    } else {
+      c.set(COOKIE_NAMES.access, '', expiredCookieOptions);
+      c.set(COOKIE_NAMES.refresh, '', expiredCookieOptions);
     }
   }
 

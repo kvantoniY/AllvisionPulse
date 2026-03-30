@@ -16,6 +16,9 @@
   padding: calc(var(--header-height) + 20px) var(--page-gutter) var(--content-bottom-pad-desktop);
 }
 
+.contentMobileImmersive {
+}
+
 @media (max-width: 1180px) {
   .content {
     padding-inline: 20px;
@@ -34,5 +37,12 @@
   .content {
     padding: calc(var(--mobile-header-height) + 8px) 0 calc(var(--mobile-nav-height) + env(safe-area-inset-bottom, 0px) + 18px);
     background: var(--bg-elevated);
+  }
+
+  .contentMobileImmersive {
+    height: 100dvh;
+    min-height: 100dvh;
+    padding: 0;
+    overflow: hidden;
   }
 }
