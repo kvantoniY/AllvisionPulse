@@ -59,7 +59,7 @@ jobs:
           mkdir -p ~/.ssh
           printf '%s\n' "${{ secrets.ALPHA_SSH_PRIVATE_KEY }}" | perl -pe 's/\r$//' > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
-          cat > ~/.ssh/config <<EOF
+          cat > ~/.ssh/config <<EOFSSH
           Host alpha
             HostName ${{ secrets.ALPHA_HOST }}
             User ${{ secrets.ALPHA_USER }}
@@ -69,7 +69,7 @@ jobs:
             IdentitiesOnly yes
             ServerAliveInterval 30
             ServerAliveCountMax 6
-          EOF
+          EOFSSH
           chmod 600 ~/.ssh/config
           ssh -o BatchMode=yes alpha "echo SSH_OK"
 
@@ -92,7 +92,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          ssh alpha 'bash -s' <<'EOF'
+          ssh alpha 'bash -s' <<'EOFREMOTE'
           set -euo pipefail
 
           APP_ROOT=/opt/allvision-pulse
@@ -113,11 +113,24 @@ jobs:
 
           if [ -f "$NEXT_DIR/infra/alpha/.env" ]; then
             CORS_ORIGIN="http://${{ secrets.ALPHA_HOST }},https://${{ secrets.ALPHA_HOST }},http://allvision-pulse.ru,http://www.allvision-pulse.ru,https://allvision-pulse.ru,https://www.allvision-pulse.ru"
-            if grep -q '^CORS_ORIGIN=' "$NEXT_DIR/infra/alpha/.env"; then
-              sed -i "s|^CORS_ORIGIN=.*|CORS_ORIGIN=$CORS_ORIGIN|" "$NEXT_DIR/infra/alpha/.env"
-            else
-              printf '\nCORS_ORIGIN=%s\n' "$CORS_ORIGIN" >> "$NEXT_DIR/infra/alpha/.env"
-            fi
+            PUBLIC_APP_URL="https://allvision-pulse.ru"
+            AUTH_COOKIE_SECURE="true"
+            AUTH_COOKIE_DOMAIN=".allvision-pulse.ru"
+
+            upsert_env() {
+              local key="$1"
+              local value="$2"
+              if grep -q "^${key}=" "$NEXT_DIR/infra/alpha/.env"; then
+                sed -i "s|^${key}=.*|${key}=${value}|" "$NEXT_DIR/infra/alpha/.env"
+              else
+                printf '%s=%s\n' "$key" "$value" >> "$NEXT_DIR/infra/alpha/.env"
+              fi
+            }
+
+            upsert_env CORS_ORIGIN "$CORS_ORIGIN"
+            upsert_env PUBLIC_APP_URL "$PUBLIC_APP_URL"
+            upsert_env AUTH_COOKIE_SECURE "$AUTH_COOKIE_SECURE"
+            upsert_env AUTH_COOKIE_DOMAIN "$AUTH_COOKIE_DOMAIN"
           fi
 
           rm -rf "$PREV_DIR"
@@ -145,30 +158,26 @@ jobs:
             exit 1
           fi
 
-          docker compose \
-            --project-name allvision-alpha \
-            --env-file infra/alpha/.env \
-            -f infra/alpha/docker-compose.alpha.yml \
-            restart nginx
+          echo "=== current public env ==="
+          grep -E '^(CORS_ORIGIN|PUBLIC_APP_URL|AUTH_COOKIE_SECURE|AUTH_COOKIE_DOMAIN)=' infra/alpha/.env || true
 
-          echo "=== current CORS_ORIGIN ==="
-          grep '^CORS_ORIGIN=' infra/alpha/.env || true
+          sleep 3
 
           echo "=== nginx health ==="
-          curl --retry 10 --retry-delay 2 --retry-connrefused -fsS http://127.0.0.1/healthz >/dev/null
+          curl --retry 15 --retry-delay 2 --retry-all-errors -fsS http://127.0.0.1/healthz >/dev/null
 
           echo "=== socket.io polling health ==="
-          curl --retry 10 --retry-delay 2 --retry-connrefused -fsS "http://127.0.0.1/socket.io/?EIO=4&transport=polling" | grep -q "\"sid\""
+          curl --retry 15 --retry-delay 2 --retry-all-errors -fsS "http://127.0.0.1/socket.io/?EIO=4&transport=polling" | grep -q '"sid"'
 
           docker image prune -af --filter "until=72h" || true
-          EOF
+          EOFREMOTE
 
       - name: Backend diagnostics
         if: always()
         shell: bash
         run: |
           set +e
-          ssh alpha 'bash -s' <<'EOF'
+          ssh alpha 'bash -s' <<'EOFREMOTE'
           set +e
           APP_ROOT=/opt/allvision-pulse
           CURRENT_DIR="$APP_ROOT/current"
@@ -225,12 +234,17 @@ jobs:
             -f infra/alpha/docker-compose.alpha.yml \
             ps -q backend)
           echo "$BACKEND_ID"
-          if [ -n "$BACKEND_ID" ]; then
-            echo
-            echo "=== docker inspect state ==="
-            docker inspect "$BACKEND_ID" --format '{{json .State}}'
-            echo
-            echo "=== docker inspect health ==="
-            docker inspect "$BACKEND_ID" --format '{{json .State.Health}}'
-          fi
-          EOF
+          echo
+          echo "=== docker inspect health ==="
+          for service in backend frontend nginx; do
+            CID=$(docker compose \
+              --project-name allvision-alpha \
+              --env-file infra/alpha/.env \
+              -f infra/alpha/docker-compose.alpha.yml \
+              ps -q "$service")
+            if [ -n "$CID" ]; then
+              echo "--- $service ---"
+              docker inspect --format '{{json .State.Health}}' "$CID" 2>/dev/null || true
+            fi
+          done
+          EOFREMOTE
