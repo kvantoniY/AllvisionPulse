@@ -141,11 +141,17 @@ jobs:
             exit 1
           fi
 
+          docker compose \
+            --project-name allvision-alpha \
+            --env-file infra/alpha/.env \
+            -f infra/alpha/docker-compose.alpha.yml \
+            restart nginx
+
           echo "=== current CORS_ORIGIN ==="
           grep '^CORS_ORIGIN=' infra/alpha/.env || true
 
           echo "=== nginx health ==="
-          curl -fsS http://127.0.0.1/healthz >/dev/null
+          curl --retry 10 --retry-delay 2 --retry-connrefused -fsS http://127.0.0.1/healthz >/dev/null
 
           docker image prune -af --filter "until=72h" || true
           EOF
