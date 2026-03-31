@@ -39,6 +39,67 @@ function updatePostCommentCountEverywhere(
   );
 }
 
+
+type PostDraftLikeTarget = {
+  id: string;
+  likes?: Array<{ userId: string }>;
+  _count?: { likes?: number; comments?: number; reposts?: number };
+};
+
+function updatePostLikeEverywhere(
+  dispatch: any,
+  getState: () => unknown,
+  postId: string,
+  userId: string | undefined,
+  direction: 'like' | 'unlike',
+) {
+  const applyLikePatch = (post?: PostDraftLikeTarget | null) => {
+    if (!post) return;
+    const likes = (post.likes ??= []);
+    const hasLike = Boolean(userId && likes.some((item) => item.userId === userId));
+
+    if (direction === 'like') {
+      if (userId && !hasLike) likes.push({ userId });
+      post._count ??= {};
+      post._count.likes = userId && hasLike ? (post._count.likes ?? likes.length) : (post._count.likes ?? likes.length - 1) + 1;
+      return;
+    }
+
+    if (userId) {
+      post.likes = likes.filter((item) => item.userId !== userId);
+    }
+    post._count ??= {};
+    const base = post._count.likes ?? likes.length;
+    post._count.likes = Math.max(0, userId && hasLike ? base - 1 : base);
+  };
+
+  dispatch(
+    postsApi.util.updateQueryData('getFeed', undefined as any, (draft) => {
+      applyLikePatch(draft.items.find((item) => item.id === postId) as any);
+    }),
+  );
+
+  const cachedUserPostsArgs = postsApi.util.selectCachedArgsForQuery(getState() as any, 'getUserPosts') as Array<{
+    username: string;
+    take?: number;
+    cursor?: string | null;
+  }>;
+
+  for (const arg of cachedUserPostsArgs) {
+    dispatch(
+      postsApi.util.updateQueryData('getUserPosts', arg as any, (draft) => {
+        applyLikePatch(draft.items.find((item) => item.id === postId) as any);
+      }),
+    );
+  }
+
+  dispatch(
+    postsApi.util.updateQueryData('getPost', { postId } as any, (draft) => {
+      applyLikePatch(draft.post as any);
+    }),
+  );
+}
+
 /**
  * RTK Query infinite feed cache:
  * - serializeQueryArgs => one cache entry for the whole feed
@@ -198,20 +259,12 @@ export const postsApi = createApi({
 
     likePost: build.mutation<{ ok: true }, { postId: string; userId?: string }>({
       query: ({ postId }) => ({ url: `/backend/posts/${encodeURIComponent(postId)}/like`, method: 'POST' }),
-      async onQueryStarted({ postId, userId }, { dispatch, queryFulfilled }) {
-        const patch = dispatch(
-          postsApi.util.updateQueryData('getFeed', undefined as any, (draft) => {
-            const p = draft.items.find((x) => x.id === postId);
-            if (!p) return;
-            const likes = (p.likes ??= []);
-            if (userId && !likes.some((l) => l.userId === userId)) likes.push({ userId });
-            if (p._count) p._count.likes = (p._count.likes ?? 0) + 1;
-          }),
-        );
+      async onQueryStarted({ postId, userId }, { dispatch, getState, queryFulfilled }) {
+        updatePostLikeEverywhere(dispatch, getState, postId, userId, 'like');
         try {
           await queryFulfilled;
         } catch {
-          patch.undo();
+          updatePostLikeEverywhere(dispatch, getState, postId, userId, 'unlike');
         }
       },
       invalidatesTags: (_r, _e, arg) => [{ type: 'Post', id: arg.postId }],
@@ -219,19 +272,12 @@ export const postsApi = createApi({
 
     unlikePost: build.mutation<{ ok: true }, { postId: string; userId?: string }>({
       query: ({ postId }) => ({ url: `/backend/posts/${encodeURIComponent(postId)}/like`, method: 'DELETE' }),
-      async onQueryStarted({ postId, userId }, { dispatch, queryFulfilled }) {
-        const patch = dispatch(
-          postsApi.util.updateQueryData('getFeed', undefined as any, (draft) => {
-            const p = draft.items.find((x) => x.id === postId);
-            if (!p) return;
-            if (userId) p.likes = (p.likes ?? []).filter((l) => l.userId !== userId);
-            if (p._count) p._count.likes = Math.max(0, (p._count.likes ?? 0) - 1);
-          }),
-        );
+      async onQueryStarted({ postId, userId }, { dispatch, getState, queryFulfilled }) {
+        updatePostLikeEverywhere(dispatch, getState, postId, userId, 'unlike');
         try {
           await queryFulfilled;
         } catch {
-          patch.undo();
+          updatePostLikeEverywhere(dispatch, getState, postId, userId, 'like');
         }
       },
       invalidatesTags: (_r, _e, arg) => [{ type: 'Post', id: arg.postId }],

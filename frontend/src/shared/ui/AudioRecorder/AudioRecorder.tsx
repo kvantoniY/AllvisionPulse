@@ -256,30 +256,56 @@ export function AudioRecorder({ onRecordingComplete, onCancel, className, varian
     };
   }, []);
 
+  const statusLabel = error ? 'Микрофон недоступен' : isProcessing ? 'Подготавливаем голосовое' : 'Запись голосового';
+
   return (
     <div className={[styles.audioRecorderContainer, variant === 'inline' ? styles.inline : styles.floating, className].filter(Boolean).join(' ')}>
-      <div className={styles.panel}>
-        <div className={styles.topRow}>
-          <div className={styles.state}>
-            <span className={styles.redDot} />
-            <span>{error ? 'Микрофон недоступен' : isProcessing ? 'Подготавливаем голосовое' : 'Запись голосового'}</span>
-          </div>
-          <div className={styles.timer}>{formatTime(duration)}</div>
-        </div>
+      <div className={[styles.panel, variant === 'inline' ? styles.panelInline : ''].filter(Boolean).join(' ')}>
+        {variant === 'inline' ? (
+          <>
+            <button type="button" className={styles.inlineCancelButton} onClick={() => void cancelRecording()} disabled={isProcessing} aria-label="Отменить запись">
+              <CloseIcon />
+            </button>
+            <div className={styles.inlineBody}>
+              <div className={styles.inlineStatusRow}>
+                <span className={styles.redDot} />
+                <span className={styles.inlineStatusLabel}>{statusLabel}</span>
+                <span className={styles.timer}>{formatTime(duration)}</span>
+              </div>
+              <div className={styles.waveformWrap}>
+                <canvas ref={canvasRef} className={styles.waveform} />
+                {error ? <div className={styles.errorOverlay}>{error}</div> : null}
+              </div>
+            </div>
+            <button type="button" className={styles.inlineSendButton} onClick={() => void stopRecording()} disabled={!isRecording || isProcessing || Boolean(error)} aria-label="Отправить голосовое сообщение">
+              {isProcessing ? <span className={styles.spinner} /> : <SendIcon />}
+            </button>
+          </>
+        ) : (
+          <>
+            <div className={styles.topRow}>
+              <div className={styles.state}>
+                <span className={styles.redDot} />
+                <span>{statusLabel}</span>
+              </div>
+              <div className={styles.timer}>{formatTime(duration)}</div>
+            </div>
 
-        <div className={styles.waveformWrap}>
-          <canvas ref={canvasRef} className={styles.waveform} />
-          {error ? <div className={styles.errorOverlay}>{error}</div> : null}
-        </div>
+            <div className={styles.waveformWrap}>
+              <canvas ref={canvasRef} className={styles.waveform} />
+              {error ? <div className={styles.errorOverlay}>{error}</div> : null}
+            </div>
 
-        <div className={styles.actions}>
-          <button type="button" className={styles.ghostButton} onClick={() => void cancelRecording()} disabled={isProcessing} aria-label="Отменить запись">
-            <CloseIcon />
-          </button>
-          <button type="button" className={styles.primaryButton} onClick={() => void stopRecording()} disabled={!isRecording || isProcessing || Boolean(error)} aria-label="Остановить запись">
-            {isProcessing ? <span className={styles.spinner} /> : <SendIcon />}
-          </button>
-        </div>
+            <div className={styles.actions}>
+              <button type="button" className={styles.ghostButton} onClick={() => void cancelRecording()} disabled={isProcessing} aria-label="Отменить запись">
+                <CloseIcon />
+              </button>
+              <button type="button" className={styles.primaryButton} onClick={() => void stopRecording()} disabled={!isRecording || isProcessing || Boolean(error)} aria-label="Остановить запись">
+                {isProcessing ? <span className={styles.spinner} /> : <SendIcon />}
+              </button>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

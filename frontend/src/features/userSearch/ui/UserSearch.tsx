@@ -10,7 +10,23 @@ import { Icon } from '@/shared/ui/Icon/Icon';
 import { AdminBadge } from '@/shared/ui/AdminBadge/AdminBadge';
 import { Skeleton, SkeletonText } from '@/shared/ui/Skeleton/Skeleton';
 
-export function UserSearch() {
+type UserSearchProps = {
+  autoFocus?: boolean;
+  placeholder?: string;
+  className?: string;
+  onPickUser?: () => void;
+  onCloseRequest?: () => void;
+  forceVisible?: boolean;
+};
+
+export function UserSearch({
+  autoFocus = false,
+  placeholder = 'Поиск людей',
+  className,
+  onPickUser,
+  onCloseRequest,
+  forceVisible = false,
+}: UserSearchProps = {}) {
   const router = useRouter();
   const [q, setQ] = useState('');
   const [open, setOpen] = useState(false);
@@ -32,20 +48,40 @@ export function UserSearch() {
     const onDoc = (e: MouseEvent) => {
       const el = boxRef.current;
       if (!el) return;
-      if (!el.contains(e.target as Node)) setOpen(false);
+      if (!el.contains(e.target as Node)) {
+        setOpen(false);
+        onCloseRequest?.();
+      }
     };
     document.addEventListener('mousedown', onDoc);
     return () => document.removeEventListener('mousedown', onDoc);
-  }, []);
+  }, [onCloseRequest]);
 
   const onPick = (username: string) => {
     setOpen(false);
     setQ('');
+    onPickUser?.();
+    onCloseRequest?.();
     router.push(ROUTES.app.profile(username));
   };
 
+  useEffect(() => {
+    if (!autoFocus) return;
+    const input = boxRef.current?.querySelector('input');
+    if (input instanceof HTMLInputElement) input.focus();
+  }, [autoFocus]);
+
   return (
-    <div ref={boxRef} className={styles.wrap}>
+    <div
+      ref={boxRef}
+      className={[styles.wrap, forceVisible ? styles.wrapForceVisible : '', className].filter(Boolean).join(' ')}
+      onBlur={(event) => {
+        const nextTarget = event.relatedTarget as Node | null;
+        if (nextTarget && boxRef.current?.contains(nextTarget)) return;
+        setOpen(false);
+        onCloseRequest?.();
+      }}
+    >
       <div className={styles.inputWrap}>
         <Icon name="search" size={16} className={styles.searchIcon} />
         <input
@@ -55,7 +91,8 @@ export function UserSearch() {
             setOpen(true);
           }}
           onFocus={() => setOpen(true)}
-          placeholder="Поиск людей"
+          placeholder={placeholder}
+          autoFocus={autoFocus}
           className={styles.input}
         />
       </div>

@@ -36,6 +36,7 @@ jobs:
         shell: bash
         env:
           NEXT_PUBLIC_BACKEND_URL: https://allvision-pulse.ru
+          NEXT_PUBLIC_APP_URL: https://allvision-pulse.ru
           PUBLIC_APP_URL: https://allvision-pulse.ru
           AUTH_COOKIE_SECURE: "true"
           AUTH_COOKIE_DOMAIN: .allvision-pulse.ru
@@ -167,7 +168,7 @@ jobs:
           curl --retry 15 --retry-delay 2 --retry-all-errors -fsS http://127.0.0.1/healthz >/dev/null
 
           echo "=== socket.io polling health ==="
-          curl --retry 15 --retry-delay 2 --retry-all-errors -fsS "http://127.0.0.1/socket.io/?EIO=4&transport=polling" | grep -q '"sid"'
+          curl --retry 15 --retry-delay 2 --retry-all-errors -fsS "http://127.0.0.1/socket.io?EIO=4&transport=polling" | grep -q '"sid"'
 
           docker image prune -af --filter "until=72h" || true
           EOFREMOTE

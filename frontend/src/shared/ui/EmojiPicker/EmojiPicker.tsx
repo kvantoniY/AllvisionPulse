@@ -206,6 +206,8 @@ export interface EmojiPickerProps {
   onSelect: (emoji: string) => void;
   onClose?: () => void;
   className?: string;
+  autoFocusSearch?: boolean;
+  triggerRef?: React.RefObject<HTMLElement | null>;
 }
 
 function readRecents(): string[] {
@@ -228,7 +230,7 @@ function saveRecents(next: string[]) {
   }
 }
 
-export function EmojiPicker({ onSelect, onClose, className }: EmojiPickerProps) {
+export function EmojiPicker({ onSelect, onClose, className, autoFocusSearch = true, triggerRef }: EmojiPickerProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState(0);
   const [recentEmojis, setRecentEmojis] = useState<string[]>([]);
@@ -248,18 +250,21 @@ export function EmojiPicker({ onSelect, onClose, className }: EmojiPickerProps) 
   }, [onClose]);
 
   useEffect(() => {
+    if (!autoFocusSearch) return;
     searchInputRef.current?.focus();
-  }, []);
+  }, [autoFocusSearch]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        onClose?.();
-      }
+      const target = e.target as Node | null;
+      if (!target) return;
+      if (containerRef.current?.contains(target)) return;
+      if (triggerRef?.current?.contains(target)) return;
+      onClose?.();
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [onClose]);
+  }, [onClose, triggerRef]);
 
   const recentEntries = useMemo(() => {
     if (!recentEmojis.length) return [] as EmojiEntry[];

@@ -53,3 +53,6 @@
 
 @media (max-width: 760px) { .wrap { width: 220px; max-width: 52vw; } }
 @media (max-width: 520px) { .wrap { display: none; } }
+
+
+.wrapForceVisible { display: block !important; width: 100%; max-width: 100%; }

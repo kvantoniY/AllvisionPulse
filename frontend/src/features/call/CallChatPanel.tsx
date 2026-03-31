@@ -24,6 +24,7 @@ export function CallChatPanel({ chatId }: { chatId: string }) {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const list = useMemo(() => (data?.items ?? []).slice().reverse(), [data]);
   const taRef = useRef<HTMLTextAreaElement | null>(null);
+  const emojiTriggerRef = useRef<HTMLButtonElement | null>(null);
 
   const emojiHandler = useRef(
     new EmojiInputHandler({
@@ -114,10 +115,10 @@ export function CallChatPanel({ chatId }: { chatId: string }) {
       </div>
 
       {isRecording ? <AudioRecorder onRecordingComplete={handleAudioRecordingComplete} onCancel={() => setIsRecording(false)} /> : null}
-      {showEmojiPicker ? <EmojiPicker onSelect={handleEmojiSelect} onClose={() => { setShowEmojiPicker(false); taRef.current?.focus(); }} /> : null}
+      {showEmojiPicker ? <EmojiPicker triggerRef={emojiTriggerRef} autoFocusSearch={false} onSelect={handleEmojiSelect} onClose={() => { setShowEmojiPicker(false); }} /> : null}
 
       <div className={styles.callChatComposer}>
-        <button type="button" className={styles.callChatActionBtn} onClick={() => setShowEmojiPicker(!showEmojiPicker)} title="Эмодзи" aria-label="Открыть эмодзи">
+        <button ref={emojiTriggerRef} type="button" className={styles.callChatActionBtn} onClick={() => setShowEmojiPicker(!showEmojiPicker)} title="Эмодзи" aria-label="Открыть эмодзи">
           <Icon name="sparkles" size={18} />
         </button>
 

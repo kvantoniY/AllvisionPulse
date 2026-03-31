@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import styles from './Header.module.css';
 import { APP_NAME, ROUTES } from '@/shared/config/app';
@@ -34,6 +34,7 @@ export function Header() {
   const mobileTitle = useMemo(() => getMobileTitle(pathname), [pathname]);
   const canOpenComposer = pathname === '/' || pathname.startsWith('/feed');
   const hideMobileHeader = /^\/messages\/[^/]+$/.test(pathname);
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
 
   if (isMobile) {
     if (hideMobileHeader) {
@@ -42,30 +43,53 @@ export function Header() {
     return (
       <header className={[styles.header, styles.headerMobile].join(' ')}>
         <div className={[styles.inner, styles.innerMobile].join(' ')}>
-          <div className={styles.mobileLeft}>
-            {me ? (
-              <Link href={ROUTES.app.profile(me.username)} className={styles.mobileAvatar} aria-label="Открыть профиль">
-                <Avatar url={me.avatarUrl} name={me.username} size={40} />
-              </Link>
-            ) : null}
-            <div className={styles.mobileTitleRow}>
-              <span className={styles.mobileTitle}>{mobileTitle}</span>
+          {mobileSearchOpen ? (
+            <div className={styles.mobileSearchHeaderFull}>
+              <UserSearch
+                autoFocus
+                forceVisible
+                placeholder="Имя или ник"
+                className={styles.mobileSearchWidget}
+                onPickUser={() => setMobileSearchOpen(false)}
+                onCloseRequest={() => setMobileSearchOpen(false)}
+              />
             </div>
-          </div>
+          ) : (
+            <>
+              <div className={styles.mobileLeft}>
+                {me ? (
+                  <Link href={ROUTES.app.profile(me.username)} className={styles.mobileAvatar} aria-label="Открыть профиль">
+                    <Avatar url={me.avatarUrl} name={me.username} size={40} />
+                  </Link>
+                ) : null}
+                <div className={styles.mobileTitleRow}>
+                  <span className={styles.mobileTitle}>{mobileTitle}</span>
+                </div>
+              </div>
 
-          <div className={styles.mobileActions}>
-            {canOpenComposer ? (
-              <button
-                type="button"
-                className={styles.mobileCircleBtn}
-                aria-label="Новый пост"
-                onClick={() => window.dispatchEvent(new CustomEvent('av:open-post-composer'))}
-              >
-                <Icon name="plus" size={22} />
-              </button>
-            ) : null}
-            <NotificationsBell />
-          </div>
+              <div className={styles.mobileActions}>
+                <button
+                  type="button"
+                  className={styles.mobileSearchBtn}
+                  aria-label="Поиск людей"
+                  onClick={() => setMobileSearchOpen(true)}
+                >
+                  <Icon name="search" size={20} />
+                </button>
+                {canOpenComposer ? (
+                  <button
+                    type="button"
+                    className={styles.mobileCircleBtn}
+                    aria-label="Новый пост"
+                    onClick={() => window.dispatchEvent(new CustomEvent('av:open-post-composer'))}
+                  >
+                    <Icon name="plus" size={22} />
+                  </button>
+                ) : null}
+                <NotificationsBell />
+              </div>
+            </>
+          )}
         </div>
       </header>
     );

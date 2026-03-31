@@ -30,7 +30,6 @@ import { ImageGallery } from '@/shared/ui/ImageGallery/ImageGallery';
 import { useLightbox } from '@/shared/ui/Lightbox/LightboxProvider';
 import { CallContext } from '@/app/providers/CallProvider';
 import { AudioMessage } from '@/shared/ui/AudioMessage';
-import { AudioRecorder } from '@/shared/ui/AudioRecorder';
 import { EmojiPicker } from '@/shared/ui/EmojiPicker';
 import { VideoRing } from '@/shared/ui/VideoRing';
 import { EmojiInputHandler } from '@/shared/lib/emojiInputHandler';
@@ -42,6 +41,7 @@ import { SkeletonText } from '@/shared/ui/Skeleton/Skeleton';
 import { GameSessionPanel } from '@/features/games';
 import { parseGameSystemMessage, gameLabel, gameStatusLabel } from '@/shared/lib/gameMessages';
 import { useGetGameSessionsQuery } from '@/shared/api/gamesApi';
+import { useIsMobile } from '@/shared/lib/hooks/useIsMobile';
 
 
 type RequestedMedia = {
@@ -97,6 +97,107 @@ async function requestMediaAccess(
 
     throw new Error(`Не удалось получить доступ к ${label}. Попробуй ещё раз.`);
   }
+}
+
+
+function RecordingComposerBar({
+  state,
+  onCancel,
+  onSend,
+}: {
+  state: RecordingState;
+  onCancel: () => void;
+  onSend: () => void;
+}) {
+  const isVideo = state.kind === 'video';
+
+  return (
+    <div className={styles.recordingComposerBar}>
+      <div className={styles.recordingComposerMeta}>
+        <span className={styles.recordingComposerDot} aria-hidden />
+        <span className={styles.recordingComposerTitle}>{isVideo ? 'Видеосообщение' : 'Голосовое сообщение'}</span>
+      </div>
+      <div className={styles.recordingComposerTimer}>{formatRecordingTime(state.duration)}</div>
+      <div className={styles.recordingComposerActions}>
+        <button type="button" className={[styles.innerActionBtn, styles.innerActionBtnDanger].join(' ')} onClick={onCancel} aria-label="Удалить запись" title="Удалить запись">
+          <Icon name="trash" size={18} />
+        </button>
+        <button type="button" className={[styles.innerActionBtn, styles.innerActionBtnPrimary].join(' ')} onClick={onSend} aria-label="Отправить запись" title="Отправить запись">
+          <Icon name="send" size={18} />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function RecordingVideoPreviewModal({
+  open,
+  stream,
+  duration,
+  onCancel,
+  onSend,
+}: {
+  open: boolean;
+  stream: MediaStream | null;
+  duration: number;
+  onCancel: () => void;
+  onSend: () => void;
+}) {
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const progress = Math.max(0, Math.min(1, duration / VIDEO_NOTE_MAX_DURATION));
+  const size = 320;
+  const ringRadius = size / 2 - 7;
+  const circumference = 2 * Math.PI * ringRadius;
+  const dashOffset = circumference * (1 - progress);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    video.srcObject = stream ?? null;
+    if (open && stream) {
+      void video.play().catch(() => null);
+    }
+    return () => {
+      if (video) video.srcObject = null;
+    };
+  }, [open, stream]);
+
+  return (
+    <Modal open={open} onClose={onCancel} title="Запись видеосообщения">
+      <div className={styles.videoRecordModal}>
+        <div className={styles.videoRecordPreviewWrap}>
+          <svg className={styles.videoRecordProgressSvg} viewBox={`0 0 ${size} ${size}`} aria-hidden="true">
+            <circle className={styles.videoRecordProgressTrack} cx={size / 2} cy={size / 2} r={ringRadius} />
+            <circle
+              className={styles.videoRecordProgressValue}
+              cx={size / 2}
+              cy={size / 2}
+              r={ringRadius}
+              strokeDasharray={circumference}
+              strokeDashoffset={dashOffset}
+            />
+          </svg>
+          <video ref={videoRef} className={styles.videoRecordPreview} muted playsInline autoPlay />
+          <div className={styles.videoRecordTimerPill}>{formatRecordingTime(Math.min(duration, VIDEO_NOTE_MAX_DURATION))}</div>
+        </div>
+        <div className={styles.videoRecordToolbar}>
+          <div className={styles.videoRecordToolbarMeta}>
+            <span className={styles.recordingComposerDot} aria-hidden />
+            <span className={styles.videoRecordToolbarText}>Идёт запись</span>
+            <span className={styles.videoRecordToolbarTimer}>{formatRecordingTime(Math.min(duration, VIDEO_NOTE_MAX_DURATION))}</span>
+          </div>
+          <div className={styles.videoRecordToolbarActions}>
+            <button type="button" className={[styles.innerActionBtn, styles.innerActionBtnDanger].join(' ')} onClick={onCancel} aria-label="Удалить запись" title="Удалить запись">
+              <Icon name="trash" size={18} />
+            </button>
+            <button type="button" className={[styles.innerActionBtn, styles.innerActionBtnPrimary].join(' ')} onClick={onSend} aria-label="Отправить запись" title="Отправить запись">
+              <Icon name="send" size={18} />
+            </button>
+          </div>
+        </div>
+      </div>
+    </Modal>
+  );
 }
 
 function getChatTitle(chat: any, meId: string | undefined) {
@@ -178,13 +279,11 @@ function highlightText(text: string, query: string): ReactNode {
   );
 }
 
-function messageStatusLabel(message: any, meId: string | undefined, chat: any, presence: Record<string, any>) {
+function messageStatusLabel(message: any, meId: string | undefined) {
   if (!meId || message.senderId !== meId) return null;
   if ((message as any).__pending) return { key: 'pending', label: 'Отправляется', icon: 'clock' as const };
   const readsByOthers = (message.reads ?? []).filter((read: any) => read.userId !== meId).length;
   if (readsByOthers > 0) return { key: 'read', label: 'Прочитано', icon: 'checkDouble' as const };
-  const othersOnline = (chat?.members ?? []).some((member: any) => member.userId !== meId && presence?.[member.userId]?.isOnline);
-  if (othersOnline) return { key: 'delivered', label: 'Доставлено', icon: 'checkDouble' as const };
   return { key: 'sent', label: 'Отправлено', icon: 'check' as const };
 }
 
@@ -205,6 +304,29 @@ type PendingVideo = {
   url: string;
 };
 
+type RecordingKind = 'audio' | 'video';
+
+type RecordingState = {
+  kind: RecordingKind;
+  duration: number;
+  cancelArmed: boolean;
+  mobileHold: boolean;
+};
+
+const VIDEO_NOTE_MAX_DURATION = 60;
+
+type MessageContextMenuState = {
+  message: Message;
+  x: number;
+  y: number;
+};
+
+function formatRecordingTime(seconds: number) {
+  const mins = Math.floor(seconds / 60);
+  const secs = Math.floor(seconds % 60);
+  return `${mins}:${secs.toString().padStart(2, '0')}`;
+}
+
 export default function ChatPage() {
   const params = useParams<{ chatId: string }>();
   const chatId = params.chatId;
@@ -214,6 +336,7 @@ export default function ChatPage() {
   const lightbox = useLightbox();
   const { openViewer } = useStoriesUi();
   const { startCall, joinCall, hasReturnableCall } = useContext(CallContext);
+  const isMobile = useIsMobile();
 
   const { data: meData } = useGetMeQuery(undefined, { refetchOnMountOrArgChange: true, refetchOnFocus: true, refetchOnReconnect: true });
   const me = meData?.user;
@@ -260,14 +383,18 @@ export default function ChatPage() {
   const [pendingMessages, setPendingMessages] = useState<any[]>([]);
   const [pendingVoice, setPendingVoice] = useState<PendingVoice | null>(null);
   const [pendingVideo, setPendingVideo] = useState<PendingVideo | null>(null);
-  const [isRecordingAudio, setIsRecordingAudio] = useState(false);
-  const [isRecordingVideoNote, setIsRecordingVideoNote] = useState(false);
+  const [recordingState, setRecordingState] = useState<RecordingState | null>(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [isNearBottom, setIsNearBottom] = useState(true);
   const [forwarding, setForwarding] = useState(false);
   const [mediaAccessHint, setMediaAccessHint] = useState<string | null>(null);
   const [attachMenuOpen, setAttachMenuOpen] = useState(false);
   const [mobileHeaderMenuOpen, setMobileHeaderMenuOpen] = useState(false);
+  const [contextMenu, setContextMenu] = useState<MessageContextMenuState | null>(null);
+  const [mobileActionMessage, setMobileActionMessage] = useState<Message | null>(null);
+
+  const isRecordingAudio = recordingState?.kind === 'audio';
+  const isRecordingVideoNote = recordingState?.kind === 'video';
 
   const { data: gameSessionsData } = useGetGameSessionsQuery({ chatId }, { skip: !chatId });
   const activeGamesCount = useMemo(
@@ -314,9 +441,15 @@ export default function ChatPage() {
   const attachMenuRef = useRef<HTMLDivElement | null>(null);
   const mobileHeaderMenuRef = useRef<HTMLDivElement | null>(null);
   const textAreaRef = useRef<HTMLTextAreaElement | null>(null);
+  const emojiTriggerRef = useRef<HTMLButtonElement | null>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const recorderChunksRef = useRef<BlobPart[]>([]);
   const activeStreamRef = useRef<MediaStream | null>(null);
+  const recordingFinalizingRef = useRef(false);
+  const currentRecordingKindRef = useRef<RecordingKind | null>(null);
+  const recordingStartedAtRef = useRef(0);
+  const recordingTimerRef = useRef<number | null>(null);
+  const holdGestureRef = useRef<{ pointerId: number; kind: RecordingKind; startX: number; cancelArmed: boolean } | null>(null);
 
   const [text, setText] = useState('');
   const [files, setFiles] = useState<File[]>([]);
@@ -366,6 +499,16 @@ export default function ChatPage() {
   }, [attachMenuOpen]);
 
   useEffect(() => {
+    return () => {
+      activeStreamRef.current?.getTracks().forEach((track) => track.stop());
+      activeStreamRef.current = null;
+      if (recordingTimerRef.current) window.clearInterval(recordingTimerRef.current);
+      recordingTimerRef.current = null;
+      currentRecordingKindRef.current = null;
+    };
+  }, []);
+
+  useEffect(() => {
     if (!mobileHeaderMenuOpen) return;
 
     const handlePointerDown = (event: MouseEvent) => {
@@ -377,6 +520,25 @@ export default function ChatPage() {
     document.addEventListener('mousedown', handlePointerDown);
     return () => document.removeEventListener('mousedown', handlePointerDown);
   }, [mobileHeaderMenuOpen]);
+
+  useEffect(() => {
+    if (!contextMenu) return;
+
+    const close = () => setContextMenu(null);
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') close();
+    };
+
+    window.addEventListener('resize', close);
+    window.addEventListener('scroll', close, true);
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      window.removeEventListener('resize', close);
+      window.removeEventListener('scroll', close, true);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [contextMenu]);
 
   useEffect(() => {
     dispatch(chatUiActions.setActiveChatId(chatId));
@@ -441,6 +603,9 @@ export default function ChatPage() {
         // ignore
       }
       activeStreamRef.current?.getTracks().forEach((track) => track.stop());
+      if (recordingTimerRef.current) window.clearInterval(recordingTimerRef.current);
+      recordingTimerRef.current = null;
+      currentRecordingKindRef.current = null;
     };
   }, []);
 
@@ -480,8 +645,189 @@ export default function ChatPage() {
   const closeComposerPickers = () => {
     setShowEmojiPicker(false);
     setAttachMenuOpen(false);
-    setIsRecordingAudio(false);
-    setAttachMenuOpen(false);
+  };
+
+  const clearRecordingTimer = () => {
+    if (recordingTimerRef.current) {
+      window.clearInterval(recordingTimerRef.current);
+      recordingTimerRef.current = null;
+    }
+  };
+
+  const stopActiveStream = () => {
+    activeStreamRef.current?.getTracks().forEach((track) => track.stop());
+    activeStreamRef.current = null;
+  };
+
+  const beginRecordingUi = (kind: RecordingKind, mobileHold: boolean) => {
+    recordingStartedAtRef.current = Date.now();
+    currentRecordingKindRef.current = kind;
+    setRecordingState({ kind, duration: 0, cancelArmed: false, mobileHold });
+    clearRecordingTimer();
+    recordingTimerRef.current = window.setInterval(() => {
+      const nextDuration = Math.max(0, Math.floor((Date.now() - recordingStartedAtRef.current) / 1000));
+      setRecordingState((prev) => (prev ? { ...prev, duration: nextDuration } : prev));
+    }, 250);
+  };
+
+  const resetRecordingState = () => {
+    clearRecordingTimer();
+    currentRecordingKindRef.current = null;
+    setRecordingState(null);
+  };
+
+  const sendRecordedAudio = async (blob: Blob, duration: number) => {
+    if (!blob.size) return;
+    const extension = blob.type.includes('ogg') ? 'ogg' : blob.type.includes('mp4') ? 'm4a' : 'webm';
+    const file = new File([blob], `voice-${Date.now()}.${extension}`, { type: blob.type || 'audio/webm' });
+    const url = URL.createObjectURL(blob);
+    const pendingId = createPendingMessage({ type: 'AUDIO', attachments: [{ id: file.name, url, mime: file.type }] });
+    const result = await sendMessage({ chatId, type: 'AUDIO', files: [file], replyToId: replyTo?.id ?? null }).unwrap().catch(() => null);
+    removePendingMessage(pendingId);
+    URL.revokeObjectURL(url);
+    if (result?.message) {
+      updateCachesWithMessage(result.message);
+      setReplyTo(null);
+      bottomRef.current?.scrollIntoView({ block: 'end' });
+    }
+  };
+
+  const sendRecordedVideo = async (blob: Blob) => {
+    if (blob.size < 2000) return;
+    const file = new File([blob], `video-note-${Date.now()}.webm`, { type: blob.type || 'video/webm' });
+    const url = URL.createObjectURL(blob);
+    const pendingId = createPendingMessage({ type: 'VIDEO_NOTE', attachments: [{ id: file.name, url, mime: file.type }] });
+    const result = await sendMessage({ chatId, type: 'VIDEO_NOTE', files: [file], replyToId: replyTo?.id ?? null }).unwrap().catch(() => null);
+    removePendingMessage(pendingId);
+    URL.revokeObjectURL(url);
+    if (result?.message) {
+      updateCachesWithMessage(result.message);
+      setReplyTo(null);
+      bottomRef.current?.scrollIntoView({ block: 'end' });
+    }
+  };
+
+  const finalizeRecording = async (cancelled: boolean) => {
+    if (recordingFinalizingRef.current) return;
+    recordingFinalizingRef.current = true;
+
+    try {
+      const recorder = recorderRef.current;
+      const kind = currentRecordingKindRef.current;
+      if (!recorder || !kind) {
+        stopActiveStream();
+        resetRecordingState();
+        return;
+      }
+
+      const elapsedSeconds = Math.max(1, Math.round((Date.now() - recordingStartedAtRef.current) / 1000));
+
+      let blob: Blob | null = null;
+      if (recorder.state !== 'inactive') {
+        blob = await new Promise<Blob>((resolve) => {
+          recorder.onstop = () => {
+            resolve(new Blob(recorderChunksRef.current, { type: recorder.mimeType || (kind === 'audio' ? 'audio/webm' : 'video/webm') }));
+          };
+          recorder.stop();
+        });
+      }
+
+      recorderRef.current = null;
+      recorderChunksRef.current = [];
+      stopActiveStream();
+      resetRecordingState();
+      if (cancelled || !blob?.size) return;
+
+      if (kind === 'audio') {
+        await sendRecordedAudio(blob, elapsedSeconds);
+        return;
+      }
+
+      await sendRecordedVideo(blob);
+    } finally {
+      recordingFinalizingRef.current = false;
+    }
+  };
+  const startAudioRecording = async (mobileHold = false) => {
+    if (isSending || isRecordingVideoNote || isRecordingAudio || text.trim() || files.length || pendingVoice || pendingVideo || !canWriteInChat) return;
+    closeComposerPickers();
+    setMediaAccessHint(null);
+    try {
+      const stream = await requestMediaAccess({ audio: true }, { stopTracks: false });
+      activeStreamRef.current = stream;
+      recorderChunksRef.current = [];
+      const mimeType = MediaRecorder.isTypeSupported?.('audio/webm;codecs=opus')
+        ? 'audio/webm;codecs=opus'
+        : MediaRecorder.isTypeSupported?.('audio/webm')
+          ? 'audio/webm'
+          : MediaRecorder.isTypeSupported?.('audio/mp4')
+            ? 'audio/mp4'
+            : 'audio/ogg;codecs=opus';
+      const recorder = MediaRecorder.isTypeSupported?.(mimeType) ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
+      recorderRef.current = recorder;
+      recorder.ondataavailable = (event) => {
+        if (event.data?.size) recorderChunksRef.current.push(event.data);
+      };
+      beginRecordingUi('audio', mobileHold);
+      recorder.start(250);
+    } catch (error) {
+      stopActiveStream();
+      resetRecordingState();
+      setMediaAccessHint(error instanceof Error ? error.message : 'Не удалось получить доступ к микрофону.');
+    }
+  };
+
+  const startVideoNoteRecording = async (mobileHold = false) => {
+    if (isSending || isRecordingAudio || isRecordingVideoNote || text.trim() || files.length || pendingVoice || pendingVideo || !canWriteInChat) return;
+    closeComposerPickers();
+    setMediaAccessHint(null);
+    try {
+      const stream = await requestMediaAccess({ audio: true, video: { facingMode: 'user' } }, { stopTracks: false });
+      activeStreamRef.current = stream;
+      recorderChunksRef.current = [];
+      const mimeType = MediaRecorder.isTypeSupported?.('video/webm;codecs=vp9,opus')
+        ? 'video/webm;codecs=vp9,opus'
+        : MediaRecorder.isTypeSupported?.('video/webm;codecs=vp8,opus')
+          ? 'video/webm;codecs=vp8,opus'
+          : 'video/webm';
+      const recorder = new MediaRecorder(stream, { mimeType });
+      recorderRef.current = recorder;
+      recorder.ondataavailable = (event) => {
+        if (event.data?.size) recorderChunksRef.current.push(event.data);
+      };
+      beginRecordingUi('video', mobileHold);
+      recorder.start(250);
+    } catch (error) {
+      stopActiveStream();
+      resetRecordingState();
+      setMediaAccessHint(error instanceof Error ? error.message : 'Не удалось получить доступ к камере и микрофону.');
+    }
+  };
+
+  const handleMobileRecordPointerDown = async (kind: RecordingKind, event: React.PointerEvent<HTMLButtonElement>) => {
+    if (!isMobile || event.pointerType === 'mouse') return;
+    event.preventDefault();
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+    holdGestureRef.current = { pointerId: event.pointerId, kind, startX: event.clientX, cancelArmed: false };
+    if (kind === 'audio') await startAudioRecording(true);
+    else await startVideoNoteRecording(true);
+  };
+
+  const handleMobileRecordPointerMove = (kind: RecordingKind, event: React.PointerEvent<HTMLButtonElement>) => {
+    const gesture = holdGestureRef.current;
+    if (!gesture || gesture.pointerId !== event.pointerId || gesture.kind !== kind) return;
+    const cancelArmed = event.clientX <= gesture.startX - 78;
+    gesture.cancelArmed = cancelArmed;
+    setRecordingState((prev) => prev && prev.kind === kind ? { ...prev, cancelArmed } : prev);
+  };
+
+  const handleMobileRecordPointerEnd = (kind: RecordingKind, event: React.PointerEvent<HTMLButtonElement>) => {
+    const gesture = holdGestureRef.current;
+    if (!gesture || gesture.pointerId !== event.pointerId || gesture.kind !== kind) return;
+    event.preventDefault();
+    holdGestureRef.current = null;
+    const shouldCancel = Boolean(gesture.cancelArmed);
+    void finalizeRecording(shouldCancel);
   };
 
   const updateCachesWithMessage = useCallback((message: any) => {
@@ -545,7 +891,7 @@ export default function ChatPage() {
   }, [resizeTextarea]);
 
   const onSend = async () => {
-    if (isSending || isRecordingAudio || !canWriteInChat) return;
+    if (isSending || recordingState || !canWriteInChat) return;
 
     if (editingMessage) {
       const value = text.trim();
@@ -584,7 +930,7 @@ export default function ChatPage() {
     }
 
     const value = text.trim();
-    if ((!value && !files.length) || isRecordingAudio) return;
+    if ((!value && !files.length) || recordingState) return;
 
     const pendingAttachments = files.map((file, index) => ({ id: `pending-${index}`, url: filePreviews[index]?.url, mime: file.type, name: file.name }));
     const pendingId = createPendingMessage({
@@ -643,55 +989,23 @@ export default function ChatPage() {
     }
   }, [chatId, ensureCallPermissions, joinCall]);
 
-  const stopVideoRecorder = async () => {
-    try {
-      recorderRef.current?.stop();
-    } catch {
-      // ignore
-    }
+  const stopCurrentRecording = (cancelled = false) => {
+    void finalizeRecording(cancelled);
   };
 
-  const startVideoNoteRecording = async () => {
-    if (isSending || isRecordingAudio || isRecordingVideoNote || text.trim() || files.length || pendingVoice || pendingVideo) return;
-    closeComposerPickers();
-    setMediaAccessHint(null);
-    try {
-      const stream = await requestMediaAccess({ audio: true, video: { facingMode: 'user' } }, { stopTracks: false });
-      activeStreamRef.current = stream;
-      recorderChunksRef.current = [];
-      const mimeType = MediaRecorder.isTypeSupported?.('video/webm;codecs=vp9,opus')
-        ? 'video/webm;codecs=vp9,opus'
-        : MediaRecorder.isTypeSupported?.('video/webm;codecs=vp8,opus')
-          ? 'video/webm;codecs=vp8,opus'
-          : 'video/webm';
-      const recorder = new MediaRecorder(stream, { mimeType });
-      recorderRef.current = recorder;
-      setIsRecordingVideoNote(true);
-      recorder.ondataavailable = (event) => {
-        if (event.data?.size) recorderChunksRef.current.push(event.data);
-      };
-      recorder.onstop = async () => {
-        setIsRecordingVideoNote(false);
-        stream.getTracks().forEach((track) => track.stop());
-        activeStreamRef.current = null;
-        const blob = new Blob(recorderChunksRef.current, { type: recorder.mimeType || 'video/webm' });
-        recorderChunksRef.current = [];
-        if (blob.size < 2000) return;
-        const file = new File([blob], `video-note-${Date.now()}.webm`, { type: blob.type || 'video/webm' });
-        const url = URL.createObjectURL(blob);
-        setPendingVideo((prev) => {
-          if (prev?.url) URL.revokeObjectURL(prev.url);
-          return { file, url };
-        });
-      };
-      recorder.start();
-    } catch (error) {
-      setIsRecordingVideoNote(false);
-      activeStreamRef.current?.getTracks().forEach((track) => track.stop());
-      activeStreamRef.current = null;
-      setMediaAccessHint(error instanceof Error ? error.message : 'Не удалось получить доступ к камере и микрофону.');
-    }
-  };
+  useEffect(() => {
+    if (recordingState?.kind !== 'video') return;
+    if (recordingState.duration < VIDEO_NOTE_MAX_DURATION) return;
+    void finalizeRecording(false);
+  }, [recordingState?.duration, recordingState?.kind]);
+
+  const cancelActiveRecording = useCallback(() => {
+    stopCurrentRecording(true);
+  }, []);
+
+  const sendActiveRecording = useCallback(() => {
+    stopCurrentRecording(false);
+  }, []);
 
   const onScroll = async () => {
     const element = scrollRef.current;
@@ -777,18 +1091,6 @@ export default function ChatPage() {
     });
   }, [resizeTextarea, text]);
 
-  const handleAudioRecordingComplete = async (blob: Blob, duration: number) => {
-    setIsRecordingAudio(false);
-    if (!blob.size) return;
-    const extension = blob.type.includes('ogg') ? 'ogg' : blob.type.includes('mp4') ? 'm4a' : 'webm';
-    const file = new File([blob], `voice-${Date.now()}.${extension}`, { type: blob.type || 'audio/webm' });
-    const url = URL.createObjectURL(blob);
-    setPendingVoice((prev) => {
-      if (prev?.url) URL.revokeObjectURL(prev.url);
-      return { blob, file, url, duration };
-    });
-  };
-
   const handleTextPaste = (event: React.ClipboardEvent<HTMLTextAreaElement>) => {
     const pasted = event.clipboardData.getData('text');
     if (!pasted) return;
@@ -808,12 +1110,82 @@ export default function ChatPage() {
     }
   };
 
+  const toggleSelectedMessage = useCallback((messageId: string) => {
+    setSelectedIds((prev) => prev.includes(messageId) ? prev.filter((id) => id !== messageId) : [...prev, messageId]);
+  }, []);
+
+  const focusComposer = useCallback(() => {
+    requestAnimationFrame(() => {
+      textAreaRef.current?.focus();
+      resizeTextarea();
+    });
+  }, [resizeTextarea]);
+
+  const openReplyForMessage = useCallback((message: Message) => {
+    setReplyTo(message);
+    setEditingMessage(null);
+    setContextMenu(null);
+    setMobileActionMessage(null);
+    focusComposer();
+  }, [focusComposer]);
+
+  const openEditForMessage = useCallback((message: Message) => {
+    setEditingMessage(message);
+    setReplyTo(null);
+    setText(String(message.text ?? ''));
+    setContextMenu(null);
+    setMobileActionMessage(null);
+    focusComposer();
+  }, [focusComposer]);
+
+  const openMessageContextMenu = useCallback((event: React.MouseEvent, message: Message) => {
+    if (isMobile || selectionMode) return;
+    event.preventDefault();
+    setOpenActionsMessageId(null);
+    setContextMenu({ message, x: event.clientX, y: event.clientY });
+  }, [isMobile, selectionMode]);
+
+  const handleCopyMessageText = useCallback(async (message: Message) => {
+    const value = String(message.text ?? '').trim();
+    if (!value) return;
+    try {
+      await navigator.clipboard.writeText(value);
+    } catch {
+      // ignore clipboard errors
+    }
+    setContextMenu(null);
+    setMobileActionMessage(null);
+  }, []);
+
+  const handleDeleteSingleMessage = useCallback(async (message: Message) => {
+    setContextMenu(null);
+    setMobileActionMessage(null);
+    await deleteMessage({ chatId, messageId: message.id }).unwrap().catch(() => null);
+  }, [chatId, deleteMessage]);
+
+  const handleSelectFromContext = useCallback((messageId: string) => {
+    setSelectionMode(true);
+    setSelectedIds((prev) => prev.includes(messageId) ? prev : [...prev, messageId]);
+    setContextMenu(null);
+    setMobileActionMessage(null);
+  }, []);
+
   const openForwardForMessages = (messageIds: string[]) => {
     setSelectedIds(messageIds);
     setSelectionMode(true);
     setForwardOpen(true);
     setForwardTargetIds({});
+    setContextMenu(null);
+    setMobileActionMessage(null);
   };
+
+  const handleMessageShellTap = useCallback((event: React.MouseEvent<HTMLDivElement>, message: Message) => {
+    if (!isMobile || selectionMode) return;
+    const target = event.target as HTMLElement | null;
+    if (target?.closest('button, a, input, textarea, video, audio, [role="slider"], [data-message-interactive="true"]')) return;
+    setContextMenu(null);
+    setMobileActionMessage(message);
+  }, [isMobile, selectionMode]);
 
   const handleForwardSubmit = async () => {
     if (!selectedForwardTargetIds.length || !selectedMessages.length) return;
@@ -861,6 +1233,16 @@ export default function ChatPage() {
     }
     return items;
   }, [messages]);
+
+  const contextMenuStyle = useMemo(() => {
+    if (!contextMenu || typeof window === 'undefined') return undefined;
+    const width = 228;
+    const height = 300;
+    return {
+      left: Math.max(12, Math.min(contextMenu.x, window.innerWidth - width - 12)),
+      top: Math.max(12, Math.min(contextMenu.y, window.innerHeight - height - 12)),
+    };
+  }, [contextMenu]);
 
   return (
     <div className={["container", "appPage", gridStyles.page, styles.pageMobileNoHeader].join(' ')}>
@@ -1120,7 +1502,7 @@ export default function ChatPage() {
                           .filter((attachment: any) => !attachment.mime.startsWith('image/'));
                   const textValue = message.text ?? '';
                   const emojiOnly = !attachments.length && EmojiInputHandler.isOnlyEmoji(textValue) && EmojiInputHandler.countEmoji(textValue) <= 4;
-                  const status = messageStatusLabel(message, meId, chat, presence);
+                  const status = messageStatusLabel(message, meId);
                   const replyPreview = message.replyTo;
                   const forwardPreview = message.forwardOf;
                   const storyMeta = (message.metaJson as any)?.kind === 'storyReply' ? (message.metaJson as any) : null;
@@ -1173,34 +1555,23 @@ export default function ChatPage() {
                     <div key={message.id} id={`message-${message.id}`} className={[styles.msgRow, mine ? styles.mine : styles.their, highlightedMessageId === message.id ? styles.msgRowHighlighted : ''].filter(Boolean).join(' ')}>
                       {!mine ? <StoryRingAvatar userId={message.sender?.id} url={message.sender?.avatarUrl} name={message.sender?.username ?? 'U'} size={28} /> : null}
 
-                      <div className={styles.messageShell}>
-                        <div className={[styles.messageActions, openActionsMessageId === message.id ? styles.messageActionsVisible : ''].filter(Boolean).join(' ')}>
-                          {canReply ? (
-                            <button className={styles.msgActionBtn} type="button" onClick={() => { setReplyTo(message); setEditingMessage(null); textAreaRef.current?.focus(); }} aria-label="Ответить" title="Ответить">
-                              <Icon name="reply" size={15} />
-                            </button>
-                          ) : null}
-                          {canForward ? (
-                            <button className={styles.msgActionBtn} type="button" onClick={() => openForwardForMessages([message.id])} aria-label="Переслать" title="Переслать">
-                              <Icon name="forward" size={15} />
-                            </button>
-                          ) : null}
-                          {canEdit ? (
-                            <button className={styles.msgActionBtn} type="button" onClick={() => { setEditingMessage(message); setReplyTo(null); setText(String(message.text ?? '')); requestAnimationFrame(() => { textAreaRef.current?.focus(); resizeTextarea(); }); }} aria-label="Редактировать" title="Редактировать">
-                              <Icon name="pencil" size={15} />
-                            </button>
-                          ) : null}
-                          {canDelete ? (
-                            <button className={styles.msgActionBtn} type="button" onClick={() => void deleteMessage({ chatId, messageId: message.id }).unwrap().catch(() => null)} aria-label="Удалить" title="Удалить">
-                              <Icon name="trash" size={15} />
-                            </button>
-                          ) : null}
-                          <button className={styles.msgActionBtn} type="button" onClick={() => setOpenActionsMessageId((value) => value === message.id ? null : message.id)} aria-label="Действия" title="Действия">
-                            <Icon name="dots" size={15} />
-                          </button>
-                        </div>
-
-                        <div className={[styles.bubble, imageAttachments.length ? styles.bubbleMedia : '', messageType === 'AUDIO' ? styles.bubbleAudio : '', messageType === 'VIDEO_NOTE' ? styles.bubbleVideo : '', mine ? styles.bubbleMine : styles.bubbleTheirs].filter(Boolean).join(' ')} onClick={() => { if (selectionMode) { setSelectedIds((prev) => prev.includes(message.id) ? prev.filter((id) => id !== message.id) : [...prev, message.id]); } }}>
+                      <div
+                        className={[
+                          styles.messageShell,
+                          messageType === 'AUDIO' ? styles.messageShellAudio : '',
+                          messageType === 'VIDEO_NOTE' ? styles.messageShellVideo : '',
+                          selectionMode ? styles.messageShellSelectable : '',
+                        ].filter(Boolean).join(' ')}
+                        onContextMenu={(event) => openMessageContextMenu(event, message)}
+                        onClick={(event) => handleMessageShellTap(event, message)}
+                        onClickCapture={(event) => {
+                          if (!selectionMode) return;
+                          event.preventDefault();
+                          event.stopPropagation();
+                          toggleSelectedMessage(message.id);
+                        }}
+                      >
+                        <div className={[styles.bubble, imageAttachments.length ? styles.bubbleMedia : '', messageType === 'AUDIO' ? styles.bubbleAudio : '', messageType === 'AUDIO' ? styles.bubbleAudioBare : '', messageType === 'VIDEO_NOTE' ? styles.bubbleVideo : '', messageType === 'VIDEO_NOTE' ? styles.bubbleVideoBare : '', mine ? styles.bubbleMine : styles.bubbleTheirs, selectionMode ? styles.bubbleSelectable : ''].filter(Boolean).join(' ')}>
                           {selectionMode ? <div className={[styles.selectMarker, isSelected ? styles.selectMarkerActive : ''].filter(Boolean).join(' ')}>{isSelected ? <Icon name="check" size={12} /> : null}</div> : null}
                           {!mine ? <div className={styles.sender} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>{message.sender?.username}<AdminBadge role={message.sender?.role} /></div> : null}
 
@@ -1265,11 +1636,16 @@ export default function ChatPage() {
 
                           <div className={styles.meta}>
                             <span>{formatMessageTime(message.createdAt)}</span>
-                            {unreadForMe ? <span className={styles.unreadMark}>Новое</span> : null}
                             {status ? (
-                              <span className={styles.statusBadge} title={status.label}>
+                              <span
+                                className={[
+                                  styles.statusBadge,
+                                  status.key === 'read' ? styles.statusBadgeRead : '',
+                                  status.key === 'pending' ? styles.statusBadgePending : '',
+                                ].filter(Boolean).join(' ')}
+                                title={status.label}
+                              >
                                 <Icon name={status.icon} size={12} />
-                                <span>{status.label}</span>
                               </span>
                             ) : null}
                           </div>
@@ -1368,13 +1744,9 @@ export default function ChatPage() {
                     </button>
                   </div>
                   <div className={styles.videoPreviewWrap}>
-                    <VideoRing src={pendingVideo.url} size="medium" showProgress />
+                    <VideoRing src={pendingVideo.url} size="large" showProgress />
                   </div>
                 </div>
-              ) : null}
-
-              {isRecordingAudio ? (
-                <AudioRecorder variant="inline" className={styles.inlineRecorder} onCancel={() => setIsRecordingAudio(false)} onRecordingComplete={(blob, duration) => handleAudioRecordingComplete(blob, duration)} />
               ) : null}
 
               <input ref={fileInputRef} className={styles.fileInput} type="file" accept="image/*" multiple onChange={(event) => {
@@ -1385,104 +1757,134 @@ export default function ChatPage() {
               }} />
 
               <div className={styles.composerStage}>
-                {showEmojiPicker ? (
-                  <EmojiPicker className={styles.inlineEmojiPicker} onSelect={(emoji) => insertEmojiAtCursor(emoji)} onClose={() => { setShowEmojiPicker(false); textAreaRef.current?.focus(); }} />
+                {!recordingState && showEmojiPicker ? (
+                  <EmojiPicker className={styles.inlineEmojiPicker} triggerRef={emojiTriggerRef} autoFocusSearch={false} onSelect={(emoji) => insertEmojiAtCursor(emoji)} onClose={() => { setShowEmojiPicker(false); }} />
                 ) : null}
 
-                <div className={styles.composerInputShell}>
-                  <div className={styles.leadingActions}>
-                    <div className={styles.attachWrap} ref={attachMenuRef}>
+                {recordingState ? (
+                  <div className={[styles.composerInputShell, styles.composerInputShellRecording].join(' ')}>
+                    <RecordingComposerBar state={recordingState} onCancel={cancelActiveRecording} onSend={sendActiveRecording} />
+                  </div>
+                ) : (
+                  <div className={styles.composerInputShell}>
+                    <div className={styles.leadingActions}>
+                      <div className={styles.attachWrap} ref={attachMenuRef}>
+                        <button
+                          className={styles.innerActionBtn}
+                          type="button"
+                          onClick={() => {
+                            if (!canWriteInChat || pendingVoice || pendingVideo || recordingState) return;
+                            setShowEmojiPicker(false);
+                            setAttachMenuOpen((value) => !value);
+                          }}
+                          aria-label="Открыть вложения"
+                          title="Вложения"
+                          disabled={!canWriteInChat || Boolean(pendingVoice || pendingVideo || recordingState)}
+                        >
+                          <Icon name="paperclip" size={18} />
+                        </button>
+
+                        {attachMenuOpen ? (
+                          <div className={styles.attachMenu}>
+                            <button
+                              className={styles.attachMenuItem}
+                              type="button"
+                              onClick={() => {
+                                setAttachMenuOpen(false);
+                                fileInputRef.current?.click();
+                              }}
+                            >
+                              <Icon name="image" size={16} />
+                              <span>Фото</span>
+                            </button>
+                            <button
+                              className={styles.attachMenuItem}
+                              type="button"
+                              onClick={() => {
+                                setAttachMenuOpen(false);
+                                setShowEmojiPicker(false);
+                                setGamesOpen(true);
+                              }}
+                            >
+                              <Icon name="sparkles" size={16} />
+                              <span>Виджет</span>
+                            </button>
+                          </div>
+                        ) : null}
+                      </div>
+
                       <button
-                        className={styles.innerActionBtn}
+                        ref={emojiTriggerRef}
+                        className={[styles.innerActionBtn, showEmojiPicker ? styles.innerActionBtnHover : ''].filter(Boolean).join(' ')}
                         type="button"
                         onClick={() => {
-                          if (!canWriteInChat || pendingVoice || pendingVideo || isRecordingVideoNote) return;
-                          setShowEmojiPicker(false);
-                          setAttachMenuOpen((value) => !value);
+                          if (!canWriteInChat || pendingVoice || pendingVideo || recordingState) return;
+                          setAttachMenuOpen(false);
+                          setShowEmojiPicker((value) => !value);
                         }}
-                        aria-label="Открыть вложения"
-                        title="Вложения"
-                        disabled={!canWriteInChat || Boolean(pendingVoice || pendingVideo || isRecordingVideoNote)}
+                        aria-label="Открыть эмодзи"
+                        title="Эмодзи"
+                        disabled={!canWriteInChat || Boolean(recordingState || pendingVoice || pendingVideo)}
                       >
-                        <Icon name="paperclip" size={18} />
+                        <Icon name="smile" size={18} />
                       </button>
-
-                      {attachMenuOpen ? (
-                        <div className={styles.attachMenu}>
-                          <button
-                            className={styles.attachMenuItem}
-                            type="button"
-                            onClick={() => {
-                              setAttachMenuOpen(false);
-                              fileInputRef.current?.click();
-                            }}
-                          >
-                            <Icon name="image" size={16} />
-                            <span>Фото</span>
-                          </button>
-                          <button
-                            className={styles.attachMenuItem}
-                            type="button"
-                            onClick={() => {
-                              setAttachMenuOpen(false);
-                              setShowEmojiPicker(false);
-                              setIsRecordingAudio(false);
-                              setGamesOpen(true);
-                            }}
-                          >
-                            <Icon name="sparkles" size={16} />
-                            <span>Виджет</span>
-                          </button>
-                        </div>
-                      ) : null}
                     </div>
 
-                    <button
-                      className={[styles.innerActionBtn, showEmojiPicker ? styles.innerActionBtnHover : ''].filter(Boolean).join(' ')}
-                      type="button"
-                      onClick={() => {
-                        if (!canWriteInChat || pendingVoice || pendingVideo || isRecordingVideoNote || isRecordingAudio) return;
-                        setAttachMenuOpen(false);
-                        setShowEmojiPicker((value) => !value);
-                      }}
-                      aria-label="Открыть эмодзи"
-                      title="Эмодзи"
-                      disabled={!canWriteInChat || isRecordingAudio || Boolean(pendingVoice || pendingVideo || isRecordingVideoNote)}
-                    >
-                      <Icon name="smile" size={18} />
-                    </button>
-                  </div>
+                    <textarea
+                      ref={textAreaRef}
+                      className={styles.input}
+                      placeholder={editingMessage ? 'Измените текст сообщения…' : 'Сообщение…'}
+                      value={text}
+                      onChange={(event) => setText(event.target.value.slice(0, 5000).normalize('NFC'))}
+                      onFocus={() => setAttachMenuOpen(false)}
+                      onPaste={handleTextPaste}
+                      onKeyDown={handleTextKeyDown}
+                      rows={1}
+                      disabled={!canWriteInChat || Boolean(recordingState || pendingVoice || pendingVideo)}
+                    />
 
-                  <textarea
-                    ref={textAreaRef}
-                    className={styles.input}
-                    placeholder={editingMessage ? 'Измените текст сообщения…' : isRecordingAudio ? 'Идёт запись голосового сообщения…' : 'Сообщение…'}
-                    value={text}
-                    onChange={(event) => setText(event.target.value.slice(0, 5000).normalize('NFC'))}
-                    onFocus={() => setAttachMenuOpen(false)}
-                    onPaste={handleTextPaste}
-                    onKeyDown={handleTextKeyDown}
-                    rows={1}
-                    disabled={!canWriteInChat || isRecordingAudio || Boolean(pendingVoice || pendingVideo)}
-                  />
-
-                  <div className={styles.trailingActions}>
-                    {(editingMessage || text.trim() || files.length || pendingVoice || pendingVideo) ? (
-                      <Button className={[styles.innerActionBtn, styles.innerActionBtnPrimary].join(' ')} iconOnly type="button" onClick={onSend} loading={isSending} disabled={(!text.trim() && !files.length && !pendingVoice && !pendingVideo) || isRecordingAudio} aria-label={editingMessage ? 'Сохранить сообщение' : 'Отправить сообщение'} title={editingMessage ? 'Сохранить сообщение' : 'Отправить сообщение'}>
-                        <Icon name={editingMessage ? 'check' : 'send'} size={18} />
-                      </Button>
-                    ) : (
-                      <>
-                        <button className={[styles.innerActionBtn, isRecordingVideoNote ? styles.innerActionBtnDanger : ''].filter(Boolean).join(' ')} type="button" onClick={() => (isRecordingVideoNote ? stopVideoRecorder() : void startVideoNoteRecording())} aria-label="Записать видеосообщение" title="Видеосообщение" disabled={!canWriteInChat || isSending || isRecordingAudio || Boolean(text.trim() || files.length || pendingVoice || pendingVideo)}>
-                          <Icon name={isRecordingVideoNote ? 'close' : 'video'} size={18} />
-                        </button>
-                        <button className={[styles.innerActionBtn, isRecordingAudio ? styles.innerActionBtnActive : ''].filter(Boolean).join(' ')} type="button" onClick={() => { if (!canWriteInChat || isRecordingVideoNote || text.trim() || files.length || pendingVoice || pendingVideo) return; setShowEmojiPicker(false); setAttachMenuOpen(false); setIsRecordingAudio((value) => !value); }} aria-label="Записать голосовое сообщение" title="Голосовое сообщение" disabled={!canWriteInChat || isSending || isRecordingVideoNote || Boolean(text.trim() || files.length || pendingVoice || pendingVideo)}>
-                          <Icon name="mic" size={18} />
-                        </button>
-                      </>
-                    )}
+                    <div className={styles.trailingActions}>
+                      {(editingMessage || text.trim() || files.length || pendingVoice || pendingVideo) ? (
+                        <Button className={[styles.innerActionBtn, styles.innerActionBtnPrimary].join(' ')} iconOnly type="button" onClick={onSend} loading={isSending} disabled={(!text.trim() && !files.length && !pendingVoice && !pendingVideo) || Boolean(recordingState)} aria-label={editingMessage ? 'Сохранить сообщение' : 'Отправить сообщение'} title={editingMessage ? 'Сохранить сообщение' : 'Отправить сообщение'}>
+                          <Icon name={editingMessage ? 'check' : 'send'} size={18} />
+                        </Button>
+                      ) : (
+                        <>
+                          <button
+                            className={styles.innerActionBtn}
+                            type="button"
+                            onClick={() => {
+                              if (!canWriteInChat || isSending || isRecordingAudio || text.trim() || files.length || pendingVoice || pendingVideo) return;
+                              setShowEmojiPicker(false);
+                              setAttachMenuOpen(false);
+                              void startVideoNoteRecording(false);
+                            }}
+                            aria-label="Записать видеосообщение"
+                            title="Видеосообщение"
+                            disabled={!canWriteInChat || isSending || isRecordingAudio || Boolean(text.trim() || files.length || pendingVoice || pendingVideo)}
+                          >
+                            <Icon name="video" size={18} />
+                          </button>
+                          <button
+                            className={styles.innerActionBtn}
+                            type="button"
+                            onClick={() => {
+                              if (!canWriteInChat || isSending || isRecordingVideoNote || text.trim() || files.length || pendingVoice || pendingVideo) return;
+                              setShowEmojiPicker(false);
+                              setAttachMenuOpen(false);
+                              void startAudioRecording(false);
+                            }}
+                            aria-label="Записать голосовое сообщение"
+                            title="Голосовое сообщение"
+                            disabled={!canWriteInChat || isSending || isRecordingVideoNote || Boolean(text.trim() || files.length || pendingVoice || pendingVideo)}
+                          >
+                            <Icon name="mic" size={18} />
+                          </button>
+                        </>
+                      )}
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
             </div>
           </div>
@@ -1492,6 +1894,98 @@ export default function ChatPage() {
       <Modal open={gamesOpen} onClose={() => setGamesOpen(false)} title="Игры в чате" size="game">
         <GameSessionPanel chat={chat} meId={meId ?? ''} />
       </Modal>
+
+      <RecordingVideoPreviewModal
+        open={Boolean(recordingState && recordingState.kind === 'video')}
+        stream={recordingState?.kind === 'video' ? activeStreamRef.current : null}
+        duration={recordingState?.kind === 'video' ? recordingState.duration : 0}
+        onCancel={cancelActiveRecording}
+        onSend={sendActiveRecording}
+      />
+
+      {mobileActionMessage ? (
+        <>
+          <div className={styles.mobileMessageActionBackdrop} onClick={() => setMobileActionMessage(null)} />
+          <div className={styles.mobileMessageActionMenu} role="menu" aria-label="Действия с сообщением" onPointerDown={(event) => event.stopPropagation()}>
+            {String(mobileActionMessage.text ?? '').trim() ? (
+              <button type="button" className={styles.mobileMessageActionsItem} onClick={() => void handleCopyMessageText(mobileActionMessage)}>
+                <Icon name="messages" size={16} />
+                <span>Копировать текст</span>
+              </button>
+            ) : null}
+            {mobileActionMessage.type !== 'SYSTEM' ? (
+              <button type="button" className={styles.mobileMessageActionsItem} onClick={() => openReplyForMessage(mobileActionMessage)}>
+                <Icon name="reply" size={16} />
+                <span>Ответить</span>
+              </button>
+            ) : null}
+            {mobileActionMessage.type !== 'SYSTEM' ? (
+              <button type="button" className={styles.mobileMessageActionsItem} onClick={() => openForwardForMessages([mobileActionMessage.id])}>
+                <Icon name="forward" size={16} />
+                <span>Переслать</span>
+              </button>
+            ) : null}
+            <button type="button" className={styles.mobileMessageActionsItem} onClick={() => handleSelectFromContext(mobileActionMessage.id)}>
+              <Icon name="select" size={16} />
+              <span>Выбрать</span>
+            </button>
+            {canEditMessage(mobileActionMessage, meId) ? (
+              <button type="button" className={styles.mobileMessageActionsItem} onClick={() => openEditForMessage(mobileActionMessage)}>
+                <Icon name="pencil" size={16} />
+                <span>Редактировать</span>
+              </button>
+            ) : null}
+            {mobileActionMessage.senderId === meId && mobileActionMessage.type !== 'SYSTEM' ? (
+              <button type="button" className={[styles.mobileMessageActionsItem, styles.mobileMessageActionsItemDanger].join(' ')} onClick={() => void handleDeleteSingleMessage(mobileActionMessage)}>
+                <Icon name="trash" size={16} />
+                <span>Удалить</span>
+              </button>
+            ) : null}
+          </div>
+        </>
+      ) : null}
+
+      {contextMenu ? (
+        <>
+          <div className={styles.messageContextMenuBackdrop} onMouseDown={() => setContextMenu(null)} />
+          <div className={styles.messageContextMenu} style={contextMenuStyle} onMouseDown={(event) => event.stopPropagation()} onClick={(event) => event.stopPropagation()}>
+          {String(contextMenu.message.text ?? '').trim() ? (
+            <button type="button" className={styles.messageContextMenuItem} onClick={() => void handleCopyMessageText(contextMenu.message)}>
+              <Icon name="messages" size={16} />
+              <span>Копировать текст</span>
+            </button>
+          ) : null}
+          {contextMenu.message.type !== 'SYSTEM' ? (
+            <button type="button" className={styles.messageContextMenuItem} onClick={() => openReplyForMessage(contextMenu.message)}>
+              <Icon name="reply" size={16} />
+              <span>Ответить</span>
+            </button>
+          ) : null}
+          {contextMenu.message.type !== 'SYSTEM' ? (
+            <button type="button" className={styles.messageContextMenuItem} onClick={() => { openForwardForMessages([contextMenu.message.id]); setContextMenu(null); }}>
+              <Icon name="forward" size={16} />
+              <span>Переслать</span>
+            </button>
+          ) : null}
+          <button type="button" className={styles.messageContextMenuItem} onClick={() => handleSelectFromContext(contextMenu.message.id)}>
+            <Icon name="select" size={16} />
+            <span>Выбрать</span>
+          </button>
+          {canEditMessage(contextMenu.message, meId) ? (
+            <button type="button" className={styles.messageContextMenuItem} onClick={() => openEditForMessage(contextMenu.message)}>
+              <Icon name="pencil" size={16} />
+              <span>Редактировать</span>
+            </button>
+          ) : null}
+          {contextMenu.message.senderId === meId && contextMenu.message.type !== 'SYSTEM' ? (
+            <button type="button" className={[styles.messageContextMenuItem, styles.messageContextMenuItemDanger].join(' ')} onClick={() => void handleDeleteSingleMessage(contextMenu.message)}>
+              <Icon name="trash" size={16} />
+              <span>Удалить</span>
+            </button>
+          ) : null}
+          </div>
+        </>
+      ) : null}
 
       <Modal open={forwardOpen} onClose={() => setForwardOpen(false)} title="Переслать сообщения">
         <div className={styles.forwardModal}>

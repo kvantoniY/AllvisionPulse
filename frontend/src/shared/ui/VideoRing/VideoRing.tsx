@@ -1,5 +1,6 @@
 'use client';
 
+import type { CSSProperties } from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import styles from './VideoRing.module.css';
 
@@ -15,12 +16,14 @@ export interface VideoRingProps {
   autoPlay?: boolean;
   muted?: boolean;
   controls?: boolean;
+  showCenterControl?: boolean;
+  showTimePill?: boolean;
 }
 
 const SIZE_MAP = {
-  small: 120,
-  medium: 168,
-  large: 220,
+  small: 184,
+  medium: 388,
+  large: 420,
 } as const;
 
 function formatTime(seconds: number) {
@@ -42,10 +45,14 @@ export function VideoRing({
   autoPlay = false,
   muted = false,
   controls = false,
+  showCenterControl = true,
+  showTimePill = true,
 }: VideoRingProps) {
   const internalVideoRef = useRef<HTMLVideoElement | null>(null);
+  const dragCleanupRef = useRef<(() => void) | null>(null);
   const resolvedVideo = src ? internalVideoRef.current : videoElement;
   const [isPlaying, setIsPlaying] = useState(Boolean(autoPlay));
+  const [isReady, setIsReady] = useState(!src);
   const [localDuration, setLocalDuration] = useState(duration);
   const [localCurrentTime, setLocalCurrentTime] = useState(currentTime);
 
@@ -58,11 +65,24 @@ export function VideoRing({
   }, [currentTime]);
 
   useEffect(() => {
+    setIsReady(!src);
+  }, [src]);
+
+  useEffect(() => {
+    return () => {
+      dragCleanupRef.current?.();
+      dragCleanupRef.current = null;
+    };
+  }, []);
+
+  useEffect(() => {
     const video = resolvedVideo;
     if (!video) return;
 
     const handlePlay = () => setIsPlaying(true);
     const handlePause = () => setIsPlaying(false);
+    const handleWaiting = () => setIsReady(false);
+    const handleLoaded = () => setIsReady(true);
     const handleEnded = () => {
       setIsPlaying(false);
       if (src) setLocalCurrentTime(0);
@@ -74,35 +94,93 @@ export function VideoRing({
       if (src && Number.isFinite(video.duration) && video.duration > 0) {
         setLocalDuration(video.duration);
       }
+      setIsReady(true);
     };
 
     video.addEventListener('play', handlePlay);
     video.addEventListener('pause', handlePause);
+    video.addEventListener('waiting', handleWaiting);
+    video.addEventListener('loadeddata', handleLoaded);
+    video.addEventListener('canplay', handleLoaded);
+    video.addEventListener('loadedmetadata', handleLoadedMetadata);
     video.addEventListener('ended', handleEnded);
     video.addEventListener('timeupdate', handleTimeUpdate);
-    video.addEventListener('loadedmetadata', handleLoadedMetadata);
 
     return () => {
       video.removeEventListener('play', handlePlay);
       video.removeEventListener('pause', handlePause);
+      video.removeEventListener('waiting', handleWaiting);
+      video.removeEventListener('loadeddata', handleLoaded);
+      video.removeEventListener('canplay', handleLoaded);
+      video.removeEventListener('loadedmetadata', handleLoadedMetadata);
       video.removeEventListener('ended', handleEnded);
       video.removeEventListener('timeupdate', handleTimeUpdate);
-      video.removeEventListener('loadedmetadata', handleLoadedMetadata);
     };
   }, [resolvedVideo, src]);
 
   const resolvedDuration = src ? localDuration : duration;
   const resolvedCurrentTime = src ? localCurrentTime : currentTime;
   const progress = resolvedDuration > 0 ? Math.max(0, Math.min(1, resolvedCurrentTime / resolvedDuration)) : 0;
+  const displayedTime = resolvedCurrentTime > 0 ? resolvedCurrentTime : resolvedDuration;
   const diameter = SIZE_MAP[size];
   const ringRadius = diameter / 2 - 6;
   const circumference = 2 * Math.PI * ringRadius;
   const dashOffset = circumference * (1 - progress);
-  const style = useMemo(() => ({ '--video-ring-size': `${diameter}px` } as React.CSSProperties), [diameter]);
+  const style = useMemo(() => ({ '--video-ring-size': `${diameter}px` } as CSSProperties), [diameter]);
+
+  const applySeekFromPointer = (clientX: number, clientY: number) => {
+    if ((!onSeek && !src) || !resolvedDuration || !isReady) return;
+    const shell = (src ? internalVideoRef.current?.closest(`.${styles.shell}`) : resolvedVideo?.closest?.(`.${styles.shell}`)) as HTMLElement | null;
+    if (!shell) return;
+    const rect = shell.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+    const angle = Math.atan2(clientY - centerY, clientX - centerX);
+    const normalized = (angle + Math.PI / 2 + Math.PI * 2) % (Math.PI * 2);
+    const ratio = normalized / (Math.PI * 2);
+    const nextTime = resolvedDuration * ratio;
+    if (onSeek) onSeek(nextTime);
+    if (src && resolvedVideo) {
+      resolvedVideo.currentTime = nextTime;
+      setLocalCurrentTime(nextTime);
+    }
+  };
+
+  const handleProgressPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    const target = event.target as HTMLElement | null;
+    if (target?.closest('[data-video-ring-control="true"]')) return;
+    if ((!onSeek && !src) || !resolvedDuration || !isReady) return;
+
+    event.preventDefault();
+    applySeekFromPointer(event.clientX, event.clientY);
+
+    const handleMove = (moveEvent: PointerEvent) => applySeekFromPointer(moveEvent.clientX, moveEvent.clientY);
+    const handleUp = (upEvent: PointerEvent) => {
+      applySeekFromPointer(upEvent.clientX, upEvent.clientY);
+      window.removeEventListener('pointermove', handleMove);
+      window.removeEventListener('pointerup', handleUp);
+      dragCleanupRef.current = null;
+    };
+
+    window.addEventListener('pointermove', handleMove);
+    window.addEventListener('pointerup', handleUp, { once: true });
+    dragCleanupRef.current = () => {
+      window.removeEventListener('pointermove', handleMove);
+      window.removeEventListener('pointerup', handleUp);
+    };
+  };
 
   const togglePlayback = async () => {
     const video = resolvedVideo;
     if (!video) return;
+
+    if (!isReady && src) {
+      try {
+        video.load();
+      } catch {
+        // ignore
+      }
+    }
 
     if (video.paused) {
       try {
@@ -116,25 +194,9 @@ export function VideoRing({
     video.pause();
   };
 
-  const handleProgressPointer = (event: React.PointerEvent<HTMLDivElement>) => {
-    if (!onSeek && !src) return;
-    const rect = event.currentTarget.getBoundingClientRect();
-    const centerX = rect.left + rect.width / 2;
-    const centerY = rect.top + rect.height / 2;
-    const angle = Math.atan2(event.clientY - centerY, event.clientX - centerX);
-    const normalized = (angle + Math.PI / 2 + Math.PI * 2) % (Math.PI * 2);
-    const ratio = normalized / (Math.PI * 2);
-    const nextTime = resolvedDuration * ratio;
-    if (onSeek) onSeek(nextTime);
-    if (src && resolvedVideo) {
-      resolvedVideo.currentTime = nextTime;
-      setLocalCurrentTime(nextTime);
-    }
-  };
-
   return (
-    <div className={[styles.videoRing, className].filter(Boolean).join(' ')} style={style}>
-      <div className={styles.shell} onPointerDown={handleProgressPointer}>
+    <div className={[styles.videoRing, !isReady ? styles.videoRingLoading : '', className].filter(Boolean).join(' ')} style={style}>
+      <div className={styles.shell} onPointerDown={handleProgressPointerDown} data-message-interactive="true">
         {showProgress ? (
           <svg className={styles.progressSvg} viewBox={`0 0 ${diameter} ${diameter}`} aria-hidden="true">
             <circle className={styles.progressTrack} cx={diameter / 2} cy={diameter / 2} r={ringRadius} />
@@ -153,7 +215,7 @@ export function VideoRing({
           {src ? (
             <video
               ref={internalVideoRef}
-              className={styles.video}
+              className={[styles.video, !isReady ? styles.videoBlurred : ''].filter(Boolean).join(' ')}
               src={src}
               autoPlay={autoPlay}
               muted={muted}
@@ -162,18 +224,46 @@ export function VideoRing({
               controls={controls}
             />
           ) : (
-            <div className={styles.videoFallback}>Видео</div>
+            <div className={styles.videoHost}>
+              <div className={styles.videoHostInner} ref={(node) => {
+                if (!node || !videoElement || node.firstChild === videoElement) return;
+                node.innerHTML = '';
+                node.appendChild(videoElement);
+                videoElement.classList.add(styles.videoExternal);
+                videoElement.muted = muted;
+                videoElement.playsInline = true;
+              }} />
+            </div>
           )}
         </div>
 
-        <button type="button" className={styles.playButton} onClick={togglePlayback} aria-label={isPlaying ? 'Пауза' : 'Воспроизвести'}>
-          {isPlaying ? <PauseIcon /> : <PlayIcon />}
-        </button>
-      </div>
+        {showTimePill ? <div className={styles.timePill}>{formatTime(displayedTime)}</div> : null}
 
-      <div className={styles.caption}>{formatTime(resolvedCurrentTime || resolvedDuration)}</div>
+        {showCenterControl ? (
+          <button
+            type="button"
+            className={styles.playButton}
+            onClick={togglePlayback}
+            aria-label={isPlaying ? 'Пауза' : 'Воспроизвести'}
+            data-video-ring-control="true"
+            data-message-interactive="true"
+          >
+            {isReady ? (isPlaying ? <PauseIcon /> : <PlayIcon />) : <LoadingSpinner />}
+          </button>
+        ) : null}
+
+        {!isReady ? (
+          <div className={styles.loadingOverlay} aria-hidden="true">
+            <LoadingSpinner compact />
+          </div>
+        ) : null}
+      </div>
     </div>
   );
+}
+
+function LoadingSpinner({ compact = false }: { compact?: boolean }) {
+  return <span className={[styles.spinner, compact ? styles.spinnerCompact : ''].filter(Boolean).join(' ')} aria-hidden="true" />;
 }
 
 function PlayIcon() {

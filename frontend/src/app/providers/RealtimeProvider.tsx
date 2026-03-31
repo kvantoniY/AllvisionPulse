@@ -56,11 +56,56 @@ function playNotify() {
   void playUiBeep({ frequency: 880, durationMs: 120, gainValue: 0.04 }).catch(() => null);
 }
 
+const REALTIME_PATH = '/socket.io';
+const LOCAL_SOCKET_HOSTS = new Set(['localhost', '127.0.0.1', '0.0.0.0']);
+
+function normalizeOrigin(value?: string | null): string | null {
+  const source = String(value ?? '').trim();
+  if (!source) return null;
+  try {
+    return new URL(source).origin;
+  } catch {
+    return null;
+  }
+}
+
+function resolveRealtimeOrigin(): string {
+  if (typeof window === 'undefined') {
+    return normalizeOrigin(process.env.NEXT_PUBLIC_APP_URL) ?? normalizeOrigin(process.env.NEXT_PUBLIC_BACKEND_URL) ?? 'http://localhost:3000';
+  }
+
+  const currentOrigin = normalizeOrigin(window.location.origin);
+  const publicAppOrigin = normalizeOrigin(process.env.NEXT_PUBLIC_APP_URL);
+  const publicBackendOrigin = normalizeOrigin(process.env.NEXT_PUBLIC_BACKEND_URL);
+
+  if (!currentOrigin) return publicAppOrigin ?? publicBackendOrigin ?? window.location.origin;
+
+  try {
+    const currentUrl = new URL(currentOrigin);
+    if (LOCAL_SOCKET_HOSTS.has(currentUrl.hostname)) {
+      return publicAppOrigin ?? publicBackendOrigin ?? currentOrigin;
+    }
+  } catch {
+    return publicAppOrigin ?? publicBackendOrigin ?? currentOrigin;
+  }
+
+  return currentOrigin;
+}
+
 async function getAccessToken(): Promise<string | null> {
-  const r = await fetch('/api/auth/access', { method: 'GET', credentials: 'include' });
-  if (!r.ok) return null;
-  const j = await r.json().catch(() => null);
-  return typeof j?.access === 'string' ? j.access : null;
+  try {
+    const r = await fetch('/api/auth/access', {
+      method: 'GET',
+      credentials: 'include',
+      cache: 'no-store',
+      headers: { accept: 'application/json' },
+    });
+    if (!r.ok) return null;
+    const j = await r.json().catch(() => null);
+    return typeof j?.access === 'string' ? j.access : null;
+  } catch {
+    return null;
+  }
 }
 
 export function RealtimeProvider({ children }: PropsWithChildren) {
@@ -154,21 +199,68 @@ export function RealtimeProvider({ children }: PropsWithChildren) {
     activeChatIdRef.current = activeChatId;
   }, [activeChatId]);
 
+
   useEffect(() => {
     bindAudioUnlock();
     let alive = true;
+    let retryTimer: number | null = null;
+    let visibilityHandler: (() => void) | null = null;
+    let onlineHandler: (() => void) | null = null;
+    const refreshPromiseRef = { current: null as Promise<string | null> | null };
+
+    const clearRetry = () => {
+      if (retryTimer !== null) {
+        window.clearTimeout(retryTimer);
+        retryTimer = null;
+      }
+    };
+
+    const scheduleBootstrapRetry = (delayMs = 2500) => {
+      if (!alive) return;
+      clearRetry();
+      retryTimer = window.setTimeout(() => {
+        if (!alive) return;
+        const current = socketRef.current;
+        if (current?.connected || current?.active) return;
+        void connect();
+      }, delayMs);
+    };
+
+    const refreshAccessToken = async () => {
+      if (!refreshPromiseRef.current) {
+        refreshPromiseRef.current = getAccessToken().finally(() => {
+          refreshPromiseRef.current = null;
+        });
+      }
+      return refreshPromiseRef.current;
+    };
 
     const connect = async () => {
-      const token = await getAccessToken();
-      if (!alive || !token) return;
+      const currentSocket = socketRef.current;
+      if (currentSocket?.connected || currentSocket?.active) return;
+      if (currentSocket) {
+        currentSocket.disconnect();
+        socketRef.current = null;
+        setRealtimeSocket(null);
+      }
 
-      const socket = io(window.location.origin, {
-        path: '/socket.io/',
+      const token = await refreshAccessToken();
+      if (!alive) return;
+      if (!token) {
+        scheduleBootstrapRetry(3000);
+        return;
+      }
+
+      clearRetry();
+
+      const socket = io(resolveRealtimeOrigin(), {
+        path: REALTIME_PATH,
         transports: ['polling', 'websocket'],
         upgrade: true,
         rememberUpgrade: true,
         auth: { token },
         withCredentials: true,
+        autoConnect: false,
         reconnection: true,
         reconnectionAttempts: Infinity,
         reconnectionDelay: 800,
@@ -180,30 +272,43 @@ export function RealtimeProvider({ children }: PropsWithChildren) {
       setRealtimeSocket(socket);
 
       const refreshAndReconnect = async () => {
-        const next = await getAccessToken();
-        if (!next) return;
+        const next = await refreshAccessToken();
+        if (!next) {
+          scheduleBootstrapRetry(3000);
+          return;
+        }
         socket.auth = { token: next } as any;
-        try {
-          socket.connect();
-        } catch {
-          // ignore
+        if (!socket.active) {
+          try {
+            socket.connect();
+          } catch {
+            scheduleBootstrapRetry(3000);
+          }
         }
       };
 
+      socket.io.on('reconnect_attempt', () => {
+        void refreshAccessToken().then((next) => {
+          if (!next) return;
+          socket.auth = { token: next } as any;
+        });
+      });
+
+      socket.io.on('reconnect_failed', () => {
+        scheduleBootstrapRetry(3000);
+      });
+
       socket.on('connect_error', async (err: any) => {
         const message = String(err?.message ?? '').toUpperCase();
-        const isUnauthorized = message.includes('UNAUTHORIZED') || Number(err?.description) === 401;
+        const status = Number(err?.description?.status ?? err?.description ?? err?.data?.status ?? 0);
+        const isUnauthorized = message.includes('UNAUTHORIZED') || status === 401;
 
-        // Let socket.io handle ordinary transport/proxy reconnects on its own.
-        // We only force token refresh when the server explicitly rejects auth.
         if (isUnauthorized) {
           await refreshAndReconnect();
         }
       });
 
       socket.on('disconnect', async (reason: any) => {
-        // If server drops us (often due to auth), try to refresh token and reconnect.
-        // socket.io uses reason strings like: 'io server disconnect', 'transport close', 'ping timeout'
         if (reason === 'io server disconnect') {
           await refreshAndReconnect();
         }
@@ -219,7 +324,6 @@ export function RealtimeProvider({ children }: PropsWithChildren) {
         const data = notif?.data ?? {};
         const by = nameById(data?.byUserId);
 
-        // лаконичный формат “как в соцсети”
         let title: string | undefined;
         let message: string | undefined;
 
@@ -254,13 +358,10 @@ export function RealtimeProvider({ children }: PropsWithChildren) {
 
       socket.on('notification:new', (payload: any) => {
         const type = payload?.type;
-        // MESSAGE-уведомления не должны попадать в общий колокол.
-        // Используем их как «страховку» для realtime: обновим чат/сообщения и покажем индикаторы.
         if (type === 'MESSAGE') {
           const chatId = payload?.data?.chatId;
           if (!chatId) return;
 
-          // если по какой-то причине не пришёл message:new из комнаты чата — подтянем с сервера
           dispatch(chatsApi.util.invalidateTags([{ type: 'Message', id: `LIST:${chatId}` }, { type: 'Chat', id: 'LIST' }]));
 
           if (activeChatIdRef.current !== chatId) {
@@ -279,7 +380,6 @@ export function RealtimeProvider({ children }: PropsWithChildren) {
         const chatId = msg?.chatId;
         if (!chatId) return;
 
-        // Обновим список чатов мгновенно: последний текст, время и порядок.
         dispatch(
           chatsApi.util.updateQueryData('getChats', undefined, (draft: any) => {
             const items: any[] = draft?.items ?? [];
@@ -288,37 +388,36 @@ export function RealtimeProvider({ children }: PropsWithChildren) {
             const chat = items[idx];
             chat.updatedAt = msg.createdAt ?? new Date().toISOString();
             chat.lastMessage = msg;
-            // move to top
             items.splice(idx, 1);
             items.unshift(chat);
             draft.items = items;
           }),
         );
 
-        // Update messages cache (append newest) if this chat query exists
         dispatch(
           chatsApi.util.updateQueryData('getMessages', { chatId, take: 50, cursor: null }, (draft: any) => {
             const items: any[] = draft.items ?? [];
             if (!items.some((m) => m.id === msg.id)) {
-              // backend returns newest-first pages; in UI we reverse to asc.
               items.unshift(msg);
               draft.items = items;
             }
           }),
         );
 
-        // на всякий случай (если списка нет в кеше)
         dispatch(chatsApi.util.invalidateTags([{ type: 'Chat', id: 'LIST' }]));
 
         if (activeChatIdRef.current && activeChatIdRef.current === chatId) return;
 
-        // сообщения → только вкладка Messages + индикаторы/звук
         dispatch(chatUiActions.incUnread({ chatId }));
         playNotify();
       });
 
       socket.on('connect', () => {
         dispatch(chatsApi.util.invalidateTags([{ type: 'Chat', id: 'LIST' }]));
+        const activeChat = activeChatIdRef.current;
+        if (activeChat) {
+          dispatch(chatsApi.util.invalidateTags([{ type: 'Message', id: `LIST:${activeChat}` }]));
+        }
         const gameTags = (chatsRef.current?.items ?? []).map((chat: any) => ({ type: 'Game', id: `LIST:${chat.id}` }));
         if (gameTags.length) dispatch(gamesApi.util.invalidateTags(gameTags as any));
       });
@@ -398,7 +497,6 @@ export function RealtimeProvider({ children }: PropsWithChildren) {
         );
       });
 
-      // presence
       socket.on('presence:online', (p: any) => {
         const userId = p?.userId;
         if (!userId) return;
@@ -421,22 +519,32 @@ export function RealtimeProvider({ children }: PropsWithChildren) {
         // noop
       });
 
-      return () => {
-        setRealtimeSocket(null);
-      };
+      socket.connect();
     };
 
-    const cleanupPromise = connect();
+    visibilityHandler = () => {
+      if (document.visibilityState !== 'visible') return;
+      void connect();
+    };
+    onlineHandler = () => {
+      void connect();
+    };
+
+    document.addEventListener('visibilitychange', visibilityHandler);
+    window.addEventListener('online', onlineHandler);
+    void connect();
 
     return () => {
       alive = false;
+      clearRetry();
+      if (visibilityHandler) document.removeEventListener('visibilitychange', visibilityHandler);
+      if (onlineHandler) window.removeEventListener('online', onlineHandler);
       socketRef.current?.disconnect();
       socketRef.current = null;
       setRealtimeSocket(null);
-      // eslint-disable-next-line @typescript-eslint/no-floating-promises
-      cleanupPromise;
     };
   }, [dispatch]);
+
 
   // keep friend requests list in sync when something arrives (server emits notification:new already)
   useEffect(() => {

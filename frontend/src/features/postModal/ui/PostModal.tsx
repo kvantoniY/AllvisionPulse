@@ -453,7 +453,10 @@ export function PostModal({
     resetSurfaceScroll();
   }, [open, post?.id]);
 
-  const liked = !!me && !!post && (post.likes ?? []).some((item) => item.userId === me.id);
+  const actualLiked = !!me && !!post && (post.likes ?? []).some((item) => item.userId === me.id);
+  const actualLikesCount = post?._count?.likes ?? 0;
+  const [optimisticLiked, setOptimisticLiked] = useState(actualLiked);
+  const [optimisticLikesCount, setOptimisticLikesCount] = useState(actualLikesCount);
   const canDeletePost = !!me && !!post && (post.authorId === me.id || me.role === 'ADMIN');
 
   const onSend = async () => {
@@ -473,9 +476,21 @@ export function PostModal({
   useEffect(() => () => revokePendingAttachments(commentAttachmentsRef.current), []);
 
   const onToggleLike = async () => {
-    if (!postId || !post) return;
-    if (liked) await unlike({ postId, userId: me?.id }).unwrap().catch(() => null);
-    else await like({ postId, userId: me?.id }).unwrap().catch(() => null);
+    if (!postId || !post || !me) return;
+    const nextLiked = !optimisticLiked;
+    const previousLiked = optimisticLiked;
+    const previousCount = optimisticLikesCount;
+    setOptimisticLiked(nextLiked);
+    setOptimisticLikesCount((count) => Math.max(0, count + (nextLiked ? 1 : -1)));
+
+    const result = nextLiked
+      ? await like({ postId, userId: me.id }).unwrap().catch(() => null)
+      : await unlike({ postId, userId: me.id }).unwrap().catch(() => null);
+
+    if (!result) {
+      setOptimisticLiked(previousLiked);
+      setOptimisticLikesCount(previousCount);
+    }
   };
 
   const onDeletePost = async () => {
@@ -513,6 +528,11 @@ export function PostModal({
   const descriptionClassName = [styles.description, !textExpanded ? styles.descriptionCollapsed : ''].filter(Boolean).join(' ');
 
   useEffect(() => {
+    setOptimisticLiked(actualLiked);
+    setOptimisticLikesCount(actualLikesCount);
+  }, [actualLiked, actualLikesCount, post?.id]);
+
+  useEffect(() => {
     if (!open || textExpanded) return;
     const frame = requestAnimationFrame(() => {
       const node = descriptionRef.current;
@@ -531,11 +551,11 @@ export function PostModal({
   const actionRow = (
     <div className={styles.actionRow}>
       <div className={styles.metricGroup}>
-        <button className={[styles.metricIconBtn, liked ? styles.metricBtnActive : ''].filter(Boolean).join(' ')} onClick={onToggleLike} disabled={!me || liking || unliking}>
+        <button className={[styles.metricIconBtn, optimisticLiked ? styles.metricBtnActive : ''].filter(Boolean).join(' ')} onClick={onToggleLike} disabled={!me || liking || unliking}>
           <Icon name="heart" size={18} />
         </button>
         <button className={styles.metricCountBtn} type="button" onClick={() => setLikesOpen(true)}>
-          {post?._count?.likes ?? 0}
+          {optimisticLikesCount}
         </button>
       </div>
 

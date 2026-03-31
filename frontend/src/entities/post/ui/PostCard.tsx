@@ -96,7 +96,10 @@ function PostCardComponent({
 }) {
   const { data } = useGetMeQuery();
   const me = data?.user;
-  const liked = !!me && (post.likes ?? []).some((l) => l.userId === me.id);
+  const actualLiked = !!me && (post.likes ?? []).some((l) => l.userId === me.id);
+  const actualLikesCount = post._count?.likes ?? 0;
+  const [optimisticLiked, setOptimisticLiked] = useState(actualLiked);
+  const [optimisticLikesCount, setOptimisticLikesCount] = useState(actualLikesCount);
   const [like, { isLoading: liking }] = useLikePostMutation();
   const [unlike, { isLoading: unliking }] = useUnlikePostMutation();
   const [del, { isLoading: deleting }] = useDeletePostMutation();
@@ -112,6 +115,11 @@ function PostCardComponent({
   const menuRef = useRef<HTMLDivElement | null>(null);
   const textRef = useRef<HTMLDivElement | null>(null);
   const isMobile = useIsMobile();
+
+  useEffect(() => {
+    setOptimisticLiked(actualLiked);
+    setOptimisticLikesCount(actualLikesCount);
+  }, [actualLiked, actualLikesCount, post.id]);
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -148,9 +156,21 @@ function PostCardComponent({
   };
 
   const onToggleLike = async () => {
-    if (!post.id) return;
-    if (liked) await unlike({ postId: post.id, userId: me?.id }).unwrap().catch(() => null);
-    else await like({ postId: post.id, userId: me?.id }).unwrap().catch(() => null);
+    if (!post.id || !me) return;
+    const nextLiked = !optimisticLiked;
+    const previousLiked = optimisticLiked;
+    const previousCount = optimisticLikesCount;
+    setOptimisticLiked(nextLiked);
+    setOptimisticLikesCount((count) => Math.max(0, count + (nextLiked ? 1 : -1)));
+
+    const result = nextLiked
+      ? await like({ postId: post.id, userId: me.id }).unwrap().catch(() => null)
+      : await unlike({ postId: post.id, userId: me.id }).unwrap().catch(() => null);
+
+    if (!result) {
+      setOptimisticLiked(previousLiked);
+      setOptimisticLikesCount(previousCount);
+    }
   };
 
   const onDelete = async () => {
@@ -259,9 +279,9 @@ function PostCardComponent({
 
         <div className={styles.footer}>
           <div className={styles.actions}>
-            <button className={[styles.actionStat, liked ? styles.actionStatActive : ''].filter(Boolean).join(' ')} onClick={onToggleLike} disabled={liking || unliking || !me} aria-label="Нравится">
+            <button className={[styles.actionStat, optimisticLiked ? styles.actionStatActive : ''].filter(Boolean).join(' ')} onClick={onToggleLike} disabled={liking || unliking || !me} aria-label="Нравится">
               <Icon name="heart" size={18} />
-              <span className={styles.actionCount} onClick={(event) => { event.stopPropagation(); setLikesOpen(true); }}>{post._count?.likes ?? 0}</span>
+              <span className={styles.actionCount} onClick={(event) => { event.stopPropagation(); setLikesOpen(true); }}>{optimisticLikesCount}</span>
             </button>
             <button className={styles.actionStat} onClick={isMobile ? () => setCommentsOpen(true) : openCurrent} aria-label="Комментарии">
               <Icon name="comment" size={18} />

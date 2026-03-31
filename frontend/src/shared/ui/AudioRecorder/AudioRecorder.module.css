@@ -126,3 +126,93 @@
 .panel { gap: 10px; padding: 12px; border-radius: 16px; }
 .waveformWrap { height: 64px; border-radius: 14px; }
 .ghostButton, .primaryButton { width: 38px; height: 38px; }
+
+
+.panelInline {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 999px;
+  background: rgba(11, 14, 18, 0.96);
+}
+
+.inlineBody {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.inlineStatusRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.inlineStatusLabel {
+  min-width: 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: rgba(255,255,255,0.9);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.inlineCancelButton,
+.inlineSendButton {
+  width: 42px;
+  min-width: 42px;
+  height: 42px;
+  border: 0;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+}
+
+.inlineCancelButton {
+  background: rgba(255,255,255,0.08);
+  color: rgba(255,255,255,0.78);
+}
+
+.inlineSendButton {
+  background: linear-gradient(180deg, rgba(66, 166, 255, 0.96), rgba(38, 139, 246, 0.96));
+  color: #fff;
+  box-shadow: 0 10px 20px rgba(38, 139, 246, 0.26);
+}
+
+.inlineCancelButton svg,
+.inlineSendButton svg {
+  width: 18px;
+  height: 18px;
+}
+
+.inline .waveformWrap {
+  height: 44px;
+  border-radius: 14px;
+}
+
+.inline .timer {
+  margin-left: auto;
+  color: rgba(255,255,255,0.64);
+}
+
+@media (max-width: 640px) {
+  .panelInline {
+    padding: 8px 10px;
+    gap: 8px;
+  }
+
+  .inlineCancelButton,
+  .inlineSendButton {
+    width: 40px;
+    min-width: 40px;
+    height: 40px;
+  }
+
+  .inline .waveformWrap {
+    height: 40px;
+  }
+}
