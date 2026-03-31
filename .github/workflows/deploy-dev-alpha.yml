@@ -168,7 +168,8 @@ jobs:
           curl --retry 15 --retry-delay 2 --retry-all-errors -fsS http://127.0.0.1/healthz >/dev/null
 
           echo "=== socket.io polling health ==="
-          curl --retry 15 --retry-delay 2 --retry-all-errors -fsS "http://127.0.0.1/socket.io?EIO=4&transport=polling" | grep -q '"sid"'
+          SOCKET_HEALTH_TOKEN=$(docker compose             --project-name allvision-alpha             --env-file infra/alpha/.env             -f infra/alpha/docker-compose.alpha.yml             exec -T backend node -e "const jwt=require('jsonwebtoken'); process.stdout.write(jwt.sign({ sub: 'healthcheck-socket', role: 'USER' }, process.env.JWT_ACCESS_SECRET, { expiresIn: '2m' }));")
+          curl --retry 15 --retry-delay 2 --retry-all-errors -fsS             -H "Authorization: Bearer $SOCKET_HEALTH_TOKEN"             "http://127.0.0.1/socket.io?EIO=4&transport=polling" | grep -q '"sid"'
 
           docker image prune -af --filter "until=72h" || true
           EOFREMOTE
