@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { Avatar } from '@/shared/ui/Avatar/Avatar';
 import {
   useCancelGameSessionMutation,
@@ -24,6 +24,10 @@ import type { GameKey, GameSession, PokerResult } from '@/shared/types/game';
 import styles from './GameSessionPanel.module.css';
 import { Icon } from '@/shared/ui/Icon/Icon';
 import { Spinner } from '@/shared/ui/Spinner/Spinner';
+import { GameFrame } from './ui/GameFrame';
+import { getGamePresentationSpec } from './lib/gamePresentation';
+import type { FullscreenScope, GameViewState } from './lib/useGameFullscreen';
+import { useResponsiveSurfaceSize } from './lib/useResponsiveSurfaceSize';
 
 type GameCatalogItem = {
   key: GameKey;
@@ -43,10 +47,10 @@ const GAME_CATALOG: GameCatalogItem[] = [
   },
   {
     key: 'FLAPPY',
-    title: 'Flappy Bird',
+    title: 'Flappy Rush',
     preview: '🐦',
     status: 'beta',
-    description: 'Аркада с прыгающей птицей и трубами. Считаем попытки и лучший счёт всех участников.',
+    description: 'Аркада в духе Flappy Bird, но с более сочной сценой, понятным счётом и короткими забегами на лучший результат.',
   },
   {
     key: 'QUIZ',
@@ -64,6 +68,36 @@ const GAME_CATALOG: GameCatalogItem[] = [
   },
 ];
 const STAGES = ['preflop', 'flop', 'turn', 'river', 'showdown'] as const;
+const POKER_TABLE_BASE_WIDTH = 820;
+const POKER_TABLE_BASE_HEIGHT = 470;
+const FLAPPY_CANVAS_BASE_WIDTH = 420;
+const FLAPPY_CANVAS_BASE_HEIGHT = 720;
+type GameSessionPanelMode = 'chat' | 'call';
+
+type GameSessionPanelProps = {
+  chat?: Chat;
+  meId: string;
+  mode?: GameSessionPanelMode;
+  embedded?: boolean;
+  fullscreenScope?: FullscreenScope;
+  onFullscreenScopeChange?: (scope: FullscreenScope) => void;
+  onViewStateChange?: (state: GameViewState) => void;
+};
+
+function useMediaQuery(query: string) {
+  const [matches, setMatches] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return undefined;
+    const media = window.matchMedia(query);
+    const update = () => setMatches(media.matches);
+    update();
+    media.addEventListener('change', update);
+    return () => media.removeEventListener('change', update);
+  }, [query]);
+
+  return matches;
+}
 
 function getUser(chat: Chat | undefined, userId: string) {
   return chat?.members.find((m) => m.userId === userId)?.user;
@@ -88,6 +122,9 @@ function notifyError(setter: (v: string) => void, scope: string, error: unknown)
 function gameTitle(key: GameKey) {
   return GAME_CATALOG.find((item) => item.key === key)?.title ?? key;
 }
+function gamePreview(key?: GameKey | null) {
+  return GAME_CATALOG.find((item) => item.key === key)?.preview ?? '🎮';
+}
 function gameConfigDefaults(gameKey: GameKey) {
   if (gameKey === 'POKER') {
     return { buyIn: 1000, smallBlind: 10, bigBlind: 20, timerSec: 20, maxPlayers: 6, allowObservers: true };
@@ -96,6 +133,236 @@ function gameConfigDefaults(gameKey: GameKey) {
     return { maxAttempts: 5, allowObservers: true };
   }
   return {};
+}
+
+type HandEvaluation = {
+  category: number;
+  values: number[];
+  label: string;
+  cards: string[];
+};
+
+type FlappyMetrics = {
+  scale: number;
+  groundHeight: number;
+  pipeWidth: number;
+  pipeGap: number;
+  pipeGapHalf: number;
+  pipeSpawnDistance: number;
+  pipeSpeed: number;
+  gravity: number;
+  flapVelocity: number;
+  birdX: number;
+  birdRadius: number;
+  birdEyeX: number;
+  birdEyeOffsetY: number;
+  birdEyeRadius: number;
+  playAreaTop: number;
+  playAreaBottom: number;
+  playAreaHeight: number;
+  pipeMinY: number;
+  pipeMaxY: number;
+  scoreBoxWidth: number;
+  scoreBoxHeight: number;
+};
+
+function clampNumber(value: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, value));
+}
+
+function parsePokerCard(card: string) {
+  const rankChar = card[0];
+  const suitChar = card[1];
+  const rankMap: Record<string, number> = {
+    '2': 2,
+    '3': 3,
+    '4': 4,
+    '5': 5,
+    '6': 6,
+    '7': 7,
+    '8': 8,
+    '9': 9,
+    T: 10,
+    J: 11,
+    Q: 12,
+    K: 13,
+    A: 14,
+  };
+  return { rank: rankMap[rankChar] ?? 0, suit: suitChar };
+}
+
+function combinations<T>(items: T[], choose: number): T[][] {
+  const out: T[][] = [];
+  const walk = (start: number, current: T[]) => {
+    if (current.length === choose) {
+      out.push([...current]);
+      return;
+    }
+    for (let index = start; index < items.length; index += 1) {
+      current.push(items[index]);
+      walk(index + 1, current);
+      current.pop();
+    }
+  };
+  walk(0, []);
+  return out;
+}
+
+function pokerHandLabel(category: number, values: number[]) {
+  const top = values[0] ?? 0;
+  const rankName = (rank: number) => ({
+    14: 'туза',
+    13: 'короля',
+    12: 'даму',
+    11: 'валета',
+    10: 'десятку',
+    9: 'девятку',
+    8: 'восьмерку',
+    7: 'семерку',
+    6: 'шестерку',
+    5: 'пятерку',
+    4: 'четверку',
+    3: 'тройку',
+    2: 'двойку',
+  }[rank] ?? 'карту');
+
+  if (category === 8) return top === 14 ? 'Роял-флеш' : `Стрит-флеш до ${rankName(top)}`;
+  if (category === 7) return `Каре ${rankName(top)}`;
+  if (category === 6) return `Фулл-хаус с ${rankName(top)}`;
+  if (category === 5) return `Флеш до ${rankName(top)}`;
+  if (category === 4) return `Стрит до ${rankName(top)}`;
+  if (category === 3) return `Сет ${rankName(top)}`;
+  if (category === 2) return `Две пары: ${rankName(values[0] ?? 0)} и ${rankName(values[1] ?? 0)}`;
+  if (category === 1) return `Пара ${rankName(top)}`;
+  return `Старшая карта ${rankName(top)}`;
+}
+
+function evaluatePokerFive(cards: string[]): HandEvaluation {
+  const parsed = cards
+    .map((card) => ({ card, ...parsePokerCard(card) }))
+    .sort((a, b) => b.rank - a.rank);
+
+  const counts = new Map<number, number>();
+  const suits = new Map<string, number>();
+  for (const card of parsed) {
+    counts.set(card.rank, (counts.get(card.rank) ?? 0) + 1);
+    suits.set(card.suit, (suits.get(card.suit) ?? 0) + 1);
+  }
+
+  const uniqueRanks = Array.from(new Set(parsed.map((card) => card.rank))).sort((a, b) => b - a);
+  const straightRanks = [...uniqueRanks];
+  if (uniqueRanks.includes(14)) straightRanks.push(1);
+
+  let straightHigh = 0;
+  for (let index = 0; index <= straightRanks.length - 5; index += 1) {
+    const window = straightRanks.slice(index, index + 5);
+    if (window[0] - window[4] === 4 && new Set(window).size === 5) {
+      straightHigh = Math.max(straightHigh, window[0] === 1 ? 5 : window[0]);
+      break;
+    }
+  }
+
+  const flushSuit = Array.from(suits.entries()).find(([, count]) => count === 5)?.[0] ?? null;
+  const groups = Array.from(counts.entries())
+    .map(([rank, count]) => ({ rank, count }))
+    .sort((a, b) => (b.count === a.count ? b.rank - a.rank : b.count - a.count));
+
+  const score = (category: number, values: number[]): HandEvaluation => ({
+    category,
+    values,
+    label: pokerHandLabel(category, values),
+    cards: cards.slice(),
+  });
+
+  if (flushSuit && straightHigh) return score(8, [straightHigh]);
+  if (groups[0]?.count === 4) return score(7, [groups[0].rank, groups[1]?.rank ?? 0]);
+  if (groups[0]?.count === 3 && groups[1]?.count === 2) return score(6, [groups[0].rank, groups[1].rank]);
+  if (flushSuit) return score(5, parsed.map((card) => card.rank));
+  if (straightHigh) return score(4, [straightHigh]);
+  if (groups[0]?.count === 3) return score(3, [groups[0].rank, ...groups.slice(1).map((group) => group.rank).sort((a, b) => b - a)]);
+  if (groups[0]?.count === 2 && groups[1]?.count === 2) {
+    const pairRanks = groups.filter((group) => group.count === 2).map((group) => group.rank).sort((a, b) => b - a);
+    const kicker = groups.find((group) => group.count === 1)?.rank ?? 0;
+    return score(2, [...pairRanks, kicker]);
+  }
+  if (groups[0]?.count === 2) {
+    const kickers = groups.filter((group) => group.count === 1).map((group) => group.rank).sort((a, b) => b - a);
+    return score(1, [groups[0].rank, ...kickers]);
+  }
+  return score(0, parsed.map((card) => card.rank));
+}
+
+function comparePokerHands(a: Pick<HandEvaluation, 'category' | 'values'>, b: Pick<HandEvaluation, 'category' | 'values'>) {
+  if (a.category !== b.category) return a.category - b.category;
+  const length = Math.max(a.values.length, b.values.length);
+  for (let index = 0; index < length; index += 1) {
+    const diff = (a.values[index] ?? 0) - (b.values[index] ?? 0);
+    if (diff !== 0) return diff;
+  }
+  return 0;
+}
+
+function getBestPokerHand(cards: string[]) {
+  let best: HandEvaluation | null = null;
+  for (const combo of combinations(cards, 5)) {
+    const current = evaluatePokerFive(combo);
+    if (!best || comparePokerHands(current, best) > 0) best = current;
+  }
+  return best ?? { category: 0, values: [0], label: 'Старшая карта', cards: cards.slice(0, 5) };
+}
+
+function createFlappyMetrics(width: number, height: number): FlappyMetrics {
+  const scale = width / FLAPPY_CANVAS_BASE_WIDTH;
+  const groundHeight = clampNumber(height * 0.105, 42 * scale, 88 * scale);
+  const maxPlayableHeight = Math.min(height - groundHeight - (20 * scale), FLAPPY_CANVAS_BASE_HEIGHT * scale);
+  const playAreaHeight = clampNumber(maxPlayableHeight, 320 * scale, height - groundHeight - (18 * scale));
+  const playAreaTop = Math.max(18 * scale, ((height - groundHeight) - playAreaHeight) / 2);
+  const playAreaBottom = playAreaTop + playAreaHeight;
+  const pipeGap = clampNumber(playAreaHeight * 0.3, 152 * scale, 214 * scale);
+  const pipeGapHalf = pipeGap / 2;
+  const pipeMargin = Math.max(58 * scale, pipeGapHalf + 28 * scale);
+  return {
+    scale,
+    groundHeight,
+    pipeWidth: clampNumber(58 * scale, 48 * scale, 86 * scale),
+    pipeGap,
+    pipeGapHalf,
+    pipeSpawnDistance: clampNumber(width * 0.42, 160 * scale, 236 * scale),
+    pipeSpeed: 2.72 * scale,
+    gravity: 0.43 * scale,
+    flapVelocity: -5.95 * scale,
+    birdX: 92 * scale,
+    birdRadius: 15 * scale,
+    birdEyeX: 98 * scale,
+    birdEyeOffsetY: 4 * scale,
+    birdEyeRadius: Math.max(2, 3 * scale),
+    playAreaTop,
+    playAreaBottom,
+    playAreaHeight,
+    pipeMinY: playAreaTop + pipeMargin,
+    pipeMaxY: playAreaBottom - pipeMargin,
+    scoreBoxWidth: clampNumber(110 * scale, 96 * scale, 156 * scale),
+    scoreBoxHeight: clampNumber(66 * scale, 58 * scale, 88 * scale),
+  };
+}
+
+function playFlappySound(type: 'start' | 'flap' | 'score' | 'hit') {
+  if (type === 'start') {
+    void playUiBeep({ frequency: 520, durationMs: 90, gainValue: 0.028 });
+    window.setTimeout(() => void playUiBeep({ frequency: 720, durationMs: 110, gainValue: 0.03 }), 78);
+    return;
+  }
+  if (type === 'flap') {
+    void playUiBeep({ frequency: 640, durationMs: 60, gainValue: 0.022 });
+    return;
+  }
+  if (type === 'score') {
+    void playUiBeep({ frequency: 860, durationMs: 74, gainValue: 0.028 });
+    window.setTimeout(() => void playUiBeep({ frequency: 1120, durationMs: 90, gainValue: 0.025 }), 52);
+    return;
+  }
+  void playUiBeep({ frequency: 220, durationMs: 130, gainValue: 0.03 });
+  window.setTimeout(() => void playUiBeep({ frequency: 160, durationMs: 160, gainValue: 0.026 }), 72);
 }
 
 function formatSessionClock(session: GameSession) {
@@ -128,10 +395,10 @@ function connectionStatusTone(status?: 'online' | 'reconnecting' | 'disconnected
   return 'offline';
 }
 
-function Card({ card, compact = false }: { card: string; compact?: boolean }) {
+function Card({ card, compact = false, highlight = false }: { card: string; compact?: boolean; highlight?: boolean }) {
   if (card === '??') return <div className={[styles.card, compact ? styles.cardSm : '', styles.cardBack].join(' ')} />;
   return (
-    <div className={[styles.card, compact ? styles.cardSm : '', red(card) ? styles.cardRed : ''].join(' ')}>
+    <div className={[styles.card, compact ? styles.cardSm : '', red(card) ? styles.cardRed : '', highlight ? styles.cardHighlight : ''].join(' ')}>
       <div className={styles.cardTop}>{card[0]}{suit(card)}</div>
       <div className={styles.cardSuit}>{suit(card)}</div>
     </div>
@@ -218,17 +485,19 @@ function CreateSessionView({
   onCreate,
   creating,
   onBack,
+  showHeader = true,
 }: {
   selectedGame: GameKey;
   onSelectGame: (game: GameKey) => void;
   onCreate: () => void;
   creating: boolean;
   onBack: () => void;
+  showHeader?: boolean;
 }) {
   const selectedMeta = GAME_CATALOG.find((item) => item.key === selectedGame) ?? GAME_CATALOG[0];
   return (
     <div className={styles.directoryLayout}>
-      <div className={styles.directoryHeader}>
+      {showHeader ? <div className={styles.directoryHeader}>
         <div>
           <div className={styles.sectionTitle}>Новая сессия</div>
           <div className={styles.metaMuted}>Сначала выбери игру. Для каждой плитки показываем название, превью и текущий статус готовности.</div>
@@ -237,7 +506,7 @@ function CreateSessionView({
           <button className={styles.ghostBtn} onClick={onBack} aria-label="Назад к списку сессий" title="Назад к списку сессий"><Icon name="arrowLeft" size={16} /></button>
           <button className={styles.primaryBtn} disabled={creating || selectedMeta.status === 'development'} onClick={onCreate}>{creating ? <Spinner size={16} /> : 'Создать сессию'}</button>
         </div>
-      </div>
+      </div> : null}
 
       <div className={styles.gameCatalogGrid}>
         {GAME_CATALOG.map((item) => {
@@ -413,7 +682,23 @@ function LobbyView({ session, chat, meId, setError, compact = false }: { session
   );
 }
 
-function PokerView({ session, chat, meId, setError, compact = false }: { session: GameSession; chat?: Chat; meId: string; setError: (v: string) => void; compact?: boolean }) {
+function PokerView({
+  session,
+  chat,
+  meId,
+  setError,
+  compact = false,
+  immersive = false,
+  mobileViewport = false,
+}: {
+  session: GameSession;
+  chat?: Chat;
+  meId: string;
+  setError: (v: string) => void;
+  compact?: boolean;
+  immersive?: boolean;
+  mobileViewport?: boolean;
+}) {
   const poker = session.poker!;
   const me = poker.players.find((p) => p.userId === meId);
   const [amount, setAmount] = useState(Number(session.config?.bigBlind ?? 20));
@@ -461,6 +746,59 @@ function PokerView({ session, chat, meId, setError, compact = false }: { session
     : session.status === 'FINISHED'
       ? 'Победитель игры'
       : 'Победитель раздачи';
+  const placementByUserId = useMemo(() => new Map((overlayResult?.placements ?? []).map((item) => [item.userId, item])), [overlayResult]);
+  const bestCardsByUserId = useMemo(() => {
+    const next = new Map<string, string[]>();
+    for (const player of poker.players) {
+      const placement = placementByUserId.get(player.userId);
+      if (placement?.bestCards?.length) {
+        next.set(player.userId, placement.bestCards);
+        continue;
+      }
+      if (!player.cards.length || poker.communityCards.length < 3) continue;
+      next.set(player.userId, getBestPokerHand([...player.cards, ...poker.communityCards]).cards);
+    }
+    return next;
+  }, [placementByUserId, poker.communityCards, poker.players]);
+  const winningCards = useMemo(
+    () => new Set((overlayResult?.winners ?? []).flatMap((userId) => bestCardsByUserId.get(userId) ?? [])),
+    [bestCardsByUserId, overlayResult],
+  );
+  const winningPlacements = useMemo(
+    () => (overlayResult?.placements ?? []).filter((item) => overlayResult?.winners.includes(item.userId)),
+    [overlayResult],
+  );
+  const overlayHeadline = !overlayResult?.winners.length
+    ? 'Раздача завершена'
+    : overlayResult.winners.length === 1
+      ? `${getName(chat, overlayResult.winners[0])} забирает банк`
+      : `Сплит-пот: ${overlayResult.winners.map((id) => getName(chat, id)).join(' · ')}`;
+  const overlaySummary = winningPlacements
+    .map((item) => item.handLabel)
+    .filter(Boolean)
+    .filter((label, index, items) => items.indexOf(label) === index)
+    .join(' · ') || poker.showdownMessage || 'Результат раздачи зафиксирован';
+  const { containerRef: pokerViewportRef, size: pokerSurface } = useResponsiveSurfaceSize({
+    aspectRatio: POKER_TABLE_BASE_WIDTH / POKER_TABLE_BASE_HEIGHT,
+    minWidth: 420,
+    minHeight: 240,
+  });
+  const pokerSurfaceWidth = pokerSurface.width || POKER_TABLE_BASE_WIDTH;
+  const pokerSurfaceHeight = pokerSurface.height || POKER_TABLE_BASE_HEIGHT;
+  const pokerScale = Math.max(0.62, Math.min(2.08, pokerSurfaceWidth / POKER_TABLE_BASE_WIDTH));
+  const pokerSurfaceStyle = {
+    ['--poker-scale' as never]: pokerScale,
+    ['--poker-table-width' as never]: `${pokerSurfaceWidth}px`,
+    ['--poker-table-height' as never]: `${pokerSurfaceHeight}px`,
+  } as CSSProperties;
+  const opponentAvatarSize = Math.max(18, Math.min(34, Math.round((compact ? 20 : 22) * pokerScale)));
+  const heroAvatarSize = Math.max(20, Math.min(38, Math.round((compact ? 22 : 24) * pokerScale)));
+
+  useEffect(() => {
+    if (!immersive) return;
+    setShowPlayers(false);
+    setShowLog(false);
+  }, [immersive]);
 
   const submit = async (type: 'fold' | 'check' | 'call' | 'bet' | 'raise', nextAmount?: number) => {
     try {
@@ -472,9 +810,16 @@ function PokerView({ session, chat, meId, setError, compact = false }: { session
   };
 
   return (
-    <div className={[styles.gameLayout, styles.pokerGameLayout, compact ? styles.gameLayoutCompact : ''].join(' ')}>
-      <div className={[styles.pokerViewport, compact ? styles.pokerViewportCompact : ''].join(' ')}>
-        <div className={styles.pokerTopline}>
+    <div
+      className={[
+        styles.revampGameViewport,
+        styles.revampGameViewportLandscape,
+        compact ? styles.revampGameViewportCompact : '',
+        immersive ? styles.revampGameViewportImmersive : '',
+      ].filter(Boolean).join(' ')}
+    >
+      {!immersive && !mobileViewport ? (
+        <div className={[styles.pokerTopline, styles.revampHudTop].join(' ')}>
           <div className={styles.pokerTopMain}>
             <div className={styles.pokerHandTitle}>Раздача #{poker.handNumber ?? 1}</div>
             <div className={styles.pokerHandMeta}>Покер · {formatStage(poker.stage)} · Банк {poker.pot} · Время {formatSessionClock(session)}</div>
@@ -503,9 +848,12 @@ function PokerView({ session, chat, meId, setError, compact = false }: { session
             <button className={styles.ghostBtn} onClick={() => setShowLog((v) => !v)}>{showLog ? 'Лог ×' : 'Лог'}</button>
           </div>
         </div>
+      ) : null}
 
-        <div className={styles.pokerTableViewport}>
-          <div className={styles.pokerTableFrame}>
+      <div className={styles.revampStageArea}>
+        <div ref={pokerViewportRef} className={[styles.pokerTableViewport, styles.revampStageMeasure].join(' ')}>
+          <div className={styles.revampSurfaceShadow}>
+            <div className={styles.pokerTableFrame} style={pokerSurfaceStyle}>
             <div className={styles.pokerTableInner}>
               {showPlayers ? (
                 <div className={[styles.tableDrawer, styles.tableDrawerLeft].join(' ')}>
@@ -553,7 +901,7 @@ function PokerView({ session, chat, meId, setError, compact = false }: { session
                   >
                     <div className={styles.seatPanelTop}>
                       <div className={styles.seatAvatarWrap}>
-                        <Avatar url={getUser(chat, player.userId)?.avatarUrl ?? undefined} name={getName(chat, player.userId)} size={compact ? 20 : 22} />
+                        <Avatar url={getUser(chat, player.userId)?.avatarUrl ?? undefined} name={getName(chat, player.userId)} size={opponentAvatarSize} />
                         {dealerUserId === player.userId ? <span className={styles.dealerChip}>D</span> : null}
                       </div>
                       <div className={styles.seatPanelMeta}>
@@ -562,7 +910,9 @@ function PokerView({ session, chat, meId, setError, compact = false }: { session
                       </div>
                       {poker.turnUserId === player.userId ? <div className={styles.seatTimerMini}><TurnTimer deadlineAt={poker.actionDeadlineAt} duration={poker.timerSec ?? 20} compact serverNow={session.serverNow} /></div> : null}
                     </div>
-                    <div className={styles.seatPanelCards}>{player.cards.map((card, i) => <Card key={i} card={card} compact />)}</div>
+                    <div className={styles.seatPanelCards}>
+                      {player.cards.map((card, i) => <Card key={i} card={card} compact highlight={(bestCardsByUserId.get(player.userId) ?? []).includes(card)} />)}
+                    </div>
                     <div className={styles.seatPanelBadges}>
                       <span className={styles.seatActionPill}>{player.lastAction ? formatAction(player.lastAction, player.lastActionAmount) : 'Ждёт'}</span>
                       {connectionStatusTone(member?.connectionStatus) === 'offline' ? <span className={styles.seatStatusOffline}>offline</span> : connectionStatusTone(member?.connectionStatus) === 'reconnecting' ? <span className={styles.seatStatusOffline}>reconnecting</span> : <span className={styles.seatStatusOnline}>online</span>}
@@ -579,7 +929,10 @@ function PokerView({ session, chat, meId, setError, compact = false }: { session
                   {latestAction ? <span className={styles.infoChip}>{latestAction.note ?? `${getName(chat, latestAction.userId)} · ${formatAction(latestAction.type, latestAction.amount)}`}</span> : null}
                 </div>
                 <div className={styles.boardCardsCompact}>
-                  {Array.from({ length: 5 }).map((_, i) => <Card key={i} card={poker.communityCards[i] ?? '??'} compact={compact} />)}
+                  {Array.from({ length: 5 }).map((_, i) => {
+                    const card = poker.communityCards[i] ?? '??';
+                    return <Card key={i} card={card} compact={compact} highlight={card !== '??' && winningCards.has(card)} />;
+                  })}
                 </div>
                 <div className={styles.boardFooterMini}>
                   <span className={styles.infoChip}>Ставка {poker.currentBet}</span>
@@ -590,7 +943,7 @@ function PokerView({ session, chat, meId, setError, compact = false }: { session
               <div className={[styles.heroSeatFlat, myTurn ? styles.heroSeatFlatTurn : ''].join(' ')}>
                 <div className={styles.heroSeatInfo}>
                   <div className={styles.seatAvatarWrap}>
-                    <Avatar url={getUser(chat, meId)?.avatarUrl ?? undefined} name={getName(chat, meId)} size={compact ? 22 : 24} />
+                    <Avatar url={getUser(chat, meId)?.avatarUrl ?? undefined} name={getName(chat, meId)} size={heroAvatarSize} />
                     {dealerUserId === meId ? <span className={styles.dealerChip}>D</span> : null}
                   </div>
                   <div className={styles.seatPanelMeta}>
@@ -600,7 +953,9 @@ function PokerView({ session, chat, meId, setError, compact = false }: { session
                   {myTurn ? <div className={styles.seatTimerMini}><TurnTimer deadlineAt={poker.actionDeadlineAt} duration={poker.timerSec ?? 20} compact serverNow={session.serverNow} /></div> : null}
                   {me && me.roundBet > 0 ? <div className={styles.heroChipBet}>{me.roundBet}</div> : null}
                 </div>
-                <div className={styles.heroSeatCards}>{me?.cards.map((card, i) => <Card key={i} card={card} compact={false} />)}</div>
+                <div className={styles.heroSeatCards}>
+                  {me?.cards.map((card, i) => <Card key={i} card={card} compact={false} highlight={(bestCardsByUserId.get(meId) ?? []).includes(card)} />)}
+                </div>
                 <div className={styles.heroSeatControls}>
                   <button className={styles.dangerBtn} disabled={!myTurn || isLoading} onClick={() => submit('fold')}>Фолд</button>
                   <button className={styles.ghostBtn} disabled={!myTurn || isLoading} onClick={() => submit(canCheck ? 'check' : 'call')}>
@@ -617,14 +972,31 @@ function PokerView({ session, chat, meId, setError, compact = false }: { session
                 <div className={styles.showdownOverlay}>
                   <div className={styles.showdownCard}>
                     <div className={styles.resultTitle}>{overlayTitle}</div>
-                    <div className={styles.resultWinners}>{overlayResult.winners.length ? overlayResult.winners.map((id) => getName(chat, id)).join(', ') : 'Без победителя'}</div>
-                    <div className={styles.metaMuted}>{poker.showdownMessage ?? overlayResult.placements[0]?.handLabel ?? 'Результат раздачи зафиксирован'}</div>
+                    <div className={styles.resultWinners}>{overlayHeadline}</div>
+                    <div className={styles.metaMuted}>{overlaySummary}</div>
+                    {winningPlacements.length ? (
+                      <div className={styles.showdownWinningCards}>
+                        {winningPlacements.slice(0, 2).map((item) => (
+                          <div key={item.userId} className={styles.showdownWinningGroup}>
+                            <span className={styles.showdownWinningLabel}>{getName(chat, item.userId)}</span>
+                            <div className={styles.showdownWinningRow}>
+                              {(bestCardsByUserId.get(item.userId) ?? []).map((card) => <Card key={`${item.userId}-${card}`} card={card} compact highlight />)}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : null}
                     <div className={styles.resultPlaces}>
                       {overlayResult.placements.slice(0, compact ? 2 : 4).map((item) => (
-                        <div key={item.userId} className={styles.resultPlace}>
+                        <div key={item.userId} className={[styles.resultPlace, overlayResult.winners.includes(item.userId) ? styles.resultPlaceWinner : ''].join(' ')}>
                           <strong>{getName(chat, item.userId)}</strong>
                           <span>{item.handLabel ?? '—'}</span>
-                          <span>{item.amount > 0 ? `+${item.amount}` : '0'}</span>
+                          {(bestCardsByUserId.get(item.userId) ?? []).length ? (
+                            <div className={styles.resultPlaceCards}>
+                              {(bestCardsByUserId.get(item.userId) ?? []).map((card) => <Card key={`${item.userId}-${card}`} card={card} compact highlight={overlayResult.winners.includes(item.userId)} />)}
+                            </div>
+                          ) : null}
+                          <span className={overlayResult.winners.includes(item.userId) ? styles.resultPlaceAmountWin : ''}>{item.amount > 0 ? `+${item.amount}` : '0'}</span>
                         </div>
                       ))}
                     </div>
@@ -634,21 +1006,40 @@ function PokerView({ session, chat, meId, setError, compact = false }: { session
             </div>
           </div>
         </div>
+      </div>
+      </div>
 
-        <div className={styles.pokerBottomLine}>
+      {!immersive && !mobileViewport ? (
+        <div className={[styles.pokerBottomLine, styles.revampHudBottom].join(' ')}>
           <div className={styles.heroActionState}>
             <span className={myTurn ? styles.tagReady : styles.tagMuted}>{myTurn ? 'Ваш ход' : 'Ожидание'}</span>
             <span className={styles.metaMuted}>{toCall > 0 ? `Нужно ответить ${toCall}` : 'Можно сделать check'}</span>
           </div>
           {latestAction ? <div className={styles.inlineLastAction}>{getName(chat, latestAction.userId)} · {latestAction.note ?? formatAction(latestAction.type, latestAction.amount)}</div> : <div />}
         </div>
-      </div>
+      ) : null}
     </div>
   );
 }
 
 
-function FlappyView({ session, chat, meId, setError, compact = false }: { session: GameSession; chat?: Chat; meId: string; setError: (v: string) => void; compact?: boolean }) {
+function FlappyView({
+  session,
+  chat,
+  meId,
+  setError,
+  compact = false,
+  immersive = false,
+  mobileViewport = false,
+}: {
+  session: GameSession;
+  chat?: Chat;
+  meId: string;
+  setError: (v: string) => void;
+  compact?: boolean;
+  immersive?: boolean;
+  mobileViewport?: boolean;
+}) {
   const flappy = session.flappy!;
   const me = flappy.players.find((player) => player.userId === meId);
   const meMember = session.members.find((member) => member.userId === meId);
@@ -660,9 +1051,43 @@ function FlappyView({ session, chat, meId, setError, compact = false }: { sessio
   const [playing, setPlaying] = useState(false);
   const [localScore, setLocalScore] = useState(0);
   const [overlayOpen, setOverlayOpen] = useState(true);
-  const width = compact ? 300 : 420;
-  const height = compact ? 320 : 440;
+  const { containerRef: flappyBodyRef, size: flappySurface } = useResponsiveSurfaceSize({
+    aspectRatio: FLAPPY_CANVAS_BASE_WIDTH / FLAPPY_CANVAS_BASE_HEIGHT,
+    minWidth: mobileViewport ? 220 : 240,
+    minHeight: mobileViewport ? 320 : 360,
+  });
+  const width = flappySurface.width || (mobileViewport ? Math.min(flappySurface.availableWidth || FLAPPY_CANVAS_BASE_WIDTH, FLAPPY_CANVAS_BASE_WIDTH) : (compact ? 300 : FLAPPY_CANVAS_BASE_WIDTH));
+  const height = flappySurface.height || (mobileViewport ? Math.min(flappySurface.availableHeight || FLAPPY_CANVAS_BASE_HEIGHT, FLAPPY_CANVAS_BASE_HEIGHT) : (compact ? 320 : FLAPPY_CANVAS_BASE_HEIGHT));
+  const flappySurfaceStyle = {
+    width: `${width}px`,
+    height: `${height}px`,
+  } as CSSProperties;
+  const flappyMetrics = useMemo(() => createFlappyMetrics(width, height), [width, height]);
+  const {
+    scale: flappyScale,
+    groundHeight,
+    pipeWidth,
+    pipeGapHalf,
+    birdX,
+    birdRadius,
+    birdEyeX,
+    birdEyeOffsetY,
+    birdEyeRadius,
+    playAreaTop,
+    playAreaBottom,
+    pipeSpawnDistance,
+    pipeSpeed,
+    gravity,
+    flapVelocity,
+    pipeMinY,
+    pipeMaxY,
+    scoreBoxWidth,
+    scoreBoxHeight,
+  } = flappyMetrics;
   const attemptsLeft = Math.max(0, (flappy.maxAttempts ?? 0) - (me?.attemptsUsed ?? 0));
+  const currentAttemptNumber = flappy.maxAttempts > 0
+    ? Math.min(flappy.maxAttempts, (me?.attemptsUsed ?? 0) + (attemptsLeft > 0 ? 1 : 0))
+    : 0;
   const canPlay = session.status === 'ACTIVE' && meMember?.role === 'player' && meMember?.status === 'joined' && attemptsLeft > 0;
 
   useEffect(() => {
@@ -677,59 +1102,229 @@ function FlappyView({ session, chat, meId, setError, compact = false }: { sessio
     if (!playing) drawIdle();
   }, [playing, width, height, session.updatedAt]);
 
-  const drawIdle = () => {
+  const getCanvasContext = () => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!canvas) return null;
     const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    ctx.clearRect(0, 0, width, height);
-    const sky = ctx.createLinearGradient(0, 0, 0, height);
-    sky.addColorStop(0, '#0f2a1d');
-    sky.addColorStop(1, '#143d1e');
-    ctx.fillStyle = sky;
-    ctx.fillRect(0, 0, width, height);
-    ctx.fillStyle = '#1d5f2a';
-    ctx.fillRect(0, height - 44, width, 44);
-    ctx.fillStyle = 'rgba(255,255,255,0.12)';
-    ctx.font = '700 20px Inter, system-ui';
-    ctx.fillText('Tap / Space to flap', Math.max(26, width / 2 - 92), height / 2);
+    if (!ctx) return null;
+
+    const pixelRatio = typeof window === 'undefined' ? 1 : Math.max(1, window.devicePixelRatio || 1);
+    const targetWidth = Math.max(1, Math.round(width * pixelRatio));
+    const targetHeight = Math.max(1, Math.round(height * pixelRatio));
+
+    if (canvas.width !== targetWidth) canvas.width = targetWidth;
+    if (canvas.height !== targetHeight) canvas.height = targetHeight;
+    if (canvas.style.width !== `${width}px`) canvas.style.width = `${width}px`;
+    if (canvas.style.height !== `${height}px`) canvas.style.height = `${height}px`;
+
+    ctx.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+    return ctx;
   };
 
-  const draw = () => {
-    const canvas = canvasRef.current;
-    const state = stateRef.current;
-    if (!canvas || !state) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    ctx.clearRect(0, 0, width, height);
+  const drawRoundedRect = (ctx: CanvasRenderingContext2D, x: number, y: number, rectWidth: number, rectHeight: number, radius: number) => {
+    const safeRadius = Math.max(0, Math.min(radius, rectWidth / 2, rectHeight / 2));
+    ctx.beginPath();
+    ctx.moveTo(x + safeRadius, y);
+    ctx.lineTo(x + rectWidth - safeRadius, y);
+    ctx.quadraticCurveTo(x + rectWidth, y, x + rectWidth, y + safeRadius);
+    ctx.lineTo(x + rectWidth, y + rectHeight - safeRadius);
+    ctx.quadraticCurveTo(x + rectWidth, y + rectHeight, x + rectWidth - safeRadius, y + rectHeight);
+    ctx.lineTo(x + safeRadius, y + rectHeight);
+    ctx.quadraticCurveTo(x, y + rectHeight, x, y + rectHeight - safeRadius);
+    ctx.lineTo(x, y + safeRadius);
+    ctx.quadraticCurveTo(x, y, x + safeRadius, y);
+    ctx.closePath();
+  };
+
+  const drawCloud = (ctx: CanvasRenderingContext2D, x: number, y: number, size: number, alpha: number) => {
+    ctx.fillStyle = `rgba(255,255,255,${alpha})`;
+    ctx.beginPath();
+    ctx.arc(x, y, size * 0.26, 0, Math.PI * 2);
+    ctx.arc(x + size * 0.22, y - size * 0.08, size * 0.2, 0, Math.PI * 2);
+    ctx.arc(x + size * 0.44, y, size * 0.24, 0, Math.PI * 2);
+    ctx.arc(x + size * 0.24, y + size * 0.08, size * 0.28, 0, Math.PI * 2);
+    ctx.fill();
+  };
+
+  const drawBackground = (ctx: CanvasRenderingContext2D, elapsed = 0) => {
     const sky = ctx.createLinearGradient(0, 0, 0, height);
-    sky.addColorStop(0, '#0f2a1d');
-    sky.addColorStop(1, '#143d1e');
+    sky.addColorStop(0, '#6ed5ff');
+    sky.addColorStop(0.5, '#4fb7ff');
+    sky.addColorStop(1, '#7be6c8');
     ctx.fillStyle = sky;
     ctx.fillRect(0, 0, width, height);
 
-    ctx.fillStyle = '#1d5f2a';
-    ctx.fillRect(0, height - 44, width, 44);
-    ctx.fillStyle = '#d6b14b';
-    for (const pipe of state.pipes) {
-      ctx.fillRect(pipe.x, 0, 54, pipe.gapY - 72);
-      ctx.fillRect(pipe.x, pipe.gapY + 72, 54, height - pipe.gapY - 72 - 44);
-    }
+    const sun = ctx.createRadialGradient(width * 0.78, height * 0.18, 8, width * 0.78, height * 0.18, width * 0.18);
+    sun.addColorStop(0, 'rgba(255,241,176,0.95)');
+    sun.addColorStop(0.48, 'rgba(255,195,104,0.34)');
+    sun.addColorStop(1, 'rgba(255,195,104,0)');
+    ctx.fillStyle = sun;
+    ctx.fillRect(0, 0, width, height);
 
-    ctx.fillStyle = '#f4d84d';
+    drawCloud(ctx, width * 0.12 + Math.sin(elapsed / 1500) * (6 * flappyScale), height * 0.16, 70 * flappyScale, 0.38);
+    drawCloud(ctx, width * 0.54 + Math.sin(elapsed / 1700 + 1.3) * (9 * flappyScale), height * 0.12, 92 * flappyScale, 0.28);
+    drawCloud(ctx, width * 0.68 + Math.sin(elapsed / 1400 + 0.6) * (7 * flappyScale), height * 0.28, 64 * flappyScale, 0.2);
+
+    ctx.fillStyle = 'rgba(31, 101, 131, 0.16)';
     ctx.beginPath();
-    ctx.arc(92, state.birdY, 15, 0, Math.PI * 2);
+    ctx.moveTo(0, playAreaBottom - (130 * flappyScale));
+    ctx.quadraticCurveTo(width * 0.18, playAreaBottom - (190 * flappyScale), width * 0.36, playAreaBottom - (118 * flappyScale));
+    ctx.quadraticCurveTo(width * 0.55, playAreaBottom - (210 * flappyScale), width * 0.74, playAreaBottom - (126 * flappyScale));
+    ctx.quadraticCurveTo(width * 0.9, playAreaBottom - (178 * flappyScale), width, playAreaBottom - (138 * flappyScale));
+    ctx.lineTo(width, height);
+    ctx.lineTo(0, height);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.fillStyle = '#3ea95f';
+    ctx.beginPath();
+    ctx.moveTo(0, playAreaBottom - (58 * flappyScale));
+    ctx.quadraticCurveTo(width * 0.12, playAreaBottom - (102 * flappyScale), width * 0.28, playAreaBottom - (46 * flappyScale));
+    ctx.quadraticCurveTo(width * 0.5, playAreaBottom - (118 * flappyScale), width * 0.74, playAreaBottom - (56 * flappyScale));
+    ctx.quadraticCurveTo(width * 0.92, playAreaBottom - (108 * flappyScale), width, playAreaBottom - (70 * flappyScale));
+    ctx.lineTo(width, height);
+    ctx.lineTo(0, height);
+    ctx.closePath();
+    ctx.fill();
+
+    const ground = ctx.createLinearGradient(0, height - groundHeight, 0, height);
+    ground.addColorStop(0, '#5d411e');
+    ground.addColorStop(1, '#34220e');
+    ctx.fillStyle = ground;
+    ctx.fillRect(0, height - groundHeight, width, groundHeight);
+
+    ctx.fillStyle = '#8bd84a';
+    ctx.fillRect(0, height - groundHeight, width, 10 * flappyScale);
+    ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+    ctx.lineWidth = Math.max(1, 2 * flappyScale);
+    for (let x = -((elapsed / 12) % (28 * flappyScale)); x < width + 30; x += 28 * flappyScale) {
+      ctx.beginPath();
+      ctx.moveTo(x, height - groundHeight + (10 * flappyScale));
+      ctx.lineTo(x + (14 * flappyScale), height);
+      ctx.stroke();
+    }
+  };
+
+  const drawPipes = (ctx: CanvasRenderingContext2D, pipes: Array<{ x: number; gapY: number }>) => {
+    for (const pipe of pipes) {
+      const topHeight = pipe.gapY - pipeGapHalf;
+      const bottomY = pipe.gapY + pipeGapHalf;
+      const pipeGradient = ctx.createLinearGradient(pipe.x, 0, pipe.x + pipeWidth, 0);
+      pipeGradient.addColorStop(0, '#1e7f44');
+      pipeGradient.addColorStop(0.5, '#41c368');
+      pipeGradient.addColorStop(1, '#155d31');
+      ctx.fillStyle = pipeGradient;
+      ctx.fillRect(pipe.x, 0, pipeWidth, topHeight);
+      ctx.fillRect(pipe.x, bottomY, pipeWidth, height - bottomY - groundHeight);
+
+      ctx.fillStyle = '#63d584';
+      ctx.fillRect(pipe.x + (6 * flappyScale), 0, 6 * flappyScale, topHeight);
+      ctx.fillRect(pipe.x + (6 * flappyScale), bottomY, 6 * flappyScale, height - bottomY - groundHeight);
+
+      ctx.fillStyle = '#166238';
+      ctx.fillRect(pipe.x - (6 * flappyScale), topHeight - (18 * flappyScale), pipeWidth + (12 * flappyScale), 18 * flappyScale);
+      ctx.fillRect(pipe.x - (6 * flappyScale), bottomY, pipeWidth + (12 * flappyScale), 18 * flappyScale);
+    }
+  };
+
+  const drawBird = (ctx: CanvasRenderingContext2D, state: { birdY: number; birdVelocity: number; elapsed: number }, idle = false) => {
+    ctx.fillStyle = 'rgba(0,0,0,0.14)';
+    ctx.beginPath();
+    ctx.ellipse(birdX - (6 * flappyScale), Math.min(playAreaBottom + (22 * flappyScale), state.birdY + (36 * flappyScale)), 26 * flappyScale, 10 * flappyScale, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    const body = ctx.createLinearGradient(birdX - birdRadius, state.birdY - birdRadius, birdX + birdRadius, state.birdY + birdRadius);
+    body.addColorStop(0, '#ffe874');
+    body.addColorStop(0.52, '#ffbf38');
+    body.addColorStop(1, '#ff8d1f');
+    ctx.fillStyle = body;
+    ctx.beginPath();
+    ctx.arc(birdX, state.birdY, birdRadius, 0, Math.PI * 2);
+    ctx.fill();
+
+    const wingLift = Math.sin((state.elapsed / (idle ? 240 : 120)) + 0.4) * (7 * flappyScale);
+    ctx.fillStyle = '#e28b19';
+    ctx.beginPath();
+    ctx.ellipse(birdX - (3 * flappyScale), state.birdY + (2 * flappyScale), 10 * flappyScale, 7 * flappyScale, wingLift * 0.02, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = '#ff6b35';
+    ctx.beginPath();
+    ctx.moveTo(birdX + (11 * flappyScale), state.birdY + (1 * flappyScale));
+    ctx.lineTo(birdX + (22 * flappyScale), state.birdY - (2 * flappyScale));
+    ctx.lineTo(birdX + (11 * flappyScale), state.birdY - (7 * flappyScale));
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.arc(birdEyeX, state.birdY - birdEyeOffsetY, birdEyeRadius + (1 * flappyScale), 0, Math.PI * 2);
     ctx.fill();
     ctx.fillStyle = '#1b1b1b';
     ctx.beginPath();
-    ctx.arc(98, state.birdY - 4, 3, 0, Math.PI * 2);
+    ctx.arc(birdEyeX, state.birdY - birdEyeOffsetY, birdEyeRadius, 0, Math.PI * 2);
     ctx.fill();
+  };
 
-    ctx.fillStyle = 'rgba(0,0,0,0.32)';
-    ctx.fillRect(10, 10, 86, 34);
-    ctx.fillStyle = '#fff';
-    ctx.font = '700 18px Inter, system-ui';
-    ctx.fillText(`Счёт ${state.score}`, 20, 32);
+  const drawScoreHud = (ctx: CanvasRenderingContext2D, score: number, statusLabel?: string) => {
+    const hudX = width / 2 - scoreBoxWidth / 2;
+    const hudY = 16 * flappyScale;
+    drawRoundedRect(ctx, hudX, hudY, scoreBoxWidth, scoreBoxHeight, 22 * flappyScale);
+    ctx.fillStyle = 'rgba(5, 12, 19, 0.66)';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.14)';
+    ctx.lineWidth = Math.max(1, 1.5 * flappyScale);
+    ctx.stroke();
+
+    ctx.fillStyle = 'rgba(255,255,255,0.72)';
+    ctx.font = `700 ${Math.max(10, 11 * flappyScale)}px Inter, system-ui`;
+    ctx.textAlign = 'center';
+    ctx.fillText('СЧЕТ', width / 2, hudY + (18 * flappyScale));
+
+    ctx.fillStyle = '#fff6dd';
+    ctx.font = `800 ${Math.max(26, 34 * flappyScale)}px Inter, system-ui`;
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.28)';
+    ctx.shadowBlur = 18 * flappyScale;
+    ctx.shadowOffsetY = 4 * flappyScale;
+    ctx.fillText(String(score), width / 2, hudY + (46 * flappyScale));
+    ctx.shadowColor = 'transparent';
+    ctx.shadowBlur = 0;
+    ctx.shadowOffsetY = 0;
+
+    if (statusLabel) {
+      ctx.fillStyle = 'rgba(255,255,255,0.78)';
+      ctx.font = `600 ${Math.max(10, 12 * flappyScale)}px Inter, system-ui`;
+      ctx.fillText(statusLabel, width / 2, hudY + scoreBoxHeight + (16 * flappyScale));
+    }
+  };
+
+  const drawScene = (state?: { birdY: number; birdVelocity: number; pipes: Array<{ x: number; gapY: number }>; score: number; elapsed: number }, idle = false) => {
+    const ctx = getCanvasContext();
+    if (!ctx) return;
+    ctx.clearRect(0, 0, width, height);
+    drawBackground(ctx, state?.elapsed ?? 0);
+    drawPipes(ctx, state?.pipes ?? [{
+      x: width * 0.66,
+      gapY: (pipeMinY + pipeMaxY) / 2,
+    }]);
+    drawBird(ctx, state ?? {
+      birdY: (playAreaTop + playAreaBottom) / 2,
+      birdVelocity: 0,
+      elapsed: 0,
+      pipes: [],
+      score: 0,
+    }, idle);
+    drawScoreHud(ctx, state?.score ?? localScore, idle ? 'Тап или Space для старта' : undefined);
+  };
+
+  const drawIdle = () => {
+    drawScene(undefined, true);
+  };
+
+  const draw = () => {
+    const state = stateRef.current;
+    if (!state) return;
+    drawScene(state);
   };
 
   const finishAttempt = async (score: number) => {
@@ -739,6 +1334,7 @@ function FlappyView({ session, chat, meId, setError, compact = false }: { sessio
     setPlaying(false);
     setLocalScore(score);
     setOverlayOpen(true);
+    playFlappySound('hit');
     try {
       await submitAttempt({ sessionId: session.sessionId, score, idempotencyKey: attemptKeyRef.current || (globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`) }).unwrap();
       setError('');
@@ -753,27 +1349,33 @@ function FlappyView({ session, chat, meId, setError, compact = false }: { sessio
     if (!state.lastTime) state.lastTime = time;
     const dt = Math.min(32, time - state.lastTime) / 16.6667;
     state.lastTime = time;
-    state.birdVelocity += 0.45 * dt;
+    state.elapsed += dt * 16.6667;
+    state.birdVelocity += gravity * dt;
     state.birdY += state.birdVelocity * dt;
-    if (!state.pipes.length || state.pipes[state.pipes.length - 1].x < width - 170) {
-      state.pipes.push({ x: width + 24, gapY: 120 + Math.random() * (height - 260), passed: false });
+    if (!state.pipes.length || state.pipes[state.pipes.length - 1].x < width - pipeSpawnDistance) {
+      state.pipes.push({
+        x: width + (24 * flappyScale),
+        gapY: pipeMinY + Math.random() * Math.max(24 * flappyScale, pipeMaxY - pipeMinY),
+        passed: false,
+      });
     }
-    for (const pipe of state.pipes) pipe.x -= 2.8 * dt;
-    state.pipes = state.pipes.filter((pipe: any) => pipe.x > -80);
+    for (const pipe of state.pipes) pipe.x -= pipeSpeed * dt;
+    state.pipes = state.pipes.filter((pipe: any) => pipe.x > -(pipeWidth + (26 * flappyScale)));
     for (const pipe of state.pipes) {
-      if (!pipe.passed && pipe.x + 54 < 92) {
+      if (!pipe.passed && pipe.x + pipeWidth < birdX) {
         pipe.passed = true;
         state.score += 1;
         setLocalScore(state.score);
+        playFlappySound('score');
       }
-      const hitX = 92 + 15 > pipe.x && 92 - 15 < pipe.x + 54;
-      const hitY = state.birdY - 15 < pipe.gapY - 72 || state.birdY + 15 > pipe.gapY + 72;
+      const hitX = birdX + birdRadius > pipe.x && birdX - birdRadius < pipe.x + pipeWidth;
+      const hitY = state.birdY - birdRadius < pipe.gapY - pipeGapHalf || state.birdY + birdRadius > pipe.gapY + pipeGapHalf;
       if (hitX && hitY) {
         void finishAttempt(state.score);
         return;
       }
     }
-    if (state.birdY < 10 || state.birdY > height - 58) {
+    if (state.birdY < playAreaTop + (birdRadius * 0.72) || state.birdY > playAreaBottom - birdRadius) {
       void finishAttempt(state.score);
       return;
     }
@@ -783,7 +1385,8 @@ function FlappyView({ session, chat, meId, setError, compact = false }: { sessio
 
   const flap = () => {
     if (!stateRef.current) return;
-    stateRef.current.birdVelocity = -5.7;
+    stateRef.current.birdVelocity = flapVelocity;
+    playFlappySound('flap');
   };
 
   const startAttempt = () => {
@@ -791,15 +1394,17 @@ function FlappyView({ session, chat, meId, setError, compact = false }: { sessio
     if (frameRef.current) cancelAnimationFrame(frameRef.current);
     attemptKeyRef.current = globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`;
     stateRef.current = {
-      birdY: height / 2 - 10,
+      birdY: (playAreaTop + playAreaBottom) / 2 - (10 * flappyScale),
       birdVelocity: 0,
       pipes: [],
       score: 0,
       lastTime: 0,
+      elapsed: 0,
     };
     setLocalScore(0);
     setPlaying(true);
     setOverlayOpen(false);
+    playFlappySound('start');
     frameRef.current = requestAnimationFrame(tick);
   };
 
@@ -812,44 +1417,52 @@ function FlappyView({ session, chat, meId, setError, compact = false }: { sessio
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [playing, canPlay]);
+  }, [canPlay, flapVelocity, pipeMaxY, pipeMinY, playing, submitting]);
 
   const top = flappy.leaderboard[0];
 
   return (
-    <div className={[styles.gameLayout, styles.flappyLayout, compact ? styles.gameLayoutCompact : ''].join(' ')}>
-      <div className={styles.flappyTopbar}>
+    <div
+      className={[
+        styles.revampGameViewport,
+        styles.revampGameViewportPortrait,
+        compact ? styles.revampGameViewportCompact : '',
+        immersive ? styles.revampGameViewportImmersive : '',
+      ].filter(Boolean).join(' ')}
+    >
+      {!immersive && !mobileViewport ? (
+        <div className={[styles.flappyTopbar, styles.revampHudTop].join(' ')}>
         <div>
-          <div className={styles.pokerHandTitle}>Flappy Bird</div>
+          <div className={styles.pokerHandTitle}>Flappy Rush</div>
           <div className={styles.pokerHandMeta}>Попытки {flappy.maxAttempts} · Время {formatSessionClock(session)} · Участников {flappy.players.length}</div>
         </div>
         <div className={styles.flappyTopStats}>
           <span className={styles.infoChip}>Лучший {me?.bestScore ?? 0}</span>
           <span className={styles.infoChip}>Осталось {attemptsLeft}</span>
           {top ? <span className={styles.infoChip}>Лидер {getName(chat, top.userId)} · {top.bestScore}</span> : null}
-          <span className={styles.tagWarn}>Beta</span>
+          <span className={styles.tagWarn}>Arcade</span>
         </div>
       </div>
-      <div className={styles.flappyBody}>
-        <div className={styles.flappyArenaWrap}>
-          <div className={styles.flappyHud}>
+      ) : null}
+      <div className={styles.revampStageArea}>
+        <div ref={flappyBodyRef} className={[styles.flappyBody, styles.revampStageMeasure].join(' ')}>
+          <div className={[styles.flappyArenaWrap, styles.revampFlappyStageWrap].join(' ')} style={flappySurfaceStyle}>
+          <div className={[styles.flappyHud, styles.revampFlappyHudInline].join(' ')}>
             <span className={styles.infoChip}>Счёт {localScore}</span>
-            <span className={styles.infoChip}>Попытка {me?.attemptsUsed ?? 0}/{flappy.maxAttempts}</span>
+            <span className={styles.infoChip}>Попытка {currentAttemptNumber}/{flappy.maxAttempts}</span>
             <span className={styles.infoChip}>{playing ? 'В полёте' : attemptsLeft > 0 ? 'Готов' : 'Ждём итог'}</span>
           </div>
           <canvas
             ref={canvasRef}
-            width={width}
-            height={height}
             className={styles.flappyCanvas}
             onClick={() => { if (playing) flap(); else if (canPlay) startAttempt(); }}
           />
           {overlayOpen ? (
             <div className={styles.flappyOverlay}>
-              <div className={styles.flappyOverlayCard}>
-                <div className={styles.resultTitle}>{session.status === 'FINISHED' ? 'Сессия завершена' : 'Новая попытка'}</div>
-                <div className={styles.resultWinners}>Последний счёт: {localScore}</div>
-                <div className={styles.metaMuted}>Лучший результат: {me?.bestScore ?? 0} · Попыток осталось: {attemptsLeft}</div>
+              <div className={[styles.flappyOverlayCard, styles.revampFlappyOverlayCard].join(' ')}>
+                <div className={styles.resultTitle}>{session.status === 'FINISHED' ? 'Сессия завершена' : 'Новый забег'}</div>
+                <div className={styles.resultWinners}>{session.status === 'FINISHED' ? `Финальный лучший счёт: ${me?.bestScore ?? 0}` : `Последний счёт: ${localScore}`}</div>
+                <div className={styles.metaMuted}>Лучший результат: {Math.max(me?.bestScore ?? 0, localScore)} · Попыток осталось: {attemptsLeft}</div>
                 <div className={styles.flappyBoardList}>
                   {flappy.leaderboard.map((entry, index) => (
                     <div key={entry.userId} className={styles.flappyBoardRow}>
@@ -860,12 +1473,13 @@ function FlappyView({ session, chat, meId, setError, compact = false }: { sessio
                   ))}
                 </div>
                 {session.status === 'FINISHED' && session.result ? <ResultBanner result={session.result} chat={chat} title="Победитель" /> : null}
-                {canPlay && session.status === 'ACTIVE' ? <button className={styles.primaryBtn} onClick={startAttempt}>Старт попытки</button> : null}
+                {canPlay && session.status === 'ACTIVE' ? <button className={styles.primaryBtn} onClick={startAttempt}>Начать забег</button> : null}
                 {!canPlay && session.status === 'ACTIVE' ? <div className={styles.metaMuted}>Лимит попыток исчерпан. Ждём остальных игроков.</div> : null}
               </div>
             </div>
           ) : null}
         </div>
+      </div>
       </div>
     </div>
   );
@@ -883,6 +1497,7 @@ function SessionDirectory({
   onClearArchive,
   creating,
   clearing,
+  showHeader = true,
 }: {
   sessions: GameSession[];
   activeSessionId: string;
@@ -893,6 +1508,7 @@ function SessionDirectory({
   onClearArchive: () => void;
   creating: boolean;
   clearing: boolean;
+  showHeader?: boolean;
 }) {
   const active = sessions.filter((item) => item.status === 'CONFIG' || item.status === 'ACTIVE');
   const archive = sessions.filter((item) => item.status === 'FINISHED' || item.status === 'CANCELLED');
@@ -904,7 +1520,7 @@ function SessionDirectory({
 
   return (
     <div className={styles.directoryLayout}>
-      <div className={styles.directoryHeader}>
+      {showHeader ? <div className={styles.directoryHeader}>
         <div>
           <div className={styles.sectionTitle}>Игровые сессии</div>
           <div className={styles.metaMuted}>Выбери существующую сессию или создай новую. Игра выбирается только на этапе «Новая сессия».</div>
@@ -916,7 +1532,7 @@ function SessionDirectory({
           </div>
           <button className={styles.primaryBtn} disabled={creating} onClick={onCreateRequest}>{creating ? <Spinner size={16} /> : 'Новая сессия'}</button>
         </div>
-      </div>
+      </div> : null}
 
       {mode === 'all' ? (
         <div className={styles.directoryColumns}>
@@ -969,22 +1585,45 @@ function SessionDirectory({
   );
 }
 
-function SessionOverview({ session, chat, onBack, onDelete, onCancel, deleting, cancelling, compact = false }: { session: GameSession; chat?: Chat; onBack: () => void; onDelete: () => void; onCancel: () => void; deleting: boolean; cancelling: boolean; compact?: boolean }) {
+function SessionOverview({
+  session,
+  chat,
+  onBack,
+  onDelete,
+  onCancel,
+  deleting,
+  cancelling,
+  compact = false,
+  showHeading = true,
+  showActions = true,
+}: {
+  session: GameSession;
+  chat?: Chat;
+  onBack: () => void;
+  onDelete: () => void;
+  onCancel: () => void;
+  deleting: boolean;
+  cancelling: boolean;
+  compact?: boolean;
+  showHeading?: boolean;
+  showActions?: boolean;
+}) {
   const minimal = compact || session.gameKey === 'POKER' || session.gameKey === 'FLAPPY';
+  if (!showHeading && !showActions && minimal) return null;
 
   return (
     <div className={[styles.directorySection, styles.sessionOverviewBar, minimal ? styles.sessionOverviewBarMinimal : '', compact ? styles.directorySectionCompact : ''].join(' ')}>
-      <div className={styles.sectionRow}>
+      {showHeading ? <div className={styles.sectionRow}>
         <div>
           <div className={styles.sectionTitle}>{session.title}</div>
           <div className={styles.metaMuted}>{gameTitle(session.gameKey)} · {sessionStageLabel(session)} · Время {formatSessionClock(session)}</div>
         </div>
-        <div className={styles.toolbarRight}>
+        {showActions ? <div className={styles.toolbarRight}>
           <button className={styles.ghostBtn} onClick={onBack} aria-label="К списку сессий" title="К списку сессий"><Icon name="arrowLeft" size={16} /></button>
           {(session.status === 'CONFIG' || session.status === 'ACTIVE') ? <button className={styles.dangerBtn} disabled={cancelling} onClick={onCancel}>Завершить</button> : null}
           {(session.status === 'FINISHED' || session.status === 'CANCELLED') ? <button className={styles.dangerBtn} disabled={deleting} onClick={onDelete}>Удалить</button> : null}
-        </div>
-      </div>
+        </div> : null}
+      </div> : null}
       {!minimal ? (
         <div className={styles.overviewGrid}>
           <div className={styles.rulesCard}><div className={styles.metaLabel}>Статус</div><div className={styles.metaMuted}>{sessionStageLabel(session)}</div></div>
@@ -997,9 +1636,36 @@ function SessionOverview({ session, chat, onBack, onDelete, onCancel, deleting, 
   );
 }
 
-export function GameSessionPanel({ chat, meId, embedded = false }: { chat?: Chat; meId: string; embedded?: boolean }) {
+function RotateDevicePrompt({ title, description }: { title: string; description: string }) {
+  return (
+    <div className={styles.rotatePrompt}>
+      <div className={styles.rotatePromptCard}>
+        <div className={styles.rotatePromptGlyph}>↺</div>
+        <div className={styles.rotatePromptTitle}>{title}</div>
+        <div className={styles.metaMuted}>{description}</div>
+      </div>
+    </div>
+  );
+}
+
+function GameSessionPanelRevamp({
+  chat,
+  meId,
+  mode,
+  embedded = false,
+  fullscreenScope,
+  onFullscreenScopeChange,
+  onViewStateChange,
+}: GameSessionPanelProps) {
+  const sourceMode = mode ?? (embedded ? 'call' : 'chat');
   const chatId = chat?.id ?? '';
-  const { data: sessionsRes } = useGetGameSessionsQuery({ chatId }, { skip: !chatId, pollingInterval: embedded ? 2500 : 1600, refetchOnMountOrArgChange: true });
+  const isCallMode = sourceMode === 'call';
+  const sessionsPollingMs = isCallMode ? 5000 : 4000;
+  const detailPollingMs = 3500;
+  const { data: sessionsRes } = useGetGameSessionsQuery(
+    { chatId },
+    { skip: !chatId, pollingInterval: sessionsPollingMs, refetchOnFocus: true, refetchOnReconnect: true },
+  );
   const [selectedSessionId, setSelectedSessionId] = useState('');
   const [selectedGame, setSelectedGame] = useState<GameKey>('POKER');
   const [directoryMode, setDirectoryMode] = useState<'all' | 'byGame'>('all');
@@ -1009,15 +1675,33 @@ export function GameSessionPanel({ chat, meId, embedded = false }: { chat?: Chat
   const [deleteSession, { isLoading: deleting }] = useDeleteGameSessionMutation();
   const [clearArchive, { isLoading: clearing }] = useClearArchivedGameSessionsMutation();
   const [cancelSession, { isLoading: cancelling }] = useCancelGameSessionMutation();
+  const [localFullscreenScope, setLocalFullscreenScope] = useState<FullscreenScope>('none');
+  const [mobileImmersiveDismissed, setMobileImmersiveDismissed] = useState(false);
+  const isPhoneViewport = useMediaQuery('(max-width: 720px)');
+  const isPortraitViewport = useMediaQuery('(orientation: portrait)');
+  const isControlledFullscreen = fullscreenScope !== undefined;
 
   const allSessions = sessionsRes?.items ?? [];
   const activeId = selectedSessionId || allSessions[0]?.sessionId || '';
-  const { data: detailRes } = useGetGameSessionQuery({ sessionId: activeId }, { skip: !activeId, pollingInterval: 1200, refetchOnMountOrArgChange: true });
-  const session = detailRes?.session ?? allSessions.find((s) => s.sessionId === activeId) ?? null;
-  const chatPlayerIds = useMemo(() => chat?.members.map((m) => m.userId) ?? [], [chat?.id, chat?.members]);
+  const { data: detailRes } = useGetGameSessionQuery(
+    { sessionId: activeId },
+    { skip: !activeId, pollingInterval: detailPollingMs, refetchOnFocus: true, refetchOnReconnect: true },
+  );
+  const session = detailRes?.session ?? allSessions.find((item) => item.sessionId === activeId) ?? null;
+  const chatPlayerIds = useMemo(() => chat?.members.map((member) => member.userId) ?? [], [chat?.id, chat?.members]);
+  const activeSessions = allSessions.filter((item) => item.status === 'CONFIG' || item.status === 'ACTIVE');
+  const archivedSessions = allSessions.filter((item) => item.status === 'FINISHED' || item.status === 'CANCELLED');
+  const selectedMeta = GAME_CATALOG.find((item) => item.key === selectedGame) ?? GAME_CATALOG[0];
+  const currentGameKey = view === 'session' && session ? session.gameKey : view === 'create' ? selectedGame : null;
+  const presentation = getGamePresentationSpec(currentGameKey);
+  const shouldAutoImmersive = isPhoneViewport && view === 'session' && !!session && session.status !== 'CONFIG';
+  const shouldForceMobileImmersive = !isControlledFullscreen && shouldAutoImmersive && !mobileImmersiveDismissed;
+  const effectiveFullscreenScope = fullscreenScope ?? (shouldForceMobileImmersive ? 'app' : localFullscreenScope);
 
   useEffect(() => {
-    if (view === 'session' && !selectedSessionId && allSessions[0]?.sessionId) setSelectedSessionId(allSessions[0].sessionId);
+    if (view === 'session' && !selectedSessionId && allSessions[0]?.sessionId) {
+      setSelectedSessionId(allSessions[0].sessionId);
+    }
   }, [view, allSessions, selectedSessionId]);
 
   useEffect(() => {
@@ -1027,15 +1711,39 @@ export function GameSessionPanel({ chat, meId, embedded = false }: { chat?: Chat
     }
   }, [allSessions, selectedSessionId]);
 
+  useEffect(() => {
+    setMobileImmersiveDismissed(false);
+  }, [activeId, view]);
+
+  useEffect(() => {
+    if (isControlledFullscreen) return;
+    if (view !== 'session' && localFullscreenScope !== 'none') {
+      setLocalFullscreenScope('none');
+      return;
+    }
+    if (!shouldForceMobileImmersive || localFullscreenScope !== 'none') return;
+    setLocalFullscreenScope('app');
+  }, [isControlledFullscreen, localFullscreenScope, shouldForceMobileImmersive, view]);
+
   const create = async () => {
     try {
       const chosen = GAME_CATALOG.find((item) => item.key === selectedGame);
       if (!chosen || chosen.status === 'development') {
-        setError('Эта игра пока недоступна для создания новой сессии.');
+        setError('\u042d\u0442\u0430 \u0438\u0433\u0440\u0430 \u043f\u043e\u043a\u0430 \u043d\u0435\u0434\u043e\u0441\u0442\u0443\u043f\u043d\u0430 \u0434\u043b\u044f \u0441\u043e\u0437\u0434\u0430\u043d\u0438\u044f \u043d\u043e\u0432\u043e\u0439 \u0441\u0435\u0441\u0441\u0438\u0438.');
         return;
       }
-      const title = selectedGame === 'POKER' ? 'Покерный стол' : selectedGame === 'FLAPPY' ? 'Flappy Rush' : gameTitle(selectedGame);
-      const res = await createGame({ chatId, gameKey: selectedGame, title, participantUserIds: chatPlayerIds, config: gameConfigDefaults(selectedGame) }).unwrap();
+      const title = selectedGame === 'POKER'
+        ? '\u041f\u043e\u043a\u0435\u0440\u043d\u044b\u0439 \u0441\u0442\u043e\u043b'
+        : selectedGame === 'FLAPPY'
+          ? 'Flappy Rush'
+          : gameTitle(selectedGame);
+      const res = await createGame({
+        chatId,
+        gameKey: selectedGame,
+        title,
+        participantUserIds: chatPlayerIds,
+        config: gameConfigDefaults(selectedGame),
+      }).unwrap();
       setSelectedSessionId(res.session.sessionId);
       setView('session');
       setError('');
@@ -1085,47 +1793,192 @@ export function GameSessionPanel({ chat, meId, embedded = false }: { chat?: Chat
     }
   };
 
+  const handleFullscreenScopeChange = (scope: FullscreenScope) => {
+    if (!isControlledFullscreen) {
+      setLocalFullscreenScope(scope);
+      if (isPhoneViewport && view === 'session' && scope === 'none') {
+        setMobileImmersiveDismissed(true);
+      }
+    }
+    onFullscreenScopeChange?.(scope);
+  };
+
+  const uiTitle = view === 'session' && session
+    ? session.title
+    : view === 'create'
+      ? '\u041d\u043e\u0432\u0430\u044f \u0441\u0435\u0441\u0441\u0438\u044f'
+      : '\u0418\u0433\u0440\u044b';
+
+  const uiSubtitle = view === 'session' && session
+    ? `${gameTitle(session.gameKey)} \u00b7 ${sessionStageLabel(session)}`
+    : view === 'create'
+      ? selectedMeta.description
+      : '\u0415\u0434\u0438\u043d\u0430\u044f \u043e\u0431\u043e\u043b\u043e\u0447\u043a\u0430 \u0434\u043b\u044f \u043a\u0430\u0442\u0430\u043b\u043e\u0433\u0430, \u043b\u043e\u0431\u0431\u0438 \u0438 \u0430\u043a\u0442\u0438\u0432\u043d\u044b\u0445 \u0438\u0433\u0440.';
+
+  const uiMeta = view === 'session' && session ? (
+    <>
+      <span className={styles.tagReady}>{session.members.filter((member) => member.role === 'player').length} {'\u0438\u0433\u0440\u043e\u043a\u043e\u0432'}</span>
+      <span className={styles.tagMuted}>{formatSessionClock(session)}</span>
+    </>
+  ) : view === 'create' ? (
+    <>
+      {selectedMeta.status === 'beta' ? <span className={styles.tagWarn}>{'\u0411\u0435\u0442\u0430'}</span> : null}
+      {selectedMeta.status === 'development' ? <span className={styles.tagMuted}>{'\u0421\u043a\u043e\u0440\u043e'}</span> : <span className={styles.tagReady}>{'\u0414\u043e\u0441\u0442\u0443\u043f\u043d\u0430'}</span>}
+    </>
+  ) : (
+    <>
+      <span className={styles.tagReady}>{activeSessions.length} {'\u0430\u043a\u0442\u0438\u0432\u043d\u044b\u0445'}</span>
+      <span className={styles.tagMuted}>{archivedSessions.length} {'\u0432 \u0430\u0440\u0445\u0438\u0432\u0435'}</span>
+    </>
+  );
+
+  const uiHeaderActions = view === 'session' && session ? (
+    <>
+      <button className={styles.ghostBtn} onClick={() => setView('directory')} aria-label={'\u041a \u0441\u043f\u0438\u0441\u043a\u0443 \u0441\u0435\u0441\u0441\u0438\u0439'} title={'\u041a \u0441\u043f\u0438\u0441\u043a\u0443 \u0441\u0435\u0441\u0441\u0438\u0439'}>
+        <Icon name="arrowLeft" size={16} />
+      </button>
+      {(session.status === 'CONFIG' || session.status === 'ACTIVE') ? (
+        <button className={styles.dangerBtn} disabled={cancelling} onClick={handleCancel}>
+          {'\u0417\u0430\u0432\u0435\u0440\u0448\u0438\u0442\u044c'}
+        </button>
+      ) : null}
+      {(session.status === 'FINISHED' || session.status === 'CANCELLED') ? (
+        <button className={styles.dangerBtn} disabled={deleting} onClick={handleDelete}>
+          {'\u0423\u0434\u0430\u043b\u0438\u0442\u044c'}
+        </button>
+      ) : null}
+    </>
+  ) : view === 'create' ? (
+    <>
+      <button className={styles.ghostBtn} onClick={() => setView('directory')} aria-label={'\u041d\u0430\u0437\u0430\u0434'} title={'\u041d\u0430\u0437\u0430\u0434'}>
+        <Icon name="arrowLeft" size={16} />
+      </button>
+      <button className={styles.primaryBtn} disabled={creating || selectedMeta.status === 'development'} onClick={() => void create()}>
+        {creating ? <Spinner size={16} /> : '\u0421\u043e\u0437\u0434\u0430\u0442\u044c \u0441\u0435\u0441\u0441\u0438\u044e'}
+      </button>
+    </>
+  ) : (
+    <>
+      <div className={styles.catalogTabs}>
+        <button className={[styles.catalogTab, directoryMode === 'all' ? styles.catalogTabActive : ''].join(' ')} onClick={() => setDirectoryMode('all')}>
+          {'\u0412\u0441\u0435 \u0441\u0435\u0441\u0441\u0438\u0438'}
+        </button>
+        <button className={[styles.catalogTab, directoryMode === 'byGame' ? styles.catalogTabActive : ''].join(' ')} onClick={() => setDirectoryMode('byGame')}>
+          {'\u041f\u043e \u0438\u0433\u0440\u0430\u043c'}
+        </button>
+      </div>
+      <button className={styles.ghostBtn} disabled={clearing || !archivedSessions.length} onClick={() => void handleClearArchive()}>
+        {'\u041e\u0447\u0438\u0441\u0442\u0438\u0442\u044c \u0430\u0440\u0445\u0438\u0432'}
+      </button>
+      <button
+        className={styles.primaryBtn}
+        disabled={creating}
+        onClick={() => {
+          setError('');
+          setView('create');
+        }}
+      >
+        {creating ? <Spinner size={16} /> : '\u041d\u043e\u0432\u0430\u044f \u0441\u0435\u0441\u0441\u0438\u044f'}
+      </button>
+    </>
+  );
+
   return (
-    <div className={[styles.shell, embedded ? styles.shellEmbedded : ''].join(' ')}>
-      {error ? <div className={styles.error}>{error}</div> : null}
-      <div className={styles.stageRoot}>
-        {view === 'create' ? (
-          <CreateSessionView
-            selectedGame={selectedGame}
-            onSelectGame={setSelectedGame}
-            onCreate={create}
-            creating={creating}
-            onBack={() => setView('directory')}
-          />
-        ) : view === 'session' && session ? (
-          <div className={styles.sessionStageLayout}>
-            <SessionOverview session={session} chat={chat} onBack={() => setView('directory')} onDelete={handleDelete} onCancel={handleCancel} deleting={deleting} cancelling={cancelling} compact={embedded} />
-            <div className={styles.sessionMain}>
-              {session.status === 'CONFIG' ? (
-                <LobbyView session={session} chat={chat} meId={meId} setError={setError} compact={embedded} />
-              ) : session.gameKey === 'POKER' && session.poker ? (
-                <PokerView session={session} chat={chat} meId={meId} setError={setError} compact={embedded} />
-              ) : session.gameKey === 'FLAPPY' && session.flappy ? (
-                <FlappyView session={session} chat={chat} meId={meId} setError={setError} compact={embedded} />
-              ) : (
-                <div className={styles.empty}>Эта игра ещё не готова</div>
-              )}
-            </div>
+    <GameFrame
+      mode={sourceMode}
+      fullscreenScope={effectiveFullscreenScope}
+      onFullscreenScopeChange={handleFullscreenScopeChange}
+      onViewStateChange={onViewStateChange}
+      presentation={presentation}
+      allowFullscreen={view === 'session' && !!session && session.status !== 'CONFIG'}
+      eyebrow={sourceMode === 'call' ? 'Игры во звонке' : 'Игры в чате'}
+      title={uiTitle}
+      subtitle={uiSubtitle}
+      badge={currentGameKey ? gamePreview(currentGameKey) : undefined}
+      meta={uiMeta}
+      headerActions={uiHeaderActions}
+      className={[styles.shell, isCallMode ? styles.shellCall : styles.shellChat].filter(Boolean).join(' ')}
+      stageClassName={[
+        styles.frameStage,
+        view === 'session' ? styles.frameStageSession : styles.frameStageScroll,
+        isCallMode ? styles.frameStageCall : '',
+      ].filter(Boolean).join(' ')}
+    >
+      {(frameState) => {
+        const compact = frameState.stageSize.availableWidth < 1040 || frameState.stageSize.availableHeight < 760;
+        const immersive = frameState.mode === 'fullscreen';
+        const needsRotatePrompt = !!session
+          && session.gameKey === 'POKER'
+          && session.status !== 'CONFIG'
+          && (
+            (isPhoneViewport && isPortraitViewport)
+            || (
+              frameState.stageSize.availableHeight > frameState.stageSize.availableWidth
+              && frameState.stageSize.availableWidth < 960
+            )
+          );
+
+        return view === 'session' && session ? (
+          <div className={[styles.revampSessionViewport, immersive ? styles.revampSessionViewportFullscreen : ''].filter(Boolean).join(' ')}>
+            {error ? <div className={[styles.error, styles.revampSessionError].join(' ')}>{error}</div> : null}
+            {session.status === 'CONFIG' ? (
+              <div className={styles.revampSessionConfig}>
+                <LobbyView session={session} chat={chat} meId={meId} setError={setError} compact={compact} />
+              </div>
+            ) : needsRotatePrompt ? (
+              <RotateDevicePrompt
+                title="Поверните устройство"
+                description="Для покера нужен горизонтальный экран. В ландшафтной ориентации стол займет всю доступную высоту и ширину без сжатия."
+              />
+            ) : session.gameKey === 'POKER' && session.poker ? (
+              <PokerView session={session} chat={chat} meId={meId} setError={setError} compact={compact} immersive={immersive} mobileViewport={isPhoneViewport} />
+            ) : session.gameKey === 'FLAPPY' && session.flappy ? (
+              <FlappyView session={session} chat={chat} meId={meId} setError={setError} compact={compact} immersive={immersive} mobileViewport={isPhoneViewport} />
+            ) : (
+              <div className={styles.revampRotatePrompt}>
+                <div className={styles.revampRotateCard}>
+                  <div className={styles.revampRotateTitle}>Игра пока недоступна</div>
+                  <div className={styles.metaMuted}>Этот игровой экран еще не подключен к новому адаптивному stage.</div>
+                </div>
+              </div>
+            )}
           </div>
         ) : (
-          <SessionDirectory
-            sessions={allSessions}
-            activeSessionId={activeId}
-            mode={directoryMode}
-            onModeChange={setDirectoryMode}
-            onOpen={openSession}
-            onCreateRequest={() => { setError(''); setView('create'); }}
-            onClearArchive={handleClearArchive}
-            creating={creating}
-            clearing={clearing}
-          />
-        )}
-      </div>
-    </div>
+          <div className={[styles.stageRoot, immersive ? styles.stageRootFullscreen : ''].filter(Boolean).join(' ')}>
+            {error ? <div className={styles.error}>{error}</div> : null}
+            {view === 'create' ? (
+              <CreateSessionView
+                selectedGame={selectedGame}
+                onSelectGame={setSelectedGame}
+                onCreate={create}
+                creating={creating}
+                onBack={() => setView('directory')}
+                showHeader={false}
+              />
+            ) : (
+              <SessionDirectory
+                sessions={allSessions}
+                activeSessionId={activeId}
+                mode={directoryMode}
+                onModeChange={setDirectoryMode}
+                onOpen={openSession}
+                onCreateRequest={() => {
+                  setError('');
+                  setView('create');
+                }}
+                onClearArchive={handleClearArchive}
+                creating={creating}
+                clearing={clearing}
+                showHeader={false}
+              />
+            )}
+          </div>
+        );
+      }}
+    </GameFrame>
   );
+}
+
+export function GameSessionPanel(props: GameSessionPanelProps) {
+  return <GameSessionPanelRevamp {...props} />;
 }

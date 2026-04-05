@@ -34,11 +34,11 @@ export type PulseWeightDelta = {
 } | null;
 
 export type PulseGoalSuggestion = {
-  dailyCalories: number;
-  protein: number;
-  fat: number;
-  carbs: number;
-  bmi: number;
+  dailyCalories: number | null;
+  protein: number | null;
+  fat: number | null;
+  carbs: number | null;
+  bmi: number | null;
 } | null;
 
 export type PulseHealthDay = {
@@ -73,6 +73,7 @@ export type PulseFood = {
   carbs: number | null;
   isHealthy: boolean;
   isPublic: boolean;
+  usageCount?: number | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -106,17 +107,32 @@ export type PulseMeal = {
 
 export type PulseTaskItem = {
   id: string;
+  occurrenceKey?: string;
   title: string;
   notes: string | null;
+  kind?: 'TASK' | 'EVENT';
   priority: number;
   tags: string[];
   dueDate: string | null;
+  endDate?: string | null;
+  hasTime?: boolean;
+  timeLabel?: string | null;
   taskType: 'REGULAR' | 'ONE_TIME' | 'HABIT';
   scheduleType: 'NONE' | 'DAILY' | 'WEEKLY' | 'MONTHLY';
   daysOfWeek: number[];
   daysOfMonth: number[];
   completedForDate: boolean;
+  socialEventRole?: 'EVENT' | 'SUBTASK' | null;
+  sourceEventTitle?: string | null;
+  subtaskAssignmentMode?: 'PERSONAL' | 'ALL' | 'ANYONE' | null;
+  subtaskAssigneeUserId?: string | null;
+  sourceArtifactId?: string | null;
   sourceKey?: string | null;
+  programMeta?: {
+    runId: string;
+    programId: string;
+    title: string;
+  } | null;
 };
 
 export type PulseTaskGoal = {
@@ -158,6 +174,47 @@ export type PulseFinanceEntry = {
   updatedAt: string;
 };
 
+export type PulseFinanceShareParticipant = {
+  userId: string;
+  username: string;
+  avatarUrl?: string | null;
+  status?: string | null;
+  statusLabel?: string | null;
+  currentLabel?: string | null;
+  totalLabel?: string | null;
+  progressPercent?: number | null;
+  summary?: string | null;
+};
+
+export type PulseFinanceShareMeta = {
+  artifactId: string;
+  title?: string | null;
+  actionType?: string | null;
+  originChatId?: string | null;
+  openRoute?: string | null;
+  sharingScope?: 'PERSONAL' | 'SHARED' | null;
+  progressPercent?: number | null;
+  progressLabel?: string | null;
+  progressCaption?: string | null;
+  participantSummary?: {
+    total: number;
+    accepted: number;
+    declined: number;
+    added: number;
+    completed: number;
+    following: number;
+  } | null;
+  participants?: PulseFinanceShareParticipant[];
+  viewerState?: {
+    role?: string | null;
+    status?: string | null;
+    acceptedAt?: string | null;
+    declinedAt?: string | null;
+    addedAt?: string | null;
+    completedAt?: string | null;
+  } | null;
+};
+
 export type PulseSavingsGoal = {
   id: string;
   userId: string;
@@ -166,6 +223,7 @@ export type PulseSavingsGoal = {
   savedAmount: number;
   deadline: string | null;
   itemsJson: { title: string; amount: number }[] | null;
+  shareArtifact?: PulseFinanceShareMeta | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -184,6 +242,7 @@ export type PulseDebt = {
   paymentAmount: number | null;
   termMonths: number | null;
   notes: string | null;
+  shareArtifact?: PulseFinanceShareMeta | null;
   createdAt: string;
   updatedAt: string;
 };

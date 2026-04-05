@@ -19,9 +19,19 @@
 .contentMobileImmersive {
 }
 
+.contentHealth {
+  min-height: calc(100dvh - var(--header-height));
+  padding: var(--header-height) 0 var(--content-bottom-pad-desktop);
+  background: linear-gradient(180deg, #05070b 0%, #04060a 100%);
+}
+
 @media (max-width: 1180px) {
   .content {
     padding-inline: 20px;
+  }
+
+  .contentHealth {
+    padding-inline: 0;
   }
 }
 
@@ -44,5 +54,11 @@
     min-height: 100dvh;
     padding: 0;
     overflow: hidden;
+  }
+
+  .contentHealth {
+    min-height: calc(100dvh - var(--mobile-header-height));
+    padding: var(--mobile-header-height) 0 calc(var(--mobile-nav-height) + env(safe-area-inset-bottom, 0px) + 18px);
+    background: linear-gradient(180deg, #05070b 0%, #04060a 100%);
   }
 }

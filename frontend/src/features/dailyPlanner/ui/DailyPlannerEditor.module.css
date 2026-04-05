@@ -1,0 +1,95 @@
+.backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(6, 10, 18, 0.46);
+  backdrop-filter: blur(10px);
+  display: flex;
+  justify-content: flex-end;
+  z-index: 90;
+}
+
+.drawer {
+  width: min(520px, 100vw);
+  height: 100%;
+  background: rgba(12, 16, 26, 0.96);
+  border-left: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: -24px 0 48px rgba(0, 0, 0, 0.34);
+  display: flex;
+  flex-direction: column;
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 18px 20px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.header strong {
+  display: block;
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.96);
+}
+
+.header span {
+  display: block;
+  margin-top: 4px;
+  font-size: 0.82rem;
+  color: rgba(255, 255, 255, 0.56);
+}
+
+.body {
+  padding: 18px 20px 24px;
+  overflow: auto;
+  display: grid;
+  gap: 18px;
+}
+
+.primaryActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.detailsSection {
+  display: grid;
+  gap: 12px;
+}
+
+.detailsToggle {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.92);
+  border-radius: 18px;
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font: inherit;
+  cursor: pointer;
+}
+
+.detailsToggle strong {
+  font-size: 0.82rem;
+  color: rgba(255, 255, 255, 0.62);
+}
+
+.detailsBody {
+  display: grid;
+  gap: 12px;
+}
+
+@media (max-width: 960px) {
+  .backdrop,
+  .drawer,
+  .header {
+    display: none;
+  }
+
+  .body {
+    padding: 0 0 8px;
+  }
+}

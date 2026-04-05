@@ -1,5 +1,7 @@
 import { createApi } from '@reduxjs/toolkit/query/react';
 import { baseQuery } from './baseQuery';
+import { baseApi } from './baseApi';
+import { pulseApi } from './pulseApi';
 import type { TaskItem } from '@/shared/types/models';
 
 export const tasksApi = createApi({
@@ -24,10 +26,38 @@ export const tasksApi = createApi({
     updateTask: build.mutation<{ task: TaskItem }, { taskId: string; body: Record<string, unknown> }>({
       query: ({ taskId, body }) => ({ url: `/backend/tasks/${taskId}`, method: 'PATCH', body }),
       invalidatesTags: ['Task'],
+      async onQueryStarted(_arg, { dispatch, queryFulfilled }) {
+        try {
+          await queryFulfilled;
+          dispatch(pulseApi.util.invalidateTags(['Pulse']));
+          dispatch(
+            baseApi.util.invalidateTags([
+              { type: 'ProgramRun', id: 'TODAY' },
+              { type: 'ProgramRun', id: 'LIST' },
+              { type: 'Program', id: 'LIST' },
+              { type: 'ProgramSession', id: 'LIST' },
+            ]),
+          );
+        } catch {}
+      },
     }),
     toggleTask: build.mutation<{ task: TaskItem }, string>({
       query: (taskId) => ({ url: `/backend/tasks/${taskId}/toggle`, method: 'POST' }),
       invalidatesTags: ['Task'],
+      async onQueryStarted(_arg, { dispatch, queryFulfilled }) {
+        try {
+          await queryFulfilled;
+          dispatch(pulseApi.util.invalidateTags(['Pulse']));
+          dispatch(
+            baseApi.util.invalidateTags([
+              { type: 'ProgramRun', id: 'TODAY' },
+              { type: 'ProgramRun', id: 'LIST' },
+              { type: 'Program', id: 'LIST' },
+              { type: 'ProgramSession', id: 'LIST' },
+            ]),
+          );
+        } catch {}
+      },
     }),
     deleteTask: build.mutation<{ ok: boolean }, string>({
       query: (taskId) => ({ url: `/backend/tasks/${taskId}`, method: 'DELETE' }),

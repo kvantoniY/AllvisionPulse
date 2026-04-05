@@ -1,4 +1,5 @@
 import type { Role } from './models';
+import type { PulseShareEmbedArtifact } from '@/shared/lib/pulseShare';
 
 export type ChatType = 'DIRECT' | 'GROUP';
 
@@ -42,13 +43,15 @@ export type MessageAttachment = {
 
 
 export type MessageMeta = {
-  kind?: 'storyReply';
+  kind?: 'storyReply' | 'pulse_share';
   storyId?: string;
   storyAuthorId?: string;
   storyAuthorName?: string;
   storyImageUrl?: string;
   storyMediaType?: string;
   storyCreatedAt?: string;
+  artifactId?: string;
+  artifact?: PulseShareEmbedArtifact;
 };
 
 export type MessageRead = {
@@ -80,4 +83,21 @@ export type Message = {
   replyTo?: Message | null;
   forwardOfId?: string | null;
   forwardOf?: Message | null;
+};
+
+export type ChatPulseHistoryItem = {
+  id: string;
+  createdAt: string;
+  title?: string | null;
+  description?: string | null;
+  kind: string;
+  mode: string;
+  actionType?: string | null;
+  sourceType: string;
+  owner?: {
+    id: string;
+    username: string;
+    avatarUrl?: string | null;
+  } | null;
+  artifact: PulseShareEmbedArtifact;
 };

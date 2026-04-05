@@ -289,7 +289,7 @@ export default function AdminPage() {
   if (isLoading) {
     return (
       <div className="container appPage">
-        <Card>
+        <Card className={styles.heroPanel}>
           <CardHeader title="Админ панель" />
           <CardMuted>Проверяем права доступа…</CardMuted>
         </Card>
@@ -370,7 +370,7 @@ export default function AdminPage() {
 
         {view === "overview" ? (
           <div className={styles.analyticsLayout}>
-            <Card>
+            <Card className={styles.panel}>
               <CardHeader title="Ключевые метрики" action={analyticsFetching ? <span className={styles.subtle}>Обновляем…</span> : undefined} />
               {!overview ? (
                 <div className={styles.empty}>Пока собираем данные. После первых посещений пользователей здесь появятся метрики и графики.</div>
@@ -390,7 +390,7 @@ export default function AdminPage() {
             </Card>
 
             <div className={styles.chartGrid}>
-              <Card className={styles.chartCard}>
+              <Card className={[styles.panel, styles.chartCard].filter(Boolean).join(" ")}>
                 <CardHeader title="Активные пользователи по дням" />
                 {charts?.dailyActiveUsers?.length ? (
                   <div className={styles.chartBox}>
@@ -407,7 +407,7 @@ export default function AdminPage() {
                 ) : <div className={styles.empty}>Недостаточно данных для построения графика.</div>}
               </Card>
 
-              <Card className={styles.chartCard}>
+              <Card className={[styles.panel, styles.chartCard].filter(Boolean).join(" ")}>
                 <CardHeader title="Просмотры и уникальные пользователи по часам" />
                 {charts?.hourlyActivity?.length ? (
                   <div className={styles.chartBox}>
@@ -425,7 +425,7 @@ export default function AdminPage() {
                 ) : <div className={styles.empty}>Недостаточно данных для построения графика.</div>}
               </Card>
 
-              <Card className={styles.chartCard}>
+              <Card className={[styles.panel, styles.chartCard].filter(Boolean).join(" ")}>
                 <CardHeader title="Средний онлайн по 30-минутным интервалам" />
                 {charts?.onlineTimeline?.length ? (
                   <div className={styles.chartBox}>
@@ -442,7 +442,7 @@ export default function AdminPage() {
                 ) : <div className={styles.empty}>Недостаточно данных для построения графика.</div>}
               </Card>
 
-              <Card className={styles.chartCard}>
+              <Card className={[styles.panel, styles.chartCard].filter(Boolean).join(" ")}>
                 <CardHeader title="Просмотры сайта по дням" />
                 {charts?.pageViewsByDay?.length ? (
                   <div className={styles.chartBox}>
@@ -461,15 +461,15 @@ export default function AdminPage() {
             </div>
 
             <div className={styles.insightsGrid}>
-              <Card>
+              <Card className={styles.panel}>
                 <CardHeader title="Самые посещаемые разделы" />
                 <TopTabsList items={analyticsData?.topTabs ?? []} />
               </Card>
-              <Card>
+              <Card className={styles.panel}>
                 <CardHeader title="Топ страниц" />
                 <TopPagesList items={analyticsData?.topPages ?? []} />
               </Card>
-              <Card>
+              <Card className={styles.panel}>
                 <CardHeader title="Топ действий" />
                 <TopActionsList items={analyticsData?.topActions ?? []} />
               </Card>
@@ -479,7 +479,7 @@ export default function AdminPage() {
 
         {view === "tickets" ? (
           <div className={styles.supportWorkspace}>
-            <Card className={styles.queueCard}>
+            <Card className={[styles.panel, styles.queueCard].filter(Boolean).join(" ")}>
               <CardHeader title="Очередь личных тикетов" action={<span className={styles.subtle}>{tickets.length}</span>} />
               <div className={styles.filterStack}>
                 <input className={styles.input} value={ticketSearch} onChange={(event) => setTicketSearch(event.target.value)} placeholder="Поиск по теме, описанию или юзернейму" />
@@ -495,7 +495,7 @@ export default function AdminPage() {
               {!!tickets.length ? <div className={styles.queueList}>{tickets.map((ticket) => <QueueTicketItem key={ticket.id} ticket={ticket} active={selectedTicket?.id === ticket.id} onClick={() => setSelectedTicketId(ticket.id)} />)}</div> : null}
             </Card>
 
-            <Card className={styles.detailCard}>
+            <Card className={[styles.panel, styles.detailCard].filter(Boolean).join(" ")}>
               <CardHeader title="Карточка тикета" />
               {!selectedTicket ? (
                 <CardMuted>Выберите тикет слева, чтобы увидеть детали и ответить пользователю.</CardMuted>
@@ -554,7 +554,7 @@ export default function AdminPage() {
 
         {view === "questions" ? (
           <div className={styles.supportWorkspace}>
-            <Card className={styles.queueCard}>
+            <Card className={[styles.panel, styles.queueCard].filter(Boolean).join(" ")}>
               <CardHeader title="Очередь общих вопросов" action={<span className={styles.subtle}>{queueQuestions.length}</span>} />
               <div className={styles.filterStack}>
                 <input className={styles.input} value={questionSearch} onChange={(event) => setQuestionSearch(event.target.value)} placeholder="Поиск по вопросу, ответу или нику" />
@@ -564,7 +564,7 @@ export default function AdminPage() {
               {!!queueQuestions.length ? <div className={styles.queueList}>{queueQuestions.map((question) => <QueueQuestionItem key={question.id} question={question} active={selectedQuestion?.id === question.id} onClick={() => setSelectedQuestionId(question.id)} />)}</div> : null}
             </Card>
 
-            <Card className={styles.detailCard}>
+            <Card className={[styles.panel, styles.detailCard].filter(Boolean).join(" ")}>
               <CardHeader title="Карточка вопроса" action={selectedQuestion ? <Link href={`/support/questions/${selectedQuestion.id}`} className={styles.openLink}>Открыть у пользователей</Link> : undefined} />
               {!selectedQuestion ? (
                 <CardMuted>Выберите вопрос слева, чтобы дать официальный ответ.</CardMuted>

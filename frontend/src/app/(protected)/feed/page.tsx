@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import styles from './FeedPage.module.css';
 import { Card, CardMuted } from '@/shared/ui/Card/Card';
 import { useGetFeedQuery, useLazyGetFeedQuery } from '@/shared/api/postsApi';
@@ -14,7 +15,7 @@ import { useIsMobile } from '@/shared/lib/hooks/useIsMobile';
 
 function FeedCardSkeleton() {
   return (
-    <Card>
+    <Card className={styles.flatCard}>
       <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
         <Skeleton circle style={{ width: 42, height: 42 }} />
         <div style={{ flex: 1, minWidth: 0, display: 'grid', gap: 12 }}>
@@ -35,6 +36,8 @@ export default function FeedPage() {
   const { data, isFetching, isError } = useGetFeedQuery(undefined);
   const [fetchPage] = useLazyGetFeedQuery();
   const isMobile = useIsMobile();
+  const router = useRouter();
+  const searchParams = useSearchParams();
 
   const items = data?.items ?? [];
   const nextCursor = data?.nextCursor ?? null;
@@ -44,13 +47,27 @@ export default function FeedPage() {
   const [openPostId, setOpenPostId] = useState<string | null>(null);
 
   useEffect(() => {
+    const requestedPostId = searchParams.get('post');
+    if (requestedPostId) setOpenPostId(requestedPostId);
+  }, [searchParams]);
+
+  useEffect(() => {
     if (!nearEnd || isFetching || !nextCursor) return;
     fetchPage({ cursor: nextCursor, take: 20 });
   }, [nearEnd, isFetching, nextCursor, fetchPage]);
 
+  const closePostModal = () => {
+    setOpenPostId(null);
+    if (!searchParams.get('post')) return;
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete('post');
+    const next = params.toString();
+    router.replace(next ? `/feed?${next}` : '/feed', { scroll: false });
+  };
+
   return (
     <div className={["container", "appPage", isMobile ? styles.pageMobile : styles.pageDesktop].join(' ')}>
-      <PostModal postId={openPostId} open={!!openPostId} onClose={() => setOpenPostId(null)} onOpenPost={setOpenPostId} />
+      <PostModal postId={openPostId} open={!!openPostId} onClose={closePostModal} onOpenPost={setOpenPostId} />
 
       <div className={styles.stack}>
         {!isMobile ? <div className={styles.eyebrow}>Главная лента</div> : null}
@@ -65,7 +82,7 @@ export default function FeedPage() {
 
         {isError ? (
           <div className={styles.messageSection}>
-            <Card>
+            <Card className={styles.flatCard}>
               <CardMuted>Не удалось загрузить ленту.</CardMuted>
             </Card>
           </div>

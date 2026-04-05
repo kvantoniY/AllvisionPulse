@@ -1,6 +1,7 @@
 'use client';
 
 import { ReactNode, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import dynamic from 'next/dynamic';
 import { useParams, useRouter } from 'next/navigation';
 import styles from './Chat.module.css';
 import gridStyles from '../Messages.module.css';
@@ -22,7 +23,7 @@ import {
   useUpdateMessageMutation,
 } from '@/shared/api/chatsApi';
 import { useGetFriendsQuery } from '@/shared/api/friendsApi';
-import type { Message } from '@/shared/types/chat';
+import type { ChatPulseHistoryItem, Message } from '@/shared/types/chat';
 import { chatUiActions } from '@/entities/chat';
 import { useAppDispatch, useAppSelector } from '@/shared/lib/storeHooks';
 import { formatLastSeen } from '@/shared/lib/formatLastSeen';
@@ -38,11 +39,29 @@ import { Button } from '@/shared/ui/Button/Button';
 import { Icon } from '@/shared/ui/Icon/Icon';
 import { AdminBadge } from '@/shared/ui/AdminBadge/AdminBadge';
 import { SkeletonText } from '@/shared/ui/Skeleton/Skeleton';
-import { GameSessionPanel } from '@/features/games';
 import { parseGameSystemMessage, gameLabel, gameStatusLabel } from '@/shared/lib/gameMessages';
 import { useGetGameSessionsQuery } from '@/shared/api/gamesApi';
 import { useIsMobile } from '@/shared/lib/hooks/useIsMobile';
+import { PulseShareCard } from '@/shared/ui/PulseShareCard/PulseShareCard';
+import { PulseSharePicker } from '@/shared/ui/PulseSharePicker/PulseSharePicker';
+import type { ShareArtifact } from '@/shared/types/programs';
+import { toPulseShareMessageMeta, type PulseShareMessageMeta } from '@/shared/lib/pulseShare';
+import { NotificationStatusPill } from '@/features/notifications/ui/NotificationStatusPill';
 
+const LazyGameSessionPanel = dynamic(
+  () => import('@/features/games').then((mod) => mod.GameSessionPanel),
+  {
+    ssr: false,
+    loading: () => <div style={{ padding: 16, color: 'var(--muted)' }}>Загрузка игр...</div>,
+  },
+);
+
+const LazyChatArtifactComposer = dynamic(
+  () => import('@/features/chatArtifacts/ui/ChatArtifactComposer').then((mod) => mod.ChatArtifactComposer),
+  {
+    ssr: false,
+  },
+);
 
 type RequestedMedia = {
   audio?: boolean | MediaTrackConstraints;
@@ -313,6 +332,8 @@ type RecordingState = {
   mobileHold: boolean;
 };
 
+type PulseMediaFilter = 'ALL' | 'EVENTS' | 'BILLS' | 'DEBTS' | 'SAVINGS' | 'WIDGETS' | 'PROGRAMS';
+
 const VIDEO_NOTE_MAX_DURATION = 60;
 
 type MessageContextMenuState = {
@@ -327,6 +348,39 @@ function formatRecordingTime(seconds: number) {
   return `${mins}:${secs.toString().padStart(2, '0')}`;
 }
 
+function pulseMediaLabel(item: ChatPulseHistoryItem) {
+  if (item.actionType === 'SOCIAL_EVENT' || item.actionType === 'TASK_REQUEST' || item.actionType === 'TASK_SUGGESTION' || item.actionType === 'REMINDER_CARD') return 'Событие';
+  if (item.actionType === 'FINANCE_SPLIT') return 'Общий счёт';
+  if (item.actionType === 'DEBT_SHARE' || item.sourceType === 'DEBT') return 'Долг';
+  if (item.actionType === 'SAVINGS_SHARE' || item.sourceType === 'SAVINGS_GOAL') return 'Накопление';
+  if (item.sourceType === 'PROGRAM' || item.kind === 'PROGRAM') return 'Программа';
+  return 'Pulse';
+}
+
+function matchesPulseMediaFilter(item: ChatPulseHistoryItem, filter: PulseMediaFilter) {
+  if (filter === 'ALL') return true;
+  if (filter === 'EVENTS') return item.actionType === 'SOCIAL_EVENT' || item.actionType === 'TASK_REQUEST' || item.actionType === 'TASK_SUGGESTION' || item.actionType === 'REMINDER_CARD' || item.sourceType === 'TASK';
+  if (filter === 'BILLS') return item.actionType === 'FINANCE_SPLIT';
+  if (filter === 'DEBTS') return item.actionType === 'DEBT_SHARE' || item.sourceType === 'DEBT';
+  if (filter === 'SAVINGS') return item.actionType === 'SAVINGS_SHARE' || item.sourceType === 'SAVINGS_GOAL';
+  if (filter === 'PROGRAMS') return item.sourceType === 'PROGRAM' || item.kind === 'PROGRAM';
+  return item.actionType == null;
+}
+
+function inPulseDateRange(value: string, from: string, to: string) {
+  const current = new Date(value);
+  if (Number.isNaN(current.getTime())) return false;
+  if (from) {
+    const fromDate = new Date(`${from}T00:00:00`);
+    if (current < fromDate) return false;
+  }
+  if (to) {
+    const toDate = new Date(`${to}T23:59:59`);
+    if (current > toDate) return false;
+  }
+  return true;
+}
+
 export default function ChatPage() {
   const params = useParams<{ chatId: string }>();
   const chatId = params.chatId;
@@ -338,11 +392,11 @@ export default function ChatPage() {
   const { startCall, joinCall, hasReturnableCall } = useContext(CallContext);
   const isMobile = useIsMobile();
 
-  const { data: meData } = useGetMeQuery(undefined, { refetchOnMountOrArgChange: true, refetchOnFocus: true, refetchOnReconnect: true });
+  const { data: meData } = useGetMeQuery();
   const me = meData?.user;
   const meId = me?.id;
 
-  const { data: chatsData } = useGetChatsQuery(undefined, { refetchOnMountOrArgChange: true, refetchOnFocus: true, refetchOnReconnect: true });
+  const { data: chatsData } = useGetChatsQuery(undefined, { refetchOnFocus: true, refetchOnReconnect: true });
   const chat = (chatsData?.items ?? []).find((item) => item.id === chatId);
   const otherUser = getOtherUser(chat, meId);
   const otherPresence = otherUser?.id ? presence[otherUser.id] : null;
@@ -367,6 +421,11 @@ export default function ChatPage() {
     : null;
 
   const [mediaOpen, setMediaOpen] = useState(false);
+  const [mediaTab, setMediaTab] = useState<'media' | 'pulse'>('media');
+  const [pulseMediaFilter, setPulseMediaFilter] = useState<PulseMediaFilter>('ALL');
+  const [pulseMediaQuery, setPulseMediaQuery] = useState('');
+  const [pulseMediaFrom, setPulseMediaFrom] = useState('');
+  const [pulseMediaTo, setPulseMediaTo] = useState('');
   const [gamesOpen, setGamesOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -377,6 +436,9 @@ export default function ChatPage() {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [replyTo, setReplyTo] = useState<Message | null>(null);
   const [editingMessage, setEditingMessage] = useState<Message | null>(null);
+  const [pendingPulseShare, setPendingPulseShare] = useState<PulseShareMessageMeta | null>(null);
+  const [sharePickerOpen, setSharePickerOpen] = useState(false);
+  const [artifactComposerOpen, setArtifactComposerOpen] = useState(false);
   const [forwardOpen, setForwardOpen] = useState(false);
   const [forwardTargetIds, setForwardTargetIds] = useState<Record<string, boolean>>({});
   const [openActionsMessageId, setOpenActionsMessageId] = useState<string | null>(null);
@@ -416,8 +478,25 @@ export default function ChatPage() {
     for (const item of out) map.set(item.id, item.url);
     return Array.from(map.entries()).map(([id, url]) => ({ id, url }));
   }, [mediaMessages]);
+  const pulseMediaItems = mediaData?.pulseItems ?? [];
+  const filteredPulseMediaItems = useMemo(() => {
+    const query = pulseMediaQuery.trim().toLowerCase();
+    return pulseMediaItems.filter((item) => {
+      if (!matchesPulseMediaFilter(item, pulseMediaFilter)) return false;
+      if (!inPulseDateRange(item.createdAt, pulseMediaFrom, pulseMediaTo)) return false;
+      if (!query) return true;
+      const haystack = [item.title, item.description, pulseMediaLabel(item), item.owner?.username]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+      return haystack.includes(query);
+    });
+  }, [pulseMediaFilter, pulseMediaFrom, pulseMediaItems, pulseMediaQuery, pulseMediaTo]);
 
-  const { data: latestData, isFetching: fetchingLatest } = useGetMessagesQuery({ chatId, take: 50, cursor: null }, { refetchOnMountOrArgChange: true, refetchOnFocus: true, refetchOnReconnect: true });
+  const { data: latestData, isFetching: fetchingLatest } = useGetMessagesQuery(
+    { chatId, take: 50, cursor: null },
+    { refetchOnFocus: true, refetchOnReconnect: true },
+  );
   const [fetchOlder, olderRes] = useLazyGetMessagesQuery();
   const [runSearch, searchRes] = useLazySearchMessagesQuery();
   const [olderAsc, setOlderAsc] = useState<Message[]>([]);
@@ -466,7 +545,7 @@ export default function ChatPage() {
   const friends = friendsData?.friends ?? [];
 
   const isSending = sendRes.isLoading || updateRes.isLoading;
-  const hasComposerPreview = Boolean(pendingVoice || pendingVideo || files.length);
+  const hasComposerPreview = Boolean(pendingVoice || pendingVideo || pendingPulseShare || files.length);
   const selectedMessages = useMemo(() => messages.filter((message) => selectedIds.includes(message.id)), [messages, selectedIds]);
   const deletableSelected = useMemo(
     () => selectedMessages.filter((message) => message.senderId === meId && message.type !== 'SYSTEM'),
@@ -749,7 +828,7 @@ export default function ChatPage() {
     }
   };
   const startAudioRecording = async (mobileHold = false) => {
-    if (isSending || isRecordingVideoNote || isRecordingAudio || text.trim() || files.length || pendingVoice || pendingVideo || !canWriteInChat) return;
+    if (isSending || isRecordingVideoNote || isRecordingAudio || text.trim() || files.length || pendingVoice || pendingVideo || pendingPulseShare || !canWriteInChat) return;
     closeComposerPickers();
     setMediaAccessHint(null);
     try {
@@ -778,7 +857,7 @@ export default function ChatPage() {
   };
 
   const startVideoNoteRecording = async (mobileHold = false) => {
-    if (isSending || isRecordingAudio || isRecordingVideoNote || text.trim() || files.length || pendingVoice || pendingVideo || !canWriteInChat) return;
+    if (isSending || isRecordingAudio || isRecordingVideoNote || text.trim() || files.length || pendingVoice || pendingVideo || pendingPulseShare || !canWriteInChat) return;
     closeComposerPickers();
     setMediaAccessHint(null);
     try {
@@ -856,7 +935,7 @@ export default function ChatPage() {
     );
   }, [chatId, dispatch]);
 
-  const createPendingMessage = useCallback((partial: { type?: string; text?: string; attachments?: any[]; replyTo?: Message | null; forwardOf?: Message | null }) => {
+  const createPendingMessage = useCallback((partial: { type?: string; text?: string; attachments?: any[]; replyTo?: Message | null; forwardOf?: Message | null; metaJson?: Record<string, unknown> | null }) => {
     const pendingId = `local-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
     const pendingMessage = {
       id: pendingId,
@@ -867,6 +946,7 @@ export default function ChatPage() {
       text: partial.text ?? '',
       sender: me ?? { id: meId ?? 'me', username: 'Вы', avatarUrl: null },
       attachments: partial.attachments ?? [],
+      metaJson: partial.metaJson ?? null,
       reads: [],
       replyTo: partial.replyTo ?? null,
       forwardOf: partial.forwardOf ?? null,
@@ -885,6 +965,7 @@ export default function ChatPage() {
     setFiles([]);
     setReplyTo(null);
     setEditingMessage(null);
+    setPendingPulseShare(null);
     setShowEmojiPicker(false);
     if (fileInputRef.current) fileInputRef.current.value = '';
     requestAnimationFrame(() => resizeTextarea());
@@ -930,17 +1011,24 @@ export default function ChatPage() {
     }
 
     const value = text.trim();
-    if ((!value && !files.length) || recordingState) return;
+    if ((!value && !files.length && !pendingPulseShare) || recordingState) return;
 
     const pendingAttachments = files.map((file, index) => ({ id: `pending-${index}`, url: filePreviews[index]?.url, mime: file.type, name: file.name }));
     const pendingId = createPendingMessage({
       type: files.length && !value ? 'IMAGE' : 'TEXT',
       text: value || undefined,
       attachments: pendingAttachments,
+      metaJson: pendingPulseShare ?? undefined,
       replyTo,
     });
 
-    const result = await sendMessage({ chatId, text: value || undefined, files: files.length ? files : undefined, replyToId: replyTo?.id ?? null }).unwrap().catch(() => null);
+    const result = await sendMessage({
+      chatId,
+      text: value || undefined,
+      files: files.length ? files : undefined,
+      replyToId: replyTo?.id ?? null,
+      metaJson: pendingPulseShare ?? undefined,
+    }).unwrap().catch(() => null);
     removePendingMessage(pendingId);
     if (result?.message) {
       updateCachesWithMessage(result.message);
@@ -1245,7 +1333,20 @@ export default function ChatPage() {
   }, [contextMenu]);
 
   return (
-    <div className={["container", "appPage", gridStyles.page, styles.pageMobileNoHeader].join(' ')}>
+    <>
+      <PulseSharePicker open={sharePickerOpen} onClose={() => setSharePickerOpen(false)} onPick={(artifact: ShareArtifact) => setPendingPulseShare(toPulseShareMessageMeta(artifact))} />
+      <LazyChatArtifactComposer
+        open={artifactComposerOpen}
+        onClose={() => setArtifactComposerOpen(false)}
+        chatId={chatId}
+        meId={meId}
+        members={chat?.members ?? []}
+        onSent={(message) => {
+          updateCachesWithMessage(message);
+          bottomRef.current?.scrollIntoView({ block: 'end' });
+        }}
+      />
+      <div className={["container", "appPage", gridStyles.page, styles.pageMobileNoHeader].join(' ')}>
       <div className={[gridStyles.grid, gridStyles.gridChat].filter(Boolean).join(' ')}>
         <div className={[gridStyles.listPanel, gridStyles.hideOnMobile].filter(Boolean).join(' ')}>
           <ChatSidebar activeChatId={chatId} />
@@ -1261,6 +1362,10 @@ export default function ChatPage() {
                 </Button>
               </div>
             ) : null}
+
+            <div className={styles.notificationPillRow}>
+              <NotificationStatusPill compact />
+            </div>
 
             <div className={styles.top}>
               <Button className={styles.back} iconOnly type="button" onClick={() => router.push('/messages')} aria-label="Назад к чатам" title="Назад к чатам">
@@ -1506,6 +1611,7 @@ export default function ChatPage() {
                   const replyPreview = message.replyTo;
                   const forwardPreview = message.forwardOf;
                   const storyMeta = (message.metaJson as any)?.kind === 'storyReply' ? (message.metaJson as any) : null;
+                  const pulseShareMeta = (message.metaJson as any)?.kind === 'pulse_share' ? (message.metaJson as any) : null;
                   const isSelected = selectedIds.includes(message.id);
                   const canDelete = message.senderId === meId && message.type !== 'SYSTEM';
                   const canReply = message.type !== 'SYSTEM';
@@ -1602,6 +1708,14 @@ export default function ChatPage() {
                             </button>
                           ) : null}
 
+                          {pulseShareMeta ? (
+                            <PulseShareCard
+                              artifactId={String(pulseShareMeta.artifactId ?? '')}
+                              artifact={pulseShareMeta.artifact ?? null}
+                              compact
+                            />
+                          ) : null}
+
                           {replyPreview ? (
                             <button type="button" className={styles.replyBlock} onClick={() => void scrollToMessage(replyPreview.id)}>
                               <span className={styles.replyAuthor} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>{replyPreview.sender?.username ?? 'Сообщение'}<AdminBadge role={replyPreview.sender?.role} /></span>
@@ -1667,7 +1781,7 @@ export default function ChatPage() {
               {mediaOpen ? (
                 <div className={styles.mediaPanel}>
                   <div className={styles.mediaTop}>
-                    <div className={styles.mediaTitle}>Медиа</div>
+                    <div className={styles.mediaTitle}>Медиа и Pulse</div>
                     <div className={styles.mediaActions}>
                       <Button type="button" className={styles.mediaBtn} iconOnly onClick={() => refetchMedia()} loading={mediaFetching} aria-label="Обновить медиа" title="Обновить медиа">
                         <Icon name="refresh" size={16} />
@@ -1678,17 +1792,76 @@ export default function ChatPage() {
                     </div>
                   </div>
 
-                  {mediaImages.length ? (
-                    <div className={styles.mediaGrid}>
-                      {mediaImages.map((image, index) => (
-                        <button key={image.id} className={styles.mediaThumb} type="button" onClick={() => lightbox?.openLightbox(mediaImages, index)}>
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src={image.url} alt="" />
-                        </button>
-                      ))}
-                    </div>
+                  <div className={styles.mediaTabs}>
+                    <button type="button" className={[styles.mediaTab, mediaTab === 'media' ? styles.mediaTabActive : ''].filter(Boolean).join(' ')} onClick={() => setMediaTab('media')}>
+                      Медиа
+                    </button>
+                    <button type="button" className={[styles.mediaTab, mediaTab === 'pulse' ? styles.mediaTabActive : ''].filter(Boolean).join(' ')} onClick={() => setMediaTab('pulse')}>
+                      Pulse
+                    </button>
+                  </div>
+
+                  {mediaTab === 'media' ? (
+                    mediaImages.length ? (
+                      <div className={styles.mediaGrid}>
+                        {mediaImages.map((image, index) => (
+                          <button key={image.id} className={styles.mediaThumb} type="button" onClick={() => lightbox?.openLightbox(mediaImages, index)}>
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={image.url} alt="" />
+                          </button>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className={styles.mediaEmpty}>{mediaFetching ? 'Загружаем медиа…' : 'Изображений пока нет.'}</div>
+                    )
                   ) : (
-                    <div className={styles.mediaEmpty}>{mediaFetching ? 'Загружаем медиа…' : 'Изображений пока нет.'}</div>
+                    <>
+                      <div className={styles.pulseMediaFilters}>
+                        <div className={styles.pulseMediaFilterRow}>
+                          {([
+                            ['ALL', 'Все'],
+                            ['EVENTS', 'События'],
+                            ['BILLS', 'Счета'],
+                            ['DEBTS', 'Долги'],
+                            ['SAVINGS', 'Накопления'],
+                            ['PROGRAMS', 'Программы'],
+                            ['WIDGETS', 'Pulse'],
+                          ] as Array<[PulseMediaFilter, string]>).map(([value, label]) => (
+                            <button
+                              key={value}
+                              type="button"
+                              className={[styles.pulseMediaChip, pulseMediaFilter === value ? styles.pulseMediaChipActive : ''].filter(Boolean).join(' ')}
+                              onClick={() => setPulseMediaFilter(value)}
+                            >
+                              {label}
+                            </button>
+                          ))}
+                        </div>
+
+                        <div className={styles.pulseMediaSearchRow}>
+                          <input value={pulseMediaQuery} onChange={(event) => setPulseMediaQuery(event.target.value)} placeholder="Поиск по названию" />
+                          <input type="date" value={pulseMediaFrom} onChange={(event) => setPulseMediaFrom(event.target.value)} />
+                          <input type="date" value={pulseMediaTo} onChange={(event) => setPulseMediaTo(event.target.value)} />
+                        </div>
+                      </div>
+
+                      {filteredPulseMediaItems.length ? (
+                        <div className={styles.pulseHistoryList}>
+                          {filteredPulseMediaItems.map((item) => (
+                            <div key={item.id} className={styles.pulseHistoryItem}>
+                              <div className={styles.pulseHistoryMeta}>
+                                <span>{pulseMediaLabel(item)}</span>
+                                <span>{new Date(item.createdAt).toLocaleString('ru-RU')}</span>
+                              </div>
+                              {item.owner?.username ? <div className={styles.pulseHistoryOwner}>От @{item.owner.username}</div> : null}
+                              <PulseShareCard artifact={item.artifact} compact interactive={false} />
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className={styles.mediaEmpty}>{mediaFetching ? 'Загружаем историю Pulse…' : 'По этому фильтру пока ничего нет.'}</div>
+                      )}
+                    </>
                   )}
                 </div>
               ) : null}
@@ -1704,6 +1877,18 @@ export default function ChatPage() {
                     <span>{editingMessage ? formatPreviewText(editingMessage) : `${replyTo?.sender?.username ?? ''}: ${formatPreviewText(replyTo)}`}</span>
                   </div>
                   <button type="button" className={styles.composerMetaClose} onClick={() => { setReplyTo(null); setEditingMessage(null); }} aria-label="Закрыть">
+                    <Icon name="close" size={16} />
+                  </button>
+                </div>
+              ) : null}
+
+              {pendingPulseShare ? (
+                <div className={styles.composerMetaBar}>
+                  <div className={styles.composerMetaText}>
+                    <span className={styles.composerMetaLabel}>Pulse share</span>
+                    <span>{String((pendingPulseShare.artifact?.snapshotJson as any)?.title ?? pendingPulseShare.artifact?.title ?? 'Artifact')}</span>
+                  </div>
+                  <button type="button" className={styles.composerMetaClose} onClick={() => setPendingPulseShare(null)} aria-label="Close">
                     <Icon name="close" size={16} />
                   </button>
                 </div>
@@ -1803,11 +1988,11 @@ export default function ChatPage() {
                               onClick={() => {
                                 setAttachMenuOpen(false);
                                 setShowEmojiPicker(false);
-                                setGamesOpen(true);
+                                setArtifactComposerOpen(true);
                               }}
                             >
                               <Icon name="sparkles" size={16} />
-                              <span>Виджет</span>
+                              <span>Pulse</span>
                             </button>
                           </div>
                         ) : null}
@@ -1844,8 +2029,8 @@ export default function ChatPage() {
                     />
 
                     <div className={styles.trailingActions}>
-                      {(editingMessage || text.trim() || files.length || pendingVoice || pendingVideo) ? (
-                        <Button className={[styles.innerActionBtn, styles.innerActionBtnPrimary].join(' ')} iconOnly type="button" onClick={onSend} loading={isSending} disabled={(!text.trim() && !files.length && !pendingVoice && !pendingVideo) || Boolean(recordingState)} aria-label={editingMessage ? 'Сохранить сообщение' : 'Отправить сообщение'} title={editingMessage ? 'Сохранить сообщение' : 'Отправить сообщение'}>
+                      {(editingMessage || text.trim() || files.length || pendingVoice || pendingVideo || pendingPulseShare) ? (
+                        <Button className={[styles.innerActionBtn, styles.innerActionBtnPrimary].join(' ')} iconOnly type="button" onClick={onSend} loading={isSending} disabled={(!text.trim() && !files.length && !pendingVoice && !pendingVideo && !pendingPulseShare) || Boolean(recordingState)} aria-label={editingMessage ? 'Сохранить сообщение' : 'Отправить сообщение'} title={editingMessage ? 'Сохранить сообщение' : 'Отправить сообщение'}>
                           <Icon name={editingMessage ? 'check' : 'send'} size={18} />
                         </Button>
                       ) : (
@@ -1854,14 +2039,14 @@ export default function ChatPage() {
                             className={styles.innerActionBtn}
                             type="button"
                             onClick={() => {
-                              if (!canWriteInChat || isSending || isRecordingAudio || text.trim() || files.length || pendingVoice || pendingVideo) return;
+                              if (!canWriteInChat || isSending || isRecordingAudio || text.trim() || files.length || pendingVoice || pendingVideo || pendingPulseShare) return;
                               setShowEmojiPicker(false);
                               setAttachMenuOpen(false);
                               void startVideoNoteRecording(false);
                             }}
                             aria-label="Записать видеосообщение"
                             title="Видеосообщение"
-                            disabled={!canWriteInChat || isSending || isRecordingAudio || Boolean(text.trim() || files.length || pendingVoice || pendingVideo)}
+                            disabled={!canWriteInChat || isSending || isRecordingAudio || Boolean(text.trim() || files.length || pendingVoice || pendingVideo || pendingPulseShare)}
                           >
                             <Icon name="video" size={18} />
                           </button>
@@ -1869,14 +2054,14 @@ export default function ChatPage() {
                             className={styles.innerActionBtn}
                             type="button"
                             onClick={() => {
-                              if (!canWriteInChat || isSending || isRecordingVideoNote || text.trim() || files.length || pendingVoice || pendingVideo) return;
+                              if (!canWriteInChat || isSending || isRecordingVideoNote || text.trim() || files.length || pendingVoice || pendingVideo || pendingPulseShare) return;
                               setShowEmojiPicker(false);
                               setAttachMenuOpen(false);
                               void startAudioRecording(false);
                             }}
                             aria-label="Записать голосовое сообщение"
                             title="Голосовое сообщение"
-                            disabled={!canWriteInChat || isSending || isRecordingVideoNote || Boolean(text.trim() || files.length || pendingVoice || pendingVideo)}
+                            disabled={!canWriteInChat || isSending || isRecordingVideoNote || Boolean(text.trim() || files.length || pendingVoice || pendingVideo || pendingPulseShare)}
                           >
                             <Icon name="mic" size={18} />
                           </button>
@@ -1892,7 +2077,7 @@ export default function ChatPage() {
       </div>
 
       <Modal open={gamesOpen} onClose={() => setGamesOpen(false)} title="Игры в чате" size="game">
-        <GameSessionPanel chat={chat} meId={meId ?? ''} />
+        <LazyGameSessionPanel chat={chat} meId={meId ?? ''} mode="chat" />
       </Modal>
 
       <RecordingVideoPreviewModal
@@ -2019,6 +2204,7 @@ export default function ChatPage() {
           </div>
         </div>
       </Modal>
-    </div>
+      </div>
+    </>
   );
 }

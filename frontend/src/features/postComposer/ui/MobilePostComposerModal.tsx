@@ -3,6 +3,7 @@
 import { useEffect, useMemo } from 'react';
 import { Icon } from '@/shared/ui/Icon/Icon';
 import { MobileSheet } from '@/shared/ui/MobileSheet/MobileSheet';
+import type { PulseShareWidgetPayload } from '@/shared/lib/pulseShare';
 import styles from './MobilePostComposerModal.module.css';
 
 type HealthWidget = {
@@ -11,6 +12,8 @@ type HealthWidget = {
   todayScore: number | null;
   pulse7Score: number | null;
 };
+
+type ComposerWidget = HealthWidget | PulseShareWidgetPayload;
 
 const MAX_TEXT = 5000;
 
@@ -25,7 +28,9 @@ export function MobilePostComposerModal({
   onPickImages,
   onRemoveImage,
   widget,
+  widgetLabel,
   onOpenWidget,
+  onOpenSharePicker,
   onRemoveWidget,
   onSubmit,
   isLoading,
@@ -39,8 +44,10 @@ export function MobilePostComposerModal({
   previews: { url: string }[];
   onPickImages: (files: FileList | null) => void;
   onRemoveImage: (index: number) => void;
-  widget: HealthWidget | null;
+  widget: ComposerWidget | null;
+  widgetLabel: string;
   onOpenWidget: () => void;
+  onOpenSharePicker: () => void;
   onRemoveWidget: () => void;
   onSubmit: () => void;
   isLoading: boolean;
@@ -58,14 +65,14 @@ export function MobilePostComposerModal({
   const action = useMemo(
     () => (
       <button type="button" className={styles.nextBtn} onClick={onSubmit} disabled={!canSubmit}>
-        {isLoading ? '...' : 'Далее'}
+        {isLoading ? '...' : 'Next'}
       </button>
     ),
     [canSubmit, isLoading, onSubmit],
   );
 
   return (
-    <MobileSheet open={open} onClose={onClose} title="Новый пост" action={action}>
+    <MobileSheet open={open} onClose={onClose} title={`New post as @${me.username}`} action={action}>
       <div className={styles.body}>
         <div className={styles.content}>
           {previews.length ? (
@@ -73,7 +80,7 @@ export function MobilePostComposerModal({
               {previews.map((preview, index) => (
                 <div key={`${preview.url}:${index}`} className={styles.previewCard}>
                   <img src={preview.url} alt="" className={styles.previewImg} />
-                  <button type="button" className={styles.previewRemove} onClick={() => onRemoveImage(index)} aria-label="Удалить изображение">
+                  <button type="button" className={styles.previewRemove} onClick={() => onRemoveImage(index)} aria-label="Remove image">
                     <Icon name="close" size={16} />
                   </button>
                 </div>
@@ -84,8 +91,8 @@ export function MobilePostComposerModal({
           {widget ? (
             <div className={styles.widgetTag}>
               <Icon name="sparkles" size={14} />
-              <span>Сводка дня: {widget.todayScore ?? '—'}% / {widget.pulse7Score ?? '—'}%</span>
-              <button type="button" className={styles.widgetRemove} onClick={onRemoveWidget} aria-label="Удалить виджет">
+              <span>{widgetLabel}</span>
+              <button type="button" className={styles.widgetRemove} onClick={onRemoveWidget} aria-label="Remove widget">
                 <Icon name="close" size={14} />
               </button>
             </div>
@@ -96,7 +103,7 @@ export function MobilePostComposerModal({
               className={styles.textarea}
               value={text}
               onChange={(event) => onTextChange(event.target.value.slice(0, MAX_TEXT + 50))}
-              placeholder="Напишите что-нибудь..."
+              placeholder="Write something..."
               rows={8}
             />
           </div>
@@ -105,12 +112,16 @@ export function MobilePostComposerModal({
         <div className={styles.footer}>
           <label className={styles.attachBtn}>
             <Icon name="image" size={18} />
-            <span>Фото</span>
+            <span>Photo</span>
             <input type="file" accept="image/*" multiple hidden onChange={(event) => onPickImages(event.target.files)} />
           </label>
           <button type="button" className={styles.attachBtn} onClick={onOpenWidget}>
             <Icon name="sparkles" size={18} />
-            <span>Сводка</span>
+            <span>Summary</span>
+          </button>
+          <button type="button" className={styles.attachBtn} onClick={onOpenSharePicker}>
+            <Icon name="paperclip" size={18} />
+            <span>Pulse</span>
           </button>
           <div className={styles.counter}>{remaining}</div>
         </div>
@@ -118,3 +129,4 @@ export function MobilePostComposerModal({
     </MobileSheet>
   );
 }
+

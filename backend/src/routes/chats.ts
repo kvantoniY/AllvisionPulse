@@ -6,6 +6,8 @@ import { prisma } from "../db/prisma";
 import { asyncHandler, HttpError } from "../utils/http";
 import { requireAuth, requireActiveUser, AuthedRequest } from "../middleware/auth";
 import { upload } from "../middleware/upload";
+import { createShareArtifact } from "../services/shareArtifacts";
+import { createAndDeliverNotification } from "../utils/notifications";
 
 const router = Router();
 router.use(requireAuth, requireActiveUser);
@@ -14,6 +16,35 @@ function fileUrl(_req: any, filename: string) {
   return `/uploads/${encodeURIComponent(filename)}`;
 }
 
+function toShareMessageMeta(artifact: any) {
+  return {
+    kind: "pulse_share",
+    artifactId: artifact.id,
+    artifact: {
+      id: artifact.id,
+      kind: artifact.kind,
+      mode: artifact.mode,
+      actionType: artifact.actionType ?? null,
+      title: artifact.title ?? null,
+      description: artifact.description ?? null,
+      sourceType: artifact.sourceType,
+      sourceId: artifact.sourceId ?? null,
+      snapshotJson: artifact.snapshotJson ?? null,
+      referenceJson: artifact.referenceJson ?? null,
+      payloadJson: artifact.payloadJson ?? null,
+    },
+  };
+}
+
+const chatListMessageInclude = {
+  sender: { select: { id: true, username: true, avatarUrl: true, role: true } },
+  attachments: true,
+  reactions: true,
+  reads: { select: { userId: true, readAt: true } },
+  replyTo: { include: { sender: { select: { id: true, username: true } } } },
+  forwardOf: { include: { sender: { select: { id: true, username: true, avatarUrl: true, role: true } }, attachments: true } },
+} as const;
+
 router.get("/", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
   const chats = await prisma.chatMember.findMany({
     where: { userId: req.user!.id, leftAt: null },
@@ -21,13 +52,29 @@ router.get("/", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
     include: {
       chat: {
         include: {
-          members: { include: { user: { select: { id: true, username: true, avatarUrl: true, role: true, lastSeenAt: true, privacy: true } } } },
+          members: {
+            where: { leftAt: null },
+            include: { user: { select: { id: true, username: true, avatarUrl: true, role: true, lastSeenAt: true, privacy: true } } },
+          },
           pinnedMessage: true,
+          messages: {
+            where: { deletedAt: null },
+            orderBy: { createdAt: "desc" },
+            take: 1,
+            include: chatListMessageInclude,
+          },
         },
       },
     },
   });
-  res.json({ items: chats.map(m => m.chat) });
+  const items = chats.map(({ chat }) => {
+    const { messages, ...chatData } = chat as typeof chat & { messages?: any[] };
+    return {
+      ...chatData,
+      lastMessage: messages?.[0] ?? null,
+    };
+  });
+  res.json({ items });
 }));
 
 const CreateDirectSchema = z.object({ userId: z.string().uuid() });
@@ -69,7 +116,8 @@ router.post("/direct", requireAuth, asyncHandler(async (req: AuthedRequest, res)
   });
 
   if (existing && existing.members.length === 2) {
-    return res.json({ chat: existing });
+    res.json({ chat: existing });
+    return;
   }
 
   const chat = await prisma.chat.create({
@@ -181,6 +229,22 @@ const SendMessageSchema = z.object({
   forwardOfId: z.string().uuid().optional().nullable(),
 });
 
+const SendArtifactMessageSchema = z.object({
+  text: z.string().max(8000).optional().nullable(),
+  replyToId: z.string().uuid().optional().nullable(),
+  sourceType: z.string().min(1),
+  sourceId: z.string().min(1).optional().nullable(),
+  kind: z.enum(["WIDGET", "METRIC", "PROGRAM", "PROGRAM_INVITE", "SESSION_INVITE", "PROGRAM_SUMMARY", "PROGRAM_PROGRESS", "ACHIEVEMENT", "TODAY_ACTIONS", "TASK", "FINANCE", "DEBT", "SAVINGS", "ACTION"]),
+  mode: z.enum(["SNAPSHOT", "REFERENCE", "INVITE"]),
+  actionType: z.enum(["TASK_REQUEST", "TASK_SUGGESTION", "SOCIAL_EVENT", "REMINDER_CARD", "FINANCE_SPLIT", "DEBT_SHARE", "SAVINGS_SHARE", "PROGRAM_INVITE", "PROGRAM_SESSION_INVITE", "PROGRAM_PROGRESS_SHARE", "METRIC_SHARE"]).optional().nullable(),
+  title: z.string().max(200).optional().nullable(),
+  description: z.string().max(4000).optional().nullable(),
+  visibilityScope: z.enum(["PRIVATE", "RESTRICTED", "PUBLIC"]).optional(),
+  explicitPublicShare: z.boolean().optional(),
+  payload: z.record(z.string(), z.any()).optional().nullable(),
+  participantUserIds: z.array(z.string().uuid()).max(50).optional(),
+});
+
 router.post("/:chatId/messages", requireAuth, upload.array("files", 10), asyncHandler(async (req: AuthedRequest, res) => {
   const chatId = req.params.chatId;
   const body = SendMessageSchema.parse(req.body);
@@ -288,13 +352,79 @@ router.post("/:chatId/messages", requireAuth, upload.array("files", 10), asyncHa
   // notifications for direct chat recipient(s)
   const members = await prisma.chatMember.findMany({ where: { chatId, leftAt: null }, select: { userId: true } });
   await Promise.all(members.filter(m => m.userId !== req.user!.id).map(async m => {
-    const notif = await prisma.notification.create({
-      data: { userId: m.userId, type: "MESSAGE", data: { chatId, messageId: message.id, fromUserId: req.user!.id } },
+    await createAndDeliverNotification({
+      app: req.app,
+      userId: m.userId,
+      type: "MESSAGE",
+      data: { chatId, messageId: message.id, fromUserId: req.user!.id },
     });
-    emitter?.emitToUser(m.userId, "notification:new", notif);
   }));
 
   res.json({ message });
+}));
+
+router.post("/:chatId/artifacts/messages", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
+  const chatId = req.params.chatId;
+  const body = SendArtifactMessageSchema.parse(req.body);
+
+  const member = await prisma.chatMember.findUnique({ where: { chatId_userId: { chatId, userId: req.user!.id } } });
+  if (!member) throw new HttpError(404, "Chat not found");
+
+  const artifact = await createShareArtifact({
+    ownerId: req.user!.id,
+    sourceType: body.sourceType,
+    sourceId: body.sourceId ?? null,
+    kind: body.kind,
+    mode: body.mode,
+    actionType: body.actionType ?? null,
+    visibilityScope: body.visibilityScope ?? "PRIVATE",
+    title: body.title ?? null,
+    description: body.description ?? null,
+    explicitPublicShare: body.explicitPublicShare,
+    payload: body.payload ?? null,
+    originChatId: chatId,
+    participantUserIds: body.participantUserIds ?? [],
+  });
+
+  const message = await prisma.message.create({
+    data: {
+      chatId,
+      senderId: req.user!.id,
+      type: "TEXT",
+      text: body.text ?? undefined,
+      metaJson: toShareMessageMeta(artifact),
+      replyToId: body.replyToId ?? undefined,
+    },
+    include: {
+      sender: { select: { id: true, username: true, avatarUrl: true, role: true } },
+      attachments: true,
+      reactions: true,
+      reads: true,
+      replyTo: { include: { sender: { select: { id: true, username: true } } } },
+      forwardOf: { include: { sender: { select: { id: true, username: true, avatarUrl: true, role: true } }, attachments: true } },
+    },
+  });
+
+  await prisma.pulseShareArtifact.update({
+    where: { id: artifact.id },
+    data: { originMessageId: message.id },
+  });
+  await prisma.chat.update({ where: { id: chatId }, data: { updatedAt: new Date() } });
+
+  const emitter = req.app.locals.emitter as any;
+  emitter?.emitToChat(chatId, "message:new", message);
+
+  const members = await prisma.chatMember.findMany({ where: { chatId, leftAt: null }, select: { userId: true } });
+  await Promise.all(members.filter(m => m.userId !== req.user!.id).map(async m => {
+    await createAndDeliverNotification({
+      app: req.app,
+      userId: m.userId,
+      type: "MESSAGE",
+      data: { chatId, messageId: message.id, fromUserId: req.user!.id },
+    });
+  }));
+
+  res.json({ message, artifact });
 }));
 
 
@@ -489,7 +619,56 @@ router.get("/:chatId/media", requireAuth, asyncHandler(async (req: AuthedRequest
     select: { id: true, createdAt: true, attachments: true, senderId: true },
   });
 
-  res.json({ items: messages });
+  const pulseArtifacts = await prisma.pulseShareArtifact.findMany({
+    where: { originChatId: chatId },
+    orderBy: { createdAt: "desc" },
+    take: 200,
+    select: {
+      id: true,
+      createdAt: true,
+      title: true,
+      description: true,
+      kind: true,
+      mode: true,
+      actionType: true,
+      sourceType: true,
+      sourceId: true,
+      snapshotJson: true,
+      referenceJson: true,
+      payloadJson: true,
+      owner: {
+        select: { id: true, username: true, avatarUrl: true },
+      },
+    },
+  });
+
+  res.json({
+    items: messages,
+    pulseItems: pulseArtifacts.map((artifact) => ({
+      id: artifact.id,
+      createdAt: artifact.createdAt,
+      title: artifact.title ?? null,
+      description: artifact.description ?? null,
+      kind: artifact.kind,
+      mode: artifact.mode,
+      actionType: artifact.actionType ?? null,
+      sourceType: artifact.sourceType,
+      owner: artifact.owner,
+      artifact: {
+        id: artifact.id,
+        kind: artifact.kind,
+        mode: artifact.mode,
+        actionType: artifact.actionType ?? null,
+        title: artifact.title ?? null,
+        description: artifact.description ?? null,
+        sourceType: artifact.sourceType,
+        sourceId: artifact.sourceId ?? null,
+        snapshotJson: artifact.snapshotJson ?? null,
+        referenceJson: artifact.referenceJson ?? null,
+        payloadJson: artifact.payloadJson ?? null,
+      },
+    })),
+  });
 }));
 
 // Pin message (group only)

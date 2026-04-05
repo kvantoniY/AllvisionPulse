@@ -6,17 +6,28 @@ import styles from './AppShell.module.css';
 import { Sidebar } from '@/widgets/sidebar/ui/Sidebar';
 import { BottomNav } from '@/widgets/bottomNav/ui/BottomNav';
 import { Header } from '@/widgets/header/ui/Header';
+import { NotificationExperienceBanner } from '@/features/notifications/ui/NotificationExperienceBanner';
 
 export function AppShell({ children }: PropsWithChildren) {
   const pathname = usePathname();
   const isMobileImmersiveRoute = /^\/messages\/[^/]+$/.test(pathname);
+  const isHealthRoute = pathname.startsWith('/health');
 
   return (
     <div className={styles.shell}>
       <Sidebar />
       <div className={styles.main}>
         <Header />
-        <div className={[styles.content, isMobileImmersiveRoute ? styles.contentMobileImmersive : ''].filter(Boolean).join(' ')}>{children}</div>
+        <div
+          className={[
+            styles.content,
+            isMobileImmersiveRoute ? styles.contentMobileImmersive : '',
+            isHealthRoute ? styles.contentHealth : '',
+          ].filter(Boolean).join(' ')}
+        >
+          {!isMobileImmersiveRoute ? <NotificationExperienceBanner /> : null}
+          {children}
+        </div>
       </div>
       <BottomNav />
     </div>

@@ -1,7 +1,40 @@
 'use client';
 
+import Link from 'next/link';
+import dynamic from 'next/dynamic';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip as RechartsTooltip, XAxis, YAxis } from 'recharts';
+import {
+  Activity,
+  ArrowRight,
+  Brain,
+  CalendarDays,
+  Check,
+  ChevronDown,
+  ChevronRight,
+  CircleCheckBig,
+  Coffee,
+  CreditCard,
+  Flame,
+  Footprints,
+  Heart,
+  HeartPulse,
+  Info,
+  Moon,
+  Pencil,
+  Plus,
+  Ruler,
+  Scale,
+  Settings2,
+  Sparkles,
+  Target,
+  TrendingUp,
+  TriangleAlert,
+  UtensilsCrossed,
+  WalletMinimal,
+  Wine,
+  Zap,
+} from 'lucide-react';
 import styles from './Health.module.css';
 import { Card, CardHeader, CardMuted } from '@/shared/ui/Card/Card';
 import { Button } from '@/shared/ui/Button/Button';
@@ -23,23 +56,62 @@ import {
   useDeletePulseTaskMutation,
   useDeleteSavingsGoalMutation,
   useGetAnalyticsQuery,
+  useGetConfigQuery,
+  useUpdateFinanceCategoryMutation,
+  useUpdateFinanceEntryMutation,
   useGetFinanceOverviewQuery,
   useGetMentalDayQuery,
   useGetNutritionQuery,
   useGetOverviewQuery,
   useGetProfileQuery,
   useGetTasksDayQuery,
+  useGetTasksRangeQuery,
   useSaveMentalDayMutation,
   useSearchFoodsQuery,
   useTogglePulseTaskDateMutation,
   useUpdateConfigMutation,
   useUpdateDebtMutation,
+  useUpdateMealMutation,
   useUpdateNutritionGoalMutation,
   useUpdateProfileMutation,
   useUpdatePulseGoalMutation,
+  useUpdatePulseTaskMutation,
   useUpdateSavingsGoalMutation,
 } from '@/shared/api/pulseApi';
-import type { PulseMealItem, PulseTaskGoal } from '@/shared/types/pulse';
+import type { PulseFinanceEntry, PulseFinanceShareMeta, PulseFood, PulseMeal, PulseMealItem, PulseTaskGoal, PulseTaskItem } from '@/shared/types/pulse';
+import { ProgramTodayWidget } from '@/features/programs/ui/ProgramTodayWidget';
+import { Field, FinanceComparisonMetricCard, FinanceEntryCompactRow, FinanceShareParticipants, HealthSlider, MiniRing, PulseIcon, Segmented, SliderCard } from '@/features/pulse/ui/HealthPageWidgets';
+const ProgramsPulseTab = dynamic(
+  () => import('@/features/programs/ui/ProgramsPulseTab').then((mod) => mod.ProgramsPulseTab),
+  {
+    ssr: false,
+    loading: () => <div style={{ padding: 16 }}><Skeleton style={{ width: '100%', height: 320 }} /></div>,
+  },
+);
+
+const DailyPlanner = dynamic(
+  () => import('@/features/dailyPlanner/ui/DailyPlanner').then((mod) => mod.DailyPlanner),
+  {
+    ssr: false,
+    loading: () => <div style={{ padding: 16 }}><Skeleton style={{ width: '100%', height: 420 }} /></div>,
+  },
+);
+
+const AnalyticsTab = dynamic(
+  () => import('@/features/pulse/ui/AnalyticsTab').then((mod) => mod.AnalyticsTab),
+  {
+    ssr: false,
+    loading: () => <div style={{ padding: 16 }}><Skeleton style={{ width: '100%', height: 360 }} /></div>,
+  },
+);
+
+const ConfigTab = dynamic(
+  () => import('@/features/pulse/ui/ConfigTab').then((mod) => mod.ConfigTab),
+  {
+    ssr: false,
+    loading: () => <div style={{ padding: 16 }}><Skeleton style={{ width: '100%', height: 280 }} /></div>,
+  },
+);
 
 const weekdayLabels = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
 
@@ -110,6 +182,27 @@ function formatChartTick(value: string) {
   const parsed = parseDate(value);
   if (!parsed) return value;
   return new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'short' }).format(parsed);
+}
+
+function ensureHorizontalChildVisibility(container: HTMLElement | null, node: HTMLElement | null, inset = 16) {
+  if (!container || !node) return;
+
+  const maxScrollLeft = container.scrollWidth - container.clientWidth;
+  if (maxScrollLeft <= 0) return;
+
+  const containerRect = container.getBoundingClientRect();
+  const nodeRect = node.getBoundingClientRect();
+  const leftOverflow = nodeRect.left - containerRect.left - inset;
+  const rightOverflow = nodeRect.right - containerRect.right + inset;
+
+  if (leftOverflow < 0) {
+    container.scrollTo({ left: Math.max(0, container.scrollLeft + leftOverflow), behavior: 'auto' });
+    return;
+  }
+
+  if (rightOverflow > 0) {
+    container.scrollTo({ left: Math.min(maxScrollLeft, container.scrollLeft + rightOverflow), behavior: 'auto' });
+  }
 }
 
 function shiftDate(value: string, delta: number) {
@@ -305,221 +398,6 @@ function pillTone(value: number, target: number) {
   return 'danger';
 }
 
-function TinyLineChart({
-  items,
-  keyProp,
-  secondaryKey,
-}: {
-  items: Array<Record<string, number | string | null>>;
-  keyProp: string;
-  secondaryKey?: string;
-}) {
-  if (!items.length) {
-    return <div className={styles.emptyText}>Пока мало данных для графика</div>;
-  }
-
-  const chartData = items.map((item, index) => ({
-    index,
-    label: item.date ? formatChartTick(String(item.date)) : String(item.label ?? index + 1),
-    primary: Number(item[keyProp] ?? 0),
-    secondary: secondaryKey ? Number(item[secondaryKey] ?? 0) : null,
-  }));
-
-  return (
-    <div className={styles.chartCard}>
-      <div className={styles.rechartsCardShell}>
-        <ResponsiveContainer width="100%" height={236}>
-          <AreaChart data={chartData} margin={{ top: 16, right: 12, left: -12, bottom: 0 }}>
-            <defs>
-              <linearGradient id="pulsePrimaryArea" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#ff9a2f" stopOpacity={0.36} />
-                <stop offset="100%" stopColor="#ff9a2f" stopOpacity={0.02} />
-              </linearGradient>
-              <linearGradient id="pulseSecondaryArea" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#2fd37b" stopOpacity={0.22} />
-                <stop offset="100%" stopColor="#2fd37b" stopOpacity={0.02} />
-              </linearGradient>
-            </defs>
-            <CartesianGrid vertical={false} stroke="rgba(255,255,255,0.08)" />
-            <XAxis dataKey="label" tickLine={false} axisLine={false} tick={{ fill: 'rgba(255,255,255,0.64)', fontSize: 12 }} />
-            <YAxis tickLine={false} axisLine={false} tick={{ fill: 'rgba(255,255,255,0.54)', fontSize: 12 }} tickFormatter={(value) => `${Math.round(Number(value))}`} width={40} />
-            <RechartsTooltip
-              cursor={{ stroke: 'rgba(255,255,255,0.12)' }}
-              contentStyle={{ background: '#0f141c', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, color: '#fff' }}
-              formatter={(value: number, _name: string, item: any) => [Math.round(value).toString(), item.dataKey === 'secondary' ? 'Базовая линия' : 'Значение']}
-              labelStyle={{ color: 'rgba(255,255,255,0.6)' }}
-            />
-            {secondaryKey ? <Area type="monotone" dataKey="secondary" stroke="#2fd37b" fill="url(#pulseSecondaryArea)" strokeWidth={2.2} dot={false} activeDot={{ r: 4 }} /> : null}
-            <Area type="monotone" dataKey="primary" stroke="#ff9a2f" fill="url(#pulsePrimaryArea)" strokeWidth={2.6} dot={false} activeDot={{ r: 4 }} />
-          </AreaChart>
-        </ResponsiveContainer>
-      </div>
-    </div>
-  );
-}
-
-type FinanceTrendPoint = {
-  label: string;
-  income: number;
-  expense: number;
-};
-
-type FinanceCompositionItem = {
-  key: string;
-  label: string;
-  value: number;
-  tone: 'income' | 'expense' | 'accent' | 'neutral';
-};
-
-function FinanceTrendChart({ items }: { items: FinanceTrendPoint[] }) {
-  if (!items.length) {
-    return <div className={styles.emptyText}>Статистика появится после первых операций за выбранный период.</div>;
-  }
-
-  const chartData = items.map((item) => ({
-    ...item,
-    expenseDisplay: item.expense > 0 ? -item.expense : 0,
-  }));
-
-  return (
-    <div className={styles.financeTrendChart}>
-      <div className={styles.rechartsCardShell}>
-        <ResponsiveContainer width="100%" height={280}>
-          <BarChart data={chartData} barGap={10} margin={{ top: 16, right: 12, left: -6, bottom: 12 }}>
-            <CartesianGrid vertical={false} stroke="rgba(255,255,255,0.08)" />
-            <XAxis dataKey="label" tickLine={false} axisLine={false} tick={{ fill: 'rgba(255,255,255,0.64)', fontSize: 12 }} />
-            <YAxis tickLine={false} axisLine={false} tick={{ fill: 'rgba(255,255,255,0.46)', fontSize: 11 }} tickFormatter={(value) => formatMoneyCompact(Math.abs(Number(value)))} width={58} />
-            <RechartsTooltip
-              cursor={{ fill: 'rgba(255,255,255,0.04)' }}
-              contentStyle={{ background: '#0f141c', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, color: '#fff' }}
-              formatter={(value: number, name: string) => [formatMoney(Math.abs(value)), name === 'expenseDisplay' ? 'Расход' : 'Доход']}
-              labelStyle={{ color: 'rgba(255,255,255,0.6)' }}
-            />
-            <Bar dataKey="income" name="Доход" radius={[8, 8, 0, 0]} fill="#1fdd80" />
-            <Bar dataKey="expenseDisplay" name="Расход" radius={[8, 8, 0, 0]} fill="#ff6b73" />
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
-      <div className={styles.financeChartHint}>Зелёные столбцы показывают поступления, красные — отток денег по выбранным операциям.</div>
-    </div>
-  );
-}
-
-function FinanceCompositionChart({ items }: { items: FinanceCompositionItem[] }) {
-  const chartData = items.filter((item) => item.value > 0).map((item) => ({
-    ...item,
-    color: item.tone === 'income' ? '#1fdd80' : item.tone === 'expense' ? '#ff6b73' : item.tone === 'accent' ? '#ff9a2f' : '#63a5ff',
-  }));
-
-  if (!chartData.length) {
-    return <div className={styles.emptyText}>Когда появятся реальные данные, здесь будет понятно, на что уходит и откуда приходит основная часть денег.</div>;
-  }
-
-  const total = chartData.reduce((sum, item) => sum + item.value, 0);
-
-  return (
-    <div className={styles.financeCompositionChart}>
-      <div className={styles.financeCompositionDonut}>
-        <ResponsiveContainer width="100%" height={260}>
-          <PieChart>
-            <Pie data={chartData} dataKey="value" nameKey="label" innerRadius={64} outerRadius={94} paddingAngle={3} stroke="rgba(10,10,12,0.92)">
-              {chartData.map((item) => <Cell key={item.key} fill={item.color} />)}
-            </Pie>
-            <RechartsTooltip
-              contentStyle={{ background: '#0f141c', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, color: '#fff' }}
-              formatter={(value: number, _name: string, item: any) => [formatMoney(value), item.payload.label]}
-              labelStyle={{ display: 'none' }}
-            />
-          </PieChart>
-        </ResponsiveContainer>
-        <div className={styles.financeCompositionCenter}>
-          <strong>{formatMoneyCompact(total)}</strong>
-          <span>Общий поток</span>
-        </div>
-      </div>
-      <div className={styles.financeCompositionLegend}>
-        {chartData.map((item) => (
-          <div key={item.key} className={styles.financeCompositionLegendRow}>
-            <span className={styles.financeCompositionLegendLead}><i style={{ background: item.color }} />{item.label}</span>
-            <div className={styles.financeCompositionLegendMeta}>
-              <strong>{formatMoney(item.value)}</strong>
-              <span>{Math.round((item.value / total) * 100)}%</span>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <label className={styles.field}>
-      <span>{label}</span>
-      {children}
-    </label>
-  );
-}
-
-function Segmented({
-  value,
-  onChange,
-  options,
-}: {
-  value: string;
-  onChange: (value: string) => void;
-  options: Array<{ value?: string; key?: string; label: string }>;
-}) {
-  const normalizedOptions = options
-    .map((option) => ({
-      value: option.value ?? option.key ?? '',
-      label: option.label,
-    }))
-    .filter((option) => option.value);
-  const optionValues = normalizedOptions.map((option) => option.value).join('|');
-  const buttonRefs = useRef<Array<HTMLButtonElement | null>>([]);
-
-  useEffect(() => {
-    const activeIndex = normalizedOptions.findIndex((option) => option.value === value);
-    if (activeIndex < 0) return;
-
-    const node = buttonRefs.current[activeIndex];
-    if (!node) return;
-
-    const frame = window.requestAnimationFrame(() => {
-      node.scrollIntoView({ behavior: 'auto', block: 'nearest', inline: 'nearest' });
-    });
-
-    return () => window.cancelAnimationFrame(frame);
-  }, [optionValues, value]);
-
-  return (
-    <div className={styles.segmented} role="tablist" aria-orientation="horizontal">
-      {normalizedOptions.map((option, index) => {
-        const isActive = value === option.value;
-
-        return (
-          <button
-            key={option.value}
-            ref={(node) => {
-              buttonRefs.current[index] = node;
-            }}
-            type="button"
-            role="tab"
-            aria-selected={isActive}
-            aria-pressed={isActive}
-            data-state={isActive ? 'active' : 'inactive'}
-            className={[styles.segment, isActive ? styles.segmentActive : ''].filter(Boolean).join(' ')}
-            onClick={() => onChange(option.value)}
-          >
-            {option.label}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
 type PulseIconName =
   | 'pulse'
   | 'ruler'
@@ -545,396 +423,10 @@ type PulseIconName =
   | 'info'
   | 'plus'
   | 'trash'
-  | 'pencil'
-  | 'alert'
-  | 'walk'
   | 'utensils'
-  | 'gear';
-
-function PulseIcon({ name, className = '' }: { name: PulseIconName; className?: string }) {
-  const cn = [styles.icon, className].filter(Boolean).join(' ');
-
-  switch (name) {
-    case 'pulse':
-      return (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" className={cn} aria-hidden="true">
-          <path d="M3 12h4l2.2-5 3.3 10 2.2-5H21" />
-        </svg>
-      );
-    case 'ruler':
-      return (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" className={cn} aria-hidden="true">
-          <path d="M4 16 16 4a2 2 0 0 1 2.8 0l1.2 1.2a2 2 0 0 1 0 2.8L8 20H4v-4Z" />
-          <path d="M13 7l4 4" />
-          <path d="M10 10l1.5 1.5" />
-        </svg>
-      );
-    case 'scale':
-      return (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" className={cn} aria-hidden="true">
-          <path d="M12 4v15" />
-          <path d="M5 7h14" />
-          <path d="m5 7-3 6h6L5 7Z" />
-          <path d="m19 7-3 6h6l-3-6Z" />
-          <path d="M7 19h10" />
-        </svg>
-      );
-    case 'calendar':
-      return (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" className={cn} aria-hidden="true">
-          <path d="M7 3v3" />
-          <path d="M17 3v3" />
-          <rect x="4" y="5" width="16" height="15" rx="2" />
-          <path d="M4 10h16" />
-        </svg>
-      );
-    case 'target':
-      return (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" className={cn} aria-hidden="true">
-          <circle cx="12" cy="12" r="8" />
-          <circle cx="12" cy="12" r="4" />
-          <circle cx="12" cy="12" r="1" fill="currentColor" stroke="none" />
-        </svg>
-      );
-    case 'trend':
-      return (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" className={cn} aria-hidden="true">
-          <path d="M4 16l5-5 4 4 7-8" />
-          <path d="M15 7h5v5" />
-        </svg>
-      );
-    case 'flame':
-      return (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" className={cn} aria-hidden="true">
-          <path d="M12 3c1.2 2.1 4 4.5 4 8a4 4 0 1 1-8 0c0-2 1.1-3.6 2.4-5.2.9-1 1.4-1.8 1.6-2.8Z" />
-          <path d="M12 12c.9 1 1.8 2 1.8 3.2A1.8 1.8 0 1 1 10.2 15c0-.8.4-1.6 1.8-3Z" />
-        </svg>
-      );
-    case 'check':
-      return (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" className={cn} aria-hidden="true">
-          <circle cx="12" cy="12" r="8" />
-          <path d="m8.5 12 2.3 2.3 4.7-4.8" />
-        </svg>
-      );
-    case 'card':
-      return (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" className={cn} aria-hidden="true">
-          <rect x="3" y="5" width="18" height="14" rx="2" />
-          <path d="M3 10h18" />
-        </svg>
-      );
-    case 'spark':
-      return (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" className={cn} aria-hidden="true">
-          <path d="m13 2-2 6 6 2-6 2-2 6-2-6-6-2 6-2 2-6Z" />
-        </svg>
-      );
-    case 'meal':
-      return (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" className={cn} aria-hidden="true">
-          <path d="M6 4v7" />
-          <path d="M9 4v7" />
-          <path d="M6 8h3" />
-          <path d="M8 11v9" />
-          <path d="M15 4v8c0 1.2.8 2 2 2h1v6" />
-          <path d="M18 4v16" />
-        </svg>
-      );
-    case 'wallet':
-      return (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" className={cn} aria-hidden="true">
-          <path d="M4 7.5A2.5 2.5 0 0 1 6.5 5H19a1 1 0 0 1 1 1v2H7a3 3 0 0 0 0 6h13v3a1 1 0 0 1-1 1H6.5A2.5 2.5 0 0 1 4 15.5v-8Z" />
-          <path d="M20 9H7a2 2 0 0 0 0 4h13" />
-          <circle cx="16.5" cy="11" r=".8" fill="currentColor" stroke="none" />
-        </svg>
-      );
-    case 'heart':
-      return (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" className={cn} aria-hidden="true">
-          <path d="M12 20s-6-3.6-8.1-7A4.8 4.8 0 0 1 12 7a4.8 4.8 0 0 1 8.1 6c-2.1 3.4-8.1 7-8.1 7Z" />
-        </svg>
-      );
-    case 'brain':
-      return (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" className={cn} aria-hidden="true">
-          <path d="M9.5 5.5a3 3 0 0 0-5 2.3 3 3 0 0 0 1 5.7A3.5 3.5 0 0 0 9 19h1v-4H8.8" />
-          <path d="M14.5 5.5a3 3 0 0 1 5 2.3 3 3 0 0 1-1 5.7A3.5 3.5 0 0 1 15 19h-1v-4h1.2" />
-          <path d="M10 7.5a2.5 2.5 0 0 0-4 2" />
-          <path d="M14 7.5a2.5 2.5 0 0 1 4 2" />
-          <path d="M10 12H8" />
-          <path d="M16 12h-2" />
-          <path d="M12 5v14" />
-        </svg>
-      );
-    case 'moon':
-      return (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" className={cn} aria-hidden="true">
-          <path d="M19 14.5A7.5 7.5 0 1 1 9.5 5a6.2 6.2 0 0 0 9.5 9.5Z" />
-        </svg>
-      );
-    case 'bolt':
-      return (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" className={cn} aria-hidden="true">
-          <path d="M13 2 5 13h6l-1 9 8-11h-6l1-9Z" />
-        </svg>
-      );
-    case 'alert':
-      return (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" className={cn} aria-hidden="true">
-          <path d="m12 4 8 14H4l8-14Z" />
-          <path d="M12 9v4" />
-          <path d="M12 16h.01" />
-        </svg>
-      );
-    case 'walk':
-      return (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" className={cn} aria-hidden="true">
-          <circle cx="13.5" cy="4.5" r="1.5" />
-          <path d="M11.5 8.5 9 12l-3.5 2" />
-          <path d="m11.5 8.5 2.5 2.5 3 1" />
-          <path d="m10 13-1 6" />
-          <path d="m14 11 1.5 8" />
-        </svg>
-      );
-    case 'coffee':
-      return (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" className={cn} aria-hidden="true">
-          <path d="M6 8h9v6a4 4 0 0 1-4 4H10a4 4 0 0 1-4-4V8Z" />
-          <path d="M15 10h1.5a2.5 2.5 0 0 1 0 5H15" />
-          <path d="M8 3v2" />
-          <path d="M12 3v2" />
-        </svg>
-      );
-    case 'info':
-      return (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" className={cn} aria-hidden="true">
-          <circle cx="12" cy="12" r="8" />
-          <path d="M12 11v4" />
-          <path d="M12 8h.01" />
-        </svg>
-      );
-    case 'plus':
-      return (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" className={cn} aria-hidden="true">
-          <path d="M12 5v14" />
-          <path d="M5 12h14" />
-        </svg>
-      );
-    case 'trash':
-      return (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" className={cn} aria-hidden="true">
-          <path d="M4 7h16" />
-          <path d="M10 11v6" />
-          <path d="M14 11v6" />
-          <path d="M6 7l1 12h10l1-12" />
-          <path d="M9 7V4h6v3" />
-        </svg>
-      );
-    case 'utensils':
-      return (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" className={cn} aria-hidden="true">
-          <path d="M6 4v7" />
-          <path d="M9 4v7" />
-          <path d="M6 8h3" />
-          <path d="M8 11v9" />
-          <path d="M15 4v8c0 1.2.8 2 2 2h1v6" />
-          <path d="M18 4v16" />
-        </svg>
-      );
-    case 'gear':
-      return (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" className={cn} aria-hidden="true">
-          <circle cx="12" cy="12" r="3" />
-          <path d="M19.4 15a1 1 0 0 0 .2 1.1l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1 1 0 0 0-1.1-.2 1 1 0 0 0-.6.9V20a2 2 0 1 1-4 0v-.1a1 1 0 0 0-.6-.9 1 1 0 0 0-1.1.2l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1 1 0 0 0 .2-1.1 1 1 0 0 0-.9-.6H4a2 2 0 1 1 0-4h.1a1 1 0 0 0 .9-.6 1 1 0 0 0-.2-1.1l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1 1 0 0 0 1.1.2 1 1 0 0 0 .6-.9V4a2 2 0 1 1 4 0v.1a1 1 0 0 0 .6.9 1 1 0 0 0 1.1-.2l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1 1 0 0 0-.2 1.1 1 1 0 0 0 .9.6H20a2 2 0 1 1 0 4h-.1a1 1 0 0 0-.9.6Z" />
-        </svg>
-      );
-    case 'arrow':
-      return (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" className={cn} aria-hidden="true">
-          <path d="M5 12h14" />
-          <path d="m13 6 6 6-6 6" />
-        </svg>
-      );
-
-    case 'brain':
-      return (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" className={cn} aria-hidden="true">
-          <path d="M9 4.5a3 3 0 0 0-3 3V8a3 3 0 0 0-2 2.8A3 3 0 0 0 6.7 14 3 3 0 0 0 9 19h1v-5H9.2" />
-          <path d="M15 4.5a3 3 0 0 1 3 3V8a3 3 0 0 1 2 2.8 3 3 0 0 1-2.7 3.2A3 3 0 0 1 15 19h-1v-5h.8" />
-          <path d="M10 6.5v11" />
-          <path d="M14 6.5v11" />
-          <path d="M9.5 9.5c.4.6 1.1 1 2 1s1.6-.4 2-1" />
-          <path d="M9.5 14.5c.4-.6 1.1-1 2-1s1.6.4 2 1" />
-        </svg>
-      );
-    case 'moon':
-      return (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" className={cn} aria-hidden="true">
-          <path d="M19 13.8A7 7 0 1 1 10.2 5a6 6 0 0 0 8.8 8.8Z" />
-        </svg>
-      );
-    case 'bolt':
-      return (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" className={cn} aria-hidden="true">
-          <path d="m13 2-7 11h5l-1 9 8-12h-5l0-8Z" />
-        </svg>
-      );
-    case 'warning':
-      return (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" className={cn} aria-hidden="true">
-          <path d="M12 4 3.5 19h17L12 4Z" />
-          <path d="M12 9v5" />
-          <path d="M12 17h.01" />
-        </svg>
-      );
-    case 'activity':
-      return (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" className={cn} aria-hidden="true">
-          <circle cx="17" cy="5" r="1.5" />
-          <path d="M12 7 9 11l-3 2" />
-          <path d="m13 6 3 3 3 1" />
-          <path d="m10 12 2 3-1 5" />
-          <path d="m13 12-2 3" />
-        </svg>
-      );
-    case 'wine':
-      return (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" className={cn} aria-hidden="true">
-          <path d="M7 4h10v3a5 5 0 0 1-10 0V4Z" />
-          <path d="M12 12v7" />
-          <path d="M9 19h6" />
-        </svg>
-      );
-    case 'coffee':
-      return (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" className={cn} aria-hidden="true">
-          <path d="M5 8h11v5a4 4 0 0 1-4 4H9a4 4 0 0 1-4-4V8Z" />
-          <path d="M16 10h1.5A2.5 2.5 0 0 1 20 12.5v0A2.5 2.5 0 0 1 17.5 15H16" />
-          <path d="M8 4v2" />
-          <path d="M12 4v2" />
-        </svg>
-      );
-    case 'info':
-      return (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" className={cn} aria-hidden="true">
-          <circle cx="12" cy="12" r="9" />
-          <path d="M12 10v6" />
-          <path d="M12 7h.01" />
-        </svg>
-      );
-    case 'plus':
-      return (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" className={cn} aria-hidden="true">
-          <path d="M12 5v14" />
-          <path d="M5 12h14" />
-        </svg>
-      );
-    case 'trash':
-      return (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" className={cn} aria-hidden="true">
-          <path d="M4 7h16" />
-          <path d="M9 7V5h6v2" />
-          <path d="m7 7-.6 10H8.6L8 7" />
-          <path d="M10 11v5" />
-          <path d="M14 11v5" />
-        </svg>
-      );
-    case 'pencil':
-      return (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" className={cn} aria-hidden="true">
-          <path d="M4 20h4l10-10a2.1 2.1 0 0 0-4-4L4 16v4Z" />
-          <path d="m13.5 6.5 4 4" />
-        </svg>
-      );
-  }
-}
-
-function MiniRing({
-  value,
-  tone = 'accent',
-  size = 64,
-  stroke = 6,
-}: {
-  value: number;
-  tone?: 'accent' | 'success';
-  size?: number;
-  stroke?: number;
-}) {
-  const safe = Math.max(0, Math.min(100, Math.round(value)));
-  const radius = (size - stroke) / 2;
-  const circumference = 2 * Math.PI * radius;
-  const offset = circumference * (1 - safe / 100);
-  const strokeColor = tone === 'success' ? 'var(--success)' : 'var(--accent)';
-
-  return (
-    <div className={styles.miniRing} style={{ width: size, height: size }}>
-      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} aria-hidden="true">
-        <circle cx={size / 2} cy={size / 2} r={radius} className={styles.miniRingTrack} strokeWidth={stroke} fill="none" />
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          stroke={strokeColor}
-          strokeWidth={stroke}
-          fill="none"
-          strokeLinecap="round"
-          strokeDasharray={circumference}
-          strokeDashoffset={offset}
-          transform={`rotate(-90 ${size / 2} ${size / 2})`}
-          className={styles.miniRingProgress}
-        />
-      </svg>
-      <span style={{ fontSize: Math.max(12, Math.round(size * 0.23)) }}>{safe}</span>
-    </div>
-  );
-}
-
-
-function SliderCard({
-  title,
-  icon,
-  value,
-  display,
-  min,
-  max,
-  step = 1,
-  helper,
-  onChange,
-}: {
-  title: string;
-  icon: PulseIconName;
-  value: string;
-  display: string;
-  min: number;
-  max: number;
-  step?: number;
-  helper?: string;
-  onChange: (value: string) => void;
-}) {
-  return (
-    <div className={styles.sliderCard}>
-      <div className={styles.sliderCardHead}>
-        <div className={styles.sliderCardLabel}>
-          <PulseIcon name={icon} className={styles.sliderCardIcon} />
-          <span>{title}</span>
-        </div>
-        <strong>{display}</strong>
-      </div>
-      <input
-        type="range"
-        min={min}
-        max={max}
-        step={step}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        className={styles.sliderInput}
-        style={{ ['--slider-progress' as any]: `${Math.max(0, Math.min(100, ((Number(value) - min) / Math.max(max - min, 1)) * 100))}%` }}
-      />
-      {helper ? <div className={styles.sliderHelper}>{helper}</div> : null}
-    </div>
-  );
-}
+  | 'gear'
+  | 'alert'
+  | 'pencil';
 
 function formatMealTime(value?: string | null) {
   const parsed = parseDate(value ?? null);
@@ -1001,6 +493,14 @@ function getRecommendationMeta(text: string) {
   return { tone: 'neutral', action: 'Открыть', icon: 'spark' as const, target: 'pulse' as const };
 }
 
+function getPulseRecommendationMeta(text: string) {
+  const meta = getRecommendationMeta(text);
+
+  return {
+    ...meta,
+    group: meta.tone === 'danger' || meta.target === 'finance' ? 'attention' as const : 'suggestion' as const,
+  };
+}
 
 function getFinanceCategoryMeta(name?: string | null) {
   const value = (name ?? '').toLowerCase();
@@ -1038,6 +538,13 @@ function getDaysUntilLabel(value?: string | null, baseDate?: string) {
   return `через ${diff} дней`;
 }
 
+type FinanceCompositionItem = {
+  key: string;
+  label: string;
+  value: number;
+  tone: 'income' | 'expense' | 'accent' | 'neutral';
+};
+
 type SummaryCard = {
   key: string;
   icon: PulseIconName;
@@ -1049,115 +556,382 @@ type SummaryCard = {
 };
 
 
-function HealthSlider({
-  icon,
-  label,
-  value,
-  onChange,
-  min,
-  max,
-  step = 1,
-  suffix = '',
-  helper,
-  asideLabel,
-  tone = 'accent',
-}: {
-  icon: PulseIconName;
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  min: number;
-  max: number;
-  step?: number;
-  suffix?: string;
-  helper?: string;
-  asideLabel?: string;
-  tone?: 'accent' | 'success' | 'info' | 'danger' | 'purple' | 'warning';
-}) {
-  const numericValue = Number(value || min);
-  const percent = ((numericValue - min) / Math.max(max - min, 1)) * 100;
-  const toneClassMap = {
-    accent: styles.healthMiniIconAccent,
-    success: styles.healthMiniIconSuccess,
-    info: styles.healthMiniIconInfo,
-    danger: styles.healthMiniIconDanger,
-    purple: styles.healthMiniIconPurple,
-    warning: styles.healthMiniIconAccent,
-  };
-
-  return (
-    <div className={styles.healthSliderCard}>
-      <div className={styles.healthSliderHead}>
-        <div className={styles.healthSliderTitle}>
-          <span className={[styles.healthMiniIcon, toneClassMap[tone]].filter(Boolean).join(' ')}>
-            <PulseIcon name={icon} className={styles.healthMiniSvg} />
-          </span>
-          <span>{label}</span>
-        </div>
-        <div className={styles.healthSliderValueWrap}>
-          {asideLabel ? <span>{asideLabel}</span> : null}
-          <strong>{value || min}{suffix}</strong>
-        </div>
-      </div>
-      <div className={styles.healthRangeWrap}>
-        <input
-          type="range"
-          min={min}
-          max={max}
-          step={step}
-          value={value || String(min)}
-          onChange={(event) => onChange(event.target.value)}
-          className={styles.healthRange}
-          style={{ ['--range-progress' as any]: `${percent}%` }}
-        />
-      </div>
-      {helper ? <div className={styles.healthSliderHelper}>{helper}</div> : null}
-    </div>
-  );
-}
-
 function formatTimeLabel(value?: string | null) {
   const parsed = parseDate(value ?? null);
   if (!parsed) return '—';
+  if (parsed.getHours() === 0 && parsed.getMinutes() === 0) return 'Без времени';
   return new Intl.DateTimeFormat('ru-RU', { hour: '2-digit', minute: '2-digit' }).format(parsed);
 }
 
-export default function HealthPage() {
+function getCurrentTimeInputValue(date = new Date()) {
+  return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+}
 
+function formatUsageCountLabel(value?: number | null) {
+  const safe = Math.max(0, Math.round(Number(value) || 0));
+  if (safe === 1) return '1 добавление';
+  if (safe >= 2 && safe <= 4) return `${safe} добавления`;
+  return `${safe} добавлений`;
+}
+
+function formatOperationsCountLabel(value: number, range: 'DAY' | 'MONTH' | 'YEAR') {
+  const safe = Math.max(0, Math.round(Number(value) || 0));
+  const remainder10 = safe % 10;
+  const remainder100 = safe % 100;
+  const noun = remainder10 === 1 && remainder100 !== 11
+    ? 'операция'
+    : remainder10 >= 2 && remainder10 <= 4 && (remainder100 < 12 || remainder100 > 14)
+      ? 'операции'
+      : 'операций';
+  const period = range === 'DAY' ? 'за день' : range === 'MONTH' ? 'за месяц' : 'за год';
+  return `${safe} ${noun} ${period}`;
+}
+
+function getMealItemIdentity(item: PulseMealItem) {
+  return (item.sourceFoodId && item.sourceFoodId.trim()) || item.name.trim().toLowerCase();
+}
+
+function getFoodIdentity(food: Pick<PulseFood, 'id' | 'name'>) {
+  return (food.id && food.id.trim()) || food.name.trim().toLowerCase();
+}
+
+function getTaskProgressGradient(percent: number) {
+  const clamped = Math.max(0, Math.min(100, percent));
+  if (clamped >= 80) {
+    return 'linear-gradient(90deg, rgba(94, 152, 110, 0.9), rgba(62, 118, 83, 0.96))';
+  }
+  if (clamped >= 40) {
+    return 'linear-gradient(90deg, rgba(214, 136, 80, 0.9), rgba(183, 105, 51, 0.96))';
+  }
+  return 'linear-gradient(90deg, rgba(191, 111, 97, 0.9), rgba(156, 82, 72, 0.96))';
+}
+
+function getTaskProgressAccent(percent: number) {
+  const clamped = Math.max(0, Math.min(100, percent));
+  if (clamped >= 80) return 'rgb(132, 184, 144)';
+  if (clamped >= 40) return 'rgb(224, 162, 103)';
+  return 'rgb(208, 132, 120)';
+}
+
+type TaskDraft = {
+  title: string;
+  notes: string;
+  taskType: 'REGULAR' | 'ONE_TIME' | 'HABIT';
+  date: string;
+  timeMode: 'NONE' | 'SINGLE' | 'RANGE';
+  time: string;
+  endTime: string;
+  hasEndTime: boolean;
+  scheduleType: 'NONE' | 'WEEKLY' | 'MONTHLY';
+  daysOfWeek: number[];
+  daysOfMonth: number[];
+};
+
+function addMinutesToTime(value: string, minutesToAdd = 45) {
+  if (!value) return '';
+  const [hours, minutes] = value.split(':').map(Number);
+  if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return '';
+  const nextMinutes = Math.min(hours * 60 + minutes + minutesToAdd, 23 * 60 + 59);
+  const nextHours = Math.floor(nextMinutes / 60);
+  const nextMinutePart = nextMinutes % 60;
+  return `${String(nextHours).padStart(2, '0')}:${String(nextMinutePart).padStart(2, '0')}`;
+}
+
+function normalizeTaskDraft(draft: TaskDraft): TaskDraft {
+  if (draft.timeMode === 'NONE') {
+    return {
+      ...draft,
+      time: '',
+      endTime: '',
+      hasEndTime: false,
+    };
+  }
+
+  if (draft.timeMode === 'SINGLE') {
+    return {
+      ...draft,
+      endTime: '',
+      hasEndTime: false,
+    };
+  }
+
+  const resolvedTime = draft.time || '09:00';
+  return {
+    ...draft,
+    time: resolvedTime,
+    endTime: draft.endTime || addMinutesToTime(resolvedTime),
+    hasEndTime: true,
+  };
+}
+
+function createTaskDraft(date: string, overrides: Partial<TaskDraft> = {}): TaskDraft {
+  const resolvedDate = overrides.date || date;
+  const resolvedDaysOfMonth = overrides.daysOfMonth?.length ? [...overrides.daysOfMonth] : [getDayOfMonthOrToday(resolvedDate)];
+  const baseDraft: TaskDraft = {
+    title: '',
+    notes: '',
+    taskType: 'ONE_TIME',
+    date: resolvedDate,
+    timeMode: 'NONE',
+    time: '',
+    endTime: '',
+    hasEndTime: false,
+    scheduleType: 'NONE',
+    daysOfWeek: overrides.daysOfWeek?.length ? [...overrides.daysOfWeek] : [0],
+    daysOfMonth: resolvedDaysOfMonth,
+  };
+  const resolvedTimeMode =
+    overrides.timeMode
+    ?? (overrides.endTime ? 'RANGE' : overrides.time ? 'SINGLE' : 'NONE');
+
+  return normalizeTaskDraft({
+    ...baseDraft,
+    ...overrides,
+    date: resolvedDate,
+    timeMode: resolvedTimeMode,
+    daysOfMonth: resolvedDaysOfMonth,
+    hasEndTime: resolvedTimeMode === 'RANGE',
+  });
+}
+
+function canSubmitTaskDraft(draft: TaskDraft) {
+  if (!draft.title.trim()) return false;
+  if (draft.timeMode === 'NONE') return true;
+  if (draft.timeMode === 'SINGLE') return Boolean(draft.time);
+  return Boolean(draft.time && draft.endTime);
+}
+
+function formatTaskInputTime(value?: string | null) {
+  const parsed = parseDate(value ?? null);
+  if (!parsed) return '';
+  return `${String(parsed.getHours()).padStart(2, '0')}:${String(parsed.getMinutes()).padStart(2, '0')}`;
+}
+
+function createTaskDraftFromItem(task: PulseTaskItem, fallbackDate: string) {
+  const taskDate = parseDate(task.dueDate ?? null);
+  const endDate = parseDate(task.endDate ?? null);
+  const resolvedDate = taskDate ? fmtDate(taskDate) : fallbackDate;
+  const timeMode: TaskDraft['timeMode'] = !task.hasTime ? 'NONE' : endDate ? 'RANGE' : 'SINGLE';
+  const scheduleType: TaskDraft['scheduleType'] =
+    task.taskType !== 'REGULAR'
+      ? 'NONE'
+      : task.scheduleType === 'MONTHLY'
+        ? 'MONTHLY'
+        : 'WEEKLY';
+  const daysOfWeek =
+    task.scheduleType === 'DAILY'
+      ? [0, 1, 2, 3, 4, 5, 6]
+      : task.daysOfWeek?.length
+        ? [...task.daysOfWeek]
+        : [0];
+
+  return normalizeTaskDraft({
+    title: task.title,
+    notes: task.notes ?? '',
+    taskType: task.taskType,
+    date: resolvedDate,
+    time: task.hasTime ? formatTaskInputTime(task.dueDate) : '',
+    endTime: endDate ? formatTaskInputTime(task.endDate) : '',
+    timeMode,
+    hasEndTime: timeMode === 'RANGE',
+    scheduleType,
+    daysOfWeek,
+    daysOfMonth: task.daysOfMonth?.length ? [...task.daysOfMonth] : [getDayOfMonthOrToday(resolvedDate)],
+  });
+}
+
+function buildTaskPayload(draft: TaskDraft, fallbackDate: string) {
+  const resolvedDate = draft.date || fallbackDate;
+  return {
+    title: draft.title.trim(),
+    notes: draft.notes.trim() || null,
+    taskType: draft.taskType,
+    date: resolvedDate,
+    time: draft.timeMode === 'NONE' ? null : (draft.time || null),
+    endTime: draft.timeMode === 'RANGE' ? (draft.endTime || null) : null,
+    scheduleType: draft.taskType === 'ONE_TIME' ? 'NONE' : draft.scheduleType,
+    daysOfWeek: draft.taskType === 'REGULAR' && draft.scheduleType === 'WEEKLY' ? draft.daysOfWeek : [],
+    daysOfMonth: draft.taskType === 'REGULAR' && draft.scheduleType === 'MONTHLY' ? draft.daysOfMonth : [],
+  };
+}
+
+function sortTasksByPlannerOrder<T extends { dueDate?: string | null; hasTime?: boolean; completedForDate?: boolean; priority?: number; title: string }>(items: T[]) {
+  return [...items].sort((left, right) => {
+    const leftDate = parseDate(left.dueDate ?? null);
+    const rightDate = parseDate(right.dueDate ?? null);
+    const leftTime = left.hasTime && leftDate ? leftDate.getHours() * 60 + leftDate.getMinutes() : Number.POSITIVE_INFINITY;
+    const rightTime = right.hasTime && rightDate ? rightDate.getHours() * 60 + rightDate.getMinutes() : Number.POSITIVE_INFINITY;
+
+    if (leftTime !== rightTime) return leftTime - rightTime;
+    if ((right.priority ?? 0) !== (left.priority ?? 0)) return (right.priority ?? 0) - (left.priority ?? 0);
+    return left.title.localeCompare(right.title, 'ru');
+  });
+}
+
+function getTaskPrimaryTime(task: PulseTaskItem) {
+  if (task.timeLabel?.trim()) return task.timeLabel.trim();
+  if (task.hasTime && task.dueDate) return formatTimeLabel(task.dueDate);
+  return 'Без времени';
+}
+
+function getTaskVisualMeta(task: PulseTaskItem) {
+  if (task.sourceKey?.startsWith('finance:')) {
+    return { label: 'Финансовая задача', tone: 'finance' as const };
+  }
+  if (task.sourceKey?.startsWith('debt:')) {
+    return { label: 'Платёж по долгу', tone: 'debt' as const };
+  }
+  if (task.programMeta?.title?.trim()) {
+    return { label: task.programMeta.title.trim(), tone: 'program' as const };
+  }
+  if (task.sourceEventTitle?.trim()) {
+    return { label: task.sourceEventTitle.trim(), tone: 'event' as const };
+  }
+  if (task.socialEventRole === 'SUBTASK' || task.sourceArtifactId) {
+    return { label: 'Из события', tone: 'event' as const };
+  }
+  if (task.taskType === 'HABIT') {
+    return { label: 'Привычка', tone: 'habit' as const };
+  }
+  if (task.taskType === 'REGULAR') {
+    return { label: 'Регулярная задача', tone: 'regular' as const };
+  }
+  return { label: 'Личная задача', tone: 'personal' as const };
+}
+
+function getTaskTypeLabel(task: PulseTaskItem) {
+  if (task.taskType === 'HABIT') return 'Привычка';
+  if (task.taskType === 'REGULAR') return 'Регулярная задача';
+  return 'Разовая задача';
+}
+
+function getTaskRepeatSummary(task: PulseTaskItem) {
+  if (task.taskType === 'ONE_TIME') return 'Без повтора';
+  if (task.taskType === 'HABIT') return 'Повторяется каждый день';
+  if (task.scheduleType === 'WEEKLY') {
+    return task.daysOfWeek.length ? `По дням недели: ${task.daysOfWeek.map((day) => weekdayLabels[day] ?? '').filter(Boolean).join(', ')}` : 'По дням недели';
+  }
+  if (task.scheduleType === 'MONTHLY') {
+    return task.daysOfMonth.length ? `По дням месяца: ${task.daysOfMonth.join(', ')}` : 'По дням месяца';
+  }
+  if (task.scheduleType === 'DAILY') return 'Ежедневно';
+  return 'Без повтора';
+}
+
+function getTaskStatusLabel(task: PulseTaskItem) {
+  return task.completedForDate ? 'Выполнена' : 'В работе';
+}
+
+function formatEntryMomentLabel(entry: Pick<PulseFinanceEntry, 'date' | 'createdAt'>) {
+  const dateLabel = formatShortDate(entry.date);
+  const timeLabel = formatTimeLabel(entry.createdAt);
+  return timeLabel === 'Без времени' ? dateLabel : `${dateLabel} · ${timeLabel}`;
+}
+
+function formatMoneyDelta(value: number) {
+  if (value === 0) return '0 ₽';
+  return `${value > 0 ? '+' : '−'}${formatMoney(Math.abs(value))}`;
+}
+
+function getDeltaToneClass(value: number, positiveTrend: 'up' | 'down') {
+  if (value === 0) return '';
+  const isPositive = positiveTrend === 'up' ? value > 0 : value < 0;
+  return isPositive ? styles.financeDeltaGood : styles.financeDeltaBad;
+}
+
+function getParticipantInitials(username?: string | null) {
+  const parts = (username ?? '').trim().split(/\s+/).filter(Boolean).slice(0, 2);
+  if (!parts.length) return '•';
+  return parts.map((part) => part[0]?.toUpperCase() ?? '').join('');
+}
+
+
+export default function HealthPage() {
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const requestedMainTab = searchParams.get('tab');
   const today = useMemo(() => fmtDate(new Date()), []);
   const [selectedDate, setSelectedDate] = useState(today);
-  const [mainTab, setMainTab] = useState<'pulse' | 'health' | 'tasks' | 'finance' | 'analytics' | 'config'>('pulse');
+  const [mainTab, setMainTab] = useState<'pulse' | 'health' | 'tasks' | 'finance' | 'programs' | 'analytics' | 'config'>(() => {
+    if (requestedMainTab === 'health' || requestedMainTab === 'tasks' || requestedMainTab === 'finance' || requestedMainTab === 'programs' || requestedMainTab === 'analytics' || requestedMainTab === 'config') {
+      return requestedMainTab;
+    }
+    return 'pulse';
+  });
   const [healthSubTab, setHealthSubTab] = useState<'mental' | 'nutrition'>('mental');
-  const [financeSubTab, setFinanceSubTab] = useState<'expenses' | 'income' | 'savings' | 'stats'>('expenses');
+  const [financeSubTab, setFinanceSubTab] = useState<'expenses' | 'income' | 'savings' | 'debts' | 'stats'>('expenses');
+  const [financeRange, setFinanceRange] = useState<'DAY' | 'MONTH' | 'YEAR'>('DAY');
+  const [taskViewMode, setTaskViewMode] = useState<'list' | 'timeline'>('list');
+  const [plannerMode, setPlannerMode] = useState<'day' | 'week'>('day');
   const dateInputRef = useRef<HTMLInputElement | null>(null);
+  const weekRowRef = useRef<HTMLDivElement | null>(null);
   const weekButtonRefs = useRef<Array<HTMLButtonElement | null>>([]);
+  const financeSubnavRef = useRef<HTMLDivElement | null>(null);
+  const financeSubnavButtonRefs = useRef<Record<'expenses' | 'income' | 'savings' | 'debts' | 'stats', HTMLButtonElement | null>>({
+    expenses: null,
+    income: null,
+    savings: null,
+    debts: null,
+    stats: null,
+  });
   const [showProfileEditor, setShowProfileEditor] = useState(false);
   const [showAllRecommendations, setShowAllRecommendations] = useState(false);
-  const [showNutritionGoalEditor, setShowNutritionGoalEditor] = useState(false);
+  const [nutritionGoalModalOpen, setNutritionGoalModalOpen] = useState(false);
+  const skipSearchSyncRef = useRef(false);
+  const pulseProfileEditorRef = useRef<HTMLDivElement | null>(null);
+  const pulseProfileEditorFirstFieldRef = useRef<HTMLInputElement | null>(null);
+  const weekDates = useMemo(() => getWeekDates(selectedDate), [selectedDate]);
+  const financeEntryScope = financeSubTab === 'expenses' || financeSubTab === 'income' ? (financeRange.toLowerCase() as 'day' | 'month' | 'year') : 'day';
+  const needsOverview = mainTab === 'pulse' || mainTab === 'analytics';
+  const needsProfile = mainTab === 'pulse' || mainTab === 'health';
+  const needsMental = mainTab === 'pulse' || mainTab === 'health';
+  const needsNutrition = mainTab === 'pulse' || mainTab === 'health';
+  const needsTasks = mainTab === 'pulse' || mainTab === 'tasks';
+  const needsFinance = mainTab === 'pulse' || mainTab === 'finance';
+  const needsAnalytics = mainTab === 'pulse' || mainTab === 'analytics';
 
-  const { data: overviewData } = useGetOverviewQuery(selectedDate);
-  const { data: profileData } = useGetProfileQuery();
-  const { data: mentalData } = useGetMentalDayQuery(selectedDate);
-  const { data: nutritionData } = useGetNutritionQuery(selectedDate);
-  const { data: tasksData } = useGetTasksDayQuery(selectedDate);
-  const { data: financeData } = useGetFinanceOverviewQuery(selectedDate);
-  const { data: analyticsData } = useGetAnalyticsQuery(7);
+  const { data: overviewData } = useGetOverviewQuery(selectedDate, { skip: !needsOverview });
+  const { data: configData } = useGetConfigQuery(undefined, { skip: needsOverview });
+  const { data: profileData } = useGetProfileQuery(undefined, { skip: !needsProfile });
+  const { data: mentalData } = useGetMentalDayQuery(selectedDate, { skip: !needsMental });
+  const { data: nutritionData } = useGetNutritionQuery(selectedDate, { skip: !needsNutrition });
+  const { data: tasksData } = useGetTasksDayQuery(selectedDate, { skip: !needsTasks });
+  const { data: tasksRangeData } = useGetTasksRangeQuery(
+    { from: weekDates[0] ?? selectedDate, to: weekDates[6] ?? selectedDate },
+    { skip: mainTab !== 'tasks' || taskViewMode !== 'timeline' || plannerMode !== 'week' },
+  );
+  const { data: financeData } = useGetFinanceOverviewQuery(
+    { date: selectedDate, period: financeEntryScope },
+    { skip: !needsFinance },
+  );
+  const previousMonthDate = useMemo(() => {
+    const base = parseDate(selectedDate) ?? new Date();
+    const prev = new Date(base);
+    prev.setMonth(prev.getMonth() - 1);
+    return fmtDate(prev);
+  }, [selectedDate]);
+  const { data: previousMonthFinanceData } = useGetFinanceOverviewQuery(previousMonthDate, { skip: !needsFinance });
+  const { data: analyticsData } = useGetAnalyticsQuery(7, { skip: !needsAnalytics });
 
   const [updateProfile, { isLoading: profileSaving }] = useUpdateProfileMutation();
   const [updateConfig, { isLoading: configSaving }] = useUpdateConfigMutation();
   const [saveMentalDay, { isLoading: mentalSaving }] = useSaveMentalDayMutation();
   const [updateNutritionGoal, { isLoading: goalSaving }] = useUpdateNutritionGoalMutation();
   const [addMeal, { isLoading: mealSaving }] = useAddMealMutation();
+  const [updateMeal] = useUpdateMealMutation();
   const [deleteMeal] = useDeleteMealMutation();
   const [createFood, { isLoading: foodSaving }] = useCreateFoodMutation();
   const [createPulseTask, { isLoading: taskSaving }] = useCreatePulseTaskMutation();
+  const [updatePulseTask] = useUpdatePulseTaskMutation();
   const [togglePulseTaskDate] = useTogglePulseTaskDateMutation();
   const [deletePulseTask] = useDeletePulseTaskMutation();
   const [createPulseGoal, { isLoading: pulseGoalSaving }] = useCreatePulseGoalMutation();
   const [updatePulseGoal, { isLoading: pulseGoalUpdating }] = useUpdatePulseGoalMutation();
   const [deletePulseGoal] = useDeletePulseGoalMutation();
   const [createFinanceCategory, { isLoading: categorySaving }] = useCreateFinanceCategoryMutation();
+  const [updateFinanceCategory, { isLoading: categoryUpdating }] = useUpdateFinanceCategoryMutation();
   const [createFinanceEntry, { isLoading: financeSaving }] = useCreateFinanceEntryMutation();
+  const [updateFinanceEntry, { isLoading: financeUpdating }] = useUpdateFinanceEntryMutation();
   const [deleteFinanceEntry] = useDeleteFinanceEntryMutation();
   const [createSavingsGoal, { isLoading: savingsSaving }] = useCreateSavingsGoalMutation();
   const [updateSavingsGoal, { isLoading: savingsUpdating }] = useUpdateSavingsGoalMutation();
@@ -1166,12 +940,10 @@ export default function HealthPage() {
   const [updateDebt, { isLoading: debtUpdating }] = useUpdateDebtMutation();
   const [deleteDebt] = useDeleteDebtMutation();
 
-  const config = overviewData?.config;
+  const config = configData?.config ?? overviewData?.config;
   const profile = profileData?.profile;
   const profileSuggestion = profileData?.suggestion;
   const weightDelta = profileData?.weightDelta;
-  const weekDates = useMemo(() => getWeekDates(selectedDate), [selectedDate]);
-
   useEffect(() => {
     const activeIndex = weekDates.findIndex((date) => date === selectedDate);
     if (activeIndex < 0) return;
@@ -1180,11 +952,21 @@ export default function HealthPage() {
     if (!node) return;
 
     const frame = window.requestAnimationFrame(() => {
-      node.scrollIntoView({ behavior: 'auto', block: 'nearest', inline: 'nearest' });
+      ensureHorizontalChildVisibility(weekRowRef.current, node, 16);
     });
 
     return () => window.cancelAnimationFrame(frame);
-  }, [selectedDate, weekDates]);
+  }, [mainTab, selectedDate, weekDates]);
+
+  useEffect(() => {
+    if (mainTab !== 'finance') return;
+
+    const frame = window.requestAnimationFrame(() => {
+      ensureHorizontalChildVisibility(financeSubnavRef.current, financeSubnavButtonRefs.current[financeSubTab], 16);
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [financeSubTab, mainTab]);
 
   const [profileForm, setProfileForm] = useState({
     heightCm: '',
@@ -1250,19 +1032,29 @@ export default function HealthPage() {
   const [mealModalOpen, setMealModalOpen] = useState(false);
   const [foodModalOpen, setFoodModalOpen] = useState(false);
   const [taskModalOpen, setTaskModalOpen] = useState(false);
+  const [taskEditingId, setTaskEditingId] = useState<string | null>(null);
+  const [taskDetailsItem, setTaskDetailsItem] = useState<PulseTaskItem | null>(null);
   const [goalModalOpen, setGoalModalOpen] = useState(false);
   const [taskFilter, setTaskFilter] = useState<'ALL' | 'TASKS' | 'HABITS'>('ALL');
+  const [showCompletedTasks, setShowCompletedTasks] = useState(false);
+  const [showPulseCompletedTasks, setShowPulseCompletedTasks] = useState(false);
+  const [expandedGoalIds, setExpandedGoalIds] = useState<string[]>([]);
+  const [quickTaskExpanded, setQuickTaskExpanded] = useState(false);
   const [financeModalOpen, setFinanceModalOpen] = useState(false);
   const [categoryModalOpen, setCategoryModalOpen] = useState(false);
+  const [activeFinanceCategoryId, setActiveFinanceCategoryId] = useState<string | null>(null);
+  const [editingFinanceEntryId, setEditingFinanceEntryId] = useState<string | null>(null);
   const [savingsModalOpen, setSavingsModalOpen] = useState(false);
   const [savingsContributionModalOpen, setSavingsContributionModalOpen] = useState(false);
   const [debtModalOpen, setDebtModalOpen] = useState(false);
   const [debtPaymentModalOpen, setDebtPaymentModalOpen] = useState(false);
 
   const [mealTitle, setMealTitle] = useState('Приём пищи');
+  const [mealTime, setMealTime] = useState(getCurrentTimeInputValue());
   const [mealNotes, setMealNotes] = useState('');
   const [foodSearch, setFoodSearch] = useState('');
   const [mealItems, setMealItems] = useState<PulseMealItem[]>([]);
+  const [editingMealId, setEditingMealId] = useState<string | null>(null);
   const { data: foodSearchData } = useSearchFoodsQuery(foodSearch, { skip: !mealModalOpen && !foodModalOpen });
 
   const [customFoodForm, setCustomFoodForm] = useState({
@@ -1275,15 +1067,29 @@ export default function HealthPage() {
     isDish: false,
     isHealthy: true,
   });
+  const [customFoodSearch, setCustomFoodSearch] = useState('');
+  const [customDishItems, setCustomDishItems] = useState<PulseMealItem[]>([]);
+  const { data: customFoodSearchData } = useSearchFoodsQuery(customFoodSearch, { skip: !foodModalOpen || !customFoodForm.isDish });
 
-  const [taskForm, setTaskForm] = useState({
-    title: '',
-    notes: '',
-    taskType: 'ONE_TIME',
-    scheduleType: 'NONE',
-    daysOfWeek: [0],
-    daysOfMonth: [(parseDate(selectedDate) ?? new Date()).getDate()],
-  });
+  const [quickTaskForm, setQuickTaskForm] = useState<TaskDraft>(() => createTaskDraft(selectedDate));
+  const [taskForm, setTaskForm] = useState<TaskDraft>(() => createTaskDraft(selectedDate));
+
+  useEffect(() => {
+    setTaskForm((prev) => ({
+      ...prev,
+      date: prev.date || selectedDate,
+      daysOfMonth: prev.daysOfMonth.length ? prev.daysOfMonth : [getDayOfMonthOrToday(selectedDate)],
+    }));
+  }, [selectedDate]);
+
+  useEffect(() => {
+    if (quickTaskExpanded) return;
+    setQuickTaskForm((prev) => ({
+      ...prev,
+      date: selectedDate,
+      daysOfMonth: prev.daysOfMonth.length ? prev.daysOfMonth : [getDayOfMonthOrToday(selectedDate)],
+    }));
+  }, [quickTaskExpanded, selectedDate]);
 
   const [globalGoalForm, setGlobalGoalForm] = useState({
     title: '',
@@ -1364,20 +1170,64 @@ export default function HealthPage() {
   };
 
   const visibleTabs = useMemo(() => {
-    const tabs: Array<{ value: 'pulse' | 'health' | 'tasks' | 'finance' | 'analytics' | 'config'; label: string }> = [{ value: 'pulse', label: 'Пульс' }];
-    if (config?.healthEnabled && (config?.mentalEnabled || config?.nutritionEnabled)) tabs.push({ value: 'health', label: 'Здоровье' });
-    if (config?.tasksEnabled) tabs.push({ value: 'tasks', label: 'Задачи' });
-    if (config?.financeEnabled) tabs.push({ value: 'finance', label: 'Финансы' });
+    const tabs: Array<{ value: 'pulse' | 'health' | 'tasks' | 'finance' | 'programs' | 'analytics' | 'config'; label: string }> = [{ value: 'pulse', label: 'Пульс' }];
+    tabs.push({ value: 'health', label: 'Здоровье' });
+    tabs.push({ value: 'tasks', label: 'Ежедневник' });
+    tabs.push({ value: 'finance', label: 'Финансы' });
+    tabs.push({ value: 'programs', label: 'Программы' });
     tabs.push({ value: 'analytics', label: 'Аналитика' });
     tabs.push({ value: 'config', label: 'Конфигурация' });
     return tabs;
-  }, [config]);
+  }, []);
+
+  const replaceTabInUrl = (nextTab: typeof mainTab) => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    if (nextTab === 'pulse') {
+      params.delete('tab');
+    } else {
+      params.set('tab', nextTab);
+    }
+    const query = params.toString();
+    const nextUrl = query ? `${pathname ?? '/health'}?${query}` : pathname ?? '/health';
+    window.history.replaceState(window.history.state, '', nextUrl);
+  };
+
+  const changeMainTab = (nextTab: typeof mainTab) => {
+    if (nextTab === mainTab) return;
+    skipSearchSyncRef.current = true;
+    setMainTab(nextTab);
+    replaceTabInUrl(nextTab);
+  };
 
   useEffect(() => {
     if (!visibleTabs.some((tab) => tab.value === mainTab)) {
-      setMainTab('pulse');
+      if (mainTab !== 'pulse') {
+        setMainTab('pulse');
+        replaceTabInUrl('pulse');
+      }
     }
   }, [visibleTabs, mainTab]);
+
+  useEffect(() => {
+    if (skipSearchSyncRef.current) {
+      skipSearchSyncRef.current = false;
+      return;
+    }
+    const nextTab =
+      requestedMainTab === 'health' ||
+      requestedMainTab === 'tasks' ||
+      requestedMainTab === 'finance' ||
+      requestedMainTab === 'programs' ||
+      requestedMainTab === 'analytics' ||
+      requestedMainTab === 'config'
+        ? requestedMainTab
+        : 'pulse';
+    if (!visibleTabs.some((tab) => tab.value === nextTab)) return;
+    if (nextTab !== mainTab) {
+      setMainTab(nextTab);
+    }
+  }, [requestedMainTab, visibleTabs, mainTab]);
 
   const isHealthEnabled = config?.healthEnabled ?? true;
   const isMentalEnabled = config?.mentalEnabled ?? true;
@@ -1397,8 +1247,8 @@ export default function HealthPage() {
 
     if (mainTab === 'tasks') {
       return {
-        title: 'Задачи',
-        description: 'План дня, привычки и выполнение задач без лишнего шума',
+        title: 'Ежедневник',
+        description: 'План дня по времени, список задач и привычек без лишнего шума',
       };
     }
 
@@ -1406,6 +1256,13 @@ export default function HealthPage() {
       return {
         title: 'Финансы',
         description: 'Доходы, расходы, платежи и финансовые цели в одном месте',
+      };
+    }
+
+    if (mainTab === 'programs') {
+      return {
+        title: 'Программы',
+        description: 'Личные и совместные программы, приглашения, прогресс участников и действия на сегодня',
       };
     }
 
@@ -1429,16 +1286,72 @@ export default function HealthPage() {
     };
   }, [mainTab, healthSubTab]);
 
-  useEffect(() => {
-    if (healthSubTab === 'mental' && !(isHealthEnabled && isMentalEnabled)) {
-      setHealthSubTab(isHealthEnabled && isNutritionEnabled ? 'nutrition' : 'mental');
-    }
-    if (healthSubTab === 'nutrition' && !(isHealthEnabled && isNutritionEnabled)) {
-      setHealthSubTab(isHealthEnabled && isMentalEnabled ? 'mental' : 'nutrition');
-    }
-  }, [healthSubTab, isHealthEnabled, isMentalEnabled, isNutritionEnabled]);
-
   const mealPreviewCalories = mealItems.reduce((sum, item) => sum + Number(item.calories || 0), 0);
+  const groupedMealItems = useMemo(() => {
+    const map = new Map<string, {
+      key: string;
+      item: PulseMealItem;
+      count: number;
+      totalGrams: number;
+      totalCalories: number;
+      totalProtein: number;
+      totalFat: number;
+      totalCarbs: number;
+    }>();
+    mealItems.forEach((item) => {
+      const key = getMealItemIdentity(item);
+      const existing = map.get(key);
+      if (existing) {
+        existing.count += 1;
+        existing.totalGrams += Number(item.grams || 0);
+        existing.totalCalories += Number(item.calories || 0);
+        existing.totalProtein += Number(item.protein || 0);
+        existing.totalFat += Number(item.fat || 0);
+        existing.totalCarbs += Number(item.carbs || 0);
+        return;
+      }
+      map.set(key, {
+        key,
+        item,
+        count: 1,
+        totalGrams: Number(item.grams || 0),
+        totalCalories: Number(item.calories || 0),
+        totalProtein: Number(item.protein || 0),
+        totalFat: Number(item.fat || 0),
+        totalCarbs: Number(item.carbs || 0),
+      });
+    });
+    return Array.from(map.values());
+  }, [mealItems]);
+  const mealItemCountMap = useMemo(() => {
+    const map = new Map<string, number>();
+    mealItems.forEach((item) => {
+      const key = getMealItemIdentity(item);
+      map.set(key, (map.get(key) ?? 0) + 1);
+    });
+    return map;
+  }, [mealItems]);
+  const customDishItemCountMap = useMemo(() => {
+    const map = new Map<string, number>();
+    customDishItems.forEach((item) => {
+      const key = getMealItemIdentity(item);
+      map.set(key, (map.get(key) ?? 0) + 1);
+    });
+    return map;
+  }, [customDishItems]);
+  const customDishTotals = useMemo(() => {
+    return customDishItems.reduce(
+      (acc, item) => ({
+        grams: acc.grams + Number(item.grams || 0),
+        calories: acc.calories + Number(item.calories || 0),
+        protein: acc.protein + Number(item.protein || 0),
+        fat: acc.fat + Number(item.fat || 0),
+        carbs: acc.carbs + Number(item.carbs || 0),
+      }),
+      { grams: 0, calories: 0, protein: 0, fat: 0, carbs: 0 },
+    );
+  }, [customDishItems]);
+  const customDishUsesComposition = customFoodForm.isDish && customDishItems.length > 0;
   const goalCalories = nutritionData?.goal?.dailyCalories ?? null;
 
   const pulseDay = overviewData?.today;
@@ -1457,7 +1370,163 @@ export default function HealthPage() {
   const tasksProgress = pulseDay?.tasksTotal ? Math.min(100, Math.round(((pulseDay?.tasksDone ?? 0) / pulseDay.tasksTotal) * 100)) : 0;
   const paymentsToday = (financeOverview?.upcomingPayments ?? []).filter((item) => normalizeDateKey(item.date) === selectedDate);
   const paymentsPreview = (paymentsToday.length ? paymentsToday : financeOverview?.upcomingPayments ?? []).slice(0, 2);
-  const focusItems = [...(tasksData?.items ?? [])].sort((a, b) => Number(a.completedForDate) - Number(b.completedForDate)).slice(0, 4);
+  const pulseTodayItems = useMemo(
+    () => sortTasksByPlannerOrder([...(tasksData?.items ?? [])]).slice(0, 6),
+    [tasksData?.items],
+  );
+  const pulseOpenTodayCount = useMemo(
+    () => pulseTodayItems.filter((task) => !task.completedForDate).length,
+    [pulseTodayItems],
+  );
+  const pulseRecommendationItems = useMemo(
+    () => recommendations.map((text, index) => ({ id: `${index}-${text}`, text, meta: getPulseRecommendationMeta(text) })),
+    [recommendations],
+  );
+  const pulseAttentionItems = useMemo(
+    () => pulseRecommendationItems.filter((item) => item.meta.group === 'attention'),
+    [pulseRecommendationItems],
+  );
+  const pulseSuggestionItems = useMemo(
+    () => pulseRecommendationItems.filter((item) => item.meta.group === 'suggestion'),
+    [pulseRecommendationItems],
+  );
+  const pulseAttentionCount = pulseAttentionItems.length;
+  const pulseSuggestionCount = pulseSuggestionItems.length;
+  const pulseSecondarySignal = useMemo(() => {
+    const rankedAttention = [...pulseAttentionItems].sort((left, right) => {
+      const leftPriority =
+        (isMentalEnabled && (pulseDay?.dayScore ?? 0) < 55 && left.meta.target === 'health' ? 5 : 0)
+        + (isFinanceEnabled && paymentsToday.length && left.meta.target === 'finance' ? 4 : 0)
+        + (isTasksEnabled && pulseOpenTodayCount > 0 && left.meta.target === 'tasks' ? 3 : 0)
+        + (left.meta.tone === 'danger' ? 2 : 0);
+      const rightPriority =
+        (isMentalEnabled && (pulseDay?.dayScore ?? 0) < 55 && right.meta.target === 'health' ? 5 : 0)
+        + (isFinanceEnabled && paymentsToday.length && right.meta.target === 'finance' ? 4 : 0)
+        + (isTasksEnabled && pulseOpenTodayCount > 0 && right.meta.target === 'tasks' ? 3 : 0)
+        + (right.meta.tone === 'danger' ? 2 : 0);
+      return rightPriority - leftPriority;
+    });
+
+    if (rankedAttention.length) {
+      return {
+        ...rankedAttention[0],
+        label: 'Проверить',
+      };
+    }
+
+    if (isTasksEnabled && pulseOpenTodayCount > 0) {
+      return {
+        id: 'pulse-next-focus',
+        label: 'Дальше',
+        text: pulseOpenTodayCount === 1 ? 'Осталась 1 активная задача' : `Осталось ${pulseOpenTodayCount} активных задач`,
+        meta: {
+          tone: 'neutral' as const,
+          group: 'suggestion' as const,
+          action: 'Открыть',
+          icon: 'check' as const,
+          target: 'tasks' as const,
+        },
+      };
+    }
+
+    if (isFinanceEnabled && paymentsToday.length) {
+      return {
+        id: 'pulse-payments-focus',
+        label: 'Финансы',
+        text: paymentsToday.length === 1 ? 'Есть 1 платёж на сегодня' : `Есть ${paymentsToday.length} платежа на сегодня`,
+        meta: {
+          tone: 'warning' as const,
+          group: 'attention' as const,
+          action: 'Открыть',
+          icon: 'wallet' as const,
+          target: 'finance' as const,
+        },
+      };
+    }
+
+    return null;
+  }, [isFinanceEnabled, isMentalEnabled, isTasksEnabled, paymentsToday.length, pulseAttentionItems, pulseDay?.dayScore, pulseOpenTodayCount]);
+  const pulseStateSummary = useMemo(() => {
+    const score = pulseDay?.dayScore ?? 0;
+    if (score >= 80) {
+      return {
+        value: 'Спокойный ритм',
+        meta: 'Запас по нагрузке есть',
+      };
+    }
+    if (score >= 65) {
+      return {
+        value: 'День под контролем',
+        meta: 'Темп выглядит устойчивым',
+      };
+    }
+    if (score >= 50) {
+      return {
+        value: 'Темп лучше умерить',
+        meta: 'Лучше оставить только важное',
+      };
+    }
+    return {
+      value: 'Нагрузка выше нормы',
+      meta: 'День лучше упростить',
+    };
+  }, [pulseDay?.dayScore]);
+  const pulseHeadline = useMemo(() => {
+    const score = pulseDay?.dayScore ?? 0;
+    if (isMentalEnabled) {
+      if (score >= 80) return 'День идёт ровно';
+      if (score >= 65) return 'День под контролем';
+      if (score >= 50) return 'Лучше не разгонять темп';
+      return 'Сегодня лучше снизить нагрузку';
+    }
+
+    if (isTasksEnabled && (pulseDay?.tasksTotal ?? 0) > 0) {
+      return (pulseDay?.tasksDone ?? 0) >= Math.max(1, Math.ceil((pulseDay?.tasksTotal ?? 0) / 2))
+        ? 'Ключевые задачи уже под контролем'
+        : 'День лучше собрать вокруг нескольких важных задач';
+    }
+
+    return 'День собран в одном месте';
+  }, [isMentalEnabled, isTasksEnabled, pulseDay?.dayScore, pulseDay?.tasksDone, pulseDay?.tasksTotal]);
+  const pulseSummaryText = useMemo(() => {
+    const pulseNutritionConsumed = nutritionData?.totalCalories ?? 0;
+    const pulseNutritionRemaining =
+      nutritionData?.remainingCalories != null ? Math.max(0, nutritionData.remainingCalories) : Math.max(0, caloriesTarget - pulseNutritionConsumed);
+    const details: string[] = [];
+
+    if (isTasksEnabled && (pulseDay?.tasksTotal ?? 0) > 0) {
+      details.push(`${pulseDay?.tasksDone ?? 0} из ${pulseDay?.tasksTotal ?? 0} задач закрыто`);
+    }
+
+    if (isNutritionEnabled && caloriesTarget > 0) {
+      details.push(`${pulseNutritionRemaining} ккал до цели`);
+    }
+
+    if (isFinanceEnabled && paymentsToday.length) {
+      details.push(paymentsToday.length === 1 ? '1 платёж на сегодня' : `${paymentsToday.length} платежа на сегодня`);
+    }
+
+    if (!details.length && pulseSecondarySignal) {
+      return pulseSecondarySignal.text;
+    }
+
+    if (details.length > 2) {
+      return details.slice(0, 2).join(' · ');
+    }
+
+    return details.join(' · ') || 'Критичных отклонений сегодня не видно.';
+  }, [
+    caloriesTarget,
+    isFinanceEnabled,
+    isNutritionEnabled,
+    isTasksEnabled,
+    nutritionData?.remainingCalories,
+    nutritionData?.totalCalories,
+    paymentsToday.length,
+    pulseDay?.tasksDone,
+    pulseDay?.tasksTotal,
+    pulseSecondarySignal,
+  ]);
   const trendAverage = analyticsData?.healthRows?.length
     ? Math.round(analyticsData.healthRows.reduce((sum, row) => sum + row.todayScore, 0) / analyticsData.healthRows.length)
     : pulseDay?.mental7Score ?? 0;
@@ -1469,21 +1538,186 @@ export default function HealthPage() {
       return true;
     });
 
-    return filtered.sort((a, b) => {
-      if (a.completedForDate !== b.completedForDate) return Number(a.completedForDate) - Number(b.completedForDate);
-      if (a.taskType !== b.taskType) {
-        if (a.taskType === 'HABIT') return 1;
-        if (b.taskType === 'HABIT') return -1;
-      }
-      return a.title.localeCompare(b.title, 'ru');
-    });
+    return sortTasksByPlannerOrder(filtered);
   }, [taskFilter, tasksData?.items]);
+
+  const timedTasks = useMemo(
+    () => filteredTasks.filter((task) => Boolean(task.hasTime && task.dueDate)),
+    [filteredTasks],
+  );
+
+  const untimedTasks = useMemo(
+    () => filteredTasks.filter((task) => !(task.hasTime && task.dueDate)),
+    [filteredTasks],
+  );
+  const timedOpenTasks = useMemo(
+    () => timedTasks.filter((task) => !task.completedForDate),
+    [timedTasks],
+  );
+  const untimedOpenTasks = useMemo(
+    () => untimedTasks.filter((task) => !task.completedForDate),
+    [untimedTasks],
+  );
+  const completedTasks = useMemo(
+    () => filteredTasks.filter((task) => task.completedForDate),
+    [filteredTasks],
+  );
+  const pulseTimedOpenItems = useMemo(
+    () => pulseTodayItems.filter((task) => task.hasTime && task.dueDate && !task.completedForDate),
+    [pulseTodayItems],
+  );
+  const pulseUntimedOpenItems = useMemo(
+    () => pulseTodayItems.filter((task) => !(task.hasTime && task.dueDate) && !task.completedForDate),
+    [pulseTodayItems],
+  );
+  const pulseCompletedItems = useMemo(
+    () => pulseTodayItems.filter((task) => task.completedForDate),
+    [pulseTodayItems],
+  );
+  const filteredCompletionPercent = filteredTasks.length ? Math.round((completedTasks.length / filteredTasks.length) * 100) : 0;
+  const taskLayoutMode: 'list' | 'day' | 'week' = taskViewMode === 'list' ? 'list' : plannerMode;
+  const isTimelineMode = taskLayoutMode !== 'list';
+  const taskWorkspaceTitle =
+    taskLayoutMode === 'list'
+      ? 'Список задач'
+      : taskLayoutMode === 'day'
+        ? 'План на день'
+        : 'План на неделю';
+  const plannerTasks = useMemo(() => {
+    const source = plannerMode === 'week' ? [...(tasksRangeData?.items ?? [])] : filteredTasks;
+    const filtered = source.filter((task) => {
+      if (taskFilter === 'HABITS') return task.taskType === 'HABIT';
+      if (taskFilter === 'TASKS') return task.taskType !== 'HABIT';
+      return true;
+    });
+    return sortTasksByPlannerOrder(filtered).filter((task) => Boolean(task.hasTime && task.dueDate));
+  }, [filteredTasks, plannerMode, taskFilter, tasksRangeData?.items]);
+  const plannerAllTasks = useMemo(() => {
+    const source = plannerMode === 'week' ? [...(tasksRangeData?.items ?? [])] : filteredTasks;
+    const filtered = source.filter((task) => {
+      if (taskFilter === 'HABITS') return task.taskType === 'HABIT';
+      if (taskFilter === 'TASKS') return task.taskType !== 'HABIT';
+      return true;
+    });
+    return sortTasksByPlannerOrder(filtered);
+  }, [filteredTasks, plannerMode, taskFilter, tasksRangeData?.items]);
+
+  function handleTaskLayoutChange(value: 'list' | 'day' | 'week') {
+    if (value === 'list') {
+      setTaskViewMode('list');
+      return;
+    }
+    setTaskViewMode('timeline');
+    setPlannerMode(value);
+  }
+
+  const renderTaskRow = (task: PulseTaskItem, options?: { compact?: boolean; context?: 'tasks' | 'pulse' }) => {
+    const compact = Boolean(options?.compact);
+    const context = options?.context ?? 'tasks';
+    const visualMeta = getTaskVisualMeta(task);
+    const timeLabel = getTaskPrimaryTime(task);
+
+    return (
+      <article
+        key={task.occurrenceKey ?? task.id}
+        className={[
+          styles.taskRowCard,
+          task.completedForDate ? styles.taskRowCardDone : '',
+          compact ? styles.taskRowCardCompact : '',
+          context === 'pulse' ? styles.pulseTaskRowSurface : '',
+          context === 'pulse' && task.completedForDate ? styles.pulseTaskRowDone : '',
+        ].filter(Boolean).join(' ')}
+      >
+        <button
+          type="button"
+          className={[styles.taskToggle, task.completedForDate ? styles.taskToggleDone : ''].filter(Boolean).join(' ')}
+          onClick={(event) => {
+            event.stopPropagation();
+            void togglePulseTaskDate({ taskId: task.id, date: selectedDate });
+          }}
+          aria-label={task.completedForDate ? 'Снять выполнение' : 'Отметить выполненной'}
+        >
+          {task.completedForDate ? <Check className={styles.taskToggleCheckIcon} strokeWidth={3} /> : null}
+        </button>
+
+        <button
+          type="button"
+          className={[styles.taskRowMainButton, context === 'pulse' ? styles.pulseTodayRowButton : ''].filter(Boolean).join(' ')}
+          onClick={() => setTaskDetailsItem(task)}
+          aria-label={`Открыть задачу ${task.title}`}
+        >
+          <div className={[styles.taskRowContent, context === 'pulse' ? styles.pulseTodayRowMain : ''].filter(Boolean).join(' ')}>
+            <div className={styles.taskRowTitleLine}>
+              <span
+                className={[
+                  styles.taskIndicatorDot,
+                  visualMeta.tone === 'finance'
+                    ? styles.taskIndicatorDotFinance
+                    : visualMeta.tone === 'debt'
+                      ? styles.taskIndicatorDotDebt
+                      : visualMeta.tone === 'program'
+                        ? styles.taskIndicatorDotProgram
+                        : visualMeta.tone === 'event'
+                          ? styles.taskIndicatorDotEvent
+                          : visualMeta.tone === 'habit'
+                            ? styles.taskIndicatorDotHabit
+                            : visualMeta.tone === 'regular'
+                              ? styles.taskIndicatorDotRegular
+                              : styles.taskIndicatorDotPersonal,
+                ].filter(Boolean).join(' ')}
+                aria-hidden="true"
+              />
+              <strong className={[styles.taskRowTitle, context === 'pulse' ? styles.pulseTodayRowTitle : ''].filter(Boolean).join(' ')}>{task.title}</strong>
+            </div>
+
+            <div className={[styles.taskRowMetaLine, context === 'pulse' ? styles.pulseTodayRowMeta : ''].filter(Boolean).join(' ')}>
+              <span className={[styles.taskMetaPrimary, task.hasTime ? styles.taskMetaPrimaryTimed : styles.taskMetaPrimaryUntimed].join(' ')}>{timeLabel}</span>
+              <span className={styles.taskMetaDivider} aria-hidden="true">•</span>
+              <span
+                className={[
+                  styles.taskMetaSecondary,
+                  visualMeta.tone === 'finance'
+                    ? styles.taskMetaSecondaryFinance
+                    : visualMeta.tone === 'debt'
+                      ? styles.taskMetaSecondaryDebt
+                      : visualMeta.tone === 'program'
+                        ? styles.taskMetaSecondaryProgram
+                        : visualMeta.tone === 'event'
+                          ? styles.taskMetaSecondaryEvent
+                          : visualMeta.tone === 'habit'
+                            ? styles.taskMetaSecondaryHabit
+                            : visualMeta.tone === 'regular'
+                              ? styles.taskMetaSecondaryRegular
+                              : styles.taskMetaSecondaryPersonal,
+                ].filter(Boolean).join(' ')}
+              >
+                {visualMeta.label}
+              </span>
+            </div>
+          </div>
+        </button>
+
+        <div className={styles.taskRowSide}>
+          <button
+            type="button"
+            className={styles.taskRowChevron}
+            onClick={() => setTaskDetailsItem(task)}
+            aria-label={`Открыть детали задачи ${task.title}`}
+          >
+            <ChevronRight size={18} aria-hidden="true" />
+          </button>
+        </div>
+      </article>
+    );
+  };
 
   const preparedGoals = useMemo(() => {
     return [...(tasksData?.goals ?? [])]
       .map((goal) => decorateGoal(goal))
       .sort((a, b) => Number(a.achieved) - Number(b.achieved) || a.title.localeCompare(b.title, 'ru'));
   }, [tasksData?.goals]);
+  const activeGoals = useMemo(() => preparedGoals.filter((goal) => !goal.achieved), [preparedGoals]);
+  const achievedGoals = useMemo(() => preparedGoals.filter((goal) => goal.achieved), [preparedGoals]);
 
   const financeEntries = financeData?.entries ?? [];
   const expenseEntries = useMemo(
@@ -1494,8 +1728,12 @@ export default function HealthPage() {
     () => [...financeEntries].filter((entry) => entry.type === 'INCOME').sort((a, b) => (parseDate(b.createdAt)?.getTime() ?? 0) - (parseDate(a.createdAt)?.getTime() ?? 0)),
     [financeEntries],
   );
-  const dayExpenseTotal = expenseEntries.reduce((sum, entry) => sum + entry.amount, 0);
-  const dayIncomeTotal = incomeEntries.reduce((sum, entry) => sum + entry.amount, 0);
+  const periodExpenseTotal = expenseEntries.reduce((sum, entry) => sum + entry.amount, 0);
+  const periodIncomeTotal = incomeEntries.reduce((sum, entry) => sum + entry.amount, 0);
+  const financeRangeLabel = financeRange === 'DAY' ? 'день' : financeRange === 'MONTH' ? 'месяц' : 'год';
+  const financeRangeLabelPlural = financeRange === 'DAY' ? 'за день' : financeRange === 'MONTH' ? 'за месяц' : 'за год';
+  const expenseOperationsLabel = formatOperationsCountLabel(expenseEntries.length, financeRange);
+  const incomeOperationsLabel = formatOperationsCountLabel(incomeEntries.length, financeRange);
   const monthlyIncome = financeOverview?.monthIncome ?? 0;
   const monthlyExpenses = financeOverview?.monthExpenses ?? 0;
   const monthlyBalance = financeOverview?.balance ?? monthlyIncome - monthlyExpenses;
@@ -1563,7 +1801,16 @@ export default function HealthPage() {
   );
   const activeDebt = debtsView.find((debt) => debt.id === activeDebtId) ?? null;
   const activeSavingsGoal = savingsGoalsView.find((goal) => goal.id === activeSavingsGoalId) ?? null;
-  const averageIncome = monthlyIncome > 0 && incomeEntries.length ? Math.round(monthlyIncome / incomeEntries.length) : monthlyIncome;
+  const activeFinanceCategory = financeCategoriesView.find((category) => category.id === activeFinanceCategoryId) ?? null;
+  const activeFinanceCategoryEntries = useMemo(() => financeEntries
+    .filter((entry) => entry.type === 'EXPENSE' && entry.categoryId === activeFinanceCategoryId)
+    .sort((left, right) => new Date(right.date).getTime() - new Date(left.date).getTime()), [activeFinanceCategoryId, financeEntries]);
+  const previousMonthOverview = previousMonthFinanceData?.overview?.finance;
+  const previousMonthIncome = previousMonthOverview?.monthIncome ?? 0;
+  const previousMonthExpenses = previousMonthOverview?.monthExpenses ?? 0;
+  const previousMonthBalance = previousMonthOverview?.balance ?? previousMonthIncome - previousMonthExpenses;
+  const financeEntryModalBusy = financeSaving || financeUpdating;
+
   const debtMonthlyLoad = debtsView.reduce((sum, debt) => sum + (debt.paymentAmount ?? 0), 0);
   const financeActiveModules = [
     config?.healthEnabled ? 'Здоровье' : null,
@@ -1724,6 +1971,10 @@ export default function HealthPage() {
 
     return cards;
   }, [isHealthEnabled, isNutritionEnabled, profile?.age, profile?.currentWeightKg, profile?.heightCm, profile?.startWeightKg, profile?.targetWeightKg, weightDelta]);
+  const profileQuickStats = useMemo(
+    () => summaryCards.filter((card) => new Set(['height', 'age', 'current', 'target']).has(card.key)).slice(0, 4),
+    [summaryCards],
+  );
 
   const summaryPrimaryCards = useMemo(() => {
     const primaryKeys = new Set(['current', 'target', 'progress', 'goal']);
@@ -1770,6 +2021,21 @@ export default function HealthPage() {
     setShowProfileEditor(false);
   }
 
+  function openProfileEditor() {
+    resetProfileForm();
+    setShowProfileEditor(true);
+  }
+
+  useEffect(() => {
+    if (!showProfileEditor) return;
+    const frame = window.requestAnimationFrame(() => {
+      pulseProfileEditorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      pulseProfileEditorFirstFieldRef.current?.focus();
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [showProfileEditor]);
+
   function openDatePicker() {
     const input = dateInputRef.current;
     if (!input) return;
@@ -1779,6 +2045,87 @@ export default function HealthPage() {
       return;
     }
     input.click();
+  }
+
+  function openNutritionGoalModal() {
+    setGoalForm({
+      dailyCalories: String(nutritionData?.goal?.dailyCalories ?? profile?.dailyCaloriesGoal ?? ''),
+      protein: String(nutritionData?.goal?.protein ?? profile?.proteinGoal ?? ''),
+      fat: String(nutritionData?.goal?.fat ?? profile?.fatGoal ?? ''),
+      carbs: String(nutritionData?.goal?.carbs ?? profile?.carbsGoal ?? ''),
+    });
+    setNutritionGoalModalOpen(true);
+  }
+
+  function closeNutritionGoalModal() {
+    setNutritionGoalModalOpen(false);
+  }
+
+  function resetMealComposer() {
+    setEditingMealId(null);
+    setMealTitle('Приём пищи');
+    setMealTime(getCurrentTimeInputValue());
+    setMealNotes('');
+    setFoodSearch('');
+    setMealItems([]);
+  }
+
+  function openCreateCategoryModal() {
+    setActiveFinanceCategoryId(null);
+    setCategoryForm({ name: '', limitAmount: '' });
+    setCategoryModalOpen(true);
+  }
+
+  function openFinanceCategoryModal(category: typeof financeCategoriesView[number]) {
+    setActiveFinanceCategoryId(category.id);
+    setCategoryForm({ name: category.name, limitAmount: category.limitAmount != null ? String(category.limitAmount) : '' });
+    setCategoryModalOpen(true);
+  }
+
+  function openMealModal(meal?: PulseMeal) {
+    if (meal) {
+      const mealDate = parseDate(meal.date) ?? new Date();
+      const fallbackTime = getCurrentTimeInputValue();
+      const resolvedMealTime =
+        mealDate.getHours() === 0 && mealDate.getMinutes() === 0
+          ? fallbackTime
+          : getCurrentTimeInputValue(mealDate);
+      setEditingMealId(meal.id);
+      setMealTitle(meal.title || 'Приём пищи');
+      setMealTime(resolvedMealTime);
+      setMealNotes(meal.notes ?? '');
+      setFoodSearch('');
+      setMealItems((meal.itemsJson ?? []).map((item) => ({ ...item })));
+    } else {
+      resetMealComposer();
+    }
+    setMealModalOpen(true);
+  }
+
+  function closeMealModal() {
+    resetMealComposer();
+    setMealModalOpen(false);
+  }
+
+  function handlePulseRecommendationOpen(target: ReturnType<typeof getRecommendationMeta>['target']) {
+    if (target === 'meal') {
+      openMealModal();
+      return;
+    }
+
+    if (target === 'finance') {
+      changeMainTab('finance');
+      return;
+    }
+
+    if (target === 'tasks') {
+      changeMainTab('tasks');
+      return;
+    }
+
+    if (target === 'health') {
+      changeMainTab('health');
+    }
   }
 
   async function handleProfileSave() {
@@ -1817,10 +2164,10 @@ export default function HealthPage() {
       fat: num(goalForm.fat),
       carbs: num(goalForm.carbs),
     }).unwrap();
-    setShowNutritionGoalEditor(false);
+    setNutritionGoalModalOpen(false);
   }
 
-  function addFoodToMeal(food: any) {
+  function addFoodToMeal(food: PulseFood) {
     const grams = Number(food.defaultGrams ?? 100);
     const factor = grams / 100;
     const defaultCalories = food.defaultGrams ? Number(food.calories) : Math.round(Number(food.calories) * factor);
@@ -1837,50 +2184,128 @@ export default function HealthPage() {
     setMealItems((prev) => [...prev, item]);
   }
 
+  function addFoodToCustomDish(food: PulseFood) {
+    const grams = Number(food.defaultGrams ?? 100);
+    const factor = grams / 100;
+    const item: PulseMealItem = {
+      sourceFoodId: food.id,
+      name: food.name,
+      grams,
+      calories: food.defaultGrams ? Number(food.calories) : Math.round(Number(food.calories) * factor),
+      protein: food.defaultGrams ? Number(food.protein ?? 0) : Number(food.protein ?? 0) * factor,
+      fat: food.defaultGrams ? Number(food.fat ?? 0) : Number(food.fat ?? 0) * factor,
+      carbs: food.defaultGrams ? Number(food.carbs ?? 0) : Number(food.carbs ?? 0) * factor,
+      isHealthy: Boolean(food.isHealthy),
+    };
+    setCustomDishItems((prev) => [...prev, item]);
+  }
+
+  function addMealPortion(item: PulseMealItem) {
+    setMealItems((prev) => [...prev, { ...item }]);
+  }
+
+  function removeMealPortion(key: string) {
+    setMealItems((prev) => {
+      const index = prev.findIndex((item) => getMealItemIdentity(item) === key);
+      if (index < 0) return prev;
+      const next = [...prev];
+      next.splice(index, 1);
+      return next;
+    });
+  }
+
   async function handleMealSave() {
     if (!mealItems.length) return;
-    const futureTotal = (nutritionData?.totalCalories ?? 0) + mealPreviewCalories;
-    if (goalCalories && futureTotal > goalCalories) {
+    const currentMealCalories = editingMealId
+      ? ((nutritionData?.meals ?? []).find((meal) => meal.id === editingMealId)?.totalCalories ?? 0)
+      : 0;
+    const futureTotal = (nutritionData?.totalCalories ?? 0) - currentMealCalories + mealPreviewCalories;
+    if (!editingMealId && goalCalories && futureTotal > goalCalories) {
       const exceed = futureTotal - goalCalories;
       const accepted = window.confirm(`После этого приёма пищи цель будет превышена на ${Math.round(exceed)} ккал. Продолжить?`);
       if (!accepted) return;
     }
-    await addMeal({ date: selectedDate, title: mealTitle, notes: mealNotes || null, items: mealItems }).unwrap();
-    setMealItems([]);
-    setMealTitle('Приём пищи');
-    setMealNotes('');
-    setFoodSearch('');
-    setMealModalOpen(false);
+    const payload = {
+      date: selectedDate,
+      time: mealTime || null,
+      title: mealTitle,
+      notes: mealNotes || null,
+      items: mealItems,
+    };
+    if (editingMealId) {
+      await updateMeal({ mealId: editingMealId, body: payload }).unwrap();
+    } else {
+      await addMeal(payload).unwrap();
+    }
+    closeMealModal();
   }
 
   async function handleCreateFood() {
+    const useDishComposition = customFoodForm.isDish && customDishItems.length > 0;
     await createFood({
       name: customFoodForm.name,
-      calories: intNum(customFoodForm.calories),
-      defaultGrams: num(customFoodForm.grams),
-      protein: num(customFoodForm.protein),
-      fat: num(customFoodForm.fat),
-      carbs: num(customFoodForm.carbs),
+      calories: useDishComposition ? Math.round(customDishTotals.calories) : intNum(customFoodForm.calories),
+      defaultGrams: useDishComposition ? customDishTotals.grams : num(customFoodForm.grams),
+      protein: useDishComposition ? Number(customDishTotals.protein.toFixed(1)) : num(customFoodForm.protein),
+      fat: useDishComposition ? Number(customDishTotals.fat.toFixed(1)) : num(customFoodForm.fat),
+      carbs: useDishComposition ? Number(customDishTotals.carbs.toFixed(1)) : num(customFoodForm.carbs),
       isDish: customFoodForm.isDish,
       isHealthy: customFoodForm.isHealthy,
       isPublic: true,
     }).unwrap();
     setCustomFoodForm({ name: '', calories: '', grams: '100', protein: '', fat: '', carbs: '', isDish: false, isHealthy: true });
+    setCustomFoodSearch('');
+    setCustomDishItems([]);
     setFoodModalOpen(false);
   }
 
-  async function handleCreateTask() {
-    await createPulseTask({
-      title: taskForm.title,
-      notes: taskForm.notes || null,
-      taskType: taskForm.taskType,
-      date: selectedDate,
-      scheduleType: taskForm.taskType === 'ONE_TIME' ? 'NONE' : taskForm.scheduleType,
-      daysOfWeek: taskForm.taskType === 'REGULAR' && taskForm.scheduleType === 'WEEKLY' ? taskForm.daysOfWeek : [],
-      daysOfMonth: taskForm.taskType === 'REGULAR' && taskForm.scheduleType === 'MONTHLY' ? taskForm.daysOfMonth : [],
-    }).unwrap();
-    setTaskForm({ title: '', notes: '', taskType: 'ONE_TIME', scheduleType: 'NONE', daysOfWeek: [0], daysOfMonth: [getDayOfMonthOrToday(selectedDate)] });
+  function closeTaskModal() {
     setTaskModalOpen(false);
+    setTaskEditingId(null);
+    setTaskForm(createTaskDraft(selectedDate));
+  }
+
+  async function handleSaveTask() {
+    const payload = buildTaskPayload(taskForm, selectedDate);
+
+    if (taskEditingId) {
+      await updatePulseTask({ taskId: taskEditingId, body: payload }).unwrap();
+    } else {
+      await createPulseTask(payload).unwrap();
+    }
+
+    closeTaskModal();
+  }
+
+  async function handleQuickAddTask(event?: React.FormEvent<HTMLFormElement>) {
+    event?.preventDefault();
+    if (!canSubmitTaskDraft(quickTaskForm)) return;
+
+    await createPulseTask(buildTaskPayload(quickTaskForm, selectedDate)).unwrap();
+
+    setQuickTaskExpanded(false);
+    setQuickTaskForm(createTaskDraft(selectedDate));
+  }
+
+  function handleCreateTaskFromPlannerSlot(payload: { date: string; time: string; endTime?: string }) {
+    openTaskModal({
+      date: payload.date,
+      time: payload.time,
+      endTime: payload.endTime || '',
+      hasEndTime: Boolean(payload.endTime),
+    });
+  }
+
+  function openTaskModal(defaults?: Partial<TaskDraft>) {
+    setTaskEditingId(null);
+    setTaskForm(createTaskDraft(defaults?.date || selectedDate, defaults));
+    setTaskModalOpen(true);
+  }
+
+  function openTaskEditModal(task: PulseTaskItem) {
+    setTaskEditingId(task.id);
+    setTaskForm(createTaskDraftFromItem(task, selectedDate));
+    setTaskModalOpen(true);
   }
 
   async function handleCreateGoal() {
@@ -1895,6 +2320,10 @@ export default function HealthPage() {
     }).unwrap();
     setGlobalGoalForm({ title: '', description: '', progress: '0', targetDate: '', subtasks: '' });
     setGoalModalOpen(false);
+  }
+
+  function toggleGoalExpanded(goalId: string) {
+    setExpandedGoalIds((prev) => (prev.includes(goalId) ? prev.filter((item) => item !== goalId) : [...prev, goalId]));
   }
 
   async function handleToggleGoalSubtask(goal: ReturnType<typeof decorateGoal>, subtaskId: string) {
@@ -1926,14 +2355,47 @@ export default function HealthPage() {
     }).unwrap();
   }
 
+  function resetFinanceEntryForm(type: 'EXPENSE' | 'INCOME' = 'EXPENSE') {
+    setEditingFinanceEntryId(null);
+    setFinanceForm({ title: '', amount: '', type, categoryId: '', notes: '', recurring: false, scheduleType: 'MONTHLY', daysOfWeek: [0], daysOfMonth: [getDayOfMonthOrToday(selectedDate)] });
+  }
+
+  function openFinanceEntryEditor(entry: typeof financeEntries[number]) {
+    const recurrence = (entry.recurrenceJson as any) ?? null;
+    setEditingFinanceEntryId(entry.id);
+    setFinanceForm({
+      title: entry.title ?? '',
+      amount: String(entry.amount ?? ''),
+      type: entry.type,
+      categoryId: entry.categoryId ?? '',
+      notes: entry.notes ?? '',
+      recurring: Boolean(recurrence),
+      scheduleType: recurrence?.scheduleType === 'WEEKLY' ? 'WEEKLY' : 'MONTHLY',
+      daysOfWeek: Array.isArray(recurrence?.daysOfWeek) && recurrence.daysOfWeek.length ? recurrence.daysOfWeek : [0],
+      daysOfMonth: Array.isArray(recurrence?.daysOfMonth) && recurrence.daysOfMonth.length ? recurrence.daysOfMonth : [getDayOfMonthOrToday(selectedDate)],
+    });
+    setFinanceModalOpen(true);
+  }
+
   async function handleCreateCategory() {
-    await createFinanceCategory({ name: categoryForm.name, limitAmount: num(categoryForm.limitAmount) }).unwrap();
+    if (activeFinanceCategory) {
+      await updateFinanceCategory({
+        categoryId: activeFinanceCategory.id,
+        body: {
+          name: categoryForm.name.trim() || activeFinanceCategory.name,
+          limitAmount: num(categoryForm.limitAmount),
+        },
+      }).unwrap();
+    } else {
+      await createFinanceCategory({ name: categoryForm.name, limitAmount: num(categoryForm.limitAmount) }).unwrap();
+    }
     setCategoryForm({ name: '', limitAmount: '' });
+    setActiveFinanceCategoryId(null);
     setCategoryModalOpen(false);
   }
 
   async function handleCreateFinanceEntry() {
-    await createFinanceEntry({
+    const payload = {
       date: selectedDate,
       title: financeForm.title,
       amount: num(financeForm.amount),
@@ -1947,8 +2409,15 @@ export default function HealthPage() {
             daysOfMonth: financeForm.scheduleType === 'MONTHLY' ? financeForm.daysOfMonth : [],
           }
         : null,
-    }).unwrap();
-    setFinanceForm({ title: '', amount: '', type: 'EXPENSE', categoryId: '', notes: '', recurring: false, scheduleType: 'MONTHLY', daysOfWeek: [0], daysOfMonth: [getDayOfMonthOrToday(selectedDate)] });
+    };
+
+    if (editingFinanceEntryId) {
+      await updateFinanceEntry({ entryId: editingFinanceEntryId, body: payload }).unwrap();
+    } else {
+      await createFinanceEntry(payload).unwrap();
+    }
+
+    resetFinanceEntryForm('EXPENSE');
     setFinanceModalOpen(false);
   }
 
@@ -2068,25 +2537,19 @@ export default function HealthPage() {
 
   return (
     <div className={styles.page}>
-      <div className={styles.hero}>
+      <div className={[styles.hero, mainTab === 'tasks' || mainTab === 'pulse' ? styles.heroCompact : ''].filter(Boolean).join(' ')}>
         <div className={styles.heroCopy}>
           <h1 className={styles.pageTitle}>{mainTabMeta.title}</h1>
-          <p className={styles.pageSubtitle}>{mainTabMeta.description}</p>
         </div>
       </div>
       <div className={styles.toolbarStack}>
         <div className={styles.toolbarHeadPanel}>
           <div className={styles.toolbarHead}>
           <div className={styles.dateSwitcher}>
-            <button type="button" className={styles.dateNav} onClick={() => setSelectedDate(shiftDate(selectedDate, -1))} aria-label="Предыдущий день">‹</button>
-            <button type="button" className={styles.dateTrigger} onClick={openDatePicker}>
-              {formatToolbarDate(selectedDate)}
-            </button>
-            <button type="button" className={styles.dateNav} onClick={() => setSelectedDate(shiftDate(selectedDate, 1))} aria-label="Следующий день">›</button>
             <input ref={dateInputRef} type="date" value={selectedDate} onChange={(event) => setSelectedDate(event.target.value)} className={styles.hiddenDateInput} />
           </div>
 
-          <div className={styles.weekRow}>
+          <div ref={weekRowRef} className={styles.weekRow}>
             {weekDates.map((date, index) => {
               const isActive = selectedDate === date;
 
@@ -2100,7 +2563,13 @@ export default function HealthPage() {
                   aria-pressed={isActive}
                   data-state={isActive ? 'active' : 'inactive'}
                   className={[styles.weekDay, isActive ? styles.weekDayActive : ''].filter(Boolean).join(' ')}
-                  onClick={() => setSelectedDate(date)}
+                  onClick={() => {
+                    if (isActive) {
+                      openDatePicker();
+                      return;
+                    }
+                    setSelectedDate(date);
+                  }}
                 >
                   <span>{weekdayLabels[index]}</span>
                   <strong>{(parseDate(date) ?? new Date()).getDate()}</strong>
@@ -2112,374 +2581,319 @@ export default function HealthPage() {
         </div>
 
         <div className={styles.toolbarTabsPanel}>
-          <Segmented value={mainTab} onChange={(value) => setMainTab(value as any)} options={visibleTabs} />
+          <Segmented value={mainTab} onChange={(value) => changeMainTab(value as any)} options={visibleTabs} />
         </div>
       </div>
 
       {mainTab === 'pulse' ? (
         <div className={styles.pulseScene}>
-          {profileCardsVisible ? (
-            <section className={styles.summarySurface}>
-              <div className={styles.summarySurfaceHead}>
-                <div className={styles.summarySurfaceCopy}>
-                  <div className={styles.summarySectionTitle}>Обзор профиля</div>
-                </div>
-
-                <div className={styles.summaryRailActions}>
-                  {showProfileEditor ? (
-                    <>
-                      <Button size="sm" onClick={closeProfileEditor}>Скрыть данные</Button>
-                      <Button size="sm" variant="primary" onClick={handleProfileSave} loading={profileSaving}>
-                        Сохранить профиль
-                      </Button>
-                    </>
-                  ) : (
-                    <Button size="sm" onClick={() => setShowProfileEditor(true)}>Редактировать данные</Button>
-                  )}
-                </div>
+          <section className={styles.pulseHubSurface}>
+            <div className={styles.pulseHubHead}>
+              <div className={styles.pulseHubCopy}>
+                <span className={styles.pulseHubEyebrow}>Сегодня</span>
+                <h2 className={styles.pulseHubTitle}>{pulseHeadline}</h2>
               </div>
 
-              <div className={styles.summaryCombinedGrid}>
-                {(isHealthEnabled || isNutritionEnabled) ? (
-                  <div className={styles.summaryComboCard}>
-                    <div className={styles.summaryComboTitle}>Параметры</div>
-                    <div className={styles.summaryMetricStack}>
-                      {isHealthEnabled ? (
-                        <div className={styles.summaryMetricLine}>
-                          <span>Рост</span>
-                          {showProfileEditor ? (
-                            <input
-                              className={styles.summaryInlineInput}
-                              value={profileForm.heightCm}
-                              onChange={(e) => setProfileForm((prev) => ({ ...prev, heightCm: e.target.value }))}
-                              inputMode="decimal"
-                              aria-label="Рост, см"
-                            />
-                          ) : (
-                            <strong>{profile?.heightCm ?? '—'}<small>см</small></strong>
-                          )}
-                        </div>
-                      ) : null}
-                      {isNutritionEnabled ? (
-                        <div className={styles.summaryMetricLine}>
-                          <span>Вес начальный</span>
-                          {showProfileEditor ? (
-                            <input
-                              className={styles.summaryInlineInput}
-                              value={profileForm.startWeightKg}
-                              onChange={(e) => setProfileForm((prev) => ({ ...prev, startWeightKg: e.target.value }))}
-                              inputMode="decimal"
-                              aria-label="Вес на старте, кг"
-                            />
-                          ) : (
-                            <strong>{profile?.startWeightKg ?? '—'}<small>кг</small></strong>
-                          )}
-                        </div>
-                      ) : null}
-                      {isHealthEnabled ? (
-                        <div className={styles.summaryMetricLine}>
-                          <span>Возраст</span>
-                          {showProfileEditor ? (
-                            <input
-                              className={styles.summaryInlineInput}
-                              value={profileForm.age}
-                              onChange={(e) => setProfileForm((prev) => ({ ...prev, age: e.target.value }))}
-                              inputMode="numeric"
-                              aria-label="Возраст"
-                            />
-                          ) : (
-                            <strong>{profile?.age ?? '—'}<small>лет</small></strong>
-                          )}
-                        </div>
-                      ) : null}
-                    </div>
-                  </div>
-                ) : null}
-
-                {isNutritionEnabled ? (
-                  <div className={styles.summaryComboCard}>
-                    <div className={styles.summaryComboTitle}>Вес</div>
-                    <div className={styles.summaryMetricStack}>
-                      <div className={styles.summaryMetricLine}>
-                        <span>Текущий вес</span>
-                        {showProfileEditor ? (
-                          <input
-                            className={styles.summaryInlineInput}
-                            value={profileForm.currentWeightKg}
-                            onChange={(e) => setProfileForm((prev) => ({ ...prev, currentWeightKg: e.target.value }))}
-                            inputMode="decimal"
-                            aria-label="Текущий вес, кг"
-                          />
-                        ) : (
-                          <strong>{profile?.currentWeightKg ?? '—'}<small>кг</small></strong>
-                        )}
-                      </div>
-                      <div className={styles.summaryMetricLine}>
-                        <span>Желаемый вес</span>
-                        {showProfileEditor ? (
-                          <input
-                            className={styles.summaryInlineInput}
-                            value={profileForm.targetWeightKg}
-                            onChange={(e) => setProfileForm((prev) => ({ ...prev, targetWeightKg: e.target.value }))}
-                            inputMode="decimal"
-                            aria-label="Целевой вес, кг"
-                          />
-                        ) : (
-                          <strong>{profile?.targetWeightKg ?? '—'}<small>кг</small></strong>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                ) : null}
-
-                {isNutritionEnabled ? (
-                  <div className={[styles.summaryComboCard, styles.summaryComboCardAccent].join(' ')}>
-                    <div className={styles.summaryComboTitle}>Прогресс и цель</div>
-                    <div className={styles.summaryMetricStack}>
-                      <div className={styles.summaryMetricLine}><span>Прогресс</span><strong>{weightDelta ? `${weightDelta.delta > 0 ? '+' : ''}${weightDelta.delta}` : '—'}<small>кг</small></strong></div>
-                      <div className={styles.summaryMetricLine}><span>Цель</span><strong>{goalSummary.title}</strong></div>
-                      <div className={styles.summaryMetricHint}>{goalSummary.subtitle}</div>
-                    </div>
-                  </div>
-                ) : null}
-              </div>
-            </section>
-          ) : null}
-
-          <section className={styles.pulseDaySurface}>
-            <div className={styles.pulseDayHeader}>
-              <div className={styles.pulseSectionTitle}>
-                <PulseIcon name="pulse" className={styles.sectionIconAccent} />
-                <h2>Пульс дня</h2>
-              </div>
-              <button type="button" className={styles.pulseDateChip} onClick={openDatePicker}>
-                {formatToolbarDate(selectedDate)}
-              </button>
             </div>
 
-            <div className={styles.pulseStatsGrid}>
+            <div className={styles.pulseSupportingGrid}>
               {isMentalEnabled ? (
-                <div className={styles.stateCard}>
-                  <div className={styles.stateCardContent}>
-                    <MiniRing value={pulseDay?.dayScore ?? 0} tone="accent" />
-                    <div className={styles.stateMeta}>
-                      <span>Состояние</span>
-                      <strong>{describeScore(pulseDay?.dayScore ?? 0)}</strong>
-                    </div>
-                  </div>
-                </div>
-              ) : null}
-
-              {isMentalEnabled ? (
-                <div className={styles.stateCard}>
-                  <div className={styles.stateCardContent}>
-                    <MiniRing value={pulseDay?.mental7Score ?? 0} tone="success" />
-                    <div className={styles.stateMeta}>
-                      <span>За 7 дней</span>
-                      <strong>{describeTrend(pulseDay?.mental7Score ?? 0)}</strong>
-                    </div>
-                  </div>
-                </div>
-              ) : null}
-
-              {isNutritionEnabled ? (
-                <div className={styles.metricCompactCard}>
-                  <div className={styles.metricCompactHeader}>
-                    <div className={styles.metricCompactTitle}><PulseIcon name="flame" className={styles.metricIconAccent} />Калории</div>
-                    <div className={styles.metricCompactValue}>{pulseDay?.caloriesConsumed ?? 0}{caloriesTarget ? ` / ${caloriesTarget}` : ''}</div>
-                  </div>
-                  <div className={styles.compactProgress}><span style={{ width: `${caloriesProgress}%` }} /></div>
-                  <div className={styles.metricCompactAccent}>
-                    <strong>{pulseDay?.caloriesRemaining != null ? Math.max(0, pulseDay.caloriesRemaining) : '—'}</strong>
-                    <span>{pulseDay?.caloriesRemaining != null ? 'ккал осталось' : 'цель не задана'}</span>
-                  </div>
+                <div className={styles.pulseSupportMetric}>
+                  <span className={styles.pulseSupportLabel}>Состояние</span>
+                  <strong className={styles.pulseSupportValue}>{pulseStateSummary.value}</strong>
+                  <span className={styles.pulseSupportMeta}>{pulseStateSummary.meta}</span>
+                  <div className={styles.pulseSupportBar}><span style={{ width: `${Math.max(0, Math.min(100, pulseDay?.dayScore ?? 0))}%` }} /></div>
                 </div>
               ) : null}
 
               {isTasksEnabled ? (
-                <div className={styles.metricCompactCard}>
-                  <div className={styles.metricCompactHeader}>
-                    <div className={styles.metricCompactTitle}><PulseIcon name="check" className={styles.metricIconSuccess} />Задачи</div>
-                    <div className={styles.metricCompactValue}>{pulseDay?.tasksDone ?? 0} из {pulseDay?.tasksTotal ?? 0}</div>
-                  </div>
-                  <div className={[styles.compactProgress, styles.compactProgressSuccess].join(' ')}><span style={{ width: `${tasksProgress}%` }} /></div>
-                  <div className={[styles.metricCompactAccent, styles.metricCompactAccentSuccess].join(' ')}>
-                    <strong>{pulseDay?.tasksPercent ?? 0}%</strong>
-                    <span>выполнено</span>
-                  </div>
+                <div className={styles.pulseSupportMetric}>
+                  <span className={styles.pulseSupportLabel}>Задачи</span>
+                  <strong className={styles.pulseSupportValue}>{pulseDay?.tasksDone ?? 0} из {pulseDay?.tasksTotal ?? 0}</strong>
+                  <span className={styles.pulseSupportMeta}>{pulseTodayItems.length ? `${pulseOpenTodayCount} ещё в работе` : 'На день пока нет задач'}</span>
+                  <div className={[styles.pulseSupportBar, styles.pulseSupportBarSuccess].join(' ')}><span style={{ width: `${tasksProgress}%` }} /></div>
+                </div>
+              ) : null}
+
+              {isNutritionEnabled ? (
+                <div className={styles.pulseSupportMetric}>
+                  <span className={styles.pulseSupportLabel}>Питание</span>
+                  <strong className={styles.pulseSupportValue}>{caloriesTarget ? `${nutritionRemaining} ккал` : 'Цель не задана'}</strong>
+                  <span className={styles.pulseSupportMeta}>
+                    {caloriesTarget ? `${nutritionConsumed} из ${caloriesTarget} ккал` : 'Добавьте дневную цель, чтобы видеть понятную шкалу'}
+                  </span>
+                  {caloriesTarget ? <div className={styles.pulseSupportBar}><span style={{ width: `${nutritionProgress}%` }} /></div> : null}
+                </div>
+              ) : isFinanceEnabled ? (
+                <div className={styles.pulseSupportMetric}>
+                  <span className={styles.pulseSupportLabel}>Платежи</span>
+                  <strong className={styles.pulseSupportValue}>{paymentsToday.length ? `${paymentsToday.length} на сегодня` : 'Спокойно'}</strong>
+                  <span className={styles.pulseSupportMeta}>
+                    {paymentsPreview.length
+                      ? paymentsPreview.map((item) => `${item.title} · ${formatMoney(item.amount)}`).join(' · ')
+                      : 'Обязательных платежей на день нет'}
+                  </span>
                 </div>
               ) : null}
             </div>
 
-            <div className={styles.recommendationsSection}>
-              <div className={styles.recommendationsHeader}>
-                <div className={styles.recommendationsTitle}><PulseIcon name="spark" className={styles.sectionIconMuted} />Рекомендации</div>
-              </div>
+            {profileCardsVisible ? (
+              <div className={styles.pulseProfileSummaryStrip}>
+                {profileQuickStats.length ? (
+                  <div className={styles.pulseProfileSummaryGrid}>
+                    {profileQuickStats.map((card) => (
+                      <div key={card.key} className={styles.pulseProfileSummaryStat}>
+                        <span>{card.label}</span>
+                        <strong>
+                          {card.value}
+                          {card.unit ? <small>{card.unit}</small> : null}
+                        </strong>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className={styles.pulseProfileSummaryNote}>
+                    Добавьте параметры профиля, чтобы расчёты были точнее.
+                  </div>
+                )}
 
-              <div className={styles.recommendationList}>
-                {(showAllRecommendations ? recommendations : recommendations.slice(0, 4)).map((item) => {
-                  const meta = getRecommendationMeta(item);
-                  return (
-                    <button
-                      key={item}
-                      type="button"
-                      className={[
-                        styles.recommendationRow,
-                        meta.tone === 'warning' ? styles.recommendationWarning : '',
-                        meta.tone === 'info' ? styles.recommendationInfo : '',
-                        meta.tone === 'danger' ? styles.recommendationDanger : '',
-                      ].filter(Boolean).join(' ')}
-                      onClick={() => {
-                        if (meta.target === 'meal') {
-                          setMealModalOpen(true);
-                          return;
-                        }
-                        if (meta.target === 'finance') {
-                          setMainTab('finance');
-                          return;
-                        }
-                        if (meta.target === 'tasks') {
-                          setMainTab('tasks');
-                          return;
-                        }
-                        if (meta.target === 'health') {
-                          setMainTab('health');
-                        }
-                      }}
-                    >
-                      <span className={styles.recommendationLead}><PulseIcon name={meta.icon} className={styles.recommendationIcon} />{item}</span>
-                      <span className={styles.recommendationAction}>{meta.action} <PulseIcon name="arrow" className={styles.arrowIcon} /></span>
-                    </button>
-                  );
-                })}
-                {!recommendations.length ? <div className={styles.emptyText}>Пока нет рекомендаций на этот день.</div> : null}
-              </div>
-
-              {recommendations.length > 4 ? (
-                <button type="button" className={styles.inlineLink} onClick={() => setShowAllRecommendations((value) => !value)}>
-                  {showAllRecommendations ? 'Скрыть рекомендации' : 'Показать все рекомендации'}
-                </button>
-              ) : null}
-            </div>
-
-            {(isTasksEnabled || isFinanceEnabled) ? (
-              <div className={styles.pulseInlineGrid}>
-                <div className={styles.inlineSection}>
-                  {isTasksEnabled ? (
+                <div className={styles.summaryRailActions}>
+                  {showProfileEditor ? (
                     <>
-                      <div className={styles.inlineSectionHead}>
-                        <div className={styles.panelTitle}><PulseIcon name="spark" className={styles.sectionIconAccent} />Сегодня</div>
-                        <div className={styles.quickActionsInline}>
-                          {isNutritionEnabled ? (
-                            <button type="button" className={styles.quickActionChip} onClick={() => setMealModalOpen(true)}>
-                              <PulseIcon name="meal" className={styles.summaryIcon} />
-                              <span>Приём пищи</span>
-                            </button>
-                          ) : null}
-                          {isTasksEnabled ? (
-                            <button type="button" className={styles.quickActionChip} onClick={() => setTaskModalOpen(true)}>
-                              <PulseIcon name="check" className={styles.summaryIcon} />
-                              <span>Задача</span>
-                            </button>
-                          ) : null}
-                          {isFinanceEnabled ? (
-                            <button type="button" className={styles.quickActionChip} onClick={() => { setFinanceForm((prev) => ({ ...prev, type: 'EXPENSE' })); setFinanceModalOpen(true); }}>
-                              <PulseIcon name="wallet" className={styles.summaryIcon} />
-                              <span>Расход</span>
-                            </button>
-                          ) : null}
-                          {isMentalEnabled ? (
-                            <button type="button" className={styles.quickActionChip} onClick={() => setMainTab('health')}>
-                              <PulseIcon name="heart" className={styles.summaryIcon} />
-                              <span>Состояние</span>
-                            </button>
-                          ) : null}
-                        </div>
-                      </div>
-
-                      <div className={styles.focusTaskList}>
-                        {focusItems.map((task) => (
-                          <div key={task.id} className={styles.focusTaskRow}>
-                            <button
-                              type="button"
-                              className={[styles.taskToggle, task.completedForDate ? styles.taskToggleDone : ''].filter(Boolean).join(' ')}
-                              onClick={() => togglePulseTaskDate({ taskId: task.id, date: selectedDate })}
-                              aria-label={task.completedForDate ? 'Снять выполнение' : 'Отметить выполненным'}
-                            >
-                              {task.completedForDate ? '✓' : ''}
-                            </button>
-                            <div className={styles.focusTaskMeta}>
-                              <strong>{task.title}</strong>
-                              <span>{task.notes || (task.taskType === 'HABIT' ? 'Привычка' : task.taskType === 'REGULAR' ? 'Регулярная задача' : 'Разовая задача')}</span>
-                            </div>
-                          </div>
-                        ))}
-                        {!focusItems.length ? <div className={styles.emptyText}>На выбранный день задач пока нет.</div> : null}
-                      </div>
+                      <Button size="sm" onClick={closeProfileEditor}>Скрыть</Button>
+                      <Button size="sm" variant="primary" onClick={handleProfileSave} loading={profileSaving}>
+                        Сохранить
+                      </Button>
                     </>
+                  ) : (
+                    <Button size="sm" onClick={openProfileEditor}>Редактировать</Button>
+                  )}
+                </div>
+              </div>
+            ) : null}
+
+            {profileCardsVisible && showProfileEditor ? (
+              <div ref={pulseProfileEditorRef} className={styles.pulseProfileEditorInline}>
+                <div className={styles.compactGrid}>
+                  {isHealthEnabled ? (
+                    <label className={styles.field}>
+                      <span>Рост</span>
+                      <input
+                        ref={pulseProfileEditorFirstFieldRef}
+                        value={profileForm.heightCm}
+                        onChange={(e) => setProfileForm((prev) => ({ ...prev, heightCm: e.target.value }))}
+                        inputMode="decimal"
+                      />
+                    </label>
                   ) : null}
-
-                  {isFinanceEnabled ? (
-                    <>
-                      <div className={styles.inlineDivider} />
-                      <div className={styles.inlineSectionHead}>
-                        <div className={styles.panelTitle}><PulseIcon name="calendar" className={styles.sectionIconAccent} />Финансы на сегодня</div>
-                      </div>
-                      <button type="button" className={[styles.paymentsBanner, styles.financeBanner].join(' ')} onClick={() => setMainTab('finance')}>
-                        <div className={styles.bannerLead}>
-                          <div className={styles.bannerIconWrap}><PulseIcon name="card" className={styles.bannerIcon} /></div>
-                          <div>
-                            <strong>Сегодня платежей: {paymentsToday.length}</strong>
-                            <span>
-                              {paymentsPreview.length
-                                ? paymentsPreview.map((item) => `${item.title} — ${formatMoney(item.amount)}`).join(' · ')
-                                : 'На выбранный день регулярных платежей нет.'}
-                            </span>
-                          </div>
-                        </div>
-                        <span className={styles.bannerAction}>Подробнее <PulseIcon name="arrow" className={styles.arrowIcon} /></span>
-                      </button>
-                      <div className={styles.inlineFinanceMeta}>
-                        {(financeOverview?.upcomingPayments ?? []).slice(0, 2).map((item) => (
-                          <div key={`${item.title}-${item.date}`} className={styles.inlineFinanceRow}>
-                            <span>{item.title}</span>
-                            <strong>{formatShortDate(item.date)} · {formatMoney(item.amount)}</strong>
-                          </div>
-                        ))}
-                        {!financeOverview?.upcomingPayments?.length ? <div className={styles.emptyText}>Пока нет ближайших платежей.</div> : null}
-                      </div>
-                    </>
+                  {isHealthEnabled ? (
+                    <label className={styles.field}>
+                      <span>Возраст</span>
+                      <input value={profileForm.age} onChange={(e) => setProfileForm((prev) => ({ ...prev, age: e.target.value }))} inputMode="numeric" />
+                    </label>
+                  ) : null}
+                  {isNutritionEnabled ? (
+                    <label className={styles.field}>
+                      <span>Вес на старте</span>
+                      <input
+                        ref={!isHealthEnabled ? pulseProfileEditorFirstFieldRef : undefined}
+                        value={profileForm.startWeightKg}
+                        onChange={(e) => setProfileForm((prev) => ({ ...prev, startWeightKg: e.target.value }))}
+                        inputMode="decimal"
+                      />
+                    </label>
+                  ) : null}
+                  {isNutritionEnabled ? (
+                    <label className={styles.field}>
+                      <span>Вес сейчас</span>
+                      <input value={profileForm.currentWeightKg} onChange={(e) => setProfileForm((prev) => ({ ...prev, currentWeightKg: e.target.value }))} inputMode="decimal" />
+                    </label>
+                  ) : null}
+                  {isNutritionEnabled ? (
+                    <label className={styles.field}>
+                      <span>Целевой вес</span>
+                      <input value={profileForm.targetWeightKg} onChange={(e) => setProfileForm((prev) => ({ ...prev, targetWeightKg: e.target.value }))} inputMode="decimal" />
+                    </label>
                   ) : null}
                 </div>
               </div>
             ) : null}
           </section>
+
+          {isTasksEnabled ? (
+            <section className={styles.pulseSection}>
+              <div className={styles.pulseSectionHead}>
+                <div className={styles.pulseSectionCopy}>
+                  <span className={styles.pulseSectionEyebrow}>Задачи</span>
+                  <h2 className={styles.pulseSectionHeading}>Сегодня</h2>
+                </div>
+
+                <div className={styles.summaryRailActions}>
+                  <Button size="sm" variant="primary" onClick={() => openTaskModal()}>Новая задача</Button>
+                  <Button size="sm" onClick={() => changeMainTab('tasks')}>Ежедневник</Button>
+                </div>
+              </div>
+
+              <div className={styles.taskListStack}>
+                {pulseTimedOpenItems.length ? (
+                  <section className={styles.taskSectionGroup}>
+                    <div className={styles.taskSectionHeader}>
+                      <span className={styles.taskSectionTitle}>Со временем</span>
+                      <span className={styles.taskSectionCount}>{pulseTimedOpenItems.length}</span>
+                    </div>
+                    <div className={styles.taskSectionList}>
+                      {pulseTimedOpenItems.map((task) => renderTaskRow(task, { compact: true, context: 'pulse' }))}
+                    </div>
+                  </section>
+                ) : null}
+
+                {pulseUntimedOpenItems.length ? (
+                  <section className={styles.taskSectionGroup}>
+                    <div className={styles.taskSectionHeader}>
+                      <span className={styles.taskSectionTitle}>Без времени</span>
+                      <span className={styles.taskSectionCount}>{pulseUntimedOpenItems.length}</span>
+                    </div>
+                    <div className={styles.taskSectionList}>
+                      {pulseUntimedOpenItems.map((task) => renderTaskRow(task, { compact: true, context: 'pulse' }))}
+                    </div>
+                  </section>
+                ) : null}
+
+                {pulseCompletedItems.length ? (
+                  <section className={styles.taskSectionGroup}>
+                    <button type="button" className={styles.taskSectionCollapse} onClick={() => setShowPulseCompletedTasks((prev) => !prev)}>
+                      <span className={styles.taskSectionCollapseLabel}>{`Выполнено (${pulseCompletedItems.length})`}</span>
+                      <ChevronDown
+                        size={16}
+                        className={[styles.taskSectionCollapseIcon, showPulseCompletedTasks ? styles.taskSectionCollapseIconOpen : ''].filter(Boolean).join(' ')}
+                        aria-hidden="true"
+                      />
+                    </button>
+                    {showPulseCompletedTasks ? (
+                      <div className={styles.taskSectionList}>
+                        {pulseCompletedItems.map((task) => renderTaskRow(task, { compact: true, context: 'pulse' }))}
+                      </div>
+                    ) : null}
+                  </section>
+                ) : null}
+
+                {!pulseTodayItems.length ? <div className={styles.emptyText}>На выбранный день пока нет задач.</div> : null}
+              </div>
+            </section>
+          ) : null}
+
+          <section className={styles.pulseSection}>
+            <div className={styles.pulseSectionHead}>
+              <div className={styles.pulseSectionCopy}>
+                <span className={styles.pulseSectionEyebrow}>Сигналы</span>
+                <h2 className={styles.pulseSectionHeading}>Что важно сегодня</h2>
+              </div>
+            </div>
+
+            <div className={styles.pulseRecommendationGrid}>
+              <div className={[styles.pulseRecommendationColumn, styles.pulseRecommendationPanel].join(' ')}>
+                <div className={styles.pulseRecommendationColumnHeader}>
+                  <div className={styles.pulseRecommendationColumnTitleGroup}>
+                    <div className={styles.pulseRecommendationColumnTitle}>Нужно внимание</div>
+                    <span className={styles.pulseRecommendationColumnMeta}>{pulseAttentionCount}</span>
+                  </div>
+                </div>
+
+                <div className={styles.pulseRecommendationList}>
+                  {pulseAttentionItems.slice(0, 3).map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      className={[styles.pulseRecommendationRow, styles.pulseRecommendationRowAttention].join(' ')}
+                      onClick={() => handlePulseRecommendationOpen(item.meta.target)}
+                    >
+                      <span className={styles.pulseRecommendationLead}>
+                        <PulseIcon name={item.meta.icon} className={styles.recommendationIcon} />
+                        <span className={styles.pulseRecommendationText}>{item.text}</span>
+                      </span>
+                      <span className={styles.pulseRecommendationChevron} aria-hidden="true">
+                        <ChevronRight size={16} strokeWidth={1.8} />
+                      </span>
+                    </button>
+                  ))}
+
+                  {!pulseAttentionItems.length ? <div className={styles.emptyText}>Важных сигналов нет.</div> : null}
+                </div>
+              </div>
+
+              <div className={[styles.pulseRecommendationColumn, styles.pulseRecommendationPanel].join(' ')}>
+                <div className={styles.pulseRecommendationColumnHeader}>
+                  <div className={styles.pulseRecommendationColumnTitleGroup}>
+                    <div className={styles.pulseRecommendationColumnTitle}>Подсказки</div>
+                    <span className={styles.pulseRecommendationColumnMeta}>{pulseSuggestionCount}</span>
+                  </div>
+                </div>
+
+                <div className={styles.pulseRecommendationList}>
+                  {(showAllRecommendations ? pulseSuggestionItems : pulseSuggestionItems.slice(0, 3)).map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      className={[
+                        styles.pulseRecommendationRow,
+                        item.meta.tone === 'info' ? styles.pulseRecommendationRowInfo : '',
+                      ].filter(Boolean).join(' ')}
+                      onClick={() => handlePulseRecommendationOpen(item.meta.target)}
+                    >
+                      <span className={styles.pulseRecommendationLead}>
+                        <PulseIcon name={item.meta.icon} className={styles.recommendationIcon} />
+                        <span className={styles.pulseRecommendationText}>{item.text}</span>
+                      </span>
+                      <span className={styles.pulseRecommendationChevron} aria-hidden="true">
+                        <ChevronRight size={16} strokeWidth={1.8} />
+                      </span>
+                    </button>
+                  ))}
+
+                  {!pulseSuggestionItems.length ? <div className={styles.emptyText}>Подсказок нет.</div> : null}
+                </div>
+
+                {pulseSuggestionItems.length > 3 ? (
+                  <button type="button" className={styles.inlineLink} onClick={() => setShowAllRecommendations((value) => !value)}>
+                    {showAllRecommendations ? 'Скрыть' : 'Ещё подсказки'}
+                  </button>
+                ) : null}
+              </div>
+            </div>
+          </section>
+
+          <section className={styles.pulseSection}>
+            <div className={styles.pulseSectionHead}>
+              <div className={styles.pulseSectionCopy}>
+                <span className={styles.pulseSectionEyebrow}>Программы</span>
+                <h2 className={styles.pulseSectionHeading}>Программы сегодня</h2>
+              </div>
+            </div>
+
+            <ProgramTodayWidget compact variant="pulse" />
+          </section>
+
         </div>
       ) : null}
-
       {mainTab === 'health' ? (
         <div className={styles.healthScene}>
           <div className={styles.healthSubnav}>
-            {isMentalEnabled ? (
-              <button
-                type="button"
-                className={[styles.healthSubnavButton, healthSubTab === 'mental' ? styles.healthSubnavButtonActive : ''].filter(Boolean).join(' ')}
-                onClick={() => setHealthSubTab('mental')}
-              >
-                <PulseIcon name="brain" className={styles.healthSubnavIcon} />
-                <span>Ментальное здоровье</span>
-              </button>
-            ) : null}
-            {isNutritionEnabled ? (
-              <button
-                type="button"
-                className={[styles.healthSubnavButton, healthSubTab === 'nutrition' ? styles.healthSubnavButtonActive : ''].filter(Boolean).join(' ')}
-                onClick={() => setHealthSubTab('nutrition')}
-              >
-                <PulseIcon name="meal" className={styles.healthSubnavIcon} />
-                <span>Питание</span>
-              </button>
-            ) : null}
+            <button
+              type="button"
+              className={[styles.healthSubnavButton, healthSubTab === 'mental' ? styles.healthSubnavButtonActive : ''].filter(Boolean).join(' ')}
+              onClick={() => setHealthSubTab('mental')}
+            >
+              <PulseIcon name="brain" className={styles.healthSubnavIcon} />
+              <span>Ментальное здоровье</span>
+            </button>
+            <button
+              type="button"
+              className={[styles.healthSubnavButton, healthSubTab === 'nutrition' ? styles.healthSubnavButtonActive : ''].filter(Boolean).join(' ')}
+              onClick={() => setHealthSubTab('nutrition')}
+            >
+              <PulseIcon name="meal" className={styles.healthSubnavIcon} />
+              <span>Питание</span>
+            </button>
           </div>
 
           {healthSubTab === 'mental' ? (
@@ -2492,7 +2906,7 @@ export default function HealthPage() {
 
                   <div className={styles.healthRingsRow}>
                     <div className={styles.healthRingMetric}>
-                      <MiniRing value={mentalTodayScore} tone="accent" />
+                      <MiniRing value={mentalTodayScore} tone="accent" size={108} stroke={7} />
                       <div className={styles.healthRingMeta}>
                         <strong>Сегодня</strong>
                         <span>{describeScore(mentalTodayScore)}</span>
@@ -2500,7 +2914,7 @@ export default function HealthPage() {
                     </div>
 
                     <div className={styles.healthRingMetric}>
-                      <MiniRing value={mentalWeekScore} tone="success" />
+                      <MiniRing value={mentalWeekScore} tone="success" size={108} stroke={7} />
                       <div className={styles.healthRingMeta}>
                         <strong>За 7 дней</strong>
                         <span>{describeTrend(mentalWeekScore)}</span>
@@ -2596,54 +3010,17 @@ export default function HealthPage() {
 
           {healthSubTab === 'nutrition' ? (
             <>
-              <div className={styles.healthActionRow}>
-                <div className={styles.healthChip}>
-                  <PulseIcon name="calendar" className={styles.healthInlineIcon} />
-                  <span>{formatLongDate(selectedDate)}</span>
-                </div>
-                <button type="button" className={styles.healthGhostButton} onClick={() => setShowNutritionGoalEditor((value) => !value)}>
-                  <PulseIcon name="gear" className={styles.healthButtonIcon} />
-                  <span>{showNutritionGoalEditor ? 'Скрыть цель' : 'Задать цель'}</span>
-                </button>
-              </div>
-
-              {showNutritionGoalEditor ? (
-                <section className={styles.healthSurface}>
-                  <div className={styles.healthSectionHeader}>
-                    <div className={styles.healthSectionTitle}><PulseIcon name="target" className={styles.sectionIconAccent} />Цель питания</div>
-                    <button
-                      type="button"
-                      className={styles.healthGhostButton}
-                      onClick={() => setGoalForm({
-                        dailyCalories: String(profileSuggestion?.dailyCalories ?? ''),
-                        protein: String(profileSuggestion?.protein ?? ''),
-                        fat: String(profileSuggestion?.fat ?? ''),
-                        carbs: String(profileSuggestion?.carbs ?? ''),
-                      })}
-                    >
-                      Подставить подсказку
-                    </button>
-                  </div>
-
-                  <div className={styles.compactGrid}>
-                    <Field label="Ккал / день"><input value={goalForm.dailyCalories} onChange={(event) => setGoalForm((prev) => ({ ...prev, dailyCalories: event.target.value }))} /></Field>
-                    <Field label="Белки"><input value={goalForm.protein} onChange={(event) => setGoalForm((prev) => ({ ...prev, protein: event.target.value }))} /></Field>
-                    <Field label="Жиры"><input value={goalForm.fat} onChange={(event) => setGoalForm((prev) => ({ ...prev, fat: event.target.value }))} /></Field>
-                    <Field label="Углеводы"><input value={goalForm.carbs} onChange={(event) => setGoalForm((prev) => ({ ...prev, carbs: event.target.value }))} /></Field>
-                  </div>
-
-                  <div className={styles.actionsRow}>
-                    <CardMuted>{nutritionGoal ? `Текущая цель: ${nutritionGoal.dailyCalories} ккал` : 'Заполни профиль, чтобы получить расчёт цели.'}</CardMuted>
-                    <Button variant="primary" onClick={handleGoalSave} disabled={goalSaving} loading={goalSaving}>Сохранить цель</Button>
-                  </div>
-                </section>
-              ) : null}
-
               <div className={styles.nutritionTopGrid}>
                 <section className={styles.healthSurface}>
                   <div className={styles.healthSectionHeader}>
                     <div className={styles.healthSectionTitle}><PulseIcon name="flame" className={styles.sectionIconAccent} />Калории</div>
-                    <span className={styles.healthChip}>Цель: {caloriesTarget || '—'} ккал</span>
+                    <div className={styles.healthActionGroup}>
+                      <span className={styles.healthChip}>Цель: {caloriesTarget || '—'} ккал</span>
+                      <button type="button" className={styles.healthGhostButton} onClick={openNutritionGoalModal}>
+                        <PulseIcon name="gear" className={styles.healthButtonIcon} />
+                        <span>{nutritionGoal ? 'Изменить цель' : 'Задать цель'}</span>
+                      </button>
+                    </div>
                   </div>
 
                   <div className={styles.nutritionMetricsRow}>
@@ -2700,7 +3077,7 @@ export default function HealthPage() {
               <section className={styles.healthSurface}>
                 <div className={styles.healthSectionHeader}>
                   <div className={styles.healthSectionTitle}>Приёмы пищи</div>
-                  <button type="button" className={styles.healthPrimaryButton} onClick={() => setMealModalOpen(true)}>
+                  <button type="button" className={styles.healthPrimaryButton} onClick={() => openMealModal()}>
                     <PulseIcon name="plus" className={styles.healthButtonIcon} />
                     <span>Добавить</span>
                   </button>
@@ -2709,7 +3086,7 @@ export default function HealthPage() {
                 <div className={styles.mealListSurface}>
                   {(nutritionData?.meals ?? []).map((meal) => (
                     <article key={meal.id} className={styles.mealRowCard}>
-                      <div className={styles.mealTimeBadge}>{formatTimeLabel(meal.createdAt)}</div>
+                      <div className={styles.mealTimeBadge}>{formatMealTime(meal.date)}</div>
                       <div className={styles.mealMain}>
                         <strong>{meal.title}</strong>
                         <span>Б: {meal.totalProtein ?? 0}г &nbsp; Ж: {meal.totalFat ?? 0}г &nbsp; У: {meal.totalCarbs ?? 0}г</span>
@@ -2718,7 +3095,10 @@ export default function HealthPage() {
                       <div className={styles.mealSide}>
                         <strong>{meal.totalCalories} ккал</strong>
                         <div className={styles.mealActions}>
-                          <button type="button" className={styles.mealIconButton} onClick={() => deleteMeal(meal.id)} aria-label="Удалить приём пищи">
+                          <button type="button" className={styles.mealIconButton} onClick={() => openMealModal(meal)} aria-label="Изменить приём пищи">
+                            <PulseIcon name="pencil" className={styles.mealActionIcon} />
+                          </button>
+                          <button type="button" className={[styles.mealIconButton, styles.destructiveIconAction].filter(Boolean).join(' ')} onClick={() => deleteMeal(meal.id)} aria-label="Удалить приём пищи">
                             <PulseIcon name="trash" className={styles.mealActionIcon} />
                           </button>
                         </div>
@@ -2735,189 +3115,442 @@ export default function HealthPage() {
 
       {mainTab === 'tasks' ? (
         <div className={styles.tasksScene}>
-          <section className={styles.taskSummarySurface}>
-            <div className={styles.taskSummaryLead}>
-              <span className={styles.taskSummaryIcon}><PulseIcon name="check" className={styles.summaryIcon} /></span>
-              <div className={styles.taskSummaryText}>
-                <span>Выполнено сегодня</span>
-                <strong>{tasksData?.summary.completed ?? 0} из {tasksData?.summary.total ?? 0}</strong>
+          <section className={styles.taskWorkspaceSurface}>
+            <div className={styles.taskWorkspaceHeader}>
+              <div className={styles.taskWorkspaceCopy}>
+                <span className={styles.taskWorkspaceEyebrow}>Ежедневник</span>
+                <h2 className={styles.taskWorkspaceTitle}>{taskWorkspaceTitle}</h2>
               </div>
             </div>
 
-            <div className={styles.taskSummaryProgressMeta}>
-              <strong>{tasksData?.summary.percent ?? 0}%</strong>
-              <div className={styles.taskSummaryBar}><span style={{ width: `${tasksData?.summary.percent ?? 0}%` }} /></div>
-            </div>
-          </section>
+            <section className={styles.taskSummaryStrip}>
+              <div
+                className={styles.taskSummaryProgressTrack}
+                style={{
+                  ['--task-progress-fill' as any]: getTaskProgressGradient(filteredCompletionPercent),
+                  ['--task-progress-accent' as any]: getTaskProgressAccent(filteredCompletionPercent),
+                }}
+              >
+                <span style={{ width: `${filteredCompletionPercent}%` }} />
+                <strong>{`Выполнено ${completedTasks.length}/${filteredTasks.length}`}</strong>
+              </div>
+            </section>
 
-          <div className={styles.taskToolbar}>
-            <div className={styles.taskFilters}>
-              {[
-                { value: 'ALL', label: 'Все' },
-                { value: 'TASKS', label: 'Задачи' },
-                { value: 'HABITS', label: 'Привычки' },
-              ].map((filter) => (
+            <div className={styles.taskToolbar}>
+              <div className={styles.taskLayoutTabs}>
+                <Segmented
+                  value={taskLayoutMode}
+                  onChange={(value) => handleTaskLayoutChange(value as 'list' | 'day' | 'week')}
+                  options={[
+                    { value: 'list', label: 'Список задач' },
+                    { value: 'day', label: 'День' },
+                    { value: 'week', label: 'Неделя' },
+                  ]}
+                />
+              </div>
+              <div className={styles.taskFilterSelectWrap}>
+                <span className={styles.taskModeSelectLabel}>Показывать</span>
+                <label className={styles.taskModeSelectShell}>
+                  <select value={taskFilter} onChange={(event) => setTaskFilter(event.target.value as 'ALL' | 'TASKS' | 'HABITS')}>
+                    <option value="ALL">Все</option>
+                    <option value="TASKS">Задачи</option>
+                    <option value="HABITS">Привычки</option>
+                  </select>
+                  <ChevronDown className={styles.taskModeSelectIcon} strokeWidth={2.2} />
+                </label>
+              </div>
+            </div>
+
+            <form
+              className={[styles.taskQuickAddForm, quickTaskExpanded ? styles.taskQuickAddFormExpanded : ''].filter(Boolean).join(' ')}
+              onSubmit={(event) => {
+                void handleQuickAddTask(event);
+              }}
+            >
+              <div className={styles.taskQuickAddTop}>
+                <PulseIcon name="plus" className={styles.taskQuickAddIcon} />
+                <input
+                  value={quickTaskForm.title}
+                  onChange={(event) => setQuickTaskForm((prev) => ({ ...prev, title: event.target.value }))}
+                  placeholder={quickTaskExpanded ? 'Название задачи' : 'Быстро добавить задачу'}
+                  aria-label="Быстро добавить задачу"
+                />
                 <button
-                  key={filter.value}
                   type="button"
-                  className={[styles.taskFilterButton, taskFilter === filter.value ? styles.taskFilterButtonActive : ''].filter(Boolean).join(' ')}
-                  onClick={() => setTaskFilter(filter.value as 'ALL' | 'TASKS' | 'HABITS')}
+                  className={[styles.taskQuickAddToggle, quickTaskExpanded ? styles.taskQuickAddToggleOpen : ''].filter(Boolean).join(' ')}
+                  onClick={() => setQuickTaskExpanded((value) => !value)}
+                  aria-expanded={quickTaskExpanded}
                 >
-                  {filter.label}
+                  <span>{quickTaskExpanded ? 'Скрыть детали' : 'Детали'}</span>
+                  <ChevronDown className={styles.taskQuickAddToggleIcon} strokeWidth={2.2} />
                 </button>
-              ))}
-            </div>
+                <button type="submit" className={styles.taskQuickAddSubmit} disabled={taskSaving || !canSubmitTaskDraft(quickTaskForm)}>
+                  Добавить
+                </button>
+              </div>
 
-            <button type="button" className={styles.healthPrimaryButton} onClick={() => setTaskModalOpen(true)}>
-              <PulseIcon name="plus" className={styles.healthButtonIcon} />
-              <span>Добавить</span>
-            </button>
-          </div>
-
-          <section className={styles.tasksListSurface}>
-            {filteredTasks.map((task) => {
-              const typeLabel = task.taskType === 'HABIT' ? 'Привычка' : task.taskType === 'REGULAR' ? 'Регулярная' : 'Разовая';
-              return (
-                <article key={task.id} className={[styles.taskRowCard, task.completedForDate ? styles.taskRowCardDone : ''].filter(Boolean).join(' ')}>
-                  <div className={styles.taskRowMain}>
-                    <button
-                      type="button"
-                      className={[styles.taskToggle, task.completedForDate ? styles.taskToggleDone : ''].filter(Boolean).join(' ')}
-                      onClick={() => togglePulseTaskDate({ taskId: task.id, date: selectedDate })}
-                      aria-label={task.completedForDate ? 'Снять выполнение' : 'Отметить выполненным'}
-                    >
-                      {task.completedForDate ? '✓' : ''}
-                    </button>
-
-                    <div className={styles.taskRowContent}>
-                      <strong className={styles.taskRowTitle}>{task.title}</strong>
-                      {task.notes && task.notes.trim() && task.notes.trim().toLowerCase() !== `${typeLabel} задача`.toLowerCase() ? (
-                        <div className={styles.taskRowNote}>{task.notes}</div>
+              {quickTaskExpanded ? (
+                <div className={styles.taskQuickAddAdvanced}>
+                  <div className={styles.taskQuickAddBlock}>
+                    <div className={styles.taskQuickAddBlockTitle}>Когда</div>
+                    <div className={styles.taskTimeModeRow}>
+                      <Segmented
+                        value={quickTaskForm.timeMode}
+                        onChange={(value) =>
+                          setQuickTaskForm((prev) =>
+                            normalizeTaskDraft({
+                              ...prev,
+                              timeMode: value as TaskDraft['timeMode'],
+                            }))}
+                        options={[
+                          { value: 'NONE', label: 'Без времени' },
+                          { value: 'SINGLE', label: 'Одно время' },
+                          { value: 'RANGE', label: 'Интервал' },
+                        ]}
+                      />
+                    </div>
+                    <div className={styles.inlineFields}>
+                      <Field label="Дата">
+                        <input
+                          type="date"
+                          value={quickTaskForm.date}
+                          onChange={(event) => setQuickTaskForm((prev) => ({ ...prev, date: event.target.value }))}
+                        />
+                      </Field>
+                      {quickTaskForm.timeMode !== 'NONE' ? (
+                        <Field label={quickTaskForm.timeMode === 'RANGE' ? 'Начало' : 'Время'}>
+                          <input
+                            type="time"
+                            value={quickTaskForm.time}
+                            onChange={(event) =>
+                              setQuickTaskForm((prev) =>
+                                normalizeTaskDraft({
+                                  ...prev,
+                                  time: event.target.value,
+                                  endTime:
+                                    event.target.value && prev.timeMode === 'RANGE'
+                                      ? (prev.endTime || addMinutesToTime(event.target.value))
+                                      : prev.endTime,
+                                }))}
+                          />
+                        </Field>
+                      ) : (
+                        <div className={styles.taskTimeHint}>Задача попадёт в список без времени.</div>
+                      )}
+                      {quickTaskForm.timeMode === 'RANGE' ? (
+                        <Field label="Окончание">
+                          <input
+                            type="time"
+                            value={quickTaskForm.endTime}
+                            min={quickTaskForm.time || undefined}
+                            disabled={!quickTaskForm.time}
+                            onChange={(event) => setQuickTaskForm((prev) => ({ ...prev, endTime: event.target.value }))}
+                          />
+                        </Field>
                       ) : null}
-                      <div className={styles.taskRowMeta}>
-                        <span className={[styles.taskMetaChip, styles.taskMetaChipType, task.taskType === 'HABIT' ? styles.taskMetaChipTypeHabit : task.taskType === 'REGULAR' ? styles.taskMetaChipTypeRegular : styles.taskMetaChipTypeOneTime].join(' ')}>{`${typeLabel} задача`}</span>
-                        {task.priority ? <span className={[styles.taskMetaChip, styles.taskMetaChipPriority].join(' ')}>Приоритет {task.priority}</span> : null}
-                      </div>
                     </div>
                   </div>
 
-                  <div className={styles.taskRowSide}>
-                    <button type="button" className={[styles.taskDeleteButton, styles.taskDeleteButtonDesktop].join(' ')} onClick={() => deletePulseTask(task.id)}>Удалить</button>
-                    <button type="button" className={[styles.taskDeleteIconButton, styles.taskDeleteIconButtonMobile].join(' ')} onClick={() => deletePulseTask(task.id)} aria-label="Удалить задачу">
-                      <PulseIcon name="trash" className={styles.taskDeleteIcon} />
-                    </button>
+                  <div className={styles.taskQuickAddBlock}>
+                    <div className={styles.taskQuickAddBlockTitle}>Тип задачи</div>
+                    <Segmented
+                      value={quickTaskForm.taskType}
+                      onChange={(value) =>
+                        setQuickTaskForm((prev) => ({
+                          ...prev,
+                          taskType: value as TaskDraft['taskType'],
+                          scheduleType:
+                            value === 'REGULAR'
+                              ? (prev.scheduleType === 'NONE' ? 'WEEKLY' : prev.scheduleType)
+                              : 'NONE',
+                        }))}
+                      options={[
+                        { value: 'ONE_TIME', label: 'Один раз' },
+                        { value: 'REGULAR', label: 'Повтор' },
+                        { value: 'HABIT', label: 'Привычка' },
+                      ]}
+                    />
                   </div>
-                </article>
-              );
-            })}
 
-            {!filteredTasks.length ? <div className={styles.emptyText}>На выбранный день задач этого типа пока нет.</div> : null}
+                  {quickTaskForm.taskType === 'REGULAR' ? (
+                    <div className={styles.taskQuickAddBlock}>
+                      <div className={styles.taskQuickAddBlockTitle}>Повтор</div>
+                      <Segmented
+                        value={quickTaskForm.scheduleType}
+                        onChange={(value) => setQuickTaskForm((prev) => ({ ...prev, scheduleType: value as TaskDraft['scheduleType'] }))}
+                        options={[
+                          { value: 'WEEKLY', label: 'По дням недели' },
+                          { value: 'MONTHLY', label: 'По дням месяца' },
+                        ]}
+                      />
+                      {quickTaskForm.scheduleType === 'WEEKLY' ? (
+                        <div className={styles.weekSelector}>
+                          {weekdayLabels.map((label, index) => (
+                            <button
+                              key={label}
+                              type="button"
+                              className={[styles.weekMini, quickTaskForm.daysOfWeek.includes(index) ? styles.weekMiniActive : ''].filter(Boolean).join(' ')}
+                              onClick={() =>
+                                setQuickTaskForm((prev) => ({
+                                  ...prev,
+                                  daysOfWeek: prev.daysOfWeek.includes(index)
+                                    ? prev.daysOfWeek.filter((item) => item !== index)
+                                    : [...prev.daysOfWeek, index],
+                                }))}
+                            >
+                              {label}
+                            </button>
+                          ))}
+                        </div>
+                      ) : null}
+                      {quickTaskForm.scheduleType === 'MONTHLY' ? (
+                        <Field label="Дни месяца через запятую">
+                          <input
+                            placeholder="Например, 1, 15, 28"
+                            value={quickTaskForm.daysOfMonth.join(',')}
+                            onChange={(event) =>
+                              setQuickTaskForm((prev) => ({
+                                ...prev,
+                                daysOfMonth: event.target.value
+                                  .split(',')
+                                  .map((item) => Number(item.trim()))
+                                  .filter((item) => Number.isFinite(item) && item > 0 && item < 32),
+                              }))}
+                          />
+                        </Field>
+                      ) : null}
+                    </div>
+                  ) : null}
+
+                  <Field label="Описание (опционально)">
+                    <textarea
+                      rows={3}
+                      placeholder="Короткий контекст или детали"
+                      value={quickTaskForm.notes}
+                      onChange={(event) => setQuickTaskForm((prev) => ({ ...prev, notes: event.target.value }))}
+                    />
+                  </Field>
+                </div>
+              ) : null}
+            </form>
+            {!isTimelineMode ? (
+              <div className={styles.taskListStack}>
+                {timedOpenTasks.length ? (
+                  <section className={styles.taskSectionGroup}>
+                    <div className={styles.taskSectionHeader}>
+                      <span className={styles.taskSectionTitle}>Со временем</span>
+                      <span className={styles.taskSectionCount}>{timedOpenTasks.length}</span>
+                    </div>
+                    <div className={styles.taskSectionList}>
+                      {timedOpenTasks.map((task) => renderTaskRow(task))}
+                    </div>
+                  </section>
+                ) : null}
+
+                {untimedOpenTasks.length ? (
+                  <section className={styles.taskSectionGroup}>
+                    <div className={styles.taskSectionHeader}>
+                      <span className={styles.taskSectionTitle}>Без времени</span>
+                      <span className={styles.taskSectionCount}>{untimedOpenTasks.length}</span>
+                    </div>
+                    <div className={styles.taskSectionList}>
+                      {untimedOpenTasks.map((task) => renderTaskRow(task))}
+                    </div>
+                  </section>
+                ) : null}
+
+                {completedTasks.length ? (
+                  <section className={styles.taskSectionGroup}>
+                    <button type="button" className={styles.taskSectionCollapse} onClick={() => setShowCompletedTasks((prev) => !prev)}>
+                      <span className={styles.taskSectionCollapseLabel}>{`Выполнено (${completedTasks.length})`}</span>
+                      <ChevronDown
+                        size={16}
+                        className={[styles.taskSectionCollapseIcon, showCompletedTasks ? styles.taskSectionCollapseIconOpen : ''].filter(Boolean).join(' ')}
+                        aria-hidden="true"
+                      />
+                    </button>
+                    {showCompletedTasks ? (
+                      <div className={styles.taskSectionList}>
+                        {completedTasks.map((task) => renderTaskRow(task, { compact: true }))}
+                      </div>
+                    ) : null}
+                  </section>
+                ) : null}
+
+                {!filteredTasks.length ? <div className={styles.emptyText}>На выбранный день пока нет задач этого типа.</div> : null}
+              </div>
+            ) : (
+              <div className={styles.timelineScene}>
+                <DailyPlanner
+                  mode={plannerMode}
+                  date={selectedDate}
+                  weekDates={weekDates}
+                  tasks={plannerTasks}
+                  allTasks={plannerAllTasks}
+                  onCreateTaskAtSlot={handleCreateTaskFromPlannerSlot}
+                  onToggleTask={(taskId, date) => {
+                    void togglePulseTaskDate({ taskId, date });
+                  }}
+                  onUpdateTask={async (taskId, body) => {
+                    await updatePulseTask({ taskId, body }).unwrap();
+                  }}
+                  showHeader={false}
+                  compact
+                />
+
+                <section className={styles.taskBacklogSurface}>
+                  <div className={styles.taskSectionHeader}>
+                    <span className={styles.taskSectionEyebrow}>Без времени</span>
+                    <span className={styles.taskSectionCount}>{untimedOpenTasks.length}</span>
+                  </div>
+
+                  {untimedOpenTasks.length ? (
+                    <div className={styles.taskSectionList}>
+                      {untimedOpenTasks.map((task) => renderTaskRow(task, { compact: true }))}
+                    </div>
+                  ) : (
+                    <div className={styles.emptyText}>Все открытые задачи уже распределены по времени.</div>
+                  )}
+                </section>
+              </div>
+            )}
           </section>
 
-          <section className={styles.goalPanelSurface}>
-            <div className={styles.goalPanelHeader}>
-              <div className={styles.goalPanelTitle}><PulseIcon name="target" className={styles.sectionIconAccent} />Глобальные цели</div>
-              <button type="button" className={styles.goalAddButton} onClick={() => setGoalModalOpen(true)}>
-                <PulseIcon name="plus" className={styles.goalAddIcon} />
-                <span>Добавить</span>
-              </button>
+          <section className={styles.goalSummarySurface}>
+            <div className={styles.goalSummaryHeader}>
+              <div className={styles.goalSummaryCopy}>
+                <span className={styles.taskWorkspaceEyebrow}>Глобальные цели</span>
+                <h2 className={styles.goalSummaryTitle}>Отдельно от сценария дня</h2>
+              </div>
+
+              <div className={styles.goalSummaryActions}>
+                <button type="button" className={styles.taskSecondaryButton} onClick={() => setGoalModalOpen(true)}>
+                  <PulseIcon name="plus" className={styles.healthButtonIcon} />
+                  <span>Новая цель</span>
+                </button>
+              </div>
             </div>
 
-            <div className={styles.goalList}>
-              {preparedGoals.map((goal) => (
-                <article key={goal.id} className={[styles.goalCard, goal.achieved ? styles.goalCardDone : ''].filter(Boolean).join(' ')}>
-                  <div className={styles.goalCardHeader}>
-                    <div className={styles.goalCardLead}>
-                      <div className={styles.goalCardLeadCluster}>
-                        <span className={styles.goalCardIcon}><PulseIcon name={goal.achieved ? 'check' : 'target'} className={styles.summaryIcon} /></span>
+            <div className={styles.goalSummaryStats}>
+              <div className={styles.goalSummaryStatCompact}>
+                <span className={styles.goalSummaryStatIcon}><PulseIcon name="target" className={styles.goalSummaryStatSvg} /></span>
+                <strong>{preparedGoals.length}</strong>
+                <span>Всего</span>
+              </div>
+              <div className={styles.goalSummaryStatCompact}>
+                <span className={styles.goalSummaryStatIcon}><PulseIcon name="spark" className={styles.goalSummaryStatSvg} /></span>
+                <strong>{activeGoals.length}</strong>
+                <span>В работе</span>
+              </div>
+              <div className={styles.goalSummaryStatCompact}>
+                <span className={styles.goalSummaryStatIcon}><PulseIcon name="check" className={styles.goalSummaryStatSvg} /></span>
+                <strong>{achievedGoals.length}</strong>
+                <span>Достигнуто</span>
+              </div>
+            </div>
+
+            {preparedGoals.length ? (
+              <div className={styles.goalSummaryList}>
+                {preparedGoals.map((goal) => {
+                  const expanded = expandedGoalIds.includes(goal.id);
+                  return (
+                  <article key={goal.id} className={[styles.goalSummaryRow, goal.achieved ? styles.goalSummaryRowDone : ''].filter(Boolean).join(' ')}>
+                    <div className={styles.goalSummaryRowTop}>
+                      <div className={styles.goalSummaryRowMain}>
+                        <strong>{goal.title}</strong>
+                        <span>
+                          {goal.achieved
+                            ? 'Достигнуто'
+                            : goal.subtaskCount
+                              ? `${goal.doneCount} из ${goal.subtaskCount} шагов`
+                              : goal.targetDate
+                                ? `До ${formatShortDate(goal.targetDate)}`
+                                : goal.displayDescription || 'Без срока'}
+                        </span>
+                      </div>
+
+                      <div className={styles.goalSummaryRowActions}>
                         <button
                           type="button"
-                          className={styles.goalDeleteIconButton}
+                          className={[styles.goalMiniCheck, goal.achieved ? styles.goalMiniCheckDone : ''].filter(Boolean).join(' ')}
+                          onClick={() => handleToggleGoalAchieved(goal)}
+                          disabled={pulseGoalUpdating}
+                          aria-label={goal.achieved ? 'Снять достижение цели' : 'Отметить цель выполненной'}
+                        >
+                          {goal.achieved ? <Check className={styles.goalCheckIcon} strokeWidth={3} /> : null}
+                        </button>
+                        <button
+                          type="button"
+                          className={[styles.goalMiniAction, styles.destructiveIconAction].filter(Boolean).join(' ')}
                           onClick={() => deletePulseGoal(goal.id)}
                           disabled={pulseGoalUpdating}
                           aria-label="Удалить цель"
                         >
                           <PulseIcon name="trash" className={styles.taskDeleteIcon} />
                         </button>
-                      </div>
-                      <div className={styles.goalCardText}>
-                        <strong>{goal.title}</strong>
-                        <span>{goal.achieved ? 'Достигнуто!' : goal.displayDescription || 'Разбейте цель на шаги, и прогресс будет считаться автоматически.'}</span>
+                        {goal.subtaskCount ? (
+                          <button
+                            type="button"
+                            className={[styles.goalExpandButton, expanded ? styles.goalExpandButtonOpen : ''].filter(Boolean).join(' ')}
+                            onClick={() => toggleGoalExpanded(goal.id)}
+                            aria-label={expanded ? 'Свернуть подзадачи' : 'Показать подзадачи'}
+                          >
+                            <ChevronDown className={styles.goalExpandIcon} strokeWidth={2.2} />
+                          </button>
+                        ) : null}
+                        <div className={styles.goalSummaryRowSide}>
+                          <strong>{goal.achieved ? '100%' : `${goal.computedProgress}%`}</strong>
+                        </div>
                       </div>
                     </div>
-                  </div>
-
-                  <button
-                    type="button"
-                    className={[styles.goalCheckbar, goal.achieved ? styles.goalCheckbarDone : ''].filter(Boolean).join(' ')}
-                    onClick={() => handleToggleGoalAchieved(goal)}
-                    disabled={pulseGoalUpdating}
-                  >
-                    <span className={[styles.goalCheckbarToggle, goal.achieved ? styles.goalCheckbarToggleDone : ''].filter(Boolean).join(' ')}>{goal.achieved ? '✓' : ''}</span>
-                    <span className={styles.goalCheckbarLabel}>{goal.achieved ? 'Цель достигнута' : 'Отметить достигнутой'}</span>
-                  </button>
-
-                  <div className={styles.goalProgressHead}>
-                    <span>{goal.subtaskCount ? `${goal.doneCount} из ${goal.subtaskCount} подзадач` : 'Прогресс по цели'}</span>
-                    <strong>{goal.achieved ? 'Достигнуто' : `${goal.computedProgress}%`}</strong>
-                  </div>
-                  <div className={styles.goalProgressBar}><span style={{ width: `${goal.computedProgress}%` }} /></div>
-
-                  {goal.subtaskCount ? (
-                    <div className={styles.goalSubtaskList}>
-                      {goal.subtasks.map((subtask) => (
-                        <button key={subtask.id} type="button" className={[styles.goalSubtaskRow, subtask.done ? styles.goalSubtaskRowDone : ''].filter(Boolean).join(' ')} onClick={() => handleToggleGoalSubtask(goal, subtask.id)} disabled={pulseGoalUpdating}>
-                          <span className={[styles.goalSubtaskToggle, subtask.done ? styles.goalSubtaskToggleDone : ''].filter(Boolean).join(' ')}>{subtask.done ? '✓' : ''}</span>
-                          <span className={styles.goalSubtaskTitle}>{subtask.title}</span>
-                        </button>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className={styles.goalEmptyHint}>Разбейте на мелкие подзадачи свою цель, чтобы прогресс считался автоматически и цель было проще довести до результата.</div>
-                  )}
-
-                  {goal.targetDate ? <div className={styles.goalMetaFoot}>Целевая дата: {formatShortDate(goal.targetDate)}</div> : null}
-                </article>
-              ))}
-
-              {!preparedGoals.length ? <div className={styles.emptyText}>Добавь глобальную цель и разбей её на шаги — так прогресс будет заполняться понятно и без перегруза.</div> : null}
-            </div>
+                    <div className={styles.goalSummaryProgress}><span style={{ width: `${goal.computedProgress}%` }} /></div>
+                    {goal.subtaskCount && expanded ? (
+                      <div className={styles.goalSubtaskListMinimal}>
+                        {goal.subtasks.map((subtask) => (
+                          <button
+                            key={subtask.id}
+                            type="button"
+                            className={[styles.goalSubtaskRow, subtask.done ? styles.goalSubtaskRowDone : ''].filter(Boolean).join(' ')}
+                            onClick={() => handleToggleGoalSubtask(goal, subtask.id)}
+                            disabled={pulseGoalUpdating}
+                          >
+                            <span className={[styles.goalSubtaskToggle, subtask.done ? styles.goalSubtaskToggleDone : ''].filter(Boolean).join(' ')}>{subtask.done ? <Check className={styles.goalCheckIcon} strokeWidth={3} /> : null}</span>
+                            <span className={styles.goalSubtaskTitle}>{subtask.title}</span>
+                          </button>
+                        ))}
+                      </div>
+                    ) : null}
+                  </article>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className={styles.emptyText}>Добавьте одну большую цель и держите её как тихий фон, а не как второй главный экран дня.</div>
+            )}
           </section>
         </div>
       ) : null}
 
       {mainTab === 'finance' ? (
         <div className={styles.financeScene}>
-          <div className={styles.financeSubnav}>
-            <button
-              type="button"
-              className={[styles.financeSubnavButton, financeSubTab === 'expenses' ? styles.financeSubnavButtonActive : ''].filter(Boolean).join(' ')}
-              onClick={() => setFinanceSubTab('expenses')}
-            >
+          <div ref={financeSubnavRef} className={styles.financeSubnav}>
+            <button ref={(node) => { financeSubnavButtonRefs.current.expenses = node; }} type="button" className={[styles.financeSubnavButton, financeSubTab === 'expenses' ? styles.financeSubnavButtonActive : ''].filter(Boolean).join(' ')} onClick={() => setFinanceSubTab('expenses')}>
               <PulseIcon name="wallet" className={styles.healthSubnavIcon} />
               <span>Расходы</span>
             </button>
-            <button
-              type="button"
-              className={[styles.financeSubnavButton, financeSubTab === 'income' ? styles.financeSubnavButtonActive : ''].filter(Boolean).join(' ')}
-              onClick={() => setFinanceSubTab('income')}
-            >
+            <button ref={(node) => { financeSubnavButtonRefs.current.income = node; }} type="button" className={[styles.financeSubnavButton, financeSubTab === 'income' ? styles.financeSubnavButtonActive : ''].filter(Boolean).join(' ')} onClick={() => setFinanceSubTab('income')}>
               <PulseIcon name="trend" className={styles.healthSubnavIcon} />
               <span>Доходы</span>
             </button>
-            <button
-              type="button"
-              className={[styles.financeSubnavButton, financeSubTab === 'savings' ? styles.financeSubnavButtonActive : ''].filter(Boolean).join(' ')}
-              onClick={() => setFinanceSubTab('savings')}
-            >
+            <button ref={(node) => { financeSubnavButtonRefs.current.savings = node; }} type="button" className={[styles.financeSubnavButton, financeSubTab === 'savings' ? styles.financeSubnavButtonActive : ''].filter(Boolean).join(' ')} onClick={() => setFinanceSubTab('savings')}>
               <PulseIcon name="target" className={styles.healthSubnavIcon} />
-              <span>Копилка</span>
+              <span>Накопления</span>
             </button>
-            <button
-              type="button"
-              className={[styles.financeSubnavButton, financeSubTab === 'stats' ? styles.financeSubnavButtonActive : ''].filter(Boolean).join(' ')}
-              onClick={() => setFinanceSubTab('stats')}
-            >
+            <button ref={(node) => { financeSubnavButtonRefs.current.debts = node; }} type="button" className={[styles.financeSubnavButton, financeSubTab === 'debts' ? styles.financeSubnavButtonActive : ''].filter(Boolean).join(' ')} onClick={() => setFinanceSubTab('debts')}>
+              <PulseIcon name="card" className={styles.healthSubnavIcon} />
+              <span>Долги</span>
+            </button>
+            <button ref={(node) => { financeSubnavButtonRefs.current.stats = node; }} type="button" className={[styles.financeSubnavButton, financeSubTab === 'stats' ? styles.financeSubnavButtonActive : ''].filter(Boolean).join(' ')} onClick={() => setFinanceSubTab('stats')}>
               <PulseIcon name="trend" className={styles.healthSubnavIcon} />
               <span>Статистика</span>
             </button>
@@ -2925,83 +3558,78 @@ export default function HealthPage() {
 
           {financeSubTab === 'expenses' ? (
             <>
-              <section className={styles.financeHeroSurface}>
-                <div className={styles.financeHeroLead}>
+              <section className={[styles.financeHeroSurface, styles.financeHeroSurfaceClean, styles.financeSectionFirst, styles.financeHeroSurfaceFlat].join(' ')}>
+                <div className={styles.financeHeroTopRow}>
+                  <div className={styles.financeRangeTabs}>
+                    {(['DAY', 'MONTH', 'YEAR'] as const).map((range) => (
+                      <button
+                        key={range}
+                        type="button"
+                        className={[styles.financeRangeTab, financeRange === range ? styles.financeRangeTabActive : ''].filter(Boolean).join(' ')}
+                        onClick={() => setFinanceRange(range)}
+                      >
+                        {range === 'DAY' ? 'День' : range === 'MONTH' ? 'Месяц' : 'Год'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className={[styles.financeHeroLead, styles.financeHeroLeadSimple, styles.financeHeroLeadInline].join(' ')}>
                   <span className={[styles.financeHeroIconWrap, styles.financeHeroIconExpense].join(' ')}>
                     <PulseIcon name="wallet" className={styles.financeHeroIcon} />
                   </span>
-                  <div className={styles.financeHeroText}>
-                    <span>Расходы за день</span>
-                    <strong className={styles.financeAmountExpense}>{formatMoney(-dayExpenseTotal)}</strong>
-                  </div>
-                </div>
-                <div className={styles.financeHeroActions}>
-                  <button type="button" className={styles.financeSecondaryAction} onClick={() => setCategoryModalOpen(true)}>
-                    <PulseIcon name="spark" className={styles.financeInlinePillIcon} />
-                    <span>Категория</span>
-                  </button>
-                  <button type="button" className={styles.financeSquareAction} onClick={() => {
-                    setFinanceForm((prev) => ({ ...prev, type: 'EXPENSE' }));
-                    setFinanceModalOpen(true);
-                  }}>
-                    <PulseIcon name="plus" className={styles.financeSquareActionIcon} />
+                  <strong className={styles.financeAmountNeutral}>{formatMoney(periodExpenseTotal)}</strong>
+                  <button type="button" className={styles.financeInlinePlusButton} onClick={() => { resetFinanceEntryForm('EXPENSE'); setFinanceModalOpen(true); }} aria-label="Добавить расход">
+                    <PulseIcon name="plus" className={styles.financeInlineAddIcon} />
                   </button>
                 </div>
               </section>
 
-              <div className={styles.financeCategoryGrid}>
-                {financeCategoriesView.map((category) => {
-                  const meta = getFinanceCategoryMeta(category.name);
-                  const over = (category.overBy ?? 0) > 0;
-                  return (
-                    <article key={category.id} className={styles.financeCategoryCard}>
-                      <div className={styles.financeCategoryHead}>
-                        <div className={styles.financeCategoryLead}>
-                          <span className={[styles.financeCategoryIconWrap, styles[`financeTone${meta.tone[0].toUpperCase() + meta.tone.slice(1)}` as keyof typeof styles] as string].filter(Boolean).join(' ')}>
-                            <PulseIcon name={meta.icon} className={styles.financeCategoryIcon} />
-                          </span>
-                          <strong>{category.name}</strong>
-                        </div>
-                        {over ? <span className={styles.financeWarningPill}><PulseIcon name="warning" className={styles.financeInlinePillIcon} /></span> : null}
-                      </div>
-                      <div className={[styles.financeProgress, over ? styles.financeProgressDanger : ''].filter(Boolean).join(' ')}><span style={{ width: `${Math.max(6, category.percent ?? 0)}%` }} /></div>
-                      <div className={styles.financeCategoryMeta}>
-                        <strong className={over ? styles.financeAmountExpense : ''}>{formatMoney(category.spent ?? 0)}</strong>
-                        <span>из {formatMoney(category.limitAmount ?? 0)}</span>
-                      </div>
-                    </article>
-                  );
-                })}
-                {!financeCategoriesView.length ? <div className={styles.emptyText}>Сначала добавь категории и расходы — тогда здесь появится наглядная разбивка.</div> : null}
-              </div>
-
-              <section className={styles.financePanelSurface}>
+              <section className={[styles.financePanelSurface, styles.financePanelSurfaceCompact, styles.financeSectionSurfaceFlat].join(' ')}>
                 <div className={styles.financePanelHeader}>
-                  <div className={styles.financePanelTitle}>Список расходов</div>
+                  <div className={styles.financePanelTitle}>{expenseOperationsLabel}</div>
                 </div>
                 <div className={styles.financeEntryList}>
-                  {expenseEntries.map((entry) => {
-                    const meta = getFinanceCategoryMeta(entry.categoryName ?? entry.title);
-                    const recurrenceLabel = getRecurrenceLabel(entry.recurrenceJson);
+                  {expenseEntries.map((entry) => (
+                    <FinanceEntryCompactRow
+                      key={entry.id}
+                      entry={entry}
+                      onEdit={openFinanceEntryEditor}
+                      onDelete={deleteFinanceEntry}
+                    />
+                  ))}
+                  {!expenseEntries.length ? <div className={styles.emptyText}>На выбранный {financeRangeLabel} расходов пока нет.</div> : null}
+                </div>
+              </section>
+
+              <section className={[styles.financeSectionSurface, styles.financeSectionSurfaceFlat].join(' ')}>
+                <div className={styles.financePanelHeader}>
+                  <div className={styles.financePanelTitle}>Траты по категориям</div>
+                  <span className={styles.financePanelHint}>{financeRangeLabelPlural}</span>
+                </div>
+                <div className={styles.financeCategoryGrid}>
+                  {financeCategoriesView.map((category) => {
+                    const meta = getFinanceCategoryMeta(category.name);
+                    const over = (category.overBy ?? 0) > 0;
                     return (
-                      <div key={entry.id} className={styles.financeEntryRow}>
-                        <div className={styles.financeEntryLead}>
-                          <span className={[styles.financeEntryIconWrap, styles[`financeTone${meta.tone[0].toUpperCase() + meta.tone.slice(1)}` as keyof typeof styles] as string].filter(Boolean).join(' ')}>
-                            <PulseIcon name={meta.icon} className={styles.financeEntryIcon} />
-                          </span>
-                          <div className={styles.financeEntryText}>
-                            <strong>{entry.title}</strong>
-                            <span>{entry.categoryName ?? 'Без категории'} {recurrenceLabel ? <em className={styles.financeRecurringPill}>{recurrenceLabel}</em> : null}</span>
+                      <article key={category.id} className={[styles.financeCategoryCard, styles.financeCategoryCardInteractive].join(' ')} role="button" tabIndex={0} onClick={() => openFinanceCategoryModal(category)} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); openFinanceCategoryModal(category); } }}>
+                        <div className={styles.financeCategoryHead}>
+                          <div className={styles.financeCategoryLead}>
+                            <span className={[styles.financeCategoryIconWrap, styles[`financeTone${meta.tone[0].toUpperCase() + meta.tone.slice(1)}` as keyof typeof styles] as string].filter(Boolean).join(' ')}>
+                              <PulseIcon name={meta.icon} className={styles.financeCategoryIcon} />
+                            </span>
+                            <strong>{category.name}</strong>
                           </div>
+                          {over ? <span className={styles.financeWarningPill}><PulseIcon name="warning" className={styles.financeInlinePillIcon} /></span> : null}
                         </div>
-                        <div className={styles.financeEntrySide}>
-                          <strong className={styles.financeAmountExpense}>{formatMoney(-entry.amount)}</strong>
-                          <span>{formatTimeLabel(entry.createdAt)}</span>
+                        <div className={[styles.financeProgress, over ? styles.financeProgressDanger : ''].filter(Boolean).join(' ')}><span style={{ width: `${Math.max(6, category.percent ?? 0)}%` }} /></div>
+                        <div className={styles.financeCategoryMeta}>
+                          <strong className={over ? styles.financeAmountExpense : ''}>{formatMoney(category.spent ?? 0)}</strong>
+                          <span>из {formatMoney(category.limitAmount ?? 0)}</span>
                         </div>
-                      </div>
+                      </article>
                     );
                   })}
-                  {!expenseEntries.length ? <div className={styles.emptyText}>На выбранный день расходов пока нет.</div> : null}
+                  {!financeCategoriesView.length ? <div className={styles.emptyText}>Сначала добавь категории и расходы — тогда здесь появится наглядная разбивка.</div> : null}
                 </div>
               </section>
             </>
@@ -3009,64 +3637,46 @@ export default function HealthPage() {
 
           {financeSubTab === 'income' ? (
             <>
-              <div className={styles.financeToolbarTop}>
-                <button type="button" className={styles.goalAddButton} onClick={() => {
-                  setFinanceForm((prev) => ({ ...prev, type: 'INCOME' }));
-                  setFinanceModalOpen(true);
-                }}>
-                  <PulseIcon name="plus" className={styles.goalAddIcon} />
-                  <span>Добавить доход</span>
-                </button>
-              </div>
-
-              <div className={styles.financeMetricGrid}>
-                <section className={styles.financeMetricCard}>
-                  <div className={styles.financeMetricLead}>
-                    <span className={[styles.financeMetricIconWrap, styles.financeToneGreen].join(' ')}><PulseIcon name="trend" className={styles.financeMetricIcon} /></span>
-                    <div>
-                      <span>Доход за месяц</span>
-                      <strong className={styles.financeAmountIncome}>{formatMoney(monthlyIncome)}</strong>
-                    </div>
+              <section className={[styles.financeHeroSurface, styles.financeHeroSurfaceClean, styles.financeSectionFirst, styles.financeHeroSurfaceFlat].join(' ')}>
+                <div className={styles.financeHeroTopRow}>
+                  <div className={styles.financeRangeTabs}>
+                    {(['DAY', 'MONTH', 'YEAR'] as const).map((range) => (
+                      <button
+                        key={range}
+                        type="button"
+                        className={[styles.financeRangeTab, financeRange === range ? styles.financeRangeTabActive : ''].filter(Boolean).join(' ')}
+                        onClick={() => setFinanceRange(range)}
+                      >
+                        {range === 'DAY' ? 'День' : range === 'MONTH' ? 'Месяц' : 'Год'}
+                      </button>
+                    ))}
                   </div>
-                </section>
-                <section className={styles.financeMetricCard}>
-                  <div className={styles.financeMetricLead}>
-                    <span className={[styles.financeMetricIconWrap, styles.financeToneOrange].join(' ')}><PulseIcon name="card" className={styles.financeMetricIcon} /></span>
-                    <div>
-                      <span>Средний доход</span>
-                      <strong>{formatMoney(averageIncome)}</strong>
-                    </div>
-                  </div>
-                </section>
-              </div>
+                </div>
+                <div className={[styles.financeHeroLead, styles.financeHeroLeadSimple, styles.financeHeroLeadInline].join(' ')}>
+                  <span className={[styles.financeHeroIconWrap, styles.financeToneGreen].join(' ')}>
+                    <PulseIcon name="trend" className={styles.financeHeroIcon} />
+                  </span>
+                  <strong className={styles.financeAmountNeutral}>{formatMoney(periodIncomeTotal)}</strong>
+                  <button type="button" className={styles.financeInlinePlusButton} onClick={() => { resetFinanceEntryForm('INCOME'); setFinanceModalOpen(true); }} aria-label="Добавить доход">
+                    <PulseIcon name="plus" className={styles.financeInlineAddIcon} />
+                  </button>
+                </div>
+              </section>
 
-              <section className={styles.financePanelSurface}>
+              <section className={[styles.financePanelSurface, styles.financePanelSurfaceCompact, styles.financeSectionSurfaceFlat].join(' ')}>
                 <div className={styles.financePanelHeader}>
-                  <div className={styles.financePanelTitle}>Список доходов</div>
+                  <div className={styles.financePanelTitle}>{incomeOperationsLabel}</div>
                 </div>
                 <div className={styles.financeEntryList}>
-                  {incomeEntries.map((entry) => {
-                    const meta = getFinanceCategoryMeta(entry.categoryName ?? entry.title);
-                    const recurrenceLabel = getRecurrenceLabel(entry.recurrenceJson);
-                    return (
-                      <div key={entry.id} className={styles.financeEntryRow}>
-                        <div className={styles.financeEntryLead}>
-                          <span className={[styles.financeEntryIconWrap, styles[`financeTone${meta.tone[0].toUpperCase() + meta.tone.slice(1)}` as keyof typeof styles] as string].filter(Boolean).join(' ')}>
-                            <PulseIcon name={meta.icon} className={styles.financeEntryIcon} />
-                          </span>
-                          <div className={styles.financeEntryText}>
-                            <strong>{entry.title}</strong>
-                            <span>{entry.categoryName ?? 'Без категории'} {recurrenceLabel ? <em className={styles.financeRecurringPill}>{recurrenceLabel}</em> : null}</span>
-                          </div>
-                        </div>
-                        <div className={styles.financeEntrySide}>
-                          <strong className={styles.financeAmountIncome}>{formatMoney(entry.amount)}</strong>
-                          <span>{formatShortDate(entry.date)}</span>
-                        </div>
-                      </div>
-                    );
-                  })}
-                  {!incomeEntries.length ? <div className={styles.emptyText}>На выбранный день доходов пока нет.</div> : null}
+                  {incomeEntries.map((entry) => (
+                    <FinanceEntryCompactRow
+                      key={entry.id}
+                      entry={entry}
+                      onEdit={openFinanceEntryEditor}
+                      onDelete={deleteFinanceEntry}
+                    />
+                  ))}
+                  {!incomeEntries.length ? <div className={styles.emptyText}>На выбранный {financeRangeLabel} доходов пока нет.</div> : null}
                 </div>
               </section>
             </>
@@ -3074,15 +3684,15 @@ export default function HealthPage() {
 
           {financeSubTab === 'savings' ? (
             <>
-              <div className={styles.financeToolbarTop}>
-                <button type="button" className={styles.goalAddButton} onClick={() => setSavingsModalOpen(true)}>
-                  <PulseIcon name="plus" className={styles.goalAddIcon} />
-                  <span>Добавить цель</span>
-                </button>
-              </div>
-
-              <section className={styles.financeSectionSurface}>
-                <div className={styles.financeSectionTitle}><PulseIcon name="target" className={styles.sectionIconAccent} />Накопления</div>
+              <section className={[styles.financeSectionSurface, styles.financeSectionFirst].join(' ')}>
+                <div className={styles.financeSectionHeaderBar}>
+                  <div className={styles.financeSectionTitleWithAction}>
+                    <div className={styles.financeSectionTitle}><PulseIcon name="target" className={styles.sectionIconAccent} />Накопления</div>
+                    <button type="button" className={styles.financeInlineAddButton} onClick={() => setSavingsModalOpen(true)} aria-label="Добавить цель накопления">
+                      <PulseIcon name="plus" className={styles.financeInlineAddIcon} />
+                    </button>
+                  </div>
+                </div>
                 <div className={styles.financeSavingsList}>
                   {savingsGoalsView.map((goal) => (
                     <article key={goal.id} className={styles.financeSavingsCard}>
@@ -3102,31 +3712,38 @@ export default function HealthPage() {
                           </div>
                         </div>
                       </div>
-                      <div className={styles.financeSavingsMetrics}>
-                        <span>Накоплено</span>
-                        <strong>{formatMoney(goal.savedAmount)}</strong>
+                      <div className={styles.financeSavingsProgressBlock}>
+                        <div className={styles.financeSavingsProgressMeta}>
+                          <span>Накоплено</span>
+                          <strong>{formatMoney(goal.savedAmount)} из {formatMoney(goal.targetAmount)}</strong>
+                        </div>
+                        <div className={styles.financeProgress}><span style={{ width: `${goal.progress}%` }} /></div>
                       </div>
-                      <div className={styles.financeProgress}><span style={{ width: `${goal.progress}%` }} /></div>
-                      <div className={styles.financeSavingsFooter}>
-                        <span>0 ₽</span>
-                        <span>{formatMoney(goal.targetAmount)}</span>
-                      </div>
-                      {goal.itemsJson?.length ? <div className={styles.financeSubItems}>{goal.itemsJson.map((item) => `${item.title} — ${formatMoney(item.amount)}`).join(' · ')}</div> : null}
+                      {goal.shareArtifact ? (
+                        <FinanceShareParticipants
+                          shareMeta={goal.shareArtifact}
+                          title={goal.shareArtifact.sharingScope === 'SHARED' ? 'Кто сколько внёс' : 'Участники накопления'}
+                        />
+                      ) : null}
                     </article>
                   ))}
                   {!savingsGoalsView.length ? <div className={styles.emptyText}>Добавь финансовую цель, чтобы видеть движение к крупным покупкам отдельно от ежедневных трат.</div> : null}
                 </div>
               </section>
+            </>
+          ) : null}
 
-              <div className={styles.financeToolbarTop}>
-                <button type="button" className={styles.goalAddButton} onClick={() => { resetDebtForm(); setDebtModalOpen(true); }}>
-                  <PulseIcon name="plus" className={styles.goalAddIcon} />
-                  <span>Добавить долг</span>
-                </button>
-              </div>
-
-              <section className={styles.financeSectionSurface}>
-                <div className={styles.financeSectionTitle}><PulseIcon name="card" className={styles.sectionIconAccent} />Кредиты и долги</div>
+          {financeSubTab === 'debts' ? (
+            <>
+              <section className={[styles.financeSectionSurface, styles.financeSectionFirst].join(' ')}>
+                <div className={styles.financeSectionHeaderBar}>
+                  <div className={styles.financeSectionTitleWithAction}>
+                    <div className={styles.financeSectionTitle}><PulseIcon name="card" className={styles.sectionIconAccent} />Кредиты и долги</div>
+                    <button type="button" className={styles.financeInlineAddButton} onClick={() => { resetDebtForm(); setDebtModalOpen(true); }} aria-label="Добавить долг">
+                      <PulseIcon name="plus" className={styles.financeInlineAddIcon} />
+                    </button>
+                  </div>
+                </div>
                 <div className={styles.financeDebtList}>
                   {debtsView.map((debt) => (
                     <article key={debt.id} className={[styles.financeDebtCard, debt.isClosed ? styles.financeDebtCardClosed : ''].filter(Boolean).join(' ')}>
@@ -3150,6 +3767,12 @@ export default function HealthPage() {
                         <div><span>{debt.interestRate ? 'Ставка' : debt.termMonths ? 'Срок' : 'Статус'}</span><strong>{debt.interestRate ? `${debt.interestRate}%` : debt.termMonths ? `${debt.termMonths} мес.` : debt.isClosed ? 'Закрыт' : 'Активен'}</strong></div>
                       </div>
                       <div className={[styles.financeProgress, debt.isClosed ? styles.financeProgressSuccess : ''].filter(Boolean).join(' ')}><span style={{ width: `${debt.progress}%` }} /></div>
+                      {debt.shareArtifact ? (
+                        <FinanceShareParticipants
+                          shareMeta={debt.shareArtifact}
+                          title={debt.shareArtifact.sharingScope === 'SHARED' ? 'Кто сколько погасил' : 'Участники долга'}
+                        />
+                      ) : null}
                       <div className={styles.financeDebtFooter}>
                         <span>{debt.isClosed ? 'Достигнуто: долг полностью закрыт.' : `${debt.progress}% уже выплачено`}</span>
                         <span>{debt.termMonths ? `Осталось примерно ${Math.max(debt.termMonths - Math.round((debt.paidAmount / Math.max(debt.paymentAmount || 1, 1))), 0)} мес.` : debt.paymentAmount ? 'Можно вносить платёж больше плана — остаток пересчитается автоматически.' : 'Без фиксированного графика — внеси платёж в удобный момент.'}</span>
@@ -3171,20 +3794,20 @@ export default function HealthPage() {
 
           {financeSubTab === 'stats' ? (
             <>
-              <section className={styles.financeComparisonSurface}>
+              <section className={[styles.financeComparisonSurface, styles.financeSectionFirst].join(' ')}>
                 <div className={styles.financeSectionTitle}><PulseIcon name="trend" className={styles.sectionIconAccent} />Финансовый обзор</div>
                 <div className={styles.financeComparisonGrid}>
-                  <article className={styles.financeComparisonCard}>
+                  <article className={[styles.financeComparisonCard, styles.financeComparisonCardDetailed].join(' ')}>
                     <span>Доходы месяца</span>
                     <strong>{formatMoney(monthlyIncome)}</strong>
                     <em className={styles.financeAmountIncome}>{monthlyIncome > monthlyExpenses ? 'Поступления покрывают расходы' : 'Нужен контроль входящего потока'}</em>
                   </article>
-                  <article className={styles.financeComparisonCard}>
+                  <article className={[styles.financeComparisonCard, styles.financeComparisonCardDetailed].join(' ')}>
                     <span>Расходы месяца</span>
                     <strong>{formatMoney(monthlyExpenses)}</strong>
                     <em className={styles.financeAmountExpense}>{financeStatsRows[0]?.name ? `Главная категория: ${financeStatsRows[0].name}` : 'Появится после первых расходов'}</em>
                   </article>
-                  <article className={styles.financeComparisonCard}>
+                  <article className={[styles.financeComparisonCard, styles.financeComparisonCardDetailed].join(' ')}>
                     <span>Чистый баланс</span>
                     <strong>{formatMoney(monthlyBalance)}</strong>
                     <em className={monthlyBalance >= 0 ? styles.financeAmountIncome : styles.financeAmountExpense}>{monthlyBalance >= 0 ? 'Есть финансовая подушка' : 'Баланс требует внимания'}</em>
@@ -3193,6 +3816,15 @@ export default function HealthPage() {
               </section>
 
               <div className={styles.financeStatsDashboard}>
+                <section className={styles.financeSectionSurface}>
+                  <div className={styles.financeSectionTitle}><PulseIcon name="calendar" className={styles.sectionIconAccent} />Сравнение с прошлым месяцем</div>
+                  <div className={styles.financeComparisonGrid}>
+                    <FinanceComparisonMetricCard label="Доходы" current={monthlyIncome} previous={previousMonthIncome} positiveTrend="up" />
+                    <FinanceComparisonMetricCard label="Расходы" current={monthlyExpenses} previous={previousMonthExpenses} positiveTrend="down" />
+                    <FinanceComparisonMetricCard label="Баланс" current={monthlyBalance} previous={previousMonthBalance} positiveTrend="up" />
+                  </div>
+                </section>
+
                 <section className={styles.financeSectionSurface}>
                   <div className={styles.financeSectionTitle}><PulseIcon name="wallet" className={styles.sectionIconAccent} />Структура денежного потока</div>
                   <div className={styles.financeProfileStack}>
@@ -3203,32 +3835,29 @@ export default function HealthPage() {
                           <strong className={item.tone === 'income' ? styles.financeAmountIncome : item.tone === 'expense' ? styles.financeAmountExpense : ''}>{formatMoney(item.value)}</strong>
                         </div>
                         <div className={styles.financeLaneTrack}>
-                          <span
-                            className={[
-                              styles.financeLaneFill,
-                              item.tone === 'income'
-                                ? styles.financeLaneFillIncome
-                                : item.tone === 'expense'
-                                  ? styles.financeLaneFillExpense
-                                  : item.tone === 'neutral'
-                                    ? styles.financeLaneFillNeutral
-                                    : styles.financeLaneFillAccent,
-                            ].join(' ')}
-                            style={{ width: `${Math.max(10, Math.round((item.value / financeCompositionMax) * 100))}%` }}
-                          />
+                          <span className={[styles.financeLaneFill, item.tone === 'income' ? styles.financeLaneFillIncome : item.tone === 'expense' ? styles.financeLaneFillExpense : item.tone === 'neutral' ? styles.financeLaneFillNeutral : styles.financeLaneFillAccent].join(' ')} style={{ width: `${Math.max(10, Math.round((item.value / financeCompositionMax) * 100))}%` }} />
                         </div>
                       </div>
                     ))}
                   </div>
                 </section>
-
-                <section className={styles.financeSectionSurface}>
-                  <div className={styles.financeSectionTitle}><PulseIcon name="trend" className={styles.sectionIconAccent} />Операции за выбранный день</div>
-                  <FinanceTrendChart items={financeTrendPoints} />
-                </section>
               </div>
 
               <div className={styles.financeSplitGrid}>
+                <div className={styles.financeStatsSideStack}>
+                  <section className={styles.financeSectionSurface}>
+                    <div className={styles.financeSectionTitle}><PulseIcon name="spark" className={styles.sectionIconAccent} />Инсайты</div>
+                    <div className={styles.financeInsightsList}>
+                      {financeInsights.map((item) => (
+                        <article key={item.title} className={[styles.financeInsightCard, styles[`financeInsight${item.tone[0].toUpperCase() + item.tone.slice(1)}` as keyof typeof styles] as string].filter(Boolean).join(' ')}>
+                          <strong>{item.title}</strong>
+                          <span>{item.text}</span>
+                        </article>
+                      ))}
+                    </div>
+                  </section>
+                </div>
+
                 <section className={styles.financeSectionSurface}>
                   <div className={styles.financeSectionTitle}><PulseIcon name="wallet" className={styles.sectionIconAccent} />Расходы по категориям</div>
                   <div className={styles.financeStatsList}>
@@ -3258,195 +3887,80 @@ export default function HealthPage() {
                   </div>
                 </section>
 
-                <div className={styles.financeStatsSideStack}>
-                  <section className={styles.financeSectionSurface}>
-                    <div className={styles.financeSectionTitle}><PulseIcon name="spark" className={styles.sectionIconAccent} />Инсайты</div>
-                    <div className={styles.financeInsightsList}>
-                      {financeInsights.map((item) => (
-                        <article key={item.title} className={[styles.financeInsightCard, styles[`financeInsight${item.tone[0].toUpperCase() + item.tone.slice(1)}` as keyof typeof styles] as string].filter(Boolean).join(' ')}>
-                          <strong>{item.title}</strong>
-                          <span>{item.text}</span>
-                        </article>
-                      ))}
-                    </div>
-                  </section>
-
-                  <section className={styles.financeSectionSurface}>
-                    <div className={styles.financeSectionTitle}><PulseIcon name="calendar" className={styles.sectionIconAccent} />Ближайшие платежи</div>
-                    <div className={styles.financePaymentsList}>
-                      {upcomingPayments.map((payment, index) => (
-                        <div key={`${payment.title}-${index}`} className={styles.financePaymentRow}>
-                          <div>
-                            <strong>{payment.title}</strong>
-                            <span>{payment.kind}</span>
-                          </div>
-                          <div className={styles.financePaymentSide}>
-                            <strong>{formatMoney(payment.amount)}</strong>
-                            <span>{formatShortDate(payment.date)} ({getDaysUntilLabel(payment.date, selectedDate)})</span>
-                          </div>
-                        </div>
-                      ))}
-                      {!upcomingPayments.length ? <div className={styles.emptyText}>Ближайших обязательных платежей пока нет.</div> : null}
-                    </div>
-                  </section>
-                </div>
               </div>
             </>
           ) : null}
         </div>
       ) : null}
 
-      {mainTab === 'analytics' ? (
-        <div className={styles.grid}>
-          <Card className={styles.span4}>
-            <CardHeader title="Ментальное здоровье" action={<span className={styles.badgeSoft}>7 дней</span>} />
-            <div className={styles.metricRow}>
-              <div className={styles.metricCard}><span>Общее состояние</span><strong>{pulseDay?.mental7Score ?? 0}%</strong></div>
-              <div className={styles.metricCard}><span>Сегодня</span><strong>{pulseDay?.dayScore ?? 0}%</strong></div>
-            </div>
-            <TinyLineChart items={(analyticsData?.healthRows ?? []).map((row) => ({ date: row.date, todayScore: row.todayScore, pulse7Score: row.pulse7Score }))} keyProp="todayScore" secondaryKey="pulse7Score" />
-          </Card>
-
-          <Card className={styles.span4}>
-            <CardHeader title="Калории и вес" />
-            <TinyLineChart items={(analyticsData?.calorieLine ?? []).map((row) => ({ date: row.date, calories: row.calories, target: row.target }))} keyProp="calories" secondaryKey="target" />
-            <TinyLineChart items={(analyticsData?.weightLine ?? []).map((row) => ({ date: row.date, value: row.value }))} keyProp="value" />
-          </Card>
-
-          <Card className={styles.span4}>
-            <CardHeader title="Привычки и задачи" />
-            <TinyLineChart items={(analyticsData?.taskSeries ?? []).map((row) => ({ date: row.date, percent: row.percent }))} keyProp="percent" />
-            <div className={styles.list}>
-              {(analyticsData?.habitStreaks ?? []).map((habit) => (
-                <div key={habit.id} className={styles.listItem}>
-                  <strong>{habit.title}</strong>
-                  <span className={styles.badgeSoft}>{habit.streak} дн. подряд</span>
-                </div>
-              ))}
-              {!analyticsData?.habitStreaks?.length ? <div className={styles.emptyText}>Когда появятся привычки, здесь будут их стрики.</div> : null}
-            </div>
-          </Card>
-
-          <Card className={styles.span8}>
-            <CardHeader title="Подсказки по Pulse" />
-            <div className={styles.recommendations}>
-              {(analyticsData?.suggestions ?? []).map((item) => (
-                <div key={item} className={styles.tipItem}>• {item}</div>
-              ))}
-            </div>
-          </Card>
+      {mainTab === 'programs' ? (
+        <div className={styles.pulseScene}>
+          <ProgramsPulseTab />
         </div>
       ) : null}
 
+      {mainTab === 'analytics' ? (<AnalyticsTab analyticsData={analyticsData} pulseDay={pulseDay} />) : null}
+
       {mainTab === 'config' ? (
-        <div className={styles.configScene}>
-          <section className={styles.configHeroCard}>
-            <div>
-              <div className={styles.configHeroTitle}><PulseIcon name="spark" className={styles.sectionIconAccent} />Конфигурация трекеров</div>
-              <p className={styles.configHeroSubtitle}>Выберите, какие модули будут активны в вашем Pulse и как трекеры взаимодействуют между собой.</p>
-            </div>
-            <span className={styles.configHeroBadge}>{financeActiveModules.length} активно</span>
-          </section>
-
-          <section className={styles.configSectionCard}>
-            <div className={styles.configSectionTitle}><PulseIcon name="heart" className={styles.healthSubnavIcon} />Трекер здоровья</div>
-            <div className={styles.configModuleList}>
-              {[
-                { key: 'healthEnabled', title: 'Трекер здоровья', description: 'Общий модуль здоровья', icon: 'heart' as PulseIconName },
-                { key: 'mentalEnabled', title: 'Ментальное здоровье', description: 'Отслеживание состояния, сна, стресса и продуктивности', icon: 'brain' as PulseIconName },
-                { key: 'nutritionEnabled', title: 'Питание', description: 'Подсчёт калорий, БЖУ и приёмов пищи', icon: 'meal' as PulseIconName },
-              ].map((item) => {
-                const enabled = Boolean((config as any)?.[item.key]);
-                return (
-                  <article key={item.key} className={styles.configModuleRow}>
-                    <div className={styles.configModuleLead}>
-                      <span className={styles.configModuleIcon}><PulseIcon name={item.icon} className={styles.healthSubnavIcon} /></span>
-                      <div>
-                        <strong>{item.title}</strong>
-                        <span>{item.description}</span>
-                      </div>
-                    </div>
-                    <button type="button" className={[styles.configSwitch, enabled ? styles.configSwitchActive : ''].filter(Boolean).join(' ')} onClick={() => handleConfigToggle(item.key as keyof NonNullable<typeof config>)} disabled={configSaving} aria-pressed={enabled}>
-                      <span />
-                    </button>
-                  </article>
-                );
-              })}
-            </div>
-          </section>
-
-          <section className={styles.configSectionCard}>
-            <div className={styles.configSectionTitle}><PulseIcon name="check" className={styles.healthSubnavIcon} />Трекер задач</div>
-            <div className={styles.configModuleList}>
-              {[{ key: 'tasksEnabled', title: 'Трекер задач', description: 'Задачи, привычки и глобальные цели', icon: 'check' as PulseIconName }].map((item) => {
-                const enabled = Boolean((config as any)?.[item.key]);
-                return (
-                  <article key={item.key} className={styles.configModuleRow}>
-                    <div className={styles.configModuleLead}>
-                      <span className={styles.configModuleIcon}><PulseIcon name={item.icon} className={styles.healthSubnavIcon} /></span>
-                      <div>
-                        <strong>{item.title}</strong>
-                        <span>{item.description}</span>
-                      </div>
-                    </div>
-                    <button type="button" className={[styles.configSwitch, enabled ? styles.configSwitchActive : ''].filter(Boolean).join(' ')} onClick={() => handleConfigToggle(item.key as keyof NonNullable<typeof config>)} disabled={configSaving} aria-pressed={enabled}>
-                      <span />
-                    </button>
-                  </article>
-                );
-              })}
-            </div>
-          </section>
-
-          <section className={styles.configSectionCard}>
-            <div className={styles.configSectionTitle}><PulseIcon name="wallet" className={styles.healthSubnavIcon} />Трекер финансов</div>
-            <div className={styles.configModuleList}>
-              {[
-                { key: 'financeEnabled', title: 'Трекер финансов', description: 'Доходы, расходы, накопления и долги', icon: 'wallet' as PulseIconName },
-                { key: 'duplicateRecurringExpensesToTasks', title: 'Дублировать регулярные расходы в задачи', description: 'Коммуналка, подписки и другие повторяющиеся платежи появятся в трекере задач', icon: 'calendar' as PulseIconName },
-                { key: 'duplicateDebtPaymentsToTasks', title: 'Дублировать дни оплаты кредитов в задачи', description: 'Платежи по кредитам и долгам будут появляться в трекере задач', icon: 'card' as PulseIconName },
-              ].map((item) => {
-                const enabled = Boolean((config as any)?.[item.key]);
-                return (
-                  <article key={item.key} className={styles.configModuleRow}>
-                    <div className={styles.configModuleLead}>
-                      <span className={styles.configModuleIcon}><PulseIcon name={item.icon} className={styles.healthSubnavIcon} /></span>
-                      <div>
-                        <strong>{item.title}</strong>
-                        <span>{item.description}</span>
-                      </div>
-                    </div>
-                    <button type="button" className={[styles.configSwitch, enabled ? styles.configSwitchActive : ''].filter(Boolean).join(' ')} onClick={() => handleConfigToggle(item.key as keyof NonNullable<typeof config>)} disabled={configSaving} aria-pressed={enabled}>
-                      <span />
-                    </button>
-                  </article>
-                );
-              })}
-            </div>
-          </section>
-
-          <section className={styles.configActiveCard}>
-            <div className={styles.configSectionTitle}><PulseIcon name="pulse" className={styles.healthSubnavIcon} />Активные модули</div>
-            <div className={styles.configActiveTags}>
-              {financeActiveModules.map((item) => (
-                <span key={item} className={styles.configActiveTag}>{item}</span>
-              ))}
-            </div>
-            <p className={styles.configHeroSubtitle}>Отключённые модули не будут отображаться в навигации и на странице Pulse.</p>
-          </section>
-        </div>
+        <ConfigTab
+          config={config}
+          configSaving={configSaving}
+          financeActiveModules={financeActiveModules}
+          handleConfigToggle={handleConfigToggle as any}
+        />
       ) : null}
 
       <Modal
+        open={nutritionGoalModalOpen}
+        onClose={closeNutritionGoalModal}
+        title="Цель питания"
+        subtitle="Измени дневную цель по калориям и БЖУ без перехода на отдельный экран."
+        icon={<PulseIcon name="target" className={styles.modalHeaderSvg} />}
+      >
+        <div className={styles.modalStack}>
+          <div className={styles.modalInlineActions}>
+            <button
+              type="button"
+              className={styles.modalSecondaryButton}
+              onClick={() => setGoalForm({
+                dailyCalories: String(profileSuggestion?.dailyCalories ?? ''),
+                protein: String(profileSuggestion?.protein ?? ''),
+                fat: String(profileSuggestion?.fat ?? ''),
+                carbs: String(profileSuggestion?.carbs ?? ''),
+              })}
+            >
+              Подставить подсказку
+            </button>
+          </div>
+          <div className={styles.compactGrid}>
+            <Field label="Ккал / день"><input value={goalForm.dailyCalories} onChange={(event) => setGoalForm((prev) => ({ ...prev, dailyCalories: event.target.value }))} /></Field>
+            <Field label="Белки"><input value={goalForm.protein} onChange={(event) => setGoalForm((prev) => ({ ...prev, protein: event.target.value }))} /></Field>
+            <Field label="Жиры"><input value={goalForm.fat} onChange={(event) => setGoalForm((prev) => ({ ...prev, fat: event.target.value }))} /></Field>
+            <Field label="Углеводы"><input value={goalForm.carbs} onChange={(event) => setGoalForm((prev) => ({ ...prev, carbs: event.target.value }))} /></Field>
+          </div>
+          <div className={styles.modalFooterSummary}>
+            <strong>{nutritionGoal ? `Текущая цель: ${nutritionGoal.dailyCalories} ккал` : 'Цель будет сохранена в профиль питания'}</strong>
+            <div className={styles.modalActions}>
+              <Button onClick={closeNutritionGoalModal}>Отмена</Button>
+              <Button variant="primary" onClick={handleGoalSave} disabled={goalSaving} loading={goalSaving}>Сохранить</Button>
+            </div>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal
         open={mealModalOpen}
-        onClose={() => setMealModalOpen(false)}
-        title="Добавить приём пищи"
+        onClose={closeMealModal}
+        title={editingMealId ? 'Изменить приём пищи' : 'Добавить приём пищи'}
         subtitle="Найдите продукты или соберите свой приём пищи из популярных вариантов."
         icon={<PulseIcon name="meal" className={styles.modalHeaderSvg} />}
         size="lg"
       >
         <div className={styles.modalStack}>
-          <Field label="Название приёма пищи"><input placeholder="Например, Обед или Перекус" value={mealTitle} onChange={(e) => setMealTitle(e.target.value)} /></Field>
+          <div className={styles.compactGrid}>
+            <Field label="Название приёма пищи"><input placeholder="Например, Обед или Перекус" value={mealTitle} onChange={(e) => setMealTitle(e.target.value)} /></Field>
+            <Field label="Время"><input type="time" value={mealTime} onChange={(e) => setMealTime(e.target.value)} /></Field>
+          </div>
           <Field label="Комментарий (опционально)"><textarea rows={3} placeholder="Короткая заметка о приёме пищи" value={mealNotes} onChange={(e) => setMealNotes(e.target.value)} /></Field>
           <Field label="Поиск продукта или блюда"><input value={foodSearch} onChange={(e) => setFoodSearch(e.target.value)} placeholder="Овсянка, курица, йогурт..." /></Field>
 
@@ -3464,15 +3978,28 @@ export default function HealthPage() {
           ) : null}
 
           <div className={styles.modalSearchResults}>
-            {(foodSearchData?.items ?? []).slice(0, 8).map((food) => (
+            {(foodSearchData?.items ?? []).slice(0, 8).map((food) => {
+              const selectedCount = mealItemCountMap.get(getFoodIdentity(food)) ?? 0;
+              return (
               <button key={food.id} type="button" className={styles.modalSearchRow} onClick={() => addFoodToMeal(food)}>
                 <div>
                   <strong>{food.name}</strong>
-                  <span>{food.calories} ккал · {food.defaultGrams ?? 100} г</span>
+                  <span>{food.calories} ккал · {food.defaultGrams ?? 100} г · {formatUsageCountLabel(food.usageCount)}</span>
                 </div>
-                <span className={styles.modalSearchAction}><PulseIcon name="plus" className={styles.modalInlineIcon} /></span>
+                <span className={styles.modalSearchAction}>
+                  {selectedCount ? (
+                    <span className={styles.modalInlineCounter} onClick={(event) => event.stopPropagation()}>
+                      <button type="button" className={styles.modalInlineCounterButton} onClick={(event) => { event.stopPropagation(); removeMealPortion(getFoodIdentity(food)); }} aria-label="Уменьшить количество">−</button>
+                      <span className={styles.modalSearchCount}>{selectedCount}</span>
+                      <button type="button" className={styles.modalInlineCounterButton} onClick={(event) => { event.stopPropagation(); addFoodToMeal(food); }} aria-label="Увеличить количество">+</button>
+                    </span>
+                  ) : (
+                    <PulseIcon name="plus" className={styles.modalInlineIcon} />
+                  )}
+                </span>
               </button>
-            ))}
+              );
+            })}
             {!((foodSearchData?.items ?? []).length) && foodSearch.trim() ? <div className={styles.emptyText}>Ничего не найдено. Можно добавить свой продукт ниже.</div> : null}
           </div>
 
@@ -3483,24 +4010,28 @@ export default function HealthPage() {
           <div className={styles.modalBlock}>
             <div className={styles.modalBlockTitle}>Что войдёт в приём пищи</div>
             <div className={styles.modalSelectionList}>
-              {mealItems.map((item, index) => (
-                <div key={`${item.name}-${index}`} className={styles.modalSelectionRow}>
+              {groupedMealItems.map((group) => (
+                <div key={group.key} className={styles.modalSelectionRow}>
                   <div>
-                    <strong>{item.name}</strong>
-                    <span>{item.grams} г · {item.calories} ккал</span>
+                    <strong>{group.item.name}</strong>
+                    <span>{group.totalGrams} г · {Math.round(group.totalCalories)} ккал</span>
                   </div>
-                  <button type="button" className={styles.taskDeleteButton} onClick={() => setMealItems((prev) => prev.filter((_, itemIndex) => itemIndex !== index))}>Убрать</button>
+                  <div className={styles.modalCounterGroup}>
+                    <button type="button" className={styles.modalCounterButton} onClick={() => removeMealPortion(group.key)} aria-label="Уменьшить количество">−</button>
+                    <span className={styles.modalCounterValue}>{group.count}</span>
+                    <button type="button" className={styles.modalCounterButton} onClick={() => addMealPortion(group.item)} aria-label="Увеличить количество">+</button>
+                  </div>
                 </div>
               ))}
               {!mealItems.length ? <div className={styles.emptyText}>Добавь хотя бы один продукт или блюдо.</div> : null}
             </div>
           </div>
 
-          <div className={styles.modalFooterSummary}>
+          <div className={[styles.modalFooterSummary, styles.modalFooterSticky].join(' ')}>
             <strong>Итого: {mealPreviewCalories} ккал</strong>
             <div className={styles.modalActions}>
-              <Button onClick={() => setMealModalOpen(false)}>Отмена</Button>
-              <Button variant="primary" onClick={handleMealSave} disabled={mealSaving || !mealItems.length} loading={mealSaving}>Добавить</Button>
+              <Button onClick={closeMealModal}>Отмена</Button>
+              <Button variant="primary" onClick={handleMealSave} disabled={mealSaving || !mealItems.length} loading={mealSaving}>{editingMealId ? 'Сохранить' : 'Добавить'}</Button>
             </div>
           </div>
         </div>
@@ -3508,7 +4039,11 @@ export default function HealthPage() {
 
       <Modal
         open={foodModalOpen}
-        onClose={() => setFoodModalOpen(false)}
+        onClose={() => {
+          setFoodModalOpen(false);
+          setCustomFoodSearch('');
+          setCustomDishItems([]);
+        }}
         title="Добавить своё блюдо"
         subtitle="Если готового продукта нет в базе, создай его и используй дальше повторно."
         icon={<PulseIcon name="meal" className={styles.modalHeaderSvg} />}
@@ -3516,11 +4051,11 @@ export default function HealthPage() {
         <div className={styles.modalStack}>
           <Field label="Название"><input placeholder="Например, Домашняя гранола" value={customFoodForm.name} onChange={(e) => setCustomFoodForm((prev) => ({ ...prev, name: e.target.value }))} /></Field>
           <div className={styles.compactGrid}>
-            <Field label="Ккал"><input value={customFoodForm.calories} onChange={(e) => setCustomFoodForm((prev) => ({ ...prev, calories: e.target.value }))} /></Field>
-            <Field label="Порция, г"><input value={customFoodForm.grams} onChange={(e) => setCustomFoodForm((prev) => ({ ...prev, grams: e.target.value }))} /></Field>
-            <Field label="Белки"><input value={customFoodForm.protein} onChange={(e) => setCustomFoodForm((prev) => ({ ...prev, protein: e.target.value }))} /></Field>
-            <Field label="Жиры"><input value={customFoodForm.fat} onChange={(e) => setCustomFoodForm((prev) => ({ ...prev, fat: e.target.value }))} /></Field>
-            <Field label="Углеводы"><input value={customFoodForm.carbs} onChange={(e) => setCustomFoodForm((prev) => ({ ...prev, carbs: e.target.value }))} /></Field>
+            <Field label="Ккал"><input value={customDishUsesComposition ? String(Math.round(customDishTotals.calories)) : customFoodForm.calories} readOnly={customDishUsesComposition} onChange={(e) => setCustomFoodForm((prev) => ({ ...prev, calories: e.target.value }))} /></Field>
+            <Field label="Порция, г"><input value={customDishUsesComposition ? String(Math.round(customDishTotals.grams)) : customFoodForm.grams} readOnly={customDishUsesComposition} onChange={(e) => setCustomFoodForm((prev) => ({ ...prev, grams: e.target.value }))} /></Field>
+            <Field label="Белки"><input value={customDishUsesComposition ? String(Number(customDishTotals.protein.toFixed(1))) : customFoodForm.protein} readOnly={customDishUsesComposition} onChange={(e) => setCustomFoodForm((prev) => ({ ...prev, protein: e.target.value }))} /></Field>
+            <Field label="Жиры"><input value={customDishUsesComposition ? String(Number(customDishTotals.fat.toFixed(1))) : customFoodForm.fat} readOnly={customDishUsesComposition} onChange={(e) => setCustomFoodForm((prev) => ({ ...prev, fat: e.target.value }))} /></Field>
+            <Field label="Углеводы"><input value={customDishUsesComposition ? String(Number(customDishTotals.carbs.toFixed(1))) : customFoodForm.carbs} readOnly={customDishUsesComposition} onChange={(e) => setCustomFoodForm((prev) => ({ ...prev, carbs: e.target.value }))} /></Field>
           </div>
 
           <div className={styles.modalOptionGrid}>
@@ -3536,36 +4071,223 @@ export default function HealthPage() {
             </button>
           </div>
 
+          {customFoodForm.isDish ? (
+            <div className={styles.modalBlock}>
+              <div className={styles.modalBlockTitle}>Состав блюда</div>
+              <Field label="Найти ингредиент"><input value={customFoodSearch} onChange={(e) => setCustomFoodSearch(e.target.value)} placeholder="Рис, курица, овощи..." /></Field>
+              <div className={styles.modalSearchResults}>
+                {(customFoodSearchData?.items ?? []).slice(0, 6).map((food) => {
+                  const selectedCount = customDishItemCountMap.get(getFoodIdentity(food)) ?? 0;
+                  return (
+                  <button key={`dish-${food.id}`} type="button" className={styles.modalSearchRow} onClick={() => addFoodToCustomDish(food)}>
+                    <div>
+                      <strong>{food.name}</strong>
+                      <span>{food.calories} ккал · {food.defaultGrams ?? 100} г</span>
+                    </div>
+                    <span className={styles.modalSearchAction}>
+                      {selectedCount ? <span className={styles.modalSearchCount}>{selectedCount}x</span> : null}
+                      <PulseIcon name="plus" className={styles.modalInlineIcon} />
+                    </span>
+                  </button>
+                  );
+                })}
+              </div>
+              <div className={styles.modalSelectionList}>
+                {customDishItems.map((item, index) => (
+                  <div key={`${item.name}-${index}`} className={styles.modalSelectionRow}>
+                    <div>
+                      <strong>{item.name}</strong>
+                      <span>{item.grams} г · {item.calories} ккал</span>
+                    </div>
+                    <button type="button" className={styles.taskDeleteButton} onClick={() => setCustomDishItems((prev) => prev.filter((_, itemIndex) => itemIndex !== index))}>Убрать</button>
+                  </div>
+                ))}
+                {!customDishItems.length ? <div className={styles.emptyText}>Добавь ингредиенты, и блюдо соберётся автоматически по КБЖУ.</div> : null}
+              </div>
+            </div>
+          ) : null}
+
           <div className={styles.modalActions}>
-            <Button onClick={() => setFoodModalOpen(false)}>Отмена</Button>
+            <Button onClick={() => {
+              setFoodModalOpen(false);
+              setCustomFoodSearch('');
+              setCustomDishItems([]);
+            }}>Отмена</Button>
             <Button variant="primary" onClick={handleCreateFood} disabled={foodSaving} loading={foodSaving}>Сохранить</Button>
           </div>
         </div>
       </Modal>
 
       <Modal
+        open={Boolean(taskDetailsItem)}
+        onClose={() => setTaskDetailsItem(null)}
+        title={taskDetailsItem?.title ?? 'Задача'}
+        subtitle={taskDetailsItem?.dueDate ? formatLongDate(taskDetailsItem.dueDate) : formatLongDate(selectedDate)}
+        icon={<PulseIcon name="check" className={styles.modalHeaderSvg} />}
+      >
+        {taskDetailsItem ? (
+          <div className={styles.modalStack}>
+            <div className={styles.taskDetailsGrid}>
+              <div className={styles.taskDetailsCard}>
+                <span className={styles.taskDetailsLabel}>Статус</span>
+                <strong>{getTaskStatusLabel(taskDetailsItem)}</strong>
+                <span>{taskDetailsItem.completedForDate ? 'Задача уже отмечена выполненной на выбранный день.' : 'Задача ещё находится в работе.'}</span>
+              </div>
+              <div className={styles.taskDetailsCard}>
+                <span className={styles.taskDetailsLabel}>Когда</span>
+                <strong>{getTaskPrimaryTime(taskDetailsItem)}</strong>
+                <span>{taskDetailsItem.dueDate ? formatLongDate(taskDetailsItem.dueDate) : 'На выбранный день'}</span>
+              </div>
+              <div className={styles.taskDetailsCard}>
+                <span className={styles.taskDetailsLabel}>Тип</span>
+                <strong>{getTaskTypeLabel(taskDetailsItem)}</strong>
+                <span>{getTaskRepeatSummary(taskDetailsItem)}</span>
+              </div>
+              <div className={styles.taskDetailsCard}>
+                <span className={styles.taskDetailsLabel}>Источник</span>
+                <strong>{taskDetailsItem.programMeta?.title ?? taskDetailsItem.sourceEventTitle ?? 'Личная задача'}</strong>
+                <span>{taskDetailsItem.programMeta ? 'Связана с программой.' : taskDetailsItem.sourceEventTitle ? 'Создана из события.' : 'Создана вручную.'}</span>
+              </div>
+            </div>
+
+            <div className={styles.taskDetailsBody}>
+              <div className={styles.taskDetailsSection}>
+                <span className={styles.taskDetailsLabel}>Описание</span>
+                <p>{taskDetailsItem.notes?.trim() || 'Описание пока не добавлено.'}</p>
+              </div>
+              {taskDetailsItem.tags?.length ? (
+                <div className={styles.taskDetailsSection}>
+                  <span className={styles.taskDetailsLabel}>Теги</span>
+                  <div className={styles.taskDetailsTags}>
+                    {taskDetailsItem.tags.map((tag) => (
+                      <span key={tag} className={styles.taskDetailsTag}>{tag}</span>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+            </div>
+
+            <div className={styles.modalActions}>
+              <Button onClick={() => setTaskDetailsItem(null)}>Закрыть</Button>
+              <Button
+                onClick={() => {
+                  const taskToEdit = taskDetailsItem;
+                  setTaskDetailsItem(null);
+                  if (taskToEdit) {
+                    openTaskEditModal(taskToEdit);
+                  }
+                }}
+              >
+                <Pencil size={16} aria-hidden="true" />
+                Редактировать
+              </Button>
+              <Button
+                onClick={() => {
+                  const taskToDelete = taskDetailsItem;
+                  setTaskDetailsItem(null);
+                  if (taskToDelete) {
+                    void deletePulseTask(taskToDelete.id);
+                  }
+                }}
+              >
+                Удалить
+              </Button>
+              <Button
+                variant="primary"
+                onClick={() => {
+                  void togglePulseTaskDate({ taskId: taskDetailsItem.id, date: selectedDate });
+                  setTaskDetailsItem(null);
+                }}
+              >
+                {taskDetailsItem.completedForDate ? 'Снять выполнение' : 'Отметить выполненной'}
+              </Button>
+            </div>
+          </div>
+        ) : null}
+      </Modal>
+
+      <Modal
         open={taskModalOpen}
-        onClose={() => setTaskModalOpen(false)}
-        title="Добавить задачу"
-        subtitle="Создайте новую задачу или привычку. Время пока не используем, поэтому только суть и тип."
+        onClose={closeTaskModal}
+        title={taskEditingId ? 'Редактировать задачу' : 'Добавить задачу'}
+        subtitle={taskEditingId ? 'Обновите поля и сохраните изменения.' : 'Время можно добавить сразу или оставить задачу без времени.'}
         icon={<PulseIcon name="check" className={styles.modalHeaderSvg} />}
       >
         <div className={styles.modalStack}>
           <Field label="Название задачи"><input placeholder="Что нужно сделать?" value={taskForm.title} onChange={(e) => setTaskForm((prev) => ({ ...prev, title: e.target.value }))} /></Field>
 
+          <div className={styles.taskQuickAddBlock}>
+            <div className={styles.taskQuickAddBlockTitle}>Когда</div>
+            <div className={styles.taskTimeModeRow}>
+              <Segmented
+                value={taskForm.timeMode}
+                onChange={(value) =>
+                  setTaskForm((prev) =>
+                    normalizeTaskDraft({
+                      ...prev,
+                      timeMode: value as TaskDraft['timeMode'],
+                    }))}
+                options={[
+                  { value: 'NONE', label: 'Без времени' },
+                  { value: 'SINGLE', label: 'Одно время' },
+                  { value: 'RANGE', label: 'Интервал' },
+                ]}
+              />
+            </div>
+            <div className={styles.inlineFields}>
+              <Field label="Дата"><input type="date" value={taskForm.date} onChange={(e) => setTaskForm((prev) => ({ ...prev, date: e.target.value }))} /></Field>
+              {taskForm.timeMode !== 'NONE' ? (
+                <Field label={taskForm.timeMode === 'RANGE' ? 'Начало' : 'Время'}>
+                  <input
+                    type="time"
+                    value={taskForm.time}
+                    onChange={(e) =>
+                      setTaskForm((prev) =>
+                        normalizeTaskDraft({
+                          ...prev,
+                          time: e.target.value,
+                          endTime:
+                            e.target.value && prev.timeMode === 'RANGE'
+                              ? (prev.endTime || addMinutesToTime(e.target.value))
+                              : prev.endTime,
+                        }))}
+                  />
+                </Field>
+              ) : (
+                <div className={styles.taskTimeHint}>Задача появится в блоке без времени.</div>
+              )}
+              {taskForm.timeMode === 'RANGE' ? (
+                <Field label="Окончание">
+                  <input
+                    type="time"
+                    value={taskForm.endTime}
+                    min={taskForm.time || undefined}
+                    disabled={!taskForm.time}
+                    onChange={(e) => setTaskForm((prev) => ({ ...prev, endTime: e.target.value }))}
+                  />
+                </Field>
+              ) : null}
+            </div>
+          </div>
+
           <div className={styles.modalBlock}>
             <div className={styles.modalBlockTitle}>Тип задачи</div>
             <div className={styles.modalOptionGridWide}>
               {[
-                { value: 'ONE_TIME', label: 'Разовая', note: 'Один раз и готово', icon: 'calendar' as const },
-                { value: 'REGULAR', label: 'Регулярная', note: 'Повторяется по графику', icon: 'trend' as const },
-                { value: 'HABIT', label: 'Привычка', note: 'Закрепляем полезное действие', icon: 'flame' as const },
+                { value: 'ONE_TIME', label: 'Один раз', note: 'На выбранную дату', icon: 'calendar' as const },
+                { value: 'REGULAR', label: 'Повтор', note: 'Повторяется по расписанию', icon: 'trend' as const },
+                { value: 'HABIT', label: 'Привычка', note: 'Для ежедневного ритма', icon: 'flame' as const },
               ].map((option) => (
                 <button
                   key={option.value}
                   type="button"
                   className={[styles.modalOptionCard, taskForm.taskType === option.value ? styles.modalOptionCardActive : ''].filter(Boolean).join(' ')}
-                  onClick={() => setTaskForm((prev) => ({ ...prev, taskType: option.value as typeof prev.taskType, scheduleType: option.value === 'ONE_TIME' ? 'NONE' : prev.scheduleType }))}
+                  onClick={() =>
+                    setTaskForm((prev) => ({
+                      ...prev,
+                      taskType: option.value as typeof prev.taskType,
+                      scheduleType: option.value === 'REGULAR' ? (prev.scheduleType === 'NONE' ? 'WEEKLY' : prev.scheduleType) : 'NONE',
+                    }))}
                 >
                   <PulseIcon name={option.icon} className={styles.modalOptionIcon} />
                   <strong>{option.label}</strong>
@@ -3598,8 +4320,10 @@ export default function HealthPage() {
           </div>
 
           <div className={styles.modalActions}>
-            <Button onClick={() => setTaskModalOpen(false)}>Отмена</Button>
-            <Button variant="primary" onClick={handleCreateTask} disabled={taskSaving || !taskForm.title.trim()} loading={taskSaving}>Добавить</Button>
+            <Button onClick={closeTaskModal}>Отмена</Button>
+            <Button variant="primary" onClick={handleSaveTask} disabled={taskSaving || !canSubmitTaskDraft(taskForm)} loading={taskSaving}>
+              {taskEditingId ? 'Сохранить изменения' : 'Добавить'}
+            </Button>
           </div>
         </div>
       </Modal>
@@ -3632,17 +4356,38 @@ export default function HealthPage() {
 
       <Modal
         open={categoryModalOpen}
-        onClose={() => setCategoryModalOpen(false)}
-        title="Добавить категорию"
-        subtitle="Отдельные категории помогают не терять структуру расходов и доходов."
+        onClose={() => { setCategoryModalOpen(false); setActiveFinanceCategoryId(null); }}
+        title={activeFinanceCategory ? activeFinanceCategory.name : 'Добавить категорию'}
+        subtitle={activeFinanceCategory ? 'Здесь можно поправить лимит и быстро редактировать расходы категории.' : 'Отдельные категории помогают не терять структуру расходов и доходов.'}
         icon={<PulseIcon name="wallet" className={styles.modalHeaderSvg} />}
+        size="lg"
       >
         <div className={styles.modalStack}>
-          <Field label="Название категории"><input placeholder="Например, Подписки или Подарки" value={categoryForm.name} onChange={(e) => setCategoryForm((prev) => ({ ...prev, name: e.target.value }))} /></Field>
-          <Field label="Месячный лимит, ₽"><input placeholder="0" value={categoryForm.limitAmount} onChange={(e) => setCategoryForm((prev) => ({ ...prev, limitAmount: e.target.value }))} /></Field>
+          <div className={styles.compactGrid}>
+            <Field label="Название категории"><input placeholder="Например, Подписки или Подарки" value={categoryForm.name} onChange={(e) => setCategoryForm((prev) => ({ ...prev, name: e.target.value }))} /></Field>
+            <Field label="Месячный лимит, ₽"><input placeholder="0" value={categoryForm.limitAmount} onChange={(e) => setCategoryForm((prev) => ({ ...prev, limitAmount: e.target.value }))} /></Field>
+          </div>
+
+          {activeFinanceCategory ? (
+            <div className={styles.modalBlock}>
+              <div className={styles.modalBlockTitle}>Расходы в категории</div>
+              <div className={styles.financeEntryList}>
+                {activeFinanceCategoryEntries.map((entry) => (
+                  <FinanceEntryCompactRow
+                    key={entry.id}
+                    entry={entry}
+                    onEdit={(targetEntry) => { setCategoryModalOpen(false); openFinanceEntryEditor(targetEntry); }}
+                    onDelete={deleteFinanceEntry}
+                  />
+                ))}
+                {!activeFinanceCategoryEntries.length ? <div className={styles.emptyText}>В этой категории пока нет расходов.</div> : null}
+              </div>
+            </div>
+          ) : null}
+
           <div className={styles.modalActions}>
-            <Button onClick={() => setCategoryModalOpen(false)}>Отмена</Button>
-            <Button variant="primary" onClick={handleCreateCategory} disabled={categorySaving || !categoryForm.name.trim()} loading={categorySaving}>Сохранить</Button>
+            <Button onClick={() => { setCategoryModalOpen(false); setActiveFinanceCategoryId(null); }}>Отмена</Button>
+            <Button variant="primary" onClick={handleCreateCategory} disabled={(categorySaving || categoryUpdating) || !categoryForm.name.trim()} loading={categorySaving || categoryUpdating}>{activeFinanceCategory ? 'Сохранить изменения' : 'Сохранить'}</Button>
           </div>
         </div>
       </Modal>
@@ -3650,7 +4395,7 @@ export default function HealthPage() {
       <Modal
         open={financeModalOpen}
         onClose={() => setFinanceModalOpen(false)}
-        title={financeForm.type === 'INCOME' ? 'Добавить доход' : 'Добавить расход'}
+        title={editingFinanceEntryId ? (financeForm.type === 'INCOME' ? 'Редактировать доход' : 'Редактировать расход') : (financeForm.type === 'INCOME' ? 'Добавить доход' : 'Добавить расход')}
         subtitle="Запиши движение денег в удобном компактном формате и при необходимости сразу отметь регулярность."
         icon={<PulseIcon name="wallet" className={styles.modalHeaderSvg} />}
       >
@@ -3725,8 +4470,8 @@ export default function HealthPage() {
           ) : null}
 
           <div className={styles.modalActions}>
-            <Button onClick={() => setFinanceModalOpen(false)}>Отмена</Button>
-            <Button variant="primary" onClick={handleCreateFinanceEntry} disabled={financeSaving || !financeForm.title.trim() || !financeForm.amount.trim()} loading={financeSaving}>Добавить</Button>
+            <Button onClick={() => { setFinanceModalOpen(false); resetFinanceEntryForm(financeForm.type as 'EXPENSE' | 'INCOME'); }}>Отмена</Button>
+            <Button variant="primary" onClick={handleCreateFinanceEntry} disabled={financeEntryModalBusy || !financeForm.title.trim() || !financeForm.amount.trim()} loading={financeEntryModalBusy}>{editingFinanceEntryId ? 'Сохранить' : 'Добавить'}</Button>
           </div>
         </div>
       </Modal>

@@ -21,6 +21,12 @@ import gamesRouter from "./routes/games";
 import storiesRouter from "./routes/stories";
 import supportRouter from "./routes/support";
 import analyticsRouter from "./routes/analytics";
+import programsRouter from "./routes/programs";
+import programRunsRouter from "./routes/programRuns";
+import programSessionsRouter from "./routes/programSessions";
+import shareArtifactsRouter from "./routes/shareArtifacts";
+import achievementsRouter from "./routes/achievements";
+import callsRouter from "./routes/calls";
 
 export function createApp() {
   const env = getEnv();
@@ -62,7 +68,10 @@ export function createApp() {
       res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
       next();
     },
-    express.static(uploadDir),
+    express.static(uploadDir, {
+      maxAge: "30d",
+      immutable: true,
+    }),
   );
 
   app.get("/healthz", (_req, res) => res.json({ ok: true }));
@@ -71,9 +80,15 @@ export function createApp() {
   app.use("/api/users", usersRouter);
   app.use("/api/posts", postsRouter);
   app.use("/api/chats", chatsRouter);
+  app.use("/api/health/programs", programsRouter);
+  app.use("/api/health/program-runs", programRunsRouter);
+  app.use("/api/health/program-sessions", programSessionsRouter);
+  app.use("/api/health/share-artifacts", shareArtifactsRouter);
+  app.use("/api/health/achievements", achievementsRouter);
   app.use("/api/health", healthRouter);
   app.use("/api/tasks", tasksRouter);
   app.use("/api/notifications", notificationsRouter);
+  app.use("/api/calls", callsRouter);
   app.use("/api/games", gamesRouter);
   app.use("/api/stories", storiesRouter);
   app.use("/api/admin", adminRouter);

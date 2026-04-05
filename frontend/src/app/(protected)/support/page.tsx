@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import styles from "./Support.module.css";
-import { Card, CardHeader, CardMuted } from "@/shared/ui/Card/Card";
+import { Card, CardHeader } from "@/shared/ui/Card/Card";
 import { Button } from "@/shared/ui/Button/Button";
 import { AdminBadge } from "@/shared/ui/AdminBadge/AdminBadge";
 import { useGetMeQuery } from "@/shared/api/usersApi";
@@ -57,6 +57,18 @@ const ideaCategories: TicketCategoryOption[] = [
   { id: "POSTS", label: "Посты и лента" },
   { id: "FEATURE", label: "Новая функция" },
   { id: "OTHER", label: "Другое" },
+];
+
+const ticketGuide = [
+  "Укажите, где именно возникла проблема: профиль, сообщения, звонки, лента и т.д.",
+  "Опишите, как повторить ошибку, и что вы ожидали увидеть вместо этого.",
+  "Для идей добавьте, чем улучшение поможет обычному пользователю и какой путь станет проще.",
+];
+
+const questionGuide = [
+  "Чем больше лайков соберёт вопрос, тем выше он будет в списке.",
+  "После ответа администратора вопрос остаётся доступным по ссылке и в поиске.",
+  "После закрытия вопрос через 24 часа уходит в архив, но не пропадает из поиска.",
 ];
 
 function formatDate(value?: string | null) {
@@ -316,7 +328,7 @@ export default function SupportPage() {
   return (
     <div className="container appPage">
       <div className={styles.page}>
-        <Card>
+        <Card className={styles.heroPanel}>
           <div className={styles.hero}>
             <div className={styles.heroCopy}>
               <div className={styles.heroTitle}>Тех поддержка</div>
@@ -338,32 +350,34 @@ export default function SupportPage() {
                 <div className={styles.summaryLabel}>Популярных вопросов</div>
               </div>
             </div>
+            <div className={styles.heroFooter}>
+              <div className={styles.viewSwitch}>
+                <button
+                  type="button"
+                  className={[styles.switch, view === "tickets" ? styles.switchActive : ""].filter(Boolean).join(" ")}
+                  onClick={() => setView("tickets")}
+                >
+                  Личные тикеты
+                </button>
+                <button
+                  type="button"
+                  className={[styles.switch, view === "questions" ? styles.switchActive : ""].filter(Boolean).join(" ")}
+                  onClick={() => setView("questions")}
+                >
+                  Популярные вопросы
+                </button>
+              </div>
+              {me?.role === "ADMIN" ? (
+                <div className={styles.hint}>Вы администратор. Очередь тикетов и модерация вопросов доступны в админ-панели, но здесь вы видите интерфейс пользователя.</div>
+              ) : null}
+            </div>
           </div>
-          <div className={styles.viewSwitch}>
-            <button
-              type="button"
-              className={[styles.switch, view === "tickets" ? styles.switchActive : ""].filter(Boolean).join(" ")}
-              onClick={() => setView("tickets")}
-            >
-              Личные тикеты
-            </button>
-            <button
-              type="button"
-              className={[styles.switch, view === "questions" ? styles.switchActive : ""].filter(Boolean).join(" ")}
-              onClick={() => setView("questions")}
-            >
-              Популярные вопросы
-            </button>
-          </div>
-          {me?.role === "ADMIN" ? (
-            <div className={styles.hint}>Вы администратор. Очередь тикетов и модерация вопросов доступны в админ-панели, но здесь вы видите интерфейс пользователя.</div>
-          ) : null}
         </Card>
 
         {view === "tickets" ? (
           <div className={styles.grid}>
             <div className={styles.stack}>
-              <Card>
+              <Card className={styles.panel}>
                 <CardHeader title="Создать личный тикет" />
                 <form className={styles.form} onSubmit={handleCreateTicket}>
                   <div className={styles.kindToggle}>
@@ -437,21 +451,20 @@ export default function SupportPage() {
                     </Button>
                     <span className={styles.hint}>Статусы: ожидается → принят на рассмотрение → закрыт.</span>
                   </div>
+                  <div className={styles.guideBlock}>
+                    <div className={styles.guideTitle}>Что ускорит ответ</div>
+                    <div className={styles.tipsList}>
+                      {ticketGuide.map((tip) => (
+                        <div key={tip} className={styles.tipItem}>{tip}</div>
+                      ))}
+                    </div>
+                  </div>
                 </form>
-              </Card>
-
-              <Card>
-                <CardHeader title="Как быстрее получить помощь" />
-                <div className={styles.tipsList}>
-                  <div className={styles.tipItem}>Укажите, где именно возникла проблема: профиль, сообщения, звонки, лента и т.д.</div>
-                  <div className={styles.tipItem}>Опишите, как повторить ошибку, и что вы ожидали увидеть вместо этого.</div>
-                  <div className={styles.tipItem}>Для идей добавьте, чем улучшение поможет обычному пользователю и какой путь станет проще.</div>
-                </div>
               </Card>
             </div>
 
             <div className={styles.stack}>
-              <Card>
+              <Card className={styles.panel}>
                 <CardHeader title="Мои тикеты" action={<span className={styles.meta}>{ticketCounts.total}</span>} />
                 <div className={styles.metricsRow}>
                   <div className={styles.metricPill}>Ожидается: {ticketCounts.open}</div>
@@ -473,7 +486,7 @@ export default function SupportPage() {
         ) : (
           <div className={styles.grid}>
             <div className={styles.stack}>
-              <Card>
+              <Card className={styles.panel}>
                 <CardHeader title="Задать популярный вопрос" />
                 <form className={styles.form} onSubmit={handleCreateQuestion}>
                   <label className={styles.field}>
@@ -510,21 +523,20 @@ export default function SupportPage() {
                     </Button>
                     <span className={styles.hint}>Ответ на популярный вопрос публикует только администратор.</span>
                   </div>
+                  <div className={styles.guideBlock}>
+                    <div className={styles.guideTitle}>Как работает раздел</div>
+                    <div className={styles.tipsList}>
+                      {questionGuide.map((tip) => (
+                        <div key={tip} className={styles.tipItem}>{tip}</div>
+                      ))}
+                    </div>
+                  </div>
                 </form>
-              </Card>
-
-              <Card>
-                <CardHeader title="Как работает раздел" />
-                <div className={styles.tipsList}>
-                  <div className={styles.tipItem}>Чем больше лайков соберёт вопрос, тем выше он будет в списке.</div>
-                  <div className={styles.tipItem}>После ответа администратора вопрос остаётся доступным по ссылке и в поиске.</div>
-                  <div className={styles.tipItem}>После закрытия вопрос через 24 часа уходит в архив, но не пропадает из поиска.</div>
-                </div>
               </Card>
             </div>
 
             <div className={styles.stack}>
-              <Card>
+              <Card className={styles.panel}>
                 <CardHeader title="Популярные вопросы" action={<span className={styles.meta}>{questionSummary}</span>} />
                 <div className={styles.toolbar}>
                   <input

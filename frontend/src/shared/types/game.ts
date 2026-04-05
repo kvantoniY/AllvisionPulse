@@ -30,9 +30,17 @@ export type PokerPlayer = {
   hasActed?: boolean;
 };
 
+export type PokerPlacement = {
+  userId: string;
+  amount: number;
+  handLabel?: string;
+  bestCards?: string[];
+  isWinner?: boolean;
+};
+
 export type PokerResult = {
   winners: string[];
-  placements: { userId: string; amount: number; handLabel?: string }[];
+  placements: PokerPlacement[];
   reason: 'winner' | 'cancelled' | 'everyone_left';
   endedBy?: string | null;
 };

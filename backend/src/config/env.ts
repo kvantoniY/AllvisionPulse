@@ -14,6 +14,13 @@ const EnvSchema = z.object({
   SOCKET_RECOVERY_MS: z.coerce.number().default(60000),
   CALL_RECONNECT_GRACE_MS: z.coerce.number().default(60000),
   CALL_MAX_PARTICIPANTS: z.coerce.number().default(4),
+  TURN_SECRET: z.string().optional(),
+  TURN_HOST: z.string().default("turn.allvision-pulse.ru"),
+  TURN_PORT: z.coerce.number().default(3478),
+  TURN_TTL_SEC: z.coerce.number().default(43200),
+  WEB_PUSH_VAPID_PUBLIC_KEY: z.string().optional(),
+  WEB_PUSH_VAPID_PRIVATE_KEY: z.string().optional(),
+  WEB_PUSH_VAPID_SUBJECT: z.string().default("mailto:notify@allvision-pulse.ru"),
 });
 
 export type Env = z.infer<typeof EnvSchema>;

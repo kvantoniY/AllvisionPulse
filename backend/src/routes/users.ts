@@ -5,6 +5,7 @@ import { asyncHandler, HttpError } from "../utils/http";
 import { requireAuth, requireActiveUser, AuthedRequest } from "../middleware/auth";
 import { upload } from "../middleware/upload";
 import { activeUserWhere, isUserSuspended } from "../utils/userStatus";
+import { createAndDeliverNotification } from "../utils/notifications";
 
 const router = Router();
 
@@ -401,6 +402,7 @@ const UpdatePrivacySchema = z.object({
   showHealthWidgets: z.boolean().optional(),
   showTasks: z.boolean().optional(),
   showEvents: z.boolean().optional(),
+  showPulseAchievements: z.boolean().optional(),
   profileVisibility: z.enum(PROFILE_VISIBILITY).optional(),
   allowMessagesFrom: z.enum(CONTACT_VISIBILITY).optional(),
   allowCallsFrom: z.enum(CONTACT_VISIBILITY).optional(),
@@ -512,15 +514,12 @@ router.post("/me/follows", requireAuth, asyncHandler(async (req: AuthedRequest, 
     update: { status },
   });
 
-  const emitter = req.app.locals.emitter as any;
-  const notif = await prisma.notification.create({
-    data: {
-      userId: body.userId,
-      type: status === "PENDING" ? "FRIEND_REQUEST" : "FRIEND_ACCEPTED",
-      data: { fromUserId: req.user!.id, followId: follow.id, kind: status === "PENDING" ? "follow_request" : "follow" },
-    },
+  await createAndDeliverNotification({
+    app: req.app,
+    userId: body.userId,
+    type: status === "PENDING" ? "FRIEND_REQUEST" : "FRIEND_ACCEPTED",
+    data: { fromUserId: req.user!.id, followId: follow.id, kind: status === "PENDING" ? "follow_request" : "follow" },
   });
-  emitter?.emitToUser(body.userId, "notification:new", notif);
 
   res.json({ follow });
 }));
@@ -532,11 +531,12 @@ router.post("/me/follows/:followId/accept", requireAuth, asyncHandler(async (req
   if (follow.receiverId !== req.user!.id) throw new HttpError(403, "Forbidden");
   const updated = await prisma.friendship.update({ where: { id }, data: { status: "ACCEPTED" } });
 
-  const emitter = req.app.locals.emitter as any;
-  const notif = await prisma.notification.create({
-    data: { userId: follow.senderId, type: "FRIEND_ACCEPTED", data: { byUserId: req.user!.id, followId: id, kind: "follow_accept" } },
+  await createAndDeliverNotification({
+    app: req.app,
+    userId: follow.senderId,
+    type: "FRIEND_ACCEPTED",
+    data: { byUserId: req.user!.id, followId: id, kind: "follow_accept" },
   });
-  emitter?.emitToUser(follow.senderId, "notification:new", notif);
 
   res.json({ follow: updated });
 }));

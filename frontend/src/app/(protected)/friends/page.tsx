@@ -1,6 +1,7 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import styles from './Friends.module.css';
 import { Card } from '@/shared/ui/Card/Card';
 import { StoryRingAvatar } from '@/features/stories';
@@ -37,6 +38,7 @@ function RowSkeleton() {
 }
 
 export default function FriendsPage() {
+  const searchParams = useSearchParams();
   const [tab, setTab] = useState<Tab>('following');
   const { data: followingData, isLoading: followingLoading } = useGetFollowingQuery(undefined, { skip: tab !== 'following' && tab !== 'followers' });
   const { data: followersData, isLoading: followersLoading } = useGetFollowersQuery(undefined, { skip: tab !== 'followers' });
@@ -56,6 +58,13 @@ export default function FriendsPage() {
   const outgoing = requestsData?.outgoing ?? [];
   const blacklist = blacklistData?.blacklist ?? [];
   const followingIds = useMemo(() => new Set(following.map((item) => item.receiver?.id).filter(Boolean)), [following]);
+
+  useEffect(() => {
+    const queryTab = searchParams.get('tab');
+    if (queryTab === 'following' || queryTab === 'followers' || queryTab === 'requests' || queryTab === 'blacklist') {
+      setTab(queryTab);
+    }
+  }, [searchParams]);
 
   const tabs: Array<{ value: Tab; label: string; count?: number }> = [
     { value: 'following', label: 'Подписки', count: following.length || undefined },
@@ -94,7 +103,7 @@ export default function FriendsPage() {
 
   return (
     <div className={`container appPage ${styles.page}`}>
-      <Card>
+      <Card className={styles.heroPanel}>
         <div className={styles.hero}>
           <div>
             <div className={styles.title}>Подписки</div>
@@ -120,7 +129,7 @@ export default function FriendsPage() {
       {tab === 'following' ? (
         <div className={styles.list}>
           {followingLoading ? <><RowSkeleton /><RowSkeleton /></> : null}
-          {!followingLoading && !following.length ? <Card><div className={styles.muted}>Ты пока ни на кого не подписан.</div></Card> : null}
+          {!followingLoading && !following.length ? <Card className={styles.emptyStateCard}><div className={styles.muted}>Ты пока ни на кого не подписан.</div></Card> : null}
           {following.map((record) => {
             const user = record.receiver;
             if (!user) return null;
@@ -138,7 +147,7 @@ export default function FriendsPage() {
       {tab === 'followers' ? (
         <div className={styles.list}>
           {followersLoading ? <><RowSkeleton /><RowSkeleton /></> : null}
-          {!followersLoading && !followers.length ? <Card><div className={styles.muted}>Пока никто не подписан на тебя.</div></Card> : null}
+          {!followersLoading && !followers.length ? <Card className={styles.emptyStateCard}><div className={styles.muted}>Пока никто не подписан на тебя.</div></Card> : null}
           {followers.map((record) => {
             const user = record.sender;
             if (!user) return null;
@@ -156,7 +165,7 @@ export default function FriendsPage() {
       {tab === 'requests' ? (
         <div className={styles.list}>
           {requestsLoading ? <><RowSkeleton /><RowSkeleton /></> : null}
-          {!requestsLoading && !incoming.length && !outgoing.length ? <Card><div className={styles.muted}>Запросов на подписку сейчас нет.</div></Card> : null}
+          {!requestsLoading && !incoming.length && !outgoing.length ? <Card className={styles.emptyStateCard}><div className={styles.muted}>Запросов на подписку сейчас нет.</div></Card> : null}
           {incoming.length ? <div className={styles.sectionLabel}>Входящие</div> : null}
           {incoming.map((record) => {
             const user = record.sender;
@@ -184,7 +193,7 @@ export default function FriendsPage() {
       {tab === 'blacklist' ? (
         <div className={styles.list}>
           {blacklistLoading ? <><RowSkeleton /><RowSkeleton /></> : null}
-          {!blacklistLoading && !blacklist.length ? <Card><div className={styles.muted}>Чёрный список пуст.</div></Card> : null}
+          {!blacklistLoading && !blacklist.length ? <Card className={styles.emptyStateCard}><div className={styles.muted}>Чёрный список пуст.</div></Card> : null}
           {blacklist.map((record) => {
             const user = record.blocked;
             if (!user) return null;

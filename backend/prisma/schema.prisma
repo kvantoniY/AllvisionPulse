@@ -51,6 +51,7 @@ enum NotificationType {
   MESSAGE
   MENTION
   CHAT_EVENT
+  ARTIFACT_ACTIVITY
 }
 
 enum FinanceEntryType {
@@ -83,24 +84,252 @@ enum AnalyticsEventType {
   ACTION
 }
 
+enum ProgramAccessMode {
+  PRIVATE
+  RESTRICTED
+  PUBLIC
+}
+
+enum ProgramStructureType {
+  FIXED_DURATION
+  ROLLING
+  OPEN_ENDED
+}
+
+enum ProgramLifecycleStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum ProgramSourceType {
+  SYSTEM
+  USER
+}
+
+enum ProgramActionType {
+  TASK
+  HEALTH_CHECKIN
+  NUTRITION_TARGET
+  FINANCE_TARGET
+  JOURNAL
+  REFLECTION
+  REMINDER
+  INFO_ONLY
+  MILESTONE
+  CUSTOM
+}
+
+enum ProgramIntegrationType {
+  NONE
+  TASK_TRACKER
+  HEALTH
+  NUTRITION
+  FINANCE
+  JOURNAL
+  REMINDER
+  PULSE_WIDGET
+}
+
+enum ProgramActionStatus {
+  PENDING
+  COMPLETED
+  SKIPPED
+  MISSED
+  RESCHEDULED
+  CANCELLED
+}
+
+enum ProgramRunStatus {
+  ACTIVE
+  PAUSED
+  CANCELLED
+  COMPLETED
+  ARCHIVED
+  DELETED
+}
+
+enum ProgramDayStatus {
+  UPCOMING
+  ACTIVE
+  COMPLETED
+  SKIPPED
+  MISSED
+  RECOVERY
+  ARCHIVED
+}
+
+enum ProgramEventType {
+  RUN_STARTED
+  ACTION_COMPLETED
+  ACTION_SKIPPED
+  ACTION_RESCHEDULED
+  DAY_COMPLETED
+  DAY_SKIPPED
+  RECOVERY_APPLIED
+  RUN_PAUSED
+  RUN_RESUMED
+  RUN_CANCELLED
+  RUN_ARCHIVED
+  RUN_COMPLETED
+  SESSION_JOINED
+  SESSION_LEFT
+  SESSION_STARTED
+  SESSION_COMPLETED
+}
+
+enum ProgramRecoveryResolution {
+  CONTINUE_CURRENT_DAY
+  SOFT_CATCH_UP
+  SHIFT_FORWARD
+  RECOVERY_DAY
+  SKIP_DAY
+  COMPLETE_AS_DONE
+  COMPLETE_PARTIAL
+}
+
+enum ProgramSessionStatus {
+  DRAFT
+  ACTIVE
+  SCHEDULED
+  COMPLETED
+  CANCELLED
+  ARCHIVED
+}
+
+enum ProgramSessionJoinMode {
+  INVITE_ONLY
+  LINK
+  OPEN
+}
+
+enum ProgramSessionStartMode {
+  NOW
+  SCHEDULED
+  HOST_MANUAL
+  AUTO_ON_ACCEPT
+}
+
+enum ProgramSessionRole {
+  HOST
+  MEMBER
+}
+
+enum ProgramSessionMemberStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  LEFT
+  REMOVED
+}
+
+enum ProgramInviteStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  REVOKED
+  EXPIRED
+}
+
+enum ProgramShareMode {
+  SNAPSHOT
+  REFERENCE
+  INVITE
+}
+
+enum PulseShareArtifactKind {
+  WIDGET
+  METRIC
+  PROGRAM
+  PROGRAM_INVITE
+  SESSION_INVITE
+  PROGRAM_SUMMARY
+  PROGRAM_PROGRESS
+  ACHIEVEMENT
+  TODAY_ACTIONS
+  TASK
+  FINANCE
+  DEBT
+  SAVINGS
+  ACTION
+}
+
+enum PulseActionArtifactType {
+  TASK_REQUEST
+  TASK_SUGGESTION
+  SOCIAL_EVENT
+  REMINDER_CARD
+  FINANCE_SPLIT
+  DEBT_SHARE
+  SAVINGS_SHARE
+  PROGRAM_INVITE
+  PROGRAM_SESSION_INVITE
+  PROGRAM_PROGRESS_SHARE
+  METRIC_SHARE
+}
+
+enum PulseArtifactParticipantRole {
+  AUTHOR
+  TARGET
+  PARTICIPANT
+  WATCHER
+}
+
+enum PulseArtifactParticipantStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  ADDED
+  COMPLETED
+  FOLLOWING
+}
+
+enum PulseArtifactActivityType {
+  CREATED
+  SHARED_TO_CHAT
+  ACCEPTED
+  DECLINED
+  ADDED_TO_PULSE
+  COMPLETED
+  FOLLOWED
+  REMINDER_SET
+  SETTLED
+  UPDATED
+}
+
+enum AchievementDomain {
+  PULSE
+}
+
+enum AchievementDefinitionKind {
+  PROGRAM_COMPLETION
+  STAGE_COMPLETION
+  MILESTONE
+  STREAK
+  ADHERENCE
+  RECOVERY
+  COLLABORATIVE
+  TEAM_COMPLETION
+  PROGRAM_OUTCOME
+}
 
 model User {
-  id           String   @id @default(uuid())
-  email        String?  @unique
-  username     String   @unique
-  firstName    String?
-  lastName     String?
-  passwordHash String
-  role         UserRole @default(USER)
+  id                 String    @id @default(uuid())
+  email              String?   @unique
+  username           String    @unique
+  firstName          String?
+  lastName           String?
+  passwordHash       String
+  role               UserRole  @default(USER)
   avatarUrl          String?
   bio                String?
   suspendedAt        DateTime?
   suspendedUntil     DateTime?
-  suspendedPermanent Boolean  @default(false)
+  suspendedPermanent Boolean   @default(false)
   suspensionReason   String?
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
-  lastSeenAt         DateTime @default(now())
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  lastSeenAt         DateTime  @default(now())
 
   settings UserSettings?
   privacy  UserPrivacy?
@@ -123,17 +352,34 @@ model User {
   messageReactions MessageReaction[]
 
   notifications Notification[]
+  webPushSubscriptions WebPushSubscription[]
 
-  supportTickets         SupportTicket[]
-  supportTicketReplies   SupportTicketReply[]
-  supportQuestions       SupportQuestion[]     @relation("SupportQuestionAuthor")
-  supportQuestionAnswers SupportQuestion[]     @relation("SupportQuestionAnswerAuthor")
-  supportQuestionLikes   SupportQuestionLike[]
-  analyticsSessions      AnalyticsSession[]
-  analyticsEvents        AnalyticsEvent[]
+  supportTickets           SupportTicket[]
+  supportTicketReplies     SupportTicketReply[]
+  supportQuestions         SupportQuestion[]         @relation("SupportQuestionAuthor")
+  supportQuestionAnswers   SupportQuestion[]         @relation("SupportQuestionAnswerAuthor")
+  supportQuestionLikes     SupportQuestionLike[]
+  analyticsSessions        AnalyticsSession[]
+  analyticsEvents          AnalyticsEvent[]
+  programDefinitions       ProgramDefinition[]       @relation("ProgramOwner")
+  publishedProgramVersions ProgramVersion[]          @relation("ProgramPublisher")
+  programAccessGrants      ProgramAccessGrant[]      @relation("ProgramGrantUser")
+  grantedProgramAccesses   ProgramAccessGrant[]      @relation("ProgramGrantAuthor")
+  programRuns              ProgramRun[]
+  programRunEvents         ProgramRunEvent[]
+  programRecoveryEvents    ProgramRecoveryEvent[]
+  hostedProgramSessions    ProgramSession[]          @relation("ProgramSessionHost")
+  programSessionMembers    ProgramSessionMember[]
+  sentProgramInvites       ProgramSessionInvite[]    @relation("ProgramInviteSender")
+  receivedProgramInvites   ProgramSessionInvite[]    @relation("ProgramInviteRecipient")
+  pulseShareArtifacts      PulseShareArtifact[]
+  artifactAcceptances      PulseArtifactAcceptance[]
+  artifactActivityLog      PulseArtifactActivity[]   @relation("PulseArtifactActivityActor")
+  artifactActivityTargets  PulseArtifactActivity[]   @relation("PulseArtifactActivitySubject")
+  userAchievements         UserAchievement[]
 
-  healthDays HealthDay[]
-  tasks      Task[]
+  healthDays             HealthDay[]
+  tasks                  Task[]
   pulseProfile           PulseProfile?
   pulseConfig            PulseConfig?
   pulseFoods             PulseFood[]
@@ -145,8 +391,8 @@ model User {
   pulseTaskCompletions   PulseTaskCompletion[]
   pulseGoals             PulseGoal[]
 
-  stories    Story[]
-  storyViews StoryView[]
+  stories         Story[]
+  storyViews      StoryView[]
   storyHighlights StoryHighlight[]
 
   createdChatEvents ChatEvent[]     @relation("ChatEventCreator")
@@ -181,14 +427,15 @@ model UserSettings {
 }
 
 model UserPrivacy {
-  id                String  @id @default(uuid())
-  userId            String  @unique
-  showHealthWidgets Boolean @default(true)
-  showTasks         Boolean @default(false)
-  showEvents        Boolean @default(false)
-  profileVisibility String  @default("everyone") // everyone|followers|private
-  allowMessagesFrom String  @default("everyone") // everyone|followers|none
-  allowCallsFrom    String  @default("everyone") // everyone|followers|none
+  id                    String  @id @default(uuid())
+  userId                String  @unique
+  showHealthWidgets     Boolean @default(true)
+  showTasks             Boolean @default(false)
+  showEvents            Boolean @default(false)
+  showPulseAchievements Boolean @default(false)
+  profileVisibility     String  @default("everyone") // everyone|followers|private
+  allowMessagesFrom     String  @default("everyone") // everyone|followers|none
+  allowCallsFrom        String  @default("everyone") // everyone|followers|none
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
@@ -324,7 +571,8 @@ model Chat {
   pinnedMessageId String?  @unique
   pinnedMessage   Message? @relation("ChatPinnedMessage", fields: [pinnedMessageId], references: [id], onDelete: SetNull)
 
-  messageReads MessageRead[]
+  messageReads         MessageRead[]
+  originShareArtifacts PulseShareArtifact[] @relation("PulseShareArtifactOriginChat")
 
   events ChatEvent[]
 }
@@ -368,9 +616,10 @@ model Message {
   forwardOf Message?  @relation("ForwardOf", fields: [forwardOfId], references: [id])
   forwards  Message[] @relation("ForwardOf")
 
-  attachments MessageAttachment[]
-  reactions   MessageReaction[]
-  reads       MessageRead[]
+  attachments          MessageAttachment[]
+  reactions            MessageReaction[]
+  reads                MessageRead[]
+  originShareArtifacts PulseShareArtifact[] @relation("PulseShareArtifactOriginMessage")
 
   @@index([chatId, createdAt])
   @@index([senderId, createdAt])
@@ -432,7 +681,7 @@ model Story {
   createdAt     DateTime @default(now())
   expiresAt     DateTime
 
-  author           User @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  author           User                 @relation(fields: [authorId], references: [id], onDelete: Cascade)
   views            StoryView[]
   highlightEntries StoryHighlightItem[]
 
@@ -453,7 +702,6 @@ model StoryView {
   @@unique([storyId, viewerId])
   @@index([viewerId, viewedAt])
 }
-
 
 model StoryHighlight {
   id        String   @id @default(uuid())
@@ -495,15 +743,32 @@ model Notification {
   @@index([userId, createdAt])
 }
 
+model WebPushSubscription {
+  id             String   @id @default(uuid())
+  userId         String
+  endpoint       String   @unique
+  expirationTime DateTime?
+  p256dh         String
+  auth           String
+  userAgent      String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  lastUsedAt     DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, updatedAt])
+}
+
 model HealthDay {
   id     String   @id @default(uuid())
   userId String
   date   DateTime
 
   // factors
-  sleepHours   Float?
-  weightKg     Float?
-  sleepQuality Int?
+  sleepHours    Float?
+  weightKg      Float?
+  sleepQuality  Int?
   alcohol       Boolean @default(false)
   coffee        Boolean @default(false)
   wellbeing     Int?
@@ -549,27 +814,29 @@ model Task {
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  completions PulseTaskCompletion[]
+  user                User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  completions         PulseTaskCompletion[]
+  programTaskLinks    ProgramTaskLink[]
+  artifactAcceptances PulseArtifactAcceptance[]
 
   @@index([userId, dueDate])
   @@index([userId, sourceKey])
 }
 
 model PulseProfile {
-  id              String   @id @default(uuid())
-  userId          String   @unique
-  heightCm        Float?
-  startWeightKg   Float?
-  currentWeightKg Float?
-  targetWeightKg  Float?
-  age             Int?
+  id                String   @id @default(uuid())
+  userId            String   @unique
+  heightCm          Float?
+  startWeightKg     Float?
+  currentWeightKg   Float?
+  targetWeightKg    Float?
+  age               Int?
   dailyCaloriesGoal Int?
-  proteinGoal     Float?
-  fatGoal         Float?
-  carbsGoal       Float?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  proteinGoal       Float?
+  fatGoal           Float?
+  carbsGoal         Float?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
@@ -633,12 +900,12 @@ model PulseMeal {
 
 model PulseTaskCompletion {
   id        String   @id @default(uuid())
-  taskId     String
-  userId     String
-  date       DateTime
-  completed  Boolean  @default(false)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  taskId    String
+  userId    String
+  date      DateTime
+  completed Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -655,7 +922,7 @@ model PulseFinanceCategory {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  user   User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user    User                @relation(fields: [userId], references: [id], onDelete: Cascade)
   entries PulseFinanceEntry[]
 
   @@unique([userId, name])
@@ -676,35 +943,37 @@ model PulseFinanceEntry {
   createdAt      DateTime         @default(now())
   updatedAt      DateTime         @updatedAt
 
-  user     User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
-  category PulseFinanceCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  user                User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category            PulseFinanceCategory?     @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  artifactAcceptances PulseArtifactAcceptance[]
 
   @@index([userId, date])
 }
 
 model PulseSavingsGoal {
-  id           String   @id @default(uuid())
+  id           String    @id @default(uuid())
   userId       String
   title        String
   targetAmount Float
-  savedAmount  Float    @default(0)
+  savedAmount  Float     @default(0)
   deadline     DateTime?
   itemsJson    Json?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user                User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  artifactAcceptances PulseArtifactAcceptance[]
 
   @@index([userId, createdAt])
 }
 
 model PulseDebt {
-  id            String   @id @default(uuid())
+  id            String    @id @default(uuid())
   userId        String
   title         String
   debtType      String
   totalAmount   Float
-  paidAmount    Float    @default(0)
+  paidAmount    Float     @default(0)
   interestRate  Float?
   startedAt     DateTime?
   dueDate       DateTime?
@@ -712,27 +981,636 @@ model PulseDebt {
   paymentAmount Float?
   termMonths    Int?
   notes         String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  user                User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  artifactAcceptances PulseArtifactAcceptance[]
+
+  @@index([userId, createdAt])
+}
+
+model PulseGoal {
+  id          String    @id @default(uuid())
+  userId      String
+  title       String
+  description String?
+  progress    Int       @default(0)
+  targetDate  DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, createdAt])
 }
 
-model PulseGoal {
-  id          String   @id @default(uuid())
-  userId      String
-  title       String
-  description String?
-  progress    Int      @default(0)
-  targetDate  DateTime?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+model ProgramDefinition {
+  id                   String                 @id @default(uuid())
+  ownerId              String?
+  sourceType           ProgramSourceType      @default(USER)
+  title                String
+  description          String?
+  category             String?
+  theme                String?
+  language             String?                @default("ru")
+  coverUrl             String?
+  durationDays         Int?
+  accessMode           ProgramAccessMode      @default(PRIVATE)
+  structureType        ProgramStructureType   @default(FIXED_DURATION)
+  collaborativeEnabled Boolean                @default(true)
+  lifecycleStatus      ProgramLifecycleStatus @default(DRAFT)
+  currentVersionId     String?
+  publishedAt          DateTime?
+  archivedAt           DateTime?
+  deletedAt            DateTime?
+  createdAt            DateTime               @default(now())
+  updatedAt            DateTime               @updatedAt
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  owner           User?                      @relation("ProgramOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+  currentVersion  ProgramVersion?            @relation("ProgramCurrentVersion", fields: [currentVersionId], references: [id], onDelete: SetNull)
+  versions        ProgramVersion[]           @relation("ProgramDefinitionVersions")
+  accessGrants    ProgramAccessGrant[]
+  draftStages     ProgramStage[]
+  draftDays       ProgramDayTemplate[]
+  draftActions    ProgramActionTemplate[]
+  draftRules      ProgramRuleSet?
+  draftMilestones ProgramMilestoneTemplate[]
+  runs            ProgramRun[]
+  sessions        ProgramSession[]
 
+  @@index([ownerId, createdAt])
+  @@index([accessMode, lifecycleStatus, publishedAt])
+}
+
+model ProgramVersion {
+  id                   String               @id @default(uuid())
+  definitionId         String
+  versionNumber        Int
+  title                String
+  description          String?
+  category             String?
+  theme                String?
+  language             String?              @default("ru")
+  coverUrl             String?
+  durationDays         Int?
+  accessMode           ProgramAccessMode    @default(PRIVATE)
+  structureType        ProgramStructureType @default(FIXED_DURATION)
+  collaborativeEnabled Boolean              @default(true)
+  publishedById        String?
+  publishedAt          DateTime             @default(now())
+  createdAt            DateTime             @default(now())
+  updatedAt            DateTime             @updatedAt
+
+  definition           ProgramDefinition          @relation("ProgramDefinitionVersions", fields: [definitionId], references: [id], onDelete: Cascade)
+  publishedBy          User?                      @relation("ProgramPublisher", fields: [publishedById], references: [id], onDelete: SetNull)
+  activeForDefinitions ProgramDefinition[]        @relation("ProgramCurrentVersion")
+  rules                ProgramRuleSet?
+  stages               ProgramStage[]
+  days                 ProgramDayTemplate[]
+  actions              ProgramActionTemplate[]
+  milestones           ProgramMilestoneTemplate[]
+  runs                 ProgramRun[]
+  sessions             ProgramSession[]
+
+  @@unique([definitionId, versionNumber])
+  @@index([definitionId, publishedAt])
+}
+
+model ProgramAccessGrant {
+  id                  String   @id @default(uuid())
+  programDefinitionId String
+  userId              String
+  grantedById         String
+  createdAt           DateTime @default(now())
+
+  programDefinition ProgramDefinition @relation(fields: [programDefinitionId], references: [id], onDelete: Cascade)
+  user              User              @relation("ProgramGrantUser", fields: [userId], references: [id], onDelete: Cascade)
+  grantedBy         User              @relation("ProgramGrantAuthor", fields: [grantedById], references: [id], onDelete: Cascade)
+
+  @@unique([programDefinitionId, userId])
   @@index([userId, createdAt])
+}
+
+model ProgramRuleSet {
+  id                      String   @id @default(uuid())
+  programDefinitionId     String?  @unique
+  programVersionId        String?  @unique
+  allowSkip               Boolean  @default(true)
+  allowPause              Boolean  @default(true)
+  allowResume             Boolean  @default(true)
+  allowCancel             Boolean  @default(true)
+  allowRecovery           Boolean  @default(true)
+  maxReschedulesPerAction Int      @default(3)
+  recoveryConfigJson      Json?
+  progressConfigJson      Json?
+  integrationConfigJson   Json?
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  programDefinition ProgramDefinition? @relation(fields: [programDefinitionId], references: [id], onDelete: Cascade)
+  programVersion    ProgramVersion?    @relation(fields: [programVersionId], references: [id], onDelete: Cascade)
+}
+
+model ProgramStage {
+  id                  String   @id @default(uuid())
+  programDefinitionId String?
+  programVersionId    String?
+  order               Int
+  title               String
+  description         String?
+  startDay            Int?
+  endDay              Int?
+  milestoneText       String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  programDefinition ProgramDefinition?         @relation(fields: [programDefinitionId], references: [id], onDelete: Cascade)
+  programVersion    ProgramVersion?            @relation(fields: [programVersionId], references: [id], onDelete: Cascade)
+  days              ProgramDayTemplate[]
+  actions           ProgramActionTemplate[]
+  milestones        ProgramMilestoneTemplate[]
+  runDays           ProgramRunDay[]
+  runActions        ProgramRunAction[]
+  runsAsCurrent     ProgramRun[]               @relation("ProgramRunCurrentStage")
+
+  @@index([programDefinitionId, order])
+  @@index([programVersionId, order])
+}
+
+model ProgramDayTemplate {
+  id                  String   @id @default(uuid())
+  programDefinitionId String?
+  programVersionId    String?
+  programStageId      String?
+  dayNumber           Int?
+  title               String?
+  dayText             String?
+  tipOfDay            String?
+  motivationOfDay     String?
+  reflectionPrompt    String?
+  isRecoveryTemplate  Boolean  @default(false)
+  sortOrder           Int      @default(0)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  programDefinition ProgramDefinition?         @relation(fields: [programDefinitionId], references: [id], onDelete: Cascade)
+  programVersion    ProgramVersion?            @relation(fields: [programVersionId], references: [id], onDelete: Cascade)
+  stage             ProgramStage?              @relation(fields: [programStageId], references: [id], onDelete: SetNull)
+  actions           ProgramActionTemplate[]
+  milestones        ProgramMilestoneTemplate[]
+  runDays           ProgramRunDay[]
+
+  @@index([programDefinitionId, dayNumber])
+  @@index([programVersionId, dayNumber])
+}
+
+model ProgramActionTemplate {
+  id                   String                 @id @default(uuid())
+  programDefinitionId  String?
+  programVersionId     String?
+  programDayTemplateId String?
+  programStageId       String?
+  order                Int
+  actionType           ProgramActionType
+  integrationType      ProgramIntegrationType @default(NONE)
+  title                String
+  description          String?
+  required             Boolean                @default(true)
+  estimatedMinutes     Int?
+  completionPolicy     String?
+  reschedulePolicy     String?
+  payloadJson          Json?
+  createdAt            DateTime               @default(now())
+  updatedAt            DateTime               @updatedAt
+
+  programDefinition ProgramDefinition?  @relation(fields: [programDefinitionId], references: [id], onDelete: Cascade)
+  programVersion    ProgramVersion?     @relation(fields: [programVersionId], references: [id], onDelete: Cascade)
+  dayTemplate       ProgramDayTemplate? @relation(fields: [programDayTemplateId], references: [id], onDelete: SetNull)
+  stage             ProgramStage?       @relation(fields: [programStageId], references: [id], onDelete: SetNull)
+  runActions        ProgramRunAction[]
+
+  @@index([programDefinitionId, order])
+  @@index([programVersionId, order])
+  @@index([programDayTemplateId, order])
+}
+
+model ProgramMilestoneTemplate {
+  id                   String   @id @default(uuid())
+  programDefinitionId  String?
+  programVersionId     String?
+  programStageId       String?
+  programDayTemplateId String?
+  order                Int      @default(0)
+  title                String
+  description          String?
+  targetDay            Int?
+  metricKey            String?
+  payloadJson          Json?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  programDefinition ProgramDefinition?  @relation(fields: [programDefinitionId], references: [id], onDelete: Cascade)
+  programVersion    ProgramVersion?     @relation(fields: [programVersionId], references: [id], onDelete: Cascade)
+  stage             ProgramStage?       @relation(fields: [programStageId], references: [id], onDelete: SetNull)
+  dayTemplate       ProgramDayTemplate? @relation(fields: [programDayTemplateId], references: [id], onDelete: SetNull)
+
+  @@index([programDefinitionId, order])
+  @@index([programVersionId, order])
+}
+
+model ProgramRun {
+  id                      String           @id @default(uuid())
+  programDefinitionId     String
+  programVersionId        String
+  userId                  String
+  sessionId               String?
+  status                  ProgramRunStatus @default(ACTIVE)
+  startedAt               DateTime         @default(now())
+  startDate               DateTime
+  completedAt             DateTime?
+  cancelledAt             DateTime?
+  pausedAt                DateTime?
+  resumedAt               DateTime?
+  archivedAt              DateTime?
+  deletedAt               DateTime?
+  cancelReason            String?
+  currentDayNumber        Int              @default(1)
+  currentStageId          String?
+  completionPercent       Int              @default(0)
+  adherenceScore          Int              @default(100)
+  consistencyScore        Int              @default(100)
+  streakCount             Int              @default(0)
+  missedDaysCount         Int              @default(0)
+  skippedActionsCount     Int              @default(0)
+  rescheduledActionsCount Int              @default(0)
+  stageCompletionPercent  Int              @default(0)
+  milestonesEarnedCount   Int              @default(0)
+  lastActivityAt          DateTime?
+  lastRecoveredAt         DateTime?
+  createdAt               DateTime         @default(now())
+  updatedAt               DateTime         @updatedAt
+
+  programDefinition   ProgramDefinition         @relation(fields: [programDefinitionId], references: [id], onDelete: Cascade)
+  programVersion      ProgramVersion            @relation(fields: [programVersionId], references: [id], onDelete: Cascade)
+  user                User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  currentStage        ProgramStage?             @relation("ProgramRunCurrentStage", fields: [currentStageId], references: [id], onDelete: SetNull)
+  session             ProgramSession?           @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+  days                ProgramRunDay[]
+  actions             ProgramRunAction[]
+  events              ProgramRunEvent[]
+  recoveryEvents      ProgramRecoveryEvent[]
+  taskLinks           ProgramTaskLink[]
+  sessionMember       ProgramSessionMember?
+  achievements        UserAchievement[]
+  artifactAcceptances PulseArtifactAcceptance[]
+
+  @@index([userId, status, updatedAt])
+  @@index([programDefinitionId, status])
+  @@index([sessionId, status])
+}
+
+model ProgramRunDay {
+  id                     String           @id @default(uuid())
+  programRunId           String
+  programStageId         String?
+  programDayTemplateId   String?
+  sequenceNumber         Int
+  programDayNumber       Int?
+  scheduledDate          DateTime
+  status                 ProgramDayStatus @default(UPCOMING)
+  isRecoveryDay          Boolean          @default(false)
+  completedRequiredCount Int              @default(0)
+  completedOptionalCount Int              @default(0)
+  requiredCount          Int              @default(0)
+  optionalCount          Int              @default(0)
+  completedAt            DateTime?
+  skippedAt              DateTime?
+  missedAt               DateTime?
+  note                   String?
+  createdAt              DateTime         @default(now())
+  updatedAt              DateTime         @updatedAt
+
+  run         ProgramRun             @relation(fields: [programRunId], references: [id], onDelete: Cascade)
+  stage       ProgramStage?          @relation(fields: [programStageId], references: [id], onDelete: SetNull)
+  dayTemplate ProgramDayTemplate?    @relation(fields: [programDayTemplateId], references: [id], onDelete: SetNull)
+  actions     ProgramRunAction[]
+  recoveries  ProgramRecoveryEvent[]
+
+  @@unique([programRunId, sequenceNumber])
+  @@index([programRunId, scheduledDate])
+}
+
+model ProgramRunAction {
+  id                      String                 @id @default(uuid())
+  programRunId            String
+  programRunDayId         String
+  programActionTemplateId String?
+  programStageId          String?
+  order                   Int
+  actionType              ProgramActionType
+  integrationType         ProgramIntegrationType @default(NONE)
+  title                   String
+  description             String?
+  required                Boolean                @default(true)
+  estimatedMinutes        Int?
+  completionPolicy        String?
+  reschedulePolicy        String?
+  payloadJson             Json?
+  status                  ProgramActionStatus    @default(PENDING)
+  scheduledDate           DateTime
+  completedAt             DateTime?
+  skippedAt               DateTime?
+  rescheduledToDate       DateTime?
+  completionNote          String?
+  reflectionText          String?
+  createdAt               DateTime               @default(now())
+  updatedAt               DateTime               @updatedAt
+
+  run            ProgramRun             @relation(fields: [programRunId], references: [id], onDelete: Cascade)
+  day            ProgramRunDay          @relation(fields: [programRunDayId], references: [id], onDelete: Cascade)
+  actionTemplate ProgramActionTemplate? @relation(fields: [programActionTemplateId], references: [id], onDelete: SetNull)
+  stage          ProgramStage?          @relation(fields: [programStageId], references: [id], onDelete: SetNull)
+  taskLinks      ProgramTaskLink[]
+
+  @@index([programRunId, scheduledDate, status])
+  @@index([programRunDayId, order])
+}
+
+model ProgramRunEvent {
+  id           String           @id @default(uuid())
+  programRunId String
+  userId       String?
+  eventType    ProgramEventType
+  message      String?
+  payloadJson  Json?
+  createdAt    DateTime         @default(now())
+
+  run  ProgramRun @relation(fields: [programRunId], references: [id], onDelete: Cascade)
+  user User?      @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([programRunId, createdAt])
+  @@index([userId, createdAt])
+}
+
+model ProgramRecoveryEvent {
+  id              String                    @id @default(uuid())
+  programRunId    String
+  programRunDayId String?
+  userId          String
+  resolution      ProgramRecoveryResolution
+  reasonText      String?
+  detailsJson     Json?
+  createdAt       DateTime                  @default(now())
+
+  run  ProgramRun     @relation(fields: [programRunId], references: [id], onDelete: Cascade)
+  day  ProgramRunDay? @relation(fields: [programRunDayId], references: [id], onDelete: SetNull)
+  user User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([programRunId, createdAt])
+  @@index([userId, createdAt])
+}
+
+model ProgramTaskLink {
+  id                 String   @id @default(uuid())
+  programRunId       String
+  programRunActionId String
+  taskId             String   @unique
+  syncState          String   @default("ACTIVE")
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  run    ProgramRun       @relation(fields: [programRunId], references: [id], onDelete: Cascade)
+  action ProgramRunAction @relation(fields: [programRunActionId], references: [id], onDelete: Cascade)
+  task   Task             @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@unique([programRunActionId, taskId])
+  @@index([programRunId, syncState])
+}
+
+model ProgramSession {
+  id                  String                  @id @default(uuid())
+  programDefinitionId String
+  programVersionId    String
+  hostId              String
+  title               String?
+  status              ProgramSessionStatus    @default(DRAFT)
+  joinMode            ProgramSessionJoinMode  @default(INVITE_ONLY)
+  startMode           ProgramSessionStartMode @default(HOST_MANUAL)
+  scheduledStartAt    DateTime?
+  startedAt           DateTime?
+  completedAt         DateTime?
+  archivedAt          DateTime?
+  cancelledAt         DateTime?
+  shareStatus         Boolean                 @default(true)
+  shareNumbers        Boolean                 @default(false)
+  shareMisses         Boolean                 @default(false)
+  shareMilestones     Boolean                 @default(true)
+  metricsVisibleJson  Json?
+  inviteLinkToken     String?                 @unique
+  createdAt           DateTime                @default(now())
+  updatedAt           DateTime                @updatedAt
+
+  programDefinition   ProgramDefinition         @relation(fields: [programDefinitionId], references: [id], onDelete: Cascade)
+  programVersion      ProgramVersion            @relation(fields: [programVersionId], references: [id], onDelete: Cascade)
+  host                User                      @relation("ProgramSessionHost", fields: [hostId], references: [id], onDelete: Cascade)
+  members             ProgramSessionMember[]
+  invites             ProgramSessionInvite[]
+  runs                ProgramRun[]
+  achievements        UserAchievement[]
+  artifactAcceptances PulseArtifactAcceptance[]
+
+  @@index([hostId, status, updatedAt])
+  @@index([programDefinitionId, status])
+}
+
+model ProgramSessionMember {
+  id               String                     @id @default(uuid())
+  programSessionId String
+  userId           String
+  programRunId     String?                    @unique
+  role             ProgramSessionRole         @default(MEMBER)
+  status           ProgramSessionMemberStatus @default(PENDING)
+  shareStatus      Boolean                    @default(true)
+  shareNumbers     Boolean                    @default(false)
+  shareMisses      Boolean                    @default(false)
+  shareMilestones  Boolean                    @default(true)
+  invitedAt        DateTime                   @default(now())
+  joinedAt         DateTime?
+  respondedAt      DateTime?
+  leftAt           DateTime?
+  createdAt        DateTime                   @default(now())
+  updatedAt        DateTime                   @updatedAt
+
+  session ProgramSession @relation(fields: [programSessionId], references: [id], onDelete: Cascade)
+  user    User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  run     ProgramRun?    @relation(fields: [programRunId], references: [id], onDelete: SetNull)
+
+  @@unique([programSessionId, userId])
+  @@index([userId, status, updatedAt])
+}
+
+model ProgramSessionInvite {
+  id                String              @id @default(uuid())
+  programSessionId  String
+  senderId          String
+  recipientId       String?
+  recipientUsername String?
+  inviteToken       String              @unique
+  status            ProgramInviteStatus @default(PENDING)
+  channel           String?
+  shareArtifactId   String?
+  message           String?
+  expiresAt         DateTime?
+  createdAt         DateTime            @default(now())
+  respondedAt       DateTime?
+
+  session       ProgramSession      @relation(fields: [programSessionId], references: [id], onDelete: Cascade)
+  sender        User                @relation("ProgramInviteSender", fields: [senderId], references: [id], onDelete: Cascade)
+  recipient     User?               @relation("ProgramInviteRecipient", fields: [recipientId], references: [id], onDelete: SetNull)
+  shareArtifact PulseShareArtifact? @relation(fields: [shareArtifactId], references: [id], onDelete: SetNull)
+
+  @@index([programSessionId, status, createdAt])
+  @@index([recipientId, status, createdAt])
+}
+
+model PulseShareArtifact {
+  id                    String                   @id @default(uuid())
+  ownerId               String
+  kind                  PulseShareArtifactKind
+  mode                  ProgramShareMode
+  actionType            PulseActionArtifactType?
+  title                 String?
+  description           String?
+  sourceType            String
+  sourceId              String?
+  snapshotJson          Json?
+  referenceJson         Json?
+  payloadJson           Json?
+  inviteToken           String?                  @unique
+  visibilityScope       ProgramAccessMode        @default(PRIVATE)
+  containsSensitiveData Boolean                  @default(false)
+  allowPublicReference  Boolean                  @default(false)
+  originChatId          String?
+  originMessageId       String?
+  expiresAt             DateTime?
+  createdAt             DateTime                 @default(now())
+  updatedAt             DateTime                 @updatedAt
+
+  owner            User                      @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  originChat       Chat?                     @relation("PulseShareArtifactOriginChat", fields: [originChatId], references: [id], onDelete: SetNull)
+  originMessage    Message?                  @relation("PulseShareArtifactOriginMessage", fields: [originMessageId], references: [id], onDelete: SetNull)
+  sessionInvites   ProgramSessionInvite[]
+  acceptances      PulseArtifactAcceptance[]
+  activities       PulseArtifactActivity[]
+  userAchievements UserAchievement[]
+
+  @@index([ownerId, createdAt])
+  @@index([kind, mode, createdAt])
+  @@index([originChatId, createdAt])
+}
+
+model PulseArtifactAcceptance {
+  id               String                         @id @default(uuid())
+  artifactId       String
+  userId           String
+  role             PulseArtifactParticipantRole   @default(PARTICIPANT)
+  status           PulseArtifactParticipantStatus @default(PENDING)
+  acceptedAt       DateTime?
+  declinedAt       DateTime?
+  addedAt          DateTime?
+  completedAt      DateTime?
+  followedAt       DateTime?
+  lastViewedAt     DateTime?
+  taskId           String?
+  financeEntryId   String?
+  debtId           String?
+  savingsGoalId    String?
+  programRunId     String?
+  programSessionId String?
+  metaJson         Json?
+  createdAt        DateTime                       @default(now())
+  updatedAt        DateTime                       @updatedAt
+
+  artifact       PulseShareArtifact @relation(fields: [artifactId], references: [id], onDelete: Cascade)
+  user           User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  task           Task?              @relation(fields: [taskId], references: [id], onDelete: SetNull)
+  financeEntry   PulseFinanceEntry? @relation(fields: [financeEntryId], references: [id], onDelete: SetNull)
+  debt           PulseDebt?         @relation(fields: [debtId], references: [id], onDelete: SetNull)
+  savingsGoal    PulseSavingsGoal?  @relation(fields: [savingsGoalId], references: [id], onDelete: SetNull)
+  programRun     ProgramRun?        @relation(fields: [programRunId], references: [id], onDelete: SetNull)
+  programSession ProgramSession?    @relation(fields: [programSessionId], references: [id], onDelete: SetNull)
+
+  @@unique([artifactId, userId])
+  @@index([userId, status, updatedAt])
+  @@index([taskId])
+  @@index([financeEntryId])
+  @@index([debtId])
+  @@index([savingsGoalId])
+  @@index([programRunId])
+  @@index([programSessionId])
+}
+
+model PulseArtifactActivity {
+  id            String                    @id @default(uuid())
+  artifactId    String
+  actorId       String?
+  subjectUserId String?
+  type          PulseArtifactActivityType
+  payloadJson   Json?
+  createdAt     DateTime                  @default(now())
+
+  artifact    PulseShareArtifact @relation(fields: [artifactId], references: [id], onDelete: Cascade)
+  actor       User?              @relation("PulseArtifactActivityActor", fields: [actorId], references: [id], onDelete: SetNull)
+  subjectUser User?              @relation("PulseArtifactActivitySubject", fields: [subjectUserId], references: [id], onDelete: SetNull)
+
+  @@index([artifactId, createdAt])
+  @@index([actorId, createdAt])
+  @@index([subjectUserId, createdAt])
+}
+
+model AchievementDefinition {
+  id              String                    @id @default(uuid())
+  slug            String                    @unique
+  domain          AchievementDomain         @default(PULSE)
+  kind            AchievementDefinitionKind
+  title           String
+  description     String?
+  iconKey         String?
+  badgeTone       String?
+  metricThreshold Int?
+  payloadJson     Json?
+  createdAt       DateTime                  @default(now())
+  updatedAt       DateTime                  @updatedAt
+
+  awards UserAchievement[]
+}
+
+model UserAchievement {
+  id                      String   @id @default(uuid())
+  userId                  String
+  achievementDefinitionId String
+  sourceType              String
+  sourceId                String?
+  programRunId            String?
+  programSessionId        String?
+  shareArtifactId         String?
+  titleSnapshot           String?
+  descriptionSnapshot     String?
+  uniqueKey               String   @unique
+  awardedAt               DateTime @default(now())
+  progressValue           Int?
+  progressMax             Int?
+  resultJson              Json?
+
+  user          User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  definition    AchievementDefinition @relation(fields: [achievementDefinitionId], references: [id], onDelete: Cascade)
+  run           ProgramRun?           @relation(fields: [programRunId], references: [id], onDelete: SetNull)
+  session       ProgramSession?       @relation(fields: [programSessionId], references: [id], onDelete: SetNull)
+  shareArtifact PulseShareArtifact?   @relation(fields: [shareArtifactId], references: [id], onDelete: SetNull)
+
+  @@index([userId, awardedAt])
+  @@index([achievementDefinitionId, awardedAt])
 }
 
 // --- FUTURE: chat event polls (group chats) ---
@@ -797,7 +1675,6 @@ model GameRoom {
   createdAt      DateTime @default(now())
   meta           Json?
 }
-
 
 model SupportTicket {
   id          String              @id @default(uuid())
@@ -871,19 +1748,18 @@ model SupportQuestionLike {
   @@index([userId, createdAt])
 }
 
-
 model AnalyticsSession {
-  id               String   @id @default(uuid())
+  id               String    @id @default(uuid())
   userId           String
   sessionKey       String
   landingPath      String?
   exitPath         String?
-  pageViews        Int      @default(0)
-  totalDurationSec Int      @default(0)
-  startedAt        DateTime @default(now())
-  lastSeenAt       DateTime @default(now())
+  pageViews        Int       @default(0)
+  totalDurationSec Int       @default(0)
+  startedAt        DateTime  @default(now())
+  lastSeenAt       DateTime  @default(now())
   endedAt          DateTime?
-  isActive         Boolean  @default(true)
+  isActive         Boolean   @default(true)
 
   user   User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   events AnalyticsEvent[]

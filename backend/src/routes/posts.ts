@@ -6,6 +6,7 @@ import { asyncHandler, HttpError } from "../utils/http";
 import { requireAuth, requireActiveUser, AuthedRequest } from "../middleware/auth";
 import { upload } from "../middleware/upload";
 import { activeUserWhere } from "../utils/userStatus";
+import { createAndDeliverNotification } from "../utils/notifications";
 
 const router = Router();
 router.use(requireAuth, requireActiveUser);
@@ -198,11 +199,12 @@ router.post("/:postId/like", asyncHandler(async (req: AuthedRequest, res) => {
   await prisma.postLike.create({ data: { postId, userId: req.user!.id } }).catch(() => null);
 
   if (post.authorId !== req.user!.id) {
-    const notif = await prisma.notification.create({
-      data: { userId: post.authorId, type: "POST_LIKED", data: { postId, byUserId: req.user!.id } },
+    await createAndDeliverNotification({
+      app: req.app,
+      userId: post.authorId,
+      type: "POST_LIKED",
+      data: { postId, byUserId: req.user!.id },
     });
-    const emitter = req.app.locals.emitter as any;
-    emitter?.emitToUser(post.authorId, "notification:new", notif);
   }
 
   res.json({ ok: true });
@@ -309,11 +311,12 @@ router.post("/:postId/comments", upload.array("images", 10), asyncHandler(async 
   });
 
   if (post.authorId !== req.user!.id) {
-    const notif = await prisma.notification.create({
-      data: { userId: post.authorId, type: "POST_COMMENTED", data: { postId, commentId: comment.id, byUserId: req.user!.id } },
+    await createAndDeliverNotification({
+      app: req.app,
+      userId: post.authorId,
+      type: "POST_COMMENTED",
+      data: { postId, commentId: comment.id, byUserId: req.user!.id },
     });
-    const emitter = req.app.locals.emitter as any;
-    emitter?.emitToUser(post.authorId, "notification:new", notif);
   }
 
   res.json({ comment: mapComment(comment) });
@@ -338,11 +341,12 @@ router.post("/comments/:commentId/like", asyncHandler(async (req: AuthedRequest,
   await prisma.commentLike.create({ data: { commentId, userId: req.user!.id } }).catch(() => null);
 
   if (comment.authorId !== req.user!.id) {
-    const notif = await prisma.notification.create({
-      data: { userId: comment.authorId, type: "COMMENT_LIKED", data: { commentId, postId: comment.postId, byUserId: req.user!.id } },
+    await createAndDeliverNotification({
+      app: req.app,
+      userId: comment.authorId,
+      type: "COMMENT_LIKED",
+      data: { commentId, postId: comment.postId, byUserId: req.user!.id },
     });
-    const emitter = req.app.locals.emitter as any;
-    emitter?.emitToUser(comment.authorId, "notification:new", notif);
   }
 
   res.json({ ok: true });

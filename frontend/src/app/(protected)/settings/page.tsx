@@ -256,6 +256,7 @@ export default function SettingsPage() {
               <Switch label="Показывать health-виджеты" description="Например настроение, сон, вес и другие публичные блоки." checked={privacy?.showHealthWidgets ?? true} onChange={(next) => updatePrivacyField({ showHealthWidgets: next })} />
               <Switch label="Показывать задачи" description="Открывает блок задач и привычек на странице профиля." checked={privacy?.showTasks ?? false} onChange={(next) => updatePrivacyField({ showTasks: next })} />
               <Switch label="Показывать события" description="Планы, напоминания и личные события на странице пользователя." checked={privacy?.showEvents ?? false} onChange={(next) => updatePrivacyField({ showEvents: next })} />
+              <Switch label="Показывать Pulse achievements" description="Разрешает отображать достижения Pulse в профиле." checked={privacy?.showPulseAchievements ?? false} onChange={(next) => updatePrivacyField({ showPulseAchievements: next })} />
             </div>
           </Card>
         </div>

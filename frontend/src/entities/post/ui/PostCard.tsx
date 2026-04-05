@@ -20,6 +20,7 @@ import { PostLikesModal } from '@/features/postLikes/ui/PostLikesModal';
 import { useIsMobile } from '@/shared/lib/hooks/useIsMobile';
 import { PostCommentsMobileModal } from '@/features/postComments/ui/PostCommentsMobileModal';
 import { EditPostModal } from '@/features/postEdit/ui/EditPostModal';
+import { PulseShareCard } from '@/shared/ui/PulseShareCard/PulseShareCard';
 
 function getOriginalPost(post: Post): Post {
   let current = post;
@@ -251,6 +252,16 @@ function PostCardComponent({
               <span>{(post.widgetsJson as any).pulse7Score ?? '—'}%</span>
             </div>
           </button>
+        ) : null}
+
+        {(post.widgetsJson as any)?.type === 'pulse_share' ? (
+          <div className={styles.widget}>
+            <PulseShareCard
+              artifactId={String((post.widgetsJson as any)?.artifactId ?? '')}
+              artifact={(post.widgetsJson as any)?.artifact ?? null}
+              compact={isMobile}
+            />
+          </div>
         ) : null}
 
         {originalPost ? (

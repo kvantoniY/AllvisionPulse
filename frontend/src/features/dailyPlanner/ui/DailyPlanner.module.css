@@ -1,0 +1,785 @@
+.surface {
+  display: grid;
+  gap: 20px;
+  padding: 22px;
+  border-radius: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background:
+    radial-gradient(circle at top right, rgba(99, 165, 255, 0.12), transparent 34%),
+    linear-gradient(180deg, rgba(12, 14, 18, 0.98), rgba(8, 10, 16, 0.98));
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.28);
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.eyebrow {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: rgba(255, 255, 255, 0.46);
+}
+
+.title {
+  margin-top: 6px;
+  font-size: clamp(22px, 2.6vw, 32px);
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  font-weight: 800;
+}
+
+.subtitle {
+  margin-top: 8px;
+  max-width: 760px;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.countPill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(99, 165, 255, 0.22);
+  background: rgba(99, 165, 255, 0.12);
+  color: #d7ebff;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.boardWrap {
+  overflow: auto;
+  max-height: min(78vh, 1120px);
+  overscroll-behavior: contain;
+  border-radius: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0.01)),
+    rgba(7, 8, 13, 0.96);
+}
+
+.board {
+  --planner-columns: 1;
+  --planner-height: 1536px;
+  display: grid;
+  grid-template-columns: 78px minmax(0, 1fr);
+  min-width: 920px;
+}
+
+.timeRail {
+  position: sticky;
+  left: 0;
+  z-index: 4;
+  background: linear-gradient(180deg, rgba(10, 12, 18, 0.98), rgba(9, 11, 17, 0.98));
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.timeRailSpacer {
+  height: 72px;
+  position: sticky;
+  top: 0;
+  z-index: 6;
+  background: linear-gradient(180deg, rgba(10, 12, 18, 0.98), rgba(9, 11, 17, 0.98));
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.timeTick {
+  height: 64px;
+  padding: 0 10px 0 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  color: rgba(255, 255, 255, 0.42);
+  font-size: 12px;
+  line-height: 1;
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.timeTick:first-of-type {
+  border-top: 0;
+}
+
+.columnsArea {
+  min-width: 0;
+}
+
+.columnsHeader {
+  display: grid;
+  grid-template-columns: repeat(var(--planner-columns), minmax(180px, 1fr));
+  min-height: 72px;
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  backdrop-filter: blur(14px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.columnHeader {
+  display: grid;
+  align-content: center;
+  gap: 4px;
+  padding: 12px 14px;
+  border-left: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.015);
+}
+
+.columnHeader:first-child {
+  border-left: 0;
+}
+
+.columnHeader span {
+  color: rgba(255, 255, 255, 0.52);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.columnHeader strong {
+  font-size: 18px;
+  letter-spacing: -0.03em;
+}
+
+.columnHeaderActive {
+  background:
+    linear-gradient(180deg, rgba(255, 152, 77, 0.12), rgba(255, 152, 77, 0.02)),
+    rgba(255, 255, 255, 0.02);
+}
+
+.columnsGrid {
+  position: relative;
+  height: var(--planner-height);
+  display: grid;
+  grid-template-columns: repeat(var(--planner-columns), minmax(180px, 1fr));
+}
+
+.dayColumn {
+  position: relative;
+  display: grid;
+  grid-template-rows: repeat(24, 64px);
+  border-left: 1px solid rgba(255, 255, 255, 0.06);
+  cursor: cell;
+}
+
+.dayColumn:first-child {
+  border-left: 0;
+}
+
+.dayColumn:hover {
+  background: rgba(255, 255, 255, 0.018);
+}
+
+.hourCell {
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.hourCell:first-child {
+  border-top: 0;
+}
+
+.eventShell {
+  position: absolute;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.eventCard {
+  position: absolute;
+  inset: 2px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px 10px 14px;
+  border: 0;
+  border-left: 3px solid #64b0ff;
+  border-radius: 16px;
+  background: linear-gradient(180deg, rgba(37, 128, 255, 0.94), rgba(33, 104, 214, 0.92));
+  color: #fff;
+  text-align: left;
+  box-shadow: 0 12px 24px rgba(15, 60, 126, 0.28);
+  cursor: grab;
+  overflow: hidden;
+  pointer-events: auto;
+  transition: transform 160ms ease, box-shadow 160ms ease, filter 160ms ease;
+  user-select: none;
+  touch-action: none;
+}
+
+.eventCard:hover,
+.eventCard:focus-visible {
+  transform: translateY(-1px);
+  box-shadow: 0 16px 30px rgba(15, 60, 126, 0.34);
+  filter: brightness(1.02);
+  outline: none;
+}
+
+.eventCardDragging {
+  cursor: grabbing;
+  filter: brightness(1.04);
+}
+
+.eventCardDone {
+  border-left-color: #34d399;
+  background: linear-gradient(180deg, rgba(23, 131, 95, 0.94), rgba(15, 105, 73, 0.92));
+  box-shadow: 0 12px 24px rgba(7, 76, 52, 0.28);
+}
+
+.eventCardCompact {
+  gap: 4px;
+  padding: 8px 10px 8px 12px;
+}
+
+.eventCardTiny {
+  gap: 2px;
+  padding-top: 6px;
+  padding-bottom: 6px;
+}
+
+.eventCardInner {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-height: 0;
+  padding-right: 28px;
+}
+
+.eventCardTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+
+.eventTime {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.84);
+}
+
+.eventType {
+  min-height: 20px;
+  padding: 0 7px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.14);
+  color: rgba(255, 255, 255, 0.84);
+  font-size: 10px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.eventContent {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-height: 0;
+}
+
+.eventTitle {
+  font-size: 13px;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  color: #fff;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.eventCardTiny .eventTitle {
+  -webkit-line-clamp: 1;
+}
+
+.eventNotes {
+  font-size: 12px;
+  line-height: 1.35;
+  color: rgba(255, 255, 255, 0.9);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.eventMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.eventMeta span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.9);
+  max-width: 100%;
+}
+
+.cardCheckbox {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.76);
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 2;
+}
+
+.cardCheckboxDone {
+  border-color: rgba(255, 255, 255, 0);
+  background: rgba(255, 255, 255, 0.24);
+}
+
+.resizeHandle {
+  position: absolute;
+  left: 18px;
+  right: 18px;
+  height: 8px;
+  z-index: 2;
+  touch-action: none;
+}
+
+.resizeHandleTop {
+  top: -2px;
+  cursor: ns-resize;
+}
+
+.resizeHandleBottom {
+  bottom: -2px;
+  cursor: ns-resize;
+}
+
+.empty {
+  padding: 18px;
+  border-radius: 20px;
+  border: 1px dashed rgba(255, 255, 255, 0.12);
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.error {
+  padding: 12px 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 99, 132, 0.24);
+  background: rgba(255, 99, 132, 0.1);
+  color: #ffd2da;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.modalBody {
+  display: grid;
+  gap: 18px;
+}
+
+.modalGrid {
+  display: grid;
+  gap: 14px;
+}
+
+.modalField {
+  display: grid;
+  gap: 6px;
+}
+
+.modalField span {
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.58);
+}
+
+.modalField input,
+.modalField textarea {
+  width: 100%;
+  min-height: 42px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text);
+}
+
+.modalField textarea {
+  min-height: 112px;
+  resize: vertical;
+}
+
+.modalTimeGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.modalMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.modalChip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  color: var(--text-soft);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.sourcePanel {
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.8);
+  line-height: 1.55;
+}
+
+.relatedSection {
+  display: grid;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: rgba(0, 0, 0, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.relatedHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.76);
+}
+
+.relatedHeader strong {
+  color: var(--text);
+}
+
+.relatedList {
+  display: grid;
+  gap: 8px;
+}
+
+.relatedRow {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.relatedCheckbox {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.relatedCheckboxDone {
+  border-color: transparent;
+  background: rgba(52, 211, 153, 0.26);
+}
+
+.relatedText {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.relatedText strong {
+  color: var(--text);
+  font-size: 13px;
+}
+
+.relatedText span {
+  font-size: 12px;
+  line-height: 1.4;
+  color: rgba(255, 255, 255, 0.66);
+}
+
+.relatedSide {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.72);
+  white-space: nowrap;
+}
+
+.emptyInline {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.66);
+}
+
+.modalActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 960px) {
+  .surface {
+    padding: 18px;
+    border-radius: 24px;
+  }
+
+  .board {
+    min-width: 760px;
+  }
+
+  .columnHeader {
+    min-width: 140px;
+  }
+
+  .modalTimeGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 720px) {
+  .header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .countPill {
+    width: fit-content;
+  }
+
+  .board {
+    min-width: 680px;
+    grid-template-columns: 64px minmax(0, 1fr);
+  }
+
+  .timeTick {
+    padding-right: 6px;
+    font-size: 11px;
+  }
+
+  .columnHeader {
+    min-width: 128px;
+    padding: 10px 12px;
+  }
+
+  .eventCard {
+    border-radius: 14px;
+  }
+
+  .relatedRow {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .relatedSide {
+    grid-column: 2;
+  }
+
+  .modalActions :global(button) {
+    width: 100%;
+  }
+}
+
+/* embedded planner refinement */
+.surface {
+  gap: 16px;
+  padding: 18px;
+  border-radius: 24px;
+  border-color: rgba(255, 255, 255, 0.05);
+  background: linear-gradient(180deg, rgba(10, 12, 17, 0.9), rgba(7, 9, 13, 0.94));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+.surfaceCompact {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.header {
+  align-items: center;
+  gap: 14px;
+}
+
+.title {
+  margin-top: 2px;
+  font-size: clamp(18px, 2vw, 24px);
+  font-weight: 700;
+}
+
+.subtitle {
+  margin-top: 6px;
+  max-width: 640px;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.countPill {
+  min-height: 34px;
+  padding: 0 12px;
+  border-radius: 12px;
+  border-color: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 12px;
+}
+
+.boardWrap {
+  border-radius: 20px;
+  border-color: rgba(255, 255, 255, 0.05);
+  background: rgba(7, 9, 13, 0.9);
+}
+
+.timeRail,
+.timeRailSpacer {
+  background: rgba(10, 12, 17, 0.96);
+}
+
+.columnHeader {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.columnHeaderActive {
+  background: linear-gradient(180deg, rgba(255, 149, 84, 0.12), rgba(255, 149, 84, 0.03));
+}
+
+.eventCard {
+  border-left-width: 2px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(45, 106, 196, 0.92), rgba(35, 85, 159, 0.92));
+  box-shadow: 0 10px 24px rgba(8, 29, 61, 0.24);
+}
+
+.eventCard:hover,
+.eventCard:focus-visible {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 26px rgba(8, 29, 61, 0.28);
+  filter: brightness(1.01);
+}
+
+.eventCardDone {
+  background: linear-gradient(180deg, rgba(28, 112, 79, 0.9), rgba(21, 83, 60, 0.92));
+  box-shadow: 0 10px 24px rgba(7, 45, 32, 0.22);
+}
+
+.eventCardCompact {
+  padding: 8px 10px 8px 12px;
+}
+
+.eventCardInner {
+  padding-right: 24px;
+}
+
+.eventType {
+  min-height: 18px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.eventTitle {
+  font-size: 12px;
+}
+
+.eventNotes {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.cardCheckbox {
+  width: 16px;
+  height: 16px;
+  top: 8px;
+  right: 8px;
+}
+
+.empty {
+  padding: 14px 16px;
+  border-radius: 16px;
+  border-style: solid;
+  border-color: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.02);
+  color: rgba(255, 255, 255, 0.62);
+}
+
+@media (max-width: 720px) {
+  .surfaceCompact {
+    padding: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .boardWrap {
+    border-radius: 18px;
+  }
+}
+
+.checkboxIcon {
+  width: 12px;
+  height: 12px;
+  display: block;
+}
+
+.cardCheckbox,
+.relatedCheckbox {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+}
+
+.cardCheckboxDone,
+.relatedCheckboxDone {
+  color: #ffffff;
+}
+
+/* --- planner event readability polish --- */
+.eventCardTiny {
+  gap: 3px;
+  padding-top: 7px;
+  padding-bottom: 7px;
+}
+
+.eventCardTiny .eventTitle {
+  line-height: 1.15;
+}

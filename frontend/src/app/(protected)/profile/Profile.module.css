@@ -7,7 +7,7 @@
   padding-top: 20px;
   min-width: 0;
   overflow-x: hidden;
-  background: linear-gradient(180deg, rgba(17, 20, 24, 0.96), rgba(12, 14, 17, 0.985));
+  background: transparent;
   min-height: calc(100dvh - var(--header-height) - 20px);
 }
 
@@ -16,7 +16,7 @@
   gap: 0;
   min-width: 0;
   padding: 20px 0 28px;
-  background: linear-gradient(180deg, rgba(17, 20, 24, 0.96), rgba(12, 14, 17, 0.985));
+  background: transparent;
 }
 
 .stack > * {
@@ -236,6 +236,11 @@ button.countItem:disabled { opacity: 0.64; cursor: not-allowed; }
 .storiesSection {
   min-width: 0;
   max-width: 100%;
+}
+
+.composerWrap {
+  position: relative;
+  z-index: 9;
 }
 
 .postsList {
@@ -660,5 +665,42 @@ button.countItem:disabled { opacity: 0.64; cursor: not-allowed; }
   .page {
     width: calc(100% + 40px);
     margin-inline: -20px;
+  }
+}
+
+/* --- profile flatten pass --- */
+
+.noticeCard,
+.sectionCard {
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 18px 0 !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07) !important;
+}
+
+.noticeCard::before,
+.noticeCard::after,
+.sectionCard::before,
+.sectionCard::after {
+  display: none !important;
+}
+
+.countItem {
+  background: transparent;
+  border-color: rgba(255, 255, 255, 0.08);
+  transition: border-color 140ms ease, background 140ms ease, transform 140ms ease;
+}
+
+button.countItem:hover:not(:disabled) {
+  border-color: rgba(255, 122, 26, 0.22);
+  background: rgba(255, 122, 26, 0.04);
+  transform: translateY(-1px);
+}
+
+@media (max-width: 640px) {
+  .noticeCard {
+    margin-inline: 16px;
   }
 }

@@ -18,6 +18,10 @@
   grid-template-columns: 1fr;
 }
 
+.notificationPillRow {
+  padding: 10px 18px 0;
+}
+
 .top {
   display: flex;
   align-items: center;
@@ -468,6 +472,27 @@
 .mediaActions { display: flex; gap: 8px; }
 .mediaBtn { min-width: 34px; height: 34px; padding: 0; border-radius: 50%; }
 
+.mediaTabs {
+  display: flex;
+  gap: 8px;
+  padding: 10px 12px 0;
+}
+
+.mediaTab {
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 999px;
+  background: rgba(255,255,255,0.03);
+  color: rgba(255,255,255,0.7);
+}
+
+.mediaTabActive {
+  background: rgba(255, 178, 109, 0.14);
+  border-color: rgba(255, 178, 109, 0.4);
+  color: var(--text);
+}
+
 .mediaGrid {
   padding: 12px;
   overflow: auto;
@@ -497,6 +522,80 @@
   padding: 14px 12px;
   color: var(--muted);
   font-size: 12px;
+}
+
+.pulseMediaFilters {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+}
+
+.pulseMediaFilterRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.pulseMediaChip {
+  min-height: 30px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.03);
+  color: rgba(255,255,255,0.72);
+  font-size: 12px;
+}
+
+.pulseMediaChipActive {
+  background: rgba(255, 178, 109, 0.14);
+  border-color: rgba(255, 178, 109, 0.4);
+  color: var(--text);
+}
+
+.pulseMediaSearchRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.pulseMediaSearchRow input {
+  min-height: 38px;
+  width: 100%;
+  padding: 0 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.03);
+  color: var(--text);
+}
+
+.pulseHistoryList {
+  display: grid;
+  gap: 10px;
+  padding: 0 12px 12px;
+  overflow: auto;
+}
+
+.pulseHistoryItem {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,0.06);
+  background: rgba(255,255,255,0.03);
+}
+
+.pulseHistoryMeta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 12px;
+  color: rgba(255,255,255,0.64);
+}
+
+.pulseHistoryOwner {
+  font-size: 12px;
+  color: rgba(255,255,255,0.56);
 }
 
 .composer {
@@ -2375,5 +2474,9 @@
   .messageShellVideo {
     width: min(calc(100vw - 76px), 100%);
     max-width: min(calc(100vw - 76px), 100%);
+  }
+
+  .pulseMediaSearchRow {
+    grid-template-columns: minmax(0, 1fr);
   }
 }

@@ -493,3 +493,264 @@
     border-radius: 16px;
   }
 }
+
+/* --- admin flatten pass --- */
+.heroPanel,
+.panel {
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  overflow: visible !important;
+}
+
+.heroPanel::before,
+.panel::before {
+  display: none !important;
+}
+
+.heroPanel {
+  padding-bottom: 18px !important;
+  border-bottom: 1px solid var(--stroke) !important;
+}
+
+.panel {
+  padding-top: 18px !important;
+  border-top: 1px solid var(--stroke) !important;
+}
+
+.hero {
+  gap: 18px !important;
+}
+
+.heroActions {
+  display: flex !important;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: flex-end;
+  gap: 10px !important;
+}
+
+.adminIdentity,
+.chip {
+  background: transparent !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+.liveBadge {
+  box-shadow: none !important;
+}
+
+.tabSwitch {
+  display: flex !important;
+  flex-wrap: wrap;
+  gap: 16px !important;
+  width: fit-content;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+}
+
+.tabButton {
+  min-height: 0 !important;
+  padding: 0 4px 10px !important;
+  border: 0 !important;
+  border-bottom: 2px solid transparent !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.tabButton:hover,
+.queueItem:hover {
+  transform: none !important;
+}
+
+.tabButton:hover {
+  border-bottom-color: rgba(255, 255, 255, 0.18) !important;
+  color: #ffffff !important;
+}
+
+.tabButtonActive {
+  background: transparent !important;
+  border-color: transparent !important;
+  border-bottom-color: rgba(255, 122, 26, 0.9) !important;
+  color: var(--accent-strong) !important;
+}
+
+.analyticsLayout,
+.chartGrid,
+.insightsGrid,
+.supportWorkspace {
+  gap: 32px !important;
+}
+
+.metricsGrid {
+  gap: 18px 24px !important;
+}
+
+.metricCard {
+  padding: 14px 0 0 !important;
+  border: 0 !important;
+  border-top: 1px solid var(--stroke) !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+}
+
+.metricValue {
+  font-size: clamp(28px, 3vw, 38px) !important;
+}
+
+.metricTitle {
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.metricHint {
+  font-size: 14px;
+}
+
+.chartCard {
+  align-content: start;
+}
+
+.chartBox {
+  padding-top: 8px;
+}
+
+.progressList,
+.rankList,
+.queueList,
+.replyList,
+.detailStack {
+  gap: 0 !important;
+}
+
+.filterStack,
+.sectionBlock {
+  gap: 14px !important;
+}
+
+.rankItem,
+.queueItem,
+.replyCard,
+.answerPreview {
+  padding: 18px 0 !important;
+  border: 0 !important;
+  border-top: 1px solid var(--stroke) !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+}
+
+.progressItem {
+  padding: 16px 0 0;
+  border-top: 1px solid var(--stroke);
+}
+
+.progressList > :first-child,
+.rankList > :first-child,
+.queueList > :first-child,
+.replyList > :first-child,
+.detailStack > :first-child,
+.sectionBlock > :first-child {
+  border-top: 0 !important;
+  padding-top: 0 !important;
+}
+
+.queueItem {
+  transition: border-color 140ms ease, color 140ms ease, padding-left 140ms ease;
+}
+
+.queueItem:hover {
+  border-top-color: rgba(255, 255, 255, 0.16) !important;
+}
+
+.queueItemActive {
+  border-top-color: rgba(255, 122, 26, 0.4) !important;
+  background: transparent !important;
+  box-shadow: inset 2px 0 0 rgba(255, 122, 26, 0.9);
+  padding-left: 14px !important;
+}
+
+.rankItem {
+  align-items: flex-start;
+}
+
+.rankNumber {
+  background: rgba(255, 122, 26, 0.1) !important;
+}
+
+.sectionBlock {
+  padding-top: 18px !important;
+  border-top: 1px solid var(--stroke) !important;
+}
+
+.detailBody {
+  max-width: 72ch;
+}
+
+.input,
+.select,
+.textarea {
+  border-radius: 14px !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.014), rgba(255, 255, 255, 0.018)) !important;
+  box-shadow: none !important;
+}
+
+.input:focus,
+.select:focus,
+.textarea:focus {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.018), rgba(255, 255, 255, 0.024)) !important;
+}
+
+.note {
+  padding-top: 4px;
+}
+
+.chartTooltip {
+  box-shadow: none !important;
+}
+
+@media (max-width: 1280px) {
+  .analyticsLayout,
+  .chartGrid,
+  .insightsGrid,
+  .supportWorkspace {
+    gap: 24px !important;
+  }
+}
+
+@media (max-width: 960px) {
+  .heroPanel {
+    padding-bottom: 14px !important;
+  }
+
+  .panel {
+    padding-top: 14px !important;
+  }
+
+  .tabSwitch {
+    width: 100%;
+    gap: 12px !important;
+  }
+
+  .tabButton {
+    padding-bottom: 8px !important;
+  }
+
+  .metricsGrid {
+    gap: 14px !important;
+  }
+
+  .rankItem,
+  .queueItem,
+  .replyCard,
+  .answerPreview {
+    padding: 14px 0 !important;
+  }
+}

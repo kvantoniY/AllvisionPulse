@@ -2,6 +2,8 @@ import { Server } from "socket.io";
 import { verifyAccessToken } from "../utils/jwt";
 import { prisma } from "../db/prisma";
 import { getEnv } from "../config/env";
+import { buildCallInvitePushPayload } from "../utils/notifications";
+import { sendWebPushToUsers } from "../utils/webPush";
 
 type OnlineMap = Map<string, { sockets: Set<string>; lastSeenAt: Date }>;
 type PresenceRuntimeState = "online" | "reconnecting" | "disconnected";
@@ -274,6 +276,21 @@ export function createSocket(io: Server) {
       return;
     }
 
+    if (call.kind === "direct" && call.participants.size <= 1) {
+      activeCalls.delete(callId);
+      activeCallIdByChatId.delete(call.chatId);
+      await emitCallState(call.chatId, null);
+      io.to(`call:${callId}`).emit("call:end", {
+        callId,
+        chatId: call.chatId,
+        byUserId: userId,
+        at: new Date().toISOString(),
+        reason: "peer_left",
+      });
+      logCall("ended-direct-peer-left", { callId, chatId: call.chatId, byUserId: userId, reason });
+      return;
+    }
+
     await emitCallState(call.chatId, callId);
   }
 
@@ -463,6 +480,11 @@ export function createSocket(io: Server) {
         logCall("invite", { chatId, callId, userId, kind, invitedCount: memberUserIds.length });
 
         await emitToChatMembersExcept(chatId, userId, "call:invite", { chatId, callId, fromUserId: userId, createdAt, kind });
+        const pushPayload = await buildCallInvitePushPayload({ chatId, callId, fromUserId: userId, kind });
+        if (pushPayload) {
+          const invitedUserIds = memberUserIds.filter((memberUserId) => memberUserId !== userId);
+          await sendWebPushToUsers(invitedUserIds, pushPayload);
+        }
         await emitCallState(chatId, callId);
       } finally {
         pendingCallInvites.delete(callId);

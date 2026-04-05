@@ -1,5 +1,6 @@
 import { baseApi } from './baseApi';
-import type { Chat, Message } from '@/shared/types/chat';
+import type { Chat, ChatPulseHistoryItem, Message } from '@/shared/types/chat';
+import type { PulseActionArtifactType, PulseShareArtifactKind, ShareArtifact } from '@/shared/types/programs';
 
 type Paginated<T> = { items: T[]; nextCursor?: string | null };
 
@@ -38,7 +39,7 @@ export const chatsApi = baseApi.injectEndpoints({
       }),
     }),
 
-    getChatMedia: build.query<{ items: any[] }, { chatId: string }>({
+    getChatMedia: build.query<{ items: any[]; pulseItems: ChatPulseHistoryItem[] }, { chatId: string }>({
       query: ({ chatId }) => ({ url: `/backend/chats/${chatId}/media`, method: 'GET' }),
       providesTags: (_r, _e, a) => [{ type: 'Chat', id: a.chatId }],
     }),
@@ -60,6 +61,33 @@ export const chatsApi = baseApi.injectEndpoints({
         return { url: `/backend/chats/${chatId}/messages`, method: 'POST', body: form };
       },
       invalidatesTags: (_r, _e, a) => [{ type: 'Message', id: `LIST:${a.chatId}` }, { type: 'Chat', id: 'LIST' }],
+    }),
+
+    sendArtifactMessage: build.mutation<
+      { message: Message; artifact: ShareArtifact },
+      {
+        chatId: string;
+        text?: string | null;
+        replyToId?: string | null;
+        sourceType: string;
+        sourceId?: string | null;
+        kind: PulseShareArtifactKind;
+        mode: 'SNAPSHOT' | 'REFERENCE' | 'INVITE';
+        actionType?: PulseActionArtifactType | null;
+        title?: string | null;
+        description?: string | null;
+        visibilityScope?: 'PRIVATE' | 'RESTRICTED' | 'PUBLIC';
+        explicitPublicShare?: boolean;
+        payload?: Record<string, unknown> | null;
+        participantUserIds?: string[];
+      }
+    >({
+      query: ({ chatId, ...body }) => ({
+        url: `/backend/chats/${chatId}/artifacts/messages`,
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: (_r, _e, a) => [{ type: 'Message', id: `LIST:${a.chatId}` }, { type: 'Chat', id: 'LIST' }, { type: 'ShareArtifact', id: 'LIST' }],
     }),
 
     updateMessage: build.mutation<{ message: Message }, { chatId: string; messageId: string; text: string }>({
@@ -108,6 +136,7 @@ export const {
   useLazySearchMessagesQuery,
   useGetChatMediaQuery,
   useSendMessageMutation,
+  useSendArtifactMessageMutation,
   useUpdateMessageMutation,
   useDeleteMessagesBulkMutation,
   useDeleteMessageMutation,

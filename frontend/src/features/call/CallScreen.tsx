@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import dynamic from 'next/dynamic';
 import styles from './callUi.module.css';
 import type { Chat } from '@/shared/types/chat';
 import {
@@ -14,8 +15,16 @@ import {
 import { Avatar } from '@/shared/ui/Avatar/Avatar';
 import { useGetMeQuery } from '@/shared/api/usersApi';
 import { CallChatPanel } from './CallChatPanel';
-import { GameSessionPanel } from '@/features/games';
+import type { GameViewState } from '@/features/games/lib/useGameFullscreen';
 import { AdminBadge } from '@/shared/ui/AdminBadge/AdminBadge';
+
+const LazyGameSessionPanel = dynamic(
+  () => import('@/features/games').then((mod) => mod.GameSessionPanel),
+  {
+    ssr: false,
+    loading: () => <div style={{ padding: 16, color: 'rgba(255,255,255,0.72)' }}>Загрузка игр...</div>,
+  },
+);
 
 type Props = {
   open: boolean;
@@ -205,12 +214,28 @@ function StreamRenderer({
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
-    if (showVideo && videoRef.current && (videoRef.current as HTMLVideoElement & { srcObject?: MediaStream }).srcObject !== stream) {
-      (videoRef.current as HTMLVideoElement & { srcObject?: MediaStream }).srcObject = stream;
-    }
-    if (!muted && audioRef.current && (audioRef.current as HTMLAudioElement & { srcObject?: MediaStream }).srcObject !== stream) {
-      (audioRef.current as HTMLAudioElement & { srcObject?: MediaStream }).srcObject = stream;
-    }
+    const attachStream = (element: HTMLMediaElement | null) => {
+      if (!element) return;
+      if ((element as HTMLMediaElement & { srcObject?: MediaStream }).srcObject !== stream) {
+        (element as HTMLMediaElement & { srcObject?: MediaStream }).srcObject = stream;
+      }
+      const tryPlay = () => {
+        const playPromise = element.play();
+        if (playPromise && typeof playPromise.catch === 'function') playPromise.catch(() => null);
+      };
+      if (element.readyState >= 1) {
+        tryPlay();
+        return;
+      }
+      const handleLoadedMetadata = () => {
+        element.removeEventListener('loadedmetadata', handleLoadedMetadata);
+        tryPlay();
+      };
+      element.addEventListener('loadedmetadata', handleLoadedMetadata);
+    };
+
+    if (showVideo && videoRef.current) attachStream(videoRef.current);
+    if (!muted && audioRef.current) attachStream(audioRef.current);
   }, [stream, muted, showVideo]);
 
   useEffect(() => {
@@ -263,12 +288,12 @@ function MediaTile({
         .join(' ')}
       onClick={onClick}
     >
-      {tile.stream && showVideo ? (
+      {tile.stream ? (
         <StreamRenderer
           stream={tile.stream}
           className={styles.tileVideo}
           muted={tile.isSelf}
-          showVideo
+          showVideo={showVideo}
           sinkId={tile.isSelf ? undefined : audioOutputId}
         />
       ) : null}
@@ -293,7 +318,7 @@ function MediaTile({
             <ControlIcon name="cameraOff" className={styles.statusIcon} />
           </span>
         ) : null}
-        {tile.screenOn ? <span className={styles.tileBadgePrimary}>Sharing</span> : null}
+        {tile.screenOn ? <span className={styles.tileBadgePrimary}>Экран</span> : null}
       </div>
     </button>
   );
@@ -320,6 +345,11 @@ export function CallScreen({ open, stage, chat, callId, initiator, onConnected, 
   const [pinnedId, setPinnedId] = useState('');
   const [chatOpen, setChatOpen] = useState(false);
   const [gameOpen, setGameOpen] = useState(false);
+  const [gameViewState, setGameViewState] = useState<GameViewState>({
+    mode: 'call',
+    fullscreenScope: 'none',
+    source: 'call',
+  });
   const [toast, setToast] = useState('');
   const [screenStream, setScreenStream] = useState<MediaStream | null>(null);
   const [micOn, setMicOn] = useState(true);
@@ -338,7 +368,6 @@ export function CallScreen({ open, stage, chat, callId, initiator, onConnected, 
   const chatRef = useRef(chat);
   const meRef = useRef(me);
   const onConnectedRef = useRef(onConnected);
-  const onHangupRef = useRef(onHangup);
   const [, tick] = useState(0);
   const toastTimerRef = useRef<number | null>(null);
   const bannerTimerRef = useRef<number | null>(null);
@@ -377,14 +406,22 @@ export function CallScreen({ open, stage, chat, callId, initiator, onConnected, 
     chatRef.current = chat;
     meRef.current = me;
     onConnectedRef.current = onConnected;
-    onHangupRef.current = onHangup;
-  }, [chat, me, onConnected, onHangup]);
+  }, [chat, me, onConnected]);
 
   useEffect(() => {
     if (!open) return;
     const timer = window.setInterval(() => tick((value) => value + 1), 1000);
     return () => window.clearInterval(timer);
   }, [open]);
+
+  useEffect(() => {
+    if (gameOpen) return;
+    setGameViewState({
+      mode: 'call',
+      fullscreenScope: 'none',
+      source: 'call',
+    });
+  }, [gameOpen]);
 
   useEffect(() => {
     if (!open || !callId || !meId) return;
@@ -404,8 +441,13 @@ export function CallScreen({ open, stage, chat, callId, initiator, onConnected, 
           delete next[userId];
           return next;
         }),
-      onPeerJoined: (userId) => notify(`${participantName(userId)} joined`),
-      onPeerLeft: (userId) => notify(`${participantName(userId)} left`),
+      onPeerJoined: (userId) => notify(`${participantName(userId)} присоединился(ась)`),
+      onPeerLeft: (userId, reason) =>
+        notify(
+          reason === 'leave' || reason === 'peer_left'
+            ? `${participantName(userId)} вышел(а) из звонка`
+            : `${participantName(userId)} временно потерял(а) соединение`,
+        ),
       onToast: notify,
       onConnected: () => {
         if (!startedAtRef.current) startedAtRef.current = Date.now();
@@ -448,18 +490,18 @@ export function CallScreen({ open, stage, chat, callId, initiator, onConnected, 
         } catch (error) {
           pushBanner(error instanceof Error ? error.message : 'Нет доступа к микрофону.', 'warning', 5200);
         }
-        await nextRoom.join();
         const stream = await nextRoom.initLocal({ micOn: true, camOn: false });
         setLocalStream(stream);
         const media = nextRoom.getMyMedia();
         setMicOn(media.micOn);
         setCamOn(media.camOn);
         setDevices(nextRoom.getDevices());
+        await nextRoom.join();
         if (!stream) {
-          pushBanner('Joined without local microphone. You can still connect a device in settings.', 'warning', 4200);
+          pushBanner('Подключение прошло без локального микрофона. Устройство можно выбрать в настройках.', 'warning', 4200);
         }
       } catch {
-        pushBanner('Call is still being prepared. Reconnecting…', 'warning', 4200);
+        pushBanner('Звонок ещё подготавливается. Переподключаемся…', 'warning', 4200);
       }
     })();
 
@@ -498,16 +540,7 @@ export function CallScreen({ open, stage, chat, callId, initiator, onConnected, 
   }, [pinnedId, peers]);
 
   useEffect(() => {
-    if (!open || isGroup) return;
-    const stillRecovering = peerList.some((peer) => peer.status === 'disconnected' || peer.status === 'connecting');
-    const connectedPeers = peerList.filter((peer) => peer.status === 'connected');
-    if ((stage === 'in_call' || stage === 'reconnecting') && startedAtRef.current && connectedPeers.length === 0 && !stillRecovering) {
-      onHangupRef.current('The other participant left');
-    }
-  }, [open, isGroup, peerList, stage]);
-
-  useEffect(() => {
-    const onPointerПереместить = (event: PointerEvent) => {
+    const onPointerMove = (event: PointerEvent) => {
       if (!dragRef.current) return;
       const maxX = Math.max(8, window.innerWidth - 320);
       const maxY = Math.max(72, window.innerHeight - 220);
@@ -521,10 +554,10 @@ export function CallScreen({ open, stage, chat, callId, initiator, onConnected, 
       dragRef.current = null;
     };
 
-    window.addEventListener('pointermove', onPointerПереместить);
+    window.addEventListener('pointermove', onPointerMove);
     window.addEventListener('pointerup', onPointerUp);
     return () => {
-      window.removeEventListener('pointermove', onPointerПереместить);
+      window.removeEventListener('pointermove', onPointerMove);
       window.removeEventListener('pointerup', onPointerUp);
     };
   }, []);
@@ -570,6 +603,7 @@ export function CallScreen({ open, stage, chat, callId, initiator, onConnected, 
   const directRemoteTile = tiles[0] ?? null;
   const pinnedTile = pinnedId ? tiles.find((tile) => tile.id === pinnedId) ?? null : null;
   const showGameMain = gameOpen && pinnedId === '__game__';
+  const isGameFullscreen = showGameMain && gameViewState.fullscreenScope !== 'none';
   const shouldShowGrid = isGroup && !screenOwnerId && !pinnedTile && !showGameMain;
 
   const mainTile = useMemo<MainTile | null>(() => {
@@ -722,8 +756,8 @@ export function CallScreen({ open, stage, chat, callId, initiator, onConnected, 
   if (!open) return null;
 
   return (
-    <div className={styles.callWrap} role="dialog" aria-modal="true">
-      <div className={styles.topBar}>
+    <div className={[styles.callWrap, isGameFullscreen ? styles.callGameFullscreen : ''].filter(Boolean).join(' ')} role="dialog" aria-modal="true">
+      <div className={[styles.topBar, isGameFullscreen ? styles.callOverlayControls : ''].filter(Boolean).join(' ')}>
         <div className={styles.topMeta}>
           <div className={styles.topTitleRow}>
             <div className={styles.topTitle}>{title}</div>
@@ -834,7 +868,7 @@ export function CallScreen({ open, stage, chat, callId, initiator, onConnected, 
             <div className={[styles.mainVideo, showGameMain ? styles.mainVideoGame : ''].filter(Boolean).join(' ')}>
               {showGameMain ? (
                 <div className={styles.gameStageMain}>
-                  <GameSessionPanel chat={chat} meId={meId} embedded />
+                  <LazyGameSessionPanel chat={chat} meId={meId} mode="call" onViewStateChange={setGameViewState} />
                 </div>
               ) : (
                 <>
@@ -895,7 +929,12 @@ export function CallScreen({ open, stage, chat, callId, initiator, onConnected, 
 
             {railTiles.length ? (
               <div
-                className={[styles.railDock, showGameMain ? styles.railDockGame : '', screenOwnerId ? styles.railDockFloating : ''].filter(Boolean).join(' ')}
+                className={[
+                  styles.railDock,
+                  showGameMain ? styles.railDockGame : '',
+                  isGameFullscreen ? styles.railDockGameFullscreen : '',
+                  screenOwnerId ? styles.railDockFloating : '',
+                ].filter(Boolean).join(' ')}
                 style={screenOwnerId && !showGameMain ? { left: dockPosition.x, top: dockPosition.y } : undefined}
               >
                 {screenOwnerId && !showGameMain ? (
@@ -933,13 +972,13 @@ export function CallScreen({ open, stage, chat, callId, initiator, onConnected, 
         )}
 
         {chatOpen ? (
-          <div className={styles.sidePanel}>
+          <div className={[styles.sidePanel, isGameFullscreen ? styles.sidePanelHidden : ''].filter(Boolean).join(' ')}>
             <CallChatPanel chatId={chat?.id ?? ''} />
           </div>
         ) : null}
       </div>
 
-      <div className={styles.bottomBar}>
+      <div className={[styles.bottomBar, isGameFullscreen ? styles.callOverlayControls : ''].filter(Boolean).join(' ')}>
         <button
           type="button"
           className={[styles.ctrlIcon, !micOn ? styles.ctrlDanger : ''].filter(Boolean).join(' ')}
@@ -1024,12 +1063,3 @@ export function CallScreen({ open, stage, chat, callId, initiator, onConnected, 
     </div>
   );
 }
-
-
-
-
-
-
-
-
-

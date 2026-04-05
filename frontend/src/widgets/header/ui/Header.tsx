@@ -100,7 +100,9 @@ export function Header() {
       <div className={styles.inner}>
         <div className={styles.left}>
           <Link href={ROUTES.app.feed} className={styles.brand} aria-label={APP_NAME}>
-            <span className={styles.brandLogo} aria-hidden />
+            <span className={styles.brandLogo} aria-hidden>
+              <img src="/brand-eye-192.png" alt="" className={styles.brandLogoImage} />
+            </span>
             <span className={styles.brandText}>{APP_NAME}</span>
           </Link>
 

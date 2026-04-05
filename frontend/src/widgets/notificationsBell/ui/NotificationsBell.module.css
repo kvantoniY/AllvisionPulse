@@ -44,6 +44,8 @@
   padding: 12px;
   z-index: 320;
   box-shadow: var(--shadow-md);
+  display: grid;
+  gap: 10px;
 }
 
 .popTitle {
@@ -73,6 +75,81 @@
   gap: 8px;
 }
 
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.clearBtn {
+  min-height: 30px;
+  padding: 0 12px;
+  border: 1px solid var(--stroke);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-soft);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 140ms ease, border-color 140ms ease, color 140ms ease;
+}
+
+.clearBtn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: var(--stroke-strong);
+  color: var(--text);
+}
+
+.clearBtn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.scrollArea {
+  max-height: min(68vh, 520px);
+  overflow-y: auto;
+  padding-right: 4px;
+  display: grid;
+  align-content: start;
+  gap: 10px;
+}
+
+.item {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 12px;
+  align-items: start;
+  border: 1px solid transparent;
+  transition: background 140ms ease, border-color 140ms ease, transform 140ms ease;
+}
+
+.item:hover {
+  background: rgba(255, 255, 255, 0.055);
+  border-color: var(--stroke);
+  transform: translateY(-1px);
+}
+
+.itemUnread {
+  border-color: rgba(255, 122, 26, 0.22);
+  background: rgba(255, 122, 26, 0.08);
+}
+
+.itemAvatar {
+  padding-top: 2px;
+}
+
+.itemBody {
+  min-width: 0;
+}
+
+.itemTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
 .itemType {
   font-size: 11px;
   color: var(--muted);
@@ -80,10 +157,24 @@
   letter-spacing: 0.06em;
 }
 
+.itemTime {
+  font-size: 11px;
+  color: var(--muted-2);
+  white-space: nowrap;
+}
+
+.itemTitle {
+  font-size: 14px;
+  color: var(--text);
+  font-weight: 700;
+  margin-top: 4px;
+}
+
 .itemMsg {
   font-size: 13px;
   margin-top: 4px;
   color: var(--text-soft);
+  line-height: 1.45;
 }
 
 .empty {
@@ -92,6 +183,11 @@
   padding: 8px 2px 4px;
 }
 
+.footerNote {
+  padding: 4px 2px 2px;
+  font-size: 12px;
+  color: var(--muted-2);
+}
 
 .mobileBody {
   padding: 8px 16px 0;

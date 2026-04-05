@@ -5,6 +5,9 @@ import dayjs from "dayjs";
 import { prisma } from "../db/prisma";
 import { asyncHandler, HttpError } from "../utils/http";
 import { requireAuth, requireActiveUser, AuthedRequest } from "../middleware/auth";
+import { isProgramTaskSourceKey } from "../services/programs/helpers";
+import { syncProgramActionFromTask } from "../services/programs/runtime";
+import { isArtifactTaskSourceKey, syncArtifactStateFromTask } from "../services/shareArtifacts";
 
 const router = Router();
 router.use(requireAuth, requireActiveUser);
@@ -58,7 +61,7 @@ router.post("/", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
 }));
 
 router.patch("/:taskId", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
-  const taskId = req.params.taskId;
+  const taskId = req.params.taskId.toString();
   const body = TaskSchema.partial().parse(req.body);
   const existing = await prisma.task.findUnique({ where: { id: taskId } });
   if (!existing || existing.deletedAt) throw new HttpError(404, "Task not found");
@@ -78,20 +81,63 @@ router.patch("/:taskId", requireAuth, asyncHandler(async (req: AuthedRequest, re
     } as any,
   });
 
+  if (body.completed !== undefined && isProgramTaskSourceKey(task.sourceKey)) {
+    await syncProgramActionFromTask(prisma, { taskId: task.id, completed: task.completed });
+  }
+  if (body.completed !== undefined && isArtifactTaskSourceKey(task.sourceKey)) {
+    const syncResult = await syncArtifactStateFromTask(task.id, task.completed);
+    const emitter = req.app.locals.emitter as any;
+    if (syncResult?.originChatId) {
+      emitter?.emitToChat(syncResult.originChatId, "share-artifact:updated", {
+        artifactId: syncResult.artifactId,
+        chatId: syncResult.originChatId,
+        at: new Date().toISOString(),
+      });
+    }
+    if (syncResult?.ownerId) {
+      emitter?.emitToUser(syncResult.ownerId, "share-artifact:updated", {
+        artifactId: syncResult.artifactId,
+        chatId: syncResult.originChatId ?? null,
+        at: new Date().toISOString(),
+      });
+    }
+  }
+
   res.json({ task });
 }));
 
 router.post("/:taskId/toggle", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
-  const taskId = req.params.taskId;
+  const taskId = req.params.taskId.toString();
   const existing = await prisma.task.findUnique({ where: { id: taskId } });
   if (!existing || existing.deletedAt) throw new HttpError(404, "Task not found");
   if (req.user!.role !== "ADMIN" && existing.userId !== req.user!.id) throw new HttpError(403, "Forbidden");
   const task = await prisma.task.update({ where: { id: taskId }, data: { completed: !existing.completed } });
+  if (isProgramTaskSourceKey(task.sourceKey)) {
+    await syncProgramActionFromTask(prisma, { taskId: task.id, completed: task.completed });
+  }
+  if (isArtifactTaskSourceKey(task.sourceKey)) {
+    const syncResult = await syncArtifactStateFromTask(task.id, task.completed);
+    const emitter = req.app.locals.emitter as any;
+    if (syncResult?.originChatId) {
+      emitter?.emitToChat(syncResult.originChatId, "share-artifact:updated", {
+        artifactId: syncResult.artifactId,
+        chatId: syncResult.originChatId,
+        at: new Date().toISOString(),
+      });
+    }
+    if (syncResult?.ownerId) {
+      emitter?.emitToUser(syncResult.ownerId, "share-artifact:updated", {
+        artifactId: syncResult.artifactId,
+        chatId: syncResult.originChatId ?? null,
+        at: new Date().toISOString(),
+      });
+    }
+  }
   res.json({ task });
 }));
 
 router.delete("/:taskId", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
-  const taskId = req.params.taskId;
+  const taskId = req.params.taskId.toString();
   const existing = await prisma.task.findUnique({ where: { id: taskId } });
   if (!existing || existing.deletedAt) throw new HttpError(404, "Task not found");
   if (req.user!.role !== "ADMIN" && existing.userId !== req.user!.id) throw new HttpError(403, "Forbidden");

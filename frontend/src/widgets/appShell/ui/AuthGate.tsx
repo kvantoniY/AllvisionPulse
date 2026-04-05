@@ -30,8 +30,6 @@ function buildSuspensionText(user: any) {
 export function AuthGate({ children }: PropsWithChildren) {
   const router = useRouter();
   const { data, error, isLoading, isFetching, isError, refetch } = useGetMeQuery(undefined, {
-    pollingInterval: 30_000,
-    refetchOnMountOrArgChange: true,
     refetchOnFocus: true,
     refetchOnReconnect: true,
   });

@@ -1,5 +1,6 @@
 import { createApi } from '@reduxjs/toolkit/query/react';
 import { baseQuery } from './baseQuery';
+import { baseApi } from './baseApi';
 import type {
   PulseAnalytics,
   PulseConfig,
@@ -96,6 +97,10 @@ export const pulseApi = createApi({
       query: (date) => ({ url: `/backend/health/pulse/tasks/day${date ? `?date=${date}` : ''}`, method: 'GET' }),
       providesTags: ['Pulse'],
     }),
+    getTasksRange: build.query<{ from: string; to: string; days: Array<{ date: string; items: PulseTaskItem[] }>; items: PulseTaskItem[] }, { from: string; to: string }>({
+      query: ({ from, to }) => ({ url: `/backend/health/pulse/tasks/range?from=${from}&to=${to}`, method: 'GET' }),
+      providesTags: ['Pulse'],
+    }),
     createPulseTask: build.mutation<{ task: PulseTaskItem }, Record<string, unknown>>({
       query: (body) => ({ url: '/backend/health/pulse/tasks', method: 'POST', body }),
       invalidatesTags: ['Pulse'],
@@ -107,6 +112,19 @@ export const pulseApi = createApi({
     togglePulseTaskDate: build.mutation<{ completion: { id: string; completed: boolean } }, { taskId: string; date: string }>({
       query: ({ taskId, date }) => ({ url: `/backend/health/pulse/tasks/${taskId}/toggle-date`, method: 'POST', body: { date } }),
       invalidatesTags: ['Pulse'],
+      async onQueryStarted(_arg, { dispatch, queryFulfilled }) {
+        try {
+          await queryFulfilled;
+          dispatch(
+            baseApi.util.invalidateTags([
+              { type: 'ProgramRun', id: 'TODAY' },
+              { type: 'ProgramRun', id: 'LIST' },
+              { type: 'Program', id: 'LIST' },
+              { type: 'ProgramSession', id: 'LIST' },
+            ]),
+          );
+        } catch {}
+      },
     }),
     deletePulseTask: build.mutation<{ ok: boolean }, string>({
       query: (taskId) => ({ url: `/backend/health/pulse/tasks/${taskId}`, method: 'DELETE' }),
@@ -124,8 +142,17 @@ export const pulseApi = createApi({
       query: (goalId) => ({ url: `/backend/health/pulse/tasks/goals/${goalId}`, method: 'DELETE' }),
       invalidatesTags: ['Pulse'],
     }),
-    getFinanceOverview: build.query<{ overview: PulseOverview; entries: PulseFinanceEntry[]; goals: PulseSavingsGoal[]; debts: PulseDebt[]; categories: PulseFinanceCategory[] }, string | void>({
-      query: (date) => ({ url: `/backend/health/pulse/finance/overview${date ? `?date=${date}` : ''}`, method: 'GET' }),
+    getFinanceOverview: build.query<{ overview: PulseOverview; entries: PulseFinanceEntry[]; goals: PulseSavingsGoal[]; debts: PulseDebt[]; categories: PulseFinanceCategory[] }, string | void | { date?: string; period?: 'day' | 'month' | 'year' }>({
+      query: (arg) => {
+        if (typeof arg === 'string' || arg == null) {
+          return { url: `/backend/health/pulse/finance/overview${arg ? `?date=${arg}` : ''}`, method: 'GET' };
+        }
+        const params = new URLSearchParams();
+        if (arg.date) params.set('date', arg.date);
+        if (arg.period) params.set('period', arg.period);
+        const suffix = params.toString() ? `?${params.toString()}` : '';
+        return { url: `/backend/health/pulse/finance/overview${suffix}`, method: 'GET' };
+      },
       providesTags: ['Pulse'],
     }),
     createFinanceCategory: build.mutation<{ category: PulseFinanceCategory }, Record<string, unknown>>({
@@ -195,6 +222,7 @@ export const {
   useSearchFoodsQuery,
   useCreateFoodMutation,
   useGetTasksDayQuery,
+  useGetTasksRangeQuery,
   useCreatePulseTaskMutation,
   useUpdatePulseTaskMutation,
   useTogglePulseTaskDateMutation,

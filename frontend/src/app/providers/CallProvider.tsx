@@ -2,8 +2,9 @@
 
 import React, { createContext, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Socket } from 'socket.io-client';
-import { getRealtimeSocket } from '@/shared/lib/realtimeSocket';
+import { getRealtimeSocket, subscribeRealtimeSocket } from '@/shared/lib/realtimeSocket';
 import { useGetChatsQuery, useSendMessageMutation } from '@/shared/api/chatsApi';
+import { useGetMeQuery } from '@/shared/api/usersApi';
 import type { Chat } from '@/shared/types/chat';
 import { IncomingCallToast } from '@/features/call/IncomingCallToast';
 import { CallScreen } from '@/features/call/CallScreen';
@@ -98,6 +99,8 @@ function normalizeCallState(payload: any): ActiveCallState | null {
 export function CallProvider({ children }: { children: React.ReactNode }) {
   const [socket, setSocket] = useState<Socket | null>(null);
   const { data: chatsRes } = useGetChatsQuery();
+  const { data: meRes } = useGetMeQuery();
+  const meId = meRes?.user?.id ?? '';
   const chats = chatsRes?.items ?? [];
   const [sendMessage] = useSendMessageMutation();
 
@@ -113,6 +116,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
   const activeCallsRef = useRef(activeCallsByChat);
   const startedAtRef = useRef<number | null>(startedAt);
   const callKindRef = useRef<CallKind>('direct');
+  const dismissedIncomingRef = useRef<Set<string>>(new Set());
   const autoResumeRef = useRef<{ enabled: boolean; chatId: string; callId: string; initiator: boolean }>({
     enabled: false,
     chatId: '',
@@ -133,14 +137,10 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const initialSocket = getRealtimeSocket();
-    if (initialSocket) return setSocket(initialSocket);
-    const timer = window.setInterval(() => {
-      const nextSocket = getRealtimeSocket();
-      if (!nextSocket) return;
-      setSocket(nextSocket);
-      window.clearInterval(timer);
-    }, 200);
-    return () => window.clearInterval(timer);
+    if (initialSocket) {
+      setSocket(initialSocket);
+    }
+    return subscribeRealtimeSocket(setSocket);
   }, []);
 
   const persistSession = useCallback((next: { chatId: string; callId: string }) => {
@@ -187,6 +187,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
   const openExistingCall = useCallback((targetChatId: string, callId: string, options?: { initiator?: boolean; stage?: CallStage }) => {
     resetRuntimeFlags();
     setStartedAt(null);
+    dismissedIncomingRef.current.delete(callId);
     const initiator = Boolean(options?.initiator);
     const nextStage = options?.stage ?? 'connecting';
     armAutoResume({ chatId: targetChatId, callId, initiator });
@@ -218,6 +219,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
 
   const accept = useCallback(() => {
     if (!socket || !session.chatId || !session.callId) return;
+    dismissedIncomingRef.current.delete(session.callId);
     armAutoResume({ chatId: session.chatId, callId: session.callId, initiator: false });
     socket.emit('call:accept', { chatId: session.chatId, callId: session.callId });
     persistSession({ chatId: session.chatId, callId: session.callId });
@@ -226,6 +228,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
 
   const decline = useCallback(() => {
     if (!socket || !session.chatId || !session.callId) return;
+    dismissedIncomingRef.current.add(session.callId);
     socket.emit('call:decline', { chatId: session.chatId, callId: session.callId });
     disarmAutoResume();
     if (callKind === 'direct') {
@@ -257,6 +260,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       if (!nextChatId || !nextCallId) return;
       const currentSession = sessionRef.current;
       if (currentSession.stage !== 'idle' && currentSession.chatId !== nextChatId) return;
+      dismissedIncomingRef.current.delete(nextCallId);
       resetRuntimeFlags();
       setStartedAt(null);
       setSession({ stage: 'incoming', chatId: nextChatId, callId: nextCallId, initiator: false, inviterId: nextFromUserId, error: '' });
@@ -402,6 +406,32 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     return () => window.clearTimeout(timer);
   }, [activeCallsByChat, openExistingCall, session.stage, socket]);
 
+  useEffect(() => {
+    if (!meId || session.stage !== 'idle') return;
+
+    const pendingIncoming = Object.values(activeCallsByChat)
+      .filter((call) => {
+        if (!call.active || !call.callId) return false;
+        if (dismissedIncomingRef.current.has(call.callId)) return false;
+        if (call.createdBy === meId) return false;
+        return !call.participants.some((participant) => participant.userId === meId);
+      })
+      .sort((left, right) => new Date(right.createdAt ?? 0).getTime() - new Date(left.createdAt ?? 0).getTime())[0];
+
+    if (!pendingIncoming) return;
+
+    resetRuntimeFlags();
+    setStartedAt(null);
+    setSession({
+      stage: 'incoming',
+      chatId: pendingIncoming.chatId,
+      callId: pendingIncoming.callId,
+      initiator: false,
+      inviterId: pendingIncoming.createdBy ?? '',
+      error: '',
+    });
+  }, [activeCallsByChat, meId, resetRuntimeFlags, session.stage]);
+
   const handleConnectionPhase = useCallback((phase: 'stable' | 'signaling_reconnecting' | 'media_reconnecting') => {
     setSession((prev) => {
       if (prev.stage === 'idle' || prev.stage === 'ending' || prev.stage === 'ended' || prev.stage === 'failed') return prev;
@@ -458,4 +488,3 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     </CallContext.Provider>
   );
 }
-

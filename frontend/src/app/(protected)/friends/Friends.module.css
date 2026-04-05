@@ -67,3 +67,154 @@
     flex: 1 1 auto;
   }
 }
+
+/* --- friends flatten pass --- */
+.heroPanel,
+.emptyStateCard {
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  overflow: visible !important;
+}
+
+.heroPanel::before,
+.emptyStateCard::before {
+  display: none !important;
+}
+
+.heroPanel {
+  padding-bottom: 18px !important;
+  border-bottom: 1px solid var(--stroke) !important;
+}
+
+.emptyStateCard {
+  padding-top: 18px !important;
+  border-top: 1px solid var(--stroke) !important;
+}
+
+.page {
+  gap: 24px !important;
+}
+
+.hero {
+  gap: 18px !important;
+}
+
+.summaryChips {
+  gap: 10px !important;
+}
+
+.chip {
+  background: transparent !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+.chipAccent {
+  box-shadow: none !important;
+}
+
+.tabs {
+  display: flex !important;
+  flex-wrap: wrap;
+  gap: 16px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+}
+
+.tab {
+  min-height: 0 !important;
+  padding: 0 4px 10px !important;
+  border: 0 !important;
+  border-bottom: 2px solid transparent !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  color: var(--muted) !important;
+}
+
+.tabActive {
+  background: transparent !important;
+  color: var(--accent-strong) !important;
+  border-bottom-color: rgba(255, 122, 26, 0.9) !important;
+}
+
+.tab em {
+  color: currentColor;
+}
+
+.list {
+  gap: 0 !important;
+}
+
+.row {
+  padding: 18px 0 !important;
+  border: 0 !important;
+  border-top: 1px solid var(--stroke) !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+}
+
+.list > .row:first-child,
+.sectionLabel + .row {
+  border-top: 0 !important;
+  padding-top: 0 !important;
+}
+
+.sectionLabel {
+  margin: 18px 0 0 !important;
+  padding-top: 18px;
+  border-top: 1px solid var(--stroke);
+}
+
+.user {
+  gap: 14px !important;
+}
+
+.meta {
+  gap: 4px !important;
+}
+
+.hint {
+  max-width: 56ch;
+  line-height: 1.55;
+}
+
+.actions,
+.inlineActions {
+  gap: 10px !important;
+}
+
+.iconAction {
+  background: transparent !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+  box-shadow: none !important;
+}
+
+@media (max-width: 920px) {
+  .page {
+    gap: 18px !important;
+  }
+
+  .heroPanel {
+    padding-bottom: 14px !important;
+  }
+
+  .emptyStateCard {
+    padding-top: 14px !important;
+  }
+
+  .tabs {
+    gap: 12px !important;
+  }
+
+  .tab {
+    padding-bottom: 8px !important;
+  }
+
+  .row {
+    padding: 14px 0 !important;
+  }
+}

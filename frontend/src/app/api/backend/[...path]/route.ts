@@ -31,12 +31,18 @@ function normalizeAppMediaUrlsDeep<T>(input: T): T {
   }
 
   if (Array.isArray(input)) {
-    return input.map((item) => normalizeAppMediaUrlsDeep(item)) as T;
+    for (let index = 0; index < input.length; index += 1) {
+      input[index] = normalizeAppMediaUrlsDeep(input[index]);
+    }
+    return input as T;
   }
 
   if (input && typeof input === 'object') {
-    const entries = Object.entries(input as Record<string, unknown>).map(([key, value]) => [key, normalizeAppMediaUrlsDeep(value)]);
-    return Object.fromEntries(entries) as T;
+    const record = input as Record<string, unknown>;
+    for (const key of Object.keys(record)) {
+      record[key] = normalizeAppMediaUrlsDeep(record[key]);
+    }
+    return input;
   }
 
   return input;

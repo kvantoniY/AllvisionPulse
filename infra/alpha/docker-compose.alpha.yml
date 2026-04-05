@@ -37,6 +37,13 @@ services:
       SOCKET_RECOVERY_MS: ${SOCKET_RECOVERY_MS}
       CALL_RECONNECT_GRACE_MS: ${CALL_RECONNECT_GRACE_MS}
       CALL_MAX_PARTICIPANTS: ${CALL_MAX_PARTICIPANTS}
+      TURN_SECRET: ${TURN_SECRET}
+      TURN_HOST: ${TURN_HOST}
+      TURN_PORT: ${TURN_PORT}
+      TURN_TTL_SEC: ${TURN_TTL_SEC}
+      WEB_PUSH_VAPID_PUBLIC_KEY: ${WEB_PUSH_VAPID_PUBLIC_KEY}
+      WEB_PUSH_VAPID_PRIVATE_KEY: ${WEB_PUSH_VAPID_PRIVATE_KEY}
+      WEB_PUSH_VAPID_SUBJECT: ${WEB_PUSH_VAPID_SUBJECT}
     volumes:
       - uploads_data:/app/uploads
     healthcheck:
@@ -45,6 +52,31 @@ services:
       timeout: 5s
       retries: 20
       start_period: 120s
+
+  turn:
+    image: coturn/coturn
+    container_name: allvision-alpha-turn
+    restart: unless-stopped
+    network_mode: host
+    command:
+      - -n
+      - --log-file=stdout
+      - --fingerprint
+      - --use-auth-secret
+      - --static-auth-secret=${TURN_SECRET}
+      - --realm=${TURN_HOST}
+      - --server-name=${TURN_HOST}
+      - --listening-ip=0.0.0.0
+      - --external-ip=${TURN_EXTERNAL_IP}
+      - --listening-port=${TURN_PORT}
+      - --min-port=${TURN_MIN_PORT}
+      - --max-port=${TURN_MAX_PORT}
+      - --stale-nonce
+      - --no-cli
+      - --no-tls
+      - --no-dtls
+      - --total-quota=200
+      - --bps-capacity=0
 
   frontend:
     build:

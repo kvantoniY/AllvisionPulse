@@ -30,9 +30,12 @@ export function StoryRingAvatar({
   onClickOverride?: () => void;
   onAddBadgeClick?: () => void;
 }) {
-  const { data } = useGetStoriesRailQuery();
+  const { entry } = useGetStoriesRailQuery(undefined, {
+    selectFromResult: ({ data }) => ({
+      entry: userId ? (data?.items ?? []).find((item) => item.author.id === userId) ?? null : null,
+    }),
+  });
   const { openViewer } = useStoriesUi();
-  const entry = userId ? (data?.items ?? []).find((item) => item.author.id === userId) : null;
   const hasStories = Boolean(entry?.totalStories);
   const ringClass = !hasStories
     ? styles.ringNone

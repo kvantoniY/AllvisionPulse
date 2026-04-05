@@ -44,6 +44,7 @@ type IconName =
   | 'chevronRight'
   | 'select'
   | 'clock'
+  | 'flame'
   | 'menu'
   | 'paperclip'
   | 'smile';
@@ -94,6 +95,7 @@ const paths: Record<IconName, ReactNode> = {
   chevronRight: <path d="m9.5 5.5 6 6-6 6" {...line} />,
   select: <><rect x="4" y="4" width="16" height="16" rx="4" {...line}/><path d="M8 12.5 11 15l5-6" {...line}/></>,
   clock: <><circle cx="12" cy="12" r="8" {...line}/><path d="M12 8v4.5l3 1.5" {...line}/></>,
+  flame: <path d="M12 3.5c1.2 2.2.9 3.8-.1 5.2-.62.9-.5 2.08.2 2.94.9 1.1 1.4 2.16 1.4 3.36A3.5 3.5 0 0 1 10 18.5c-1.9 0-3.5-1.56-3.5-3.48 0-2.1 1.25-3.73 2.94-5.36.9-.87 1.47-1.96 1.68-3.16.07-.39.43-.6.88-.02Z" {...line} />,
   menu: <><path d="M4 7h16" {...line}/><path d="M4 12h16" {...line}/><path d="M4 17h16" {...line}/></>,
   paperclip: <path d="M9.5 12.5 16 6a3 3 0 1 1 4.24 4.24l-8.13 8.13a5 5 0 1 1-7.07-7.07l8.48-8.49" {...line} />,
   smile: <>

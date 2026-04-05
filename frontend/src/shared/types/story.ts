@@ -1,6 +1,6 @@
 import type { Role } from '@/shared/types/models';
 
-export type StoryWidgetType = 'pulse' | 'focus' | 'health' | 'tasks' | 'nutrition';
+export type StoryWidgetType = 'pulse' | 'focus' | 'health' | 'tasks' | 'nutrition' | 'pulse_share';
 
 export type StoryMediaTransform = {
   scale?: number;

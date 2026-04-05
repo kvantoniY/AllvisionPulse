@@ -520,3 +520,318 @@
     border-radius: 16px;
   }
 }
+
+/* --- support flatten pass --- */
+.heroPanel,
+.panel {
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  overflow: visible !important;
+}
+
+.heroPanel::before,
+.panel::before {
+  display: none !important;
+}
+
+.heroPanel {
+  padding-bottom: 18px !important;
+  border-bottom: 1px solid var(--stroke) !important;
+}
+
+.panel {
+  padding-top: 18px !important;
+  border-top: 1px solid var(--stroke) !important;
+}
+
+.hero {
+  gap: 18px !important;
+}
+
+.heroFooter {
+  display: grid;
+  gap: 12px;
+}
+
+.summaryGrid {
+  display: flex !important;
+  flex-wrap: wrap;
+  gap: 20px !important;
+}
+
+.summaryCard {
+  flex: 1 1 180px;
+  min-width: 160px;
+  padding: 14px 0 0 !important;
+  border: 0 !important;
+  border-top: 1px solid var(--stroke) !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+}
+
+.summaryValue {
+  font-size: clamp(28px, 3vw, 36px) !important;
+}
+
+.summaryLabel {
+  font-size: 12px !important;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted) !important;
+}
+
+.viewSwitch,
+.kindToggle {
+  display: flex !important;
+  flex-wrap: wrap;
+  gap: 16px !important;
+  width: fit-content;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+}
+
+.switch,
+.kindButton {
+  min-height: 0 !important;
+  padding: 0 4px 10px !important;
+  border: 0 !important;
+  border-bottom: 2px solid transparent !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.switch:hover,
+.kindButton:hover,
+.categoryButton:hover {
+  transform: none !important;
+}
+
+.switch:hover,
+.kindButton:hover {
+  border-bottom-color: rgba(255, 255, 255, 0.18) !important;
+  color: #ffffff !important;
+}
+
+.switchActive,
+.kindButtonActive {
+  background: transparent !important;
+  border-color: transparent !important;
+  border-bottom-color: rgba(255, 122, 26, 0.9) !important;
+  color: var(--accent-strong) !important;
+  box-shadow: none !important;
+}
+
+.categoryGrid {
+  display: flex !important;
+  flex-wrap: wrap;
+  gap: 10px !important;
+}
+
+.categoryButton {
+  min-height: 40px !important;
+  padding: 0 14px !important;
+  border-radius: 999px !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+  background: transparent !important;
+}
+
+.categoryButtonActive {
+  background: rgba(255, 122, 26, 0.12) !important;
+  border-color: rgba(255, 122, 26, 0.34) !important;
+  color: #ffffff !important;
+}
+
+.input,
+.select,
+.textarea,
+.search {
+  border-radius: 14px !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.014), rgba(255, 255, 255, 0.018)) !important;
+  box-shadow: none !important;
+}
+
+.input:focus,
+.select:focus,
+.textarea:focus,
+.search:focus {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.018), rgba(255, 255, 255, 0.024)) !important;
+}
+
+.helperRow {
+  padding-top: 4px;
+}
+
+.metricPill,
+.kindChip,
+.categoryChip {
+  background: transparent !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+.status {
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  box-shadow: none !important;
+}
+
+.grid {
+  gap: 32px !important;
+}
+
+.stack,
+.form {
+  gap: 16px !important;
+}
+
+.list,
+.replies,
+.answerBlock {
+  gap: 0 !important;
+}
+
+.ticketItem,
+.questionItem,
+.sideCard {
+  padding: 18px 0 !important;
+  border: 0 !important;
+  border-top: 1px solid var(--stroke) !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+}
+
+.replyItem,
+.answerItem,
+.tipItem {
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+}
+
+.list > :first-child,
+.replies > :first-child,
+.answerBlock > :first-child {
+  border-top: 0 !important;
+  padding-top: 0 !important;
+}
+
+.replies {
+  margin-top: 6px;
+  padding-left: 16px;
+  border-left: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.answerPreview {
+  padding: 0 0 0 14px !important;
+  border-radius: 0 !important;
+  border-left: 2px solid rgba(255, 122, 26, 0.52) !important;
+  background: transparent !important;
+}
+
+.guideBlock {
+  display: grid;
+  gap: 12px;
+  padding-top: 16px;
+  border-top: 1px solid var(--stroke);
+}
+
+.guideTitle {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.tipsList {
+  gap: 10px !important;
+}
+
+.tipItem {
+  position: relative;
+  padding-left: 14px !important;
+  color: var(--text-soft);
+}
+
+.tipItem::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.72em;
+  width: 4px;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--accent);
+}
+
+.toolbar {
+  gap: 14px !important;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--stroke);
+}
+
+.empty {
+  padding: 18px 0 0 !important;
+  border-top: 1px solid var(--stroke);
+}
+
+.archive {
+  padding-top: 18px !important;
+}
+
+@media (max-width: 960px) {
+  .grid {
+    gap: 24px !important;
+  }
+
+  .summaryGrid {
+    gap: 16px !important;
+  }
+
+  .summaryCard {
+    flex-basis: calc(50% - 8px);
+    min-width: 0;
+  }
+}
+
+@media (max-width: 640px) {
+  .heroPanel {
+    padding-bottom: 14px !important;
+  }
+
+  .panel {
+    padding-top: 14px !important;
+  }
+
+  .summaryGrid {
+    display: grid !important;
+    grid-template-columns: 1fr;
+    gap: 12px !important;
+  }
+
+  .summaryCard {
+    padding-top: 12px !important;
+  }
+
+  .viewSwitch,
+  .kindToggle {
+    width: 100%;
+    gap: 12px !important;
+  }
+
+  .switch,
+  .kindButton {
+    padding-bottom: 8px !important;
+  }
+
+  .categoryButton {
+    width: 100%;
+    justify-content: flex-start;
+  }
+}

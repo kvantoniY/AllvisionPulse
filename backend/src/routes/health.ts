@@ -1,12 +1,129 @@
+import { Prisma } from "@prisma/client";
 import { Router } from "express";
 import { z } from "zod";
 import dayjs from "dayjs";
 import { prisma } from "../db/prisma";
 import { asyncHandler, HttpError } from "../utils/http";
 import { requireAuth, requireActiveUser, AuthedRequest } from "../middleware/auth";
+import { isProgramTaskSourceKey, toPrismaNullableJson } from "../services/programs/helpers";
+import { syncProgramActionFromTask } from "../services/programs/runtime";
+import {
+  isArtifactTaskSourceKey,
+  resolveShareArtifact,
+  syncArtifactStateFromLinkedFinance,
+  syncArtifactStateFromTask,
+  unlinkArtifactLinkedFinance,
+  unlinkArtifactLinkedTask,
+} from "../services/shareArtifacts";
 
 const router = Router();
 router.use(requireAuth, requireActiveUser);
+
+function emitShareArtifactRealtime(req: AuthedRequest, targets: Array<{ artifactId: string; originChatId?: string | null; ownerId: string; userId: string }>) {
+  const emitter = req.app.locals.emitter as any;
+  const uniqueTargets = new Map<string, { artifactId: string; originChatId?: string | null; ownerId: string; userId: string }>();
+  for (const target of targets) {
+    uniqueTargets.set(`${target.artifactId}:${target.userId}`, target);
+  }
+
+  for (const target of uniqueTargets.values()) {
+    if (target.originChatId) {
+      emitter?.emitToChat(target.originChatId, "share-artifact:updated", {
+        artifactId: target.artifactId,
+        chatId: target.originChatId,
+        at: new Date().toISOString(),
+      });
+    }
+
+    for (const userId of Array.from(new Set([target.ownerId, target.userId].filter(Boolean)))) {
+      emitter?.emitToUser(userId, "share-artifact:updated", {
+        artifactId: target.artifactId,
+        chatId: target.originChatId ?? null,
+        at: new Date().toISOString(),
+      });
+    }
+  }
+}
+
+async function enrichFinanceEntitiesWithShareMeta(
+  userId: string,
+  role: string,
+  debts: any[],
+  goals: any[],
+) {
+  const debtIds = debts.map((item) => item.id);
+  const goalIds = goals.map((item) => item.id);
+  if (!debtIds.length && !goalIds.length) {
+    return { debts, goals };
+  }
+
+  const acceptances = await prisma.pulseArtifactAcceptance.findMany({
+    where: {
+      userId,
+      OR: [
+        debtIds.length ? { debtId: { in: debtIds } } : undefined,
+        goalIds.length ? { savingsGoalId: { in: goalIds } } : undefined,
+      ].filter(Boolean) as any,
+    },
+    select: {
+      artifactId: true,
+      debtId: true,
+      savingsGoalId: true,
+    },
+  });
+
+  if (!acceptances.length) {
+    return { debts, goals };
+  }
+
+  const resolvedArtifacts = new Map<string, any>();
+  await Promise.all(
+    Array.from(new Set(acceptances.map((item) => item.artifactId))).map(async (artifactId) => {
+      const artifact = await resolveShareArtifact(artifactId, { id: userId, role } as any).catch(() => null);
+      if (artifact) resolvedArtifacts.set(artifactId, artifact);
+    }),
+  );
+
+  const buildShareMeta = (artifact: any) => {
+    const snapshot = (artifact?.resolvedSnapshot ?? {}) as Record<string, any>;
+    return {
+      artifactId: artifact.id,
+      title: artifact.title ?? null,
+      actionType: artifact.actionType ?? null,
+      originChatId: artifact.originChatId ?? null,
+      openRoute: artifact.openRoute ?? null,
+      sharingScope: typeof snapshot.sharingScope === "string" ? snapshot.sharingScope : null,
+      progressPercent: typeof snapshot.progressPercent === "number" ? snapshot.progressPercent : null,
+      progressLabel: typeof snapshot.progressLabel === "string" ? snapshot.progressLabel : null,
+      progressCaption: typeof snapshot.progressCaption === "string" ? snapshot.progressCaption : null,
+      participantSummary: artifact.participantSummary ?? null,
+      participants: Array.isArray(snapshot.participants) ? snapshot.participants : [],
+      viewerState: artifact.viewerState ?? null,
+    };
+  };
+
+  const debtMetaById = new Map<string, ReturnType<typeof buildShareMeta>>();
+  const goalMetaById = new Map<string, ReturnType<typeof buildShareMeta>>();
+
+  for (const acceptance of acceptances) {
+    const artifact = resolvedArtifacts.get(acceptance.artifactId);
+    if (!artifact) continue;
+    const meta = buildShareMeta(artifact);
+    if (acceptance.debtId) debtMetaById.set(acceptance.debtId, meta);
+    if (acceptance.savingsGoalId) goalMetaById.set(acceptance.savingsGoalId, meta);
+  }
+
+  return {
+    debts: debts.map((debt) => ({
+      ...debt,
+      shareArtifact: debtMetaById.get(debt.id) ?? null,
+    })),
+    goals: goals.map((goal) => ({
+      ...goal,
+      shareArtifact: goalMetaById.get(goal.id) ?? null,
+    })),
+  };
+}
 
 const DEFAULT_FOODS = [
   { key: "fried_chicken", name: "Курица жаренная", isDish: false, defaultGrams: 150, calories: 360, protein: 32, fat: 22, carbs: 6, isHealthy: false },
@@ -106,6 +223,7 @@ const mealItemSchema = z.object({
 
 const mealSchema = z.object({
   date: z.string().optional(),
+  time: z.string().regex(/^\d{2}:\d{2}$/).optional().nullable(),
   title: z.string().min(1).max(140),
   notes: z.string().max(1000).nullable().optional(),
   items: z.array(mealItemSchema).min(1).max(20),
@@ -128,6 +246,9 @@ const pulseTaskSchema = z.object({
   notes: z.string().max(2000).nullable().optional(),
   taskType: z.enum(["REGULAR", "ONE_TIME", "HABIT"]),
   date: z.string().optional().nullable(),
+  time: z.string().regex(/^\d{2}:\d{2}$/).optional().nullable(),
+  endTime: z.string().regex(/^\d{2}:\d{2}$/).optional().nullable(),
+  endDate: z.string().optional().nullable(),
   scheduleType: z.enum(["NONE", "DAILY", "WEEKLY", "MONTHLY"]).default("NONE"),
   daysOfWeek: z.array(z.number().int().min(0).max(6)).max(7).optional(),
   daysOfMonth: z.array(z.number().int().min(1).max(31)).max(31).optional(),
@@ -202,6 +323,162 @@ function parseDateOrToday(date?: string | null) {
   return d.startOf("day");
 }
 
+function readSingleParam(value?: string | string[]) {
+  if (Array.isArray(value)) return value[0];
+  return value;
+}
+
+function parseTimeParts(time?: string | null) {
+  if (!time || !/^\d{2}:\d{2}$/.test(time)) return null;
+  const [hours, minutes] = String(time).split(":").map((value) => Number(value));
+  if (!Number.isFinite(hours) || !Number.isFinite(minutes) || hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
+    throw new HttpError(400, "Invalid time");
+  }
+  return { hours, minutes };
+}
+
+function applyTimeToDay(base: dayjs.Dayjs, time?: string | null) {
+  const parts = parseTimeParts(time);
+  if (!parts) return null;
+  return base.hour(parts.hours).minute(parts.minutes).second(0).millisecond(0);
+}
+
+function parseTaskDueDate(date?: string | null, time?: string | null, endTime?: string | null, endDate?: string | null) {
+  if (!date) return { dueDate: null as Date | null, endDate: null as Date | null, hasTime: false };
+  const base = parseDateOrToday(date);
+  const endBase = endDate ? parseDateOrToday(endDate) : base;
+  const start = applyTimeToDay(base, time);
+  const end = applyTimeToDay(endBase, endTime);
+  if (end && !start) {
+    throw new HttpError(400, "End time requires start time");
+  }
+  if (start && end && !end.isAfter(start)) {
+    throw new HttpError(400, "End time must be later than start time");
+  }
+  if (!start) return { dueDate: base.toDate(), endDate: null as Date | null, hasTime: false };
+  return {
+    dueDate: start.toDate(),
+    endDate: end ? end.toDate() : null,
+    hasTime: true,
+  };
+}
+
+function readTaskTimeRange(task: { dueDate?: Date | null; hasTime?: boolean; recurrenceJson?: unknown }) {
+  const recurrence = (task.recurrenceJson || {}) as Record<string, unknown>;
+  const startTime =
+    typeof recurrence.time === "string" && recurrence.time.trim()
+      ? recurrence.time.trim()
+      : typeof recurrence.scheduledTime === "string" && recurrence.scheduledTime.trim()
+        ? recurrence.scheduledTime.trim()
+        : task.hasTime && task.dueDate
+          ? dayjs(task.dueDate).format("HH:mm")
+          : null;
+  const endTime =
+    typeof recurrence.endTime === "string" && recurrence.endTime.trim()
+      ? recurrence.endTime.trim()
+      : typeof recurrence.scheduledEndTime === "string" && recurrence.scheduledEndTime.trim()
+        ? recurrence.scheduledEndTime.trim()
+        : null;
+  return { startTime, endTime };
+}
+
+function readTaskEndDateValue(task: { dueDate?: Date | null; recurrenceJson?: unknown }) {
+  const recurrence = (task.recurrenceJson || {}) as Record<string, unknown>;
+  if (typeof recurrence.endDate === "string" && recurrence.endDate.trim()) {
+    const parsed = dayjs(recurrence.endDate.trim());
+    if (parsed.isValid()) return parsed.startOf("day");
+  }
+  if (task.dueDate) {
+    return dayjs(task.dueDate).startOf("day");
+  }
+  return null;
+}
+
+function readArtifactSourceMeta(sourceKey?: string | null) {
+  if (!sourceKey || typeof sourceKey !== "string" || !sourceKey.startsWith("artifact:")) return null;
+  const raw = sourceKey.slice("artifact:".length);
+  const [artifactId, kind, subtaskKey] = raw.split(":");
+  return {
+    artifactId: artifactId || null,
+    kind: kind === "subtask" && subtaskKey ? "SUBTASK" : "PRIMARY",
+    subtaskKey: kind === "subtask" && subtaskKey ? subtaskKey : null,
+  } as const;
+}
+
+function formatOccurrenceTimeLabel(start: dayjs.Dayjs | null, end: dayjs.Dayjs | null) {
+  if (!start) return null;
+  if (end && end.isAfter(start)) {
+    return `${start.format("HH:mm")}-${end.format("HH:mm")}`;
+  }
+  return start.format("HH:mm");
+}
+
+function resolveTaskOccurrenceRange(task: { dueDate?: Date | null; hasTime?: boolean; recurrenceJson?: unknown }, selectedDate: dayjs.Dayjs) {
+  const recurrence = (task.recurrenceJson || {}) as Record<string, unknown>;
+  const { startTime, endTime } = readTaskTimeRange(task);
+  const taskType = recurrence.taskType || (recurrence.scheduleType && recurrence.scheduleType !== "NONE" ? "REGULAR" : "ONE_TIME");
+
+  if (taskType === "ONE_TIME" && task.dueDate) {
+    const actualStart = dayjs(task.dueDate);
+    const actualEndBase = readTaskEndDateValue(task);
+    const actualEnd =
+      actualEndBase && endTime
+        ? applyTimeToDay(actualEndBase.startOf("day"), endTime)
+        : null;
+    const dayStart = selectedDate.startOf("day");
+    const dayEnd = selectedDate.endOf("day");
+
+    if (!task.hasTime) {
+      return {
+        dueDate: selectedDate.startOf("day").toDate(),
+        endDate: null as Date | null,
+        timeLabel: null as string | null,
+        hasTime: false,
+      };
+    }
+
+    const segmentStart = actualStart.isAfter(dayStart) ? actualStart : dayStart;
+    const segmentEnd = actualEnd
+      ? actualEnd.isBefore(dayEnd)
+        ? actualEnd
+        : dayEnd
+      : null;
+
+    return {
+      dueDate: segmentStart.toDate(),
+      endDate: segmentEnd && segmentEnd.isAfter(segmentStart) ? segmentEnd.toDate() : null,
+      timeLabel: formatOccurrenceTimeLabel(segmentStart, segmentEnd && segmentEnd.isAfter(segmentStart) ? segmentEnd : null),
+      hasTime: true,
+    };
+  }
+
+  const start = applyTimeToDay(selectedDate.startOf("day"), startTime);
+  const end = applyTimeToDay(selectedDate.startOf("day"), endTime);
+  const normalizedEnd = start && end && end.isAfter(start) ? end : null;
+  const fallbackDate =
+    recurrence.taskType === "ONE_TIME"
+      ? task.dueDate
+      : task.dueDate
+        ? selectedDate.startOf("day").toDate()
+        : null;
+
+  if (!start) {
+    return {
+      dueDate: fallbackDate,
+      endDate: null as Date | null,
+      timeLabel: null as string | null,
+      hasTime: false,
+    };
+  }
+
+  return {
+    dueDate: start.toDate(),
+    endDate: normalizedEnd ? normalizedEnd.toDate() : null,
+    timeLabel: formatOccurrenceTimeLabel(start, normalizedEnd),
+    hasTime: true,
+  };
+}
+
 function daysBetween(from: dayjs.Dayjs, to: dayjs.Dayjs) {
   return to.startOf("day").diff(from.startOf("day"), "day");
 }
@@ -218,6 +495,28 @@ function mealTotals(items: Array<any>) {
   const healthyCount = items.filter((item) => item.isHealthy).length;
   const healthyRatio = items.length ? healthyCount / items.length : 0;
   return { totalCalories, totalProtein, totalFat, totalCarbs, healthyRatio };
+}
+
+async function getFoodUsageCounts(query?: string | null) {
+  const normalizedQuery = query?.trim().toLowerCase() ?? "";
+  const rows = await prisma.$queryRaw<Array<{ popularityKey: string | null; usageCount: number | bigint }>>(
+    Prisma.sql`
+      SELECT
+        COALESCE(NULLIF(item->>'sourceFoodId', ''), lower(trim(item->>'name'))) AS "popularityKey",
+        COUNT(*)::int AS "usageCount"
+      FROM "PulseMeal"
+      CROSS JOIN LATERAL jsonb_array_elements("itemsJson"::jsonb) AS item
+      WHERE item ? 'name'
+      ${normalizedQuery ? Prisma.sql`AND lower(item->>'name') LIKE ${`%${normalizedQuery}%`}` : Prisma.empty}
+      GROUP BY 1
+    `,
+  );
+
+  return new Map(
+    rows
+      .filter((row) => typeof row.popularityKey === "string" && row.popularityKey.trim())
+      .map((row) => [String(row.popularityKey).trim(), Number(row.usageCount) || 0]),
+  );
 }
 
 function computeNutritionScore(totalCalories: number, goalCalories?: number | null, healthyRatio = 0.5) {
@@ -346,10 +645,38 @@ async function getNutritionGoal(userId: string) {
   };
 }
 
+async function resolveNutritionGoal(userId: string) {
+  const [profile, suggestedGoal] = await Promise.all([
+    prisma.pulseProfile.findUnique({ where: { userId } }),
+    getNutritionGoal(userId),
+  ]);
+
+  if (!profile) return suggestedGoal;
+
+  const hasSavedGoal =
+    profile.dailyCaloriesGoal != null
+    || profile.proteinGoal != null
+    || profile.fatGoal != null
+    || profile.carbsGoal != null;
+
+  if (!hasSavedGoal) {
+    return suggestedGoal;
+  }
+
+  return {
+    dailyCalories: profile.dailyCaloriesGoal ?? suggestedGoal?.dailyCalories ?? null,
+    protein: profile.proteinGoal ?? suggestedGoal?.protein ?? null,
+    fat: profile.fatGoal ?? suggestedGoal?.fat ?? null,
+    carbs: profile.carbsGoal ?? suggestedGoal?.carbs ?? null,
+    bmi: suggestedGoal?.bmi ?? null,
+  };
+}
+
 function taskMatchesDate(task: any, selected: dayjs.Dayjs) {
   const recurrence = (task.recurrenceJson || {}) as any;
   const taskType = recurrence.taskType || (recurrence.scheduleType && recurrence.scheduleType !== "NONE" ? "REGULAR" : "ONE_TIME");
   const due = task.dueDate ? dayjs(task.dueDate).startOf("day") : null;
+  const end = readTaskEndDateValue(task) ?? due;
   const weekday = (selected.day() + 6) % 7;
   const dayOfMonth = selected.date();
 
@@ -367,6 +694,12 @@ function taskMatchesDate(task: any, selected: dayjs.Dayjs) {
       if (days.length) return days.includes(dayOfMonth);
       return due ? due.date() === dayOfMonth : false;
     }
+  }
+  if (taskType === "ONE_TIME") {
+    if (due && end) {
+      return !selected.isBefore(due, "day") && !selected.isAfter(end, "day");
+    }
+    return true;
   }
   return due ? due.isSame(selected, "day") : false;
 }
@@ -402,17 +735,70 @@ async function resolveTasksForDate(userId: string, date: dayjs.Dayjs) {
       const completion = task.completions[0];
       let completedForDate = Boolean(completion?.completed);
       if (!completion && recurrence.taskType === "ONE_TIME") completedForDate = Boolean(task.completed);
+      const socialEventRole = typeof recurrence.socialEventRole === "string" ? recurrence.socialEventRole : null;
+      const sourceEventTitle = typeof recurrence.sourceEventTitle === "string" ? recurrence.sourceEventTitle : null;
+      const subtaskAssignmentMode =
+        typeof recurrence.subtaskAssignmentMode === "string" ? recurrence.subtaskAssignmentMode : null;
+      const subtaskAssigneeUserId =
+        typeof recurrence.subtaskAssigneeUserId === "string" ? recurrence.subtaskAssigneeUserId : null;
+      const artifactSourceMeta = readArtifactSourceMeta(task.sourceKey);
+      const sourceArtifactId =
+        typeof recurrence.parentArtifactId === "string"
+          ? recurrence.parentArtifactId
+          : artifactSourceMeta?.artifactId ?? null;
+      const occurrence = resolveTaskOccurrenceRange(task, date);
       return {
         ...task,
+        occurrenceKey: `${task.id}:${date.format("YYYY-MM-DD")}`,
         taskType: recurrence.taskType || (recurrence.scheduleType && recurrence.scheduleType !== "NONE" ? "REGULAR" : "ONE_TIME"),
         scheduleType: recurrence.scheduleType || "NONE",
         daysOfWeek: ensureArray<number>(recurrence.daysOfWeek),
         daysOfMonth: ensureArray<number>(recurrence.daysOfMonth),
         completedForDate,
+        dueDate: occurrence.dueDate,
+        endDate: occurrence.endDate,
+        hasTime: occurrence.hasTime,
+        timeLabel: occurrence.timeLabel,
+        socialEventRole,
+        sourceEventTitle,
+        subtaskAssignmentMode,
+        subtaskAssigneeUserId,
+        sourceArtifactId,
       };
     });
 
-  return { items, summary: taskSummaryForDay(items) };
+  const programLinks = items.length
+    ? await prisma.programTaskLink.findMany({
+        where: {
+          taskId: { in: items.map((task) => task.id) },
+        },
+        include: {
+          run: {
+            include: {
+              programVersion: true,
+            },
+          },
+        },
+      })
+    : [];
+
+  const programMetaByTaskId = new Map(
+    programLinks.map((link) => [
+      link.taskId,
+      {
+        runId: link.programRunId,
+        programId: link.run.programDefinitionId,
+        title: link.run.programVersion.title,
+      },
+    ]),
+  );
+
+  const decoratedItems = items.map((task) => ({
+    ...task,
+    programMeta: programMetaByTaskId.get(task.id) ?? null,
+  }));
+
+  return { items: decoratedItems, summary: taskSummaryForDay(decoratedItems) };
 }
 
 async function ensureDefaultFinanceCategories(userId: string) {
@@ -504,8 +890,8 @@ async function computeDayNutrition(userId: string, date: dayjs.Dayjs) {
     orderBy: [{ date: "asc" }, { createdAt: "asc" }],
   });
   const profile = await getProfile(userId);
-  const suggestion = await getNutritionGoal(userId);
-  const targetCalories = suggestion?.dailyCalories ?? null;
+  const goal = await resolveNutritionGoal(userId);
+  const targetCalories = goal?.dailyCalories ?? null;
   const targetWeight = profile?.targetWeightKg ?? null;
   const totalCalories = meals.reduce((sum, meal) => sum + meal.totalCalories, 0);
   const totalProtein = round(meals.reduce((sum, meal) => sum + Number(meal.totalProtein || 0), 0));
@@ -515,7 +901,7 @@ async function computeDayNutrition(userId: string, date: dayjs.Dayjs) {
   const remainingCalories = targetCalories != null ? targetCalories - totalCalories : null;
   return {
     meals,
-    goal: suggestion,
+    goal,
     profile,
     totalCalories,
     totalProtein,
@@ -730,7 +1116,7 @@ router.get("/today", requireAuth, asyncHandler(async (req: AuthedRequest, res) =
 }));
 
 router.get("/day/:date", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
-  const date = parseDateOrToday(req.params.date);
+  const date = parseDateOrToday(readSingleParam(req.params.date));
   const day = await prisma.healthDay.findUnique({ where: { userId_date: { userId: req.user!.id, date: date.toDate() } } });
   res.json({ day });
 }));
@@ -747,7 +1133,7 @@ router.put("/checkin", requireAuth, asyncHandler(async (req: AuthedRequest, res)
 }));
 
 router.delete("/day/:date", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
-  const date = parseDateOrToday(req.params.date);
+  const date = parseDateOrToday(readSingleParam(req.params.date));
   await prisma.healthDay.deleteMany({ where: { userId: req.user!.id, date: date.toDate() } });
   await recomputePulse7(req.user!.id, date);
   res.json({ ok: true });
@@ -872,7 +1258,7 @@ router.put("/pulse/nutrition/goal", requireAuth, asyncHandler(async (req: Authed
       carbsGoal: body.carbs ?? null,
     },
   });
-  const goal = await getNutritionGoal(req.user!.id);
+  const goal = await resolveNutritionGoal(req.user!.id);
   res.json({ profile, goal });
 }));
 
@@ -887,13 +1273,14 @@ router.get("/pulse/nutrition", requireAuth, asyncHandler(async (req: AuthedReque
 router.post("/pulse/nutrition/meals", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
   const body = mealSchema.parse(req.body);
   const date = parseDateOrToday(body.date);
+  const mealDate = applyTimeToDay(date, body.time) ?? date;
   const totals = mealTotals(body.items as any[]);
-  const goal = await getNutritionGoal(req.user!.id);
+  const goal = await resolveNutritionGoal(req.user!.id);
   const nutritionScore = computeNutritionScore(totals.totalCalories, goal?.dailyCalories, totals.healthyRatio);
   const meal = await prisma.pulseMeal.create({
     data: {
       userId: req.user!.id,
-      date: date.toDate(),
+      date: mealDate.toDate(),
       title: body.title,
       notes: body.notes ?? null,
       totalCalories: totals.totalCalories,
@@ -909,18 +1296,24 @@ router.post("/pulse/nutrition/meals", requireAuth, asyncHandler(async (req: Auth
 
 router.patch("/pulse/nutrition/meals/:mealId", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
   const body = mealSchema.partial().parse(req.body);
-  const meal = await prisma.pulseMeal.findUnique({ where: { id: req.params.mealId } });
+  const meal = await prisma.pulseMeal.findUnique({ where: { id: readSingleParam(req.params.mealId) } });
   if (!meal || meal.userId !== req.user!.id) throw new HttpError(404, "Meal not found");
   const items = body.items ? (body.items as any[]) : ensureArray<any>(meal.itemsJson as any);
   const totals = mealTotals(items);
-  const goal = await getNutritionGoal(req.user!.id);
+  const goal = await resolveNutritionGoal(req.user!.id);
   const nutritionScore = computeNutritionScore(totals.totalCalories, goal?.dailyCalories, totals.healthyRatio);
+  const currentMealDate = dayjs(meal.date);
+  const nextDate = body.date ? parseDateOrToday(body.date) : currentMealDate.startOf("day");
+  const nextTime = body.time !== undefined ? body.time : currentMealDate.format("HH:mm");
+  const resolvedMealDate = (body.date !== undefined || body.time !== undefined)
+    ? (applyTimeToDay(nextDate, nextTime) ?? nextDate)
+    : undefined;
   const updated = await prisma.pulseMeal.update({
     where: { id: meal.id },
     data: {
       title: body.title ?? undefined,
       notes: body.notes === null ? null : body.notes ?? undefined,
-      date: body.date ? parseDateOrToday(body.date).toDate() : undefined,
+      date: resolvedMealDate?.toDate(),
       itemsJson: body.items ? (body.items as any) : undefined,
       totalCalories: totals.totalCalories,
       totalProtein: totals.totalProtein,
@@ -933,7 +1326,7 @@ router.patch("/pulse/nutrition/meals/:mealId", requireAuth, asyncHandler(async (
 }));
 
 router.delete("/pulse/nutrition/meals/:mealId", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
-  const meal = await prisma.pulseMeal.findUnique({ where: { id: req.params.mealId } });
+  const meal = await prisma.pulseMeal.findUnique({ where: { id: readSingleParam(req.params.mealId) } });
   if (!meal || meal.userId !== req.user!.id) throw new HttpError(404, "Meal not found");
   await prisma.pulseMeal.delete({ where: { id: meal.id } });
   res.json({ ok: true });
@@ -941,17 +1334,18 @@ router.delete("/pulse/nutrition/meals/:mealId", requireAuth, asyncHandler(async 
 
 router.get("/pulse/nutrition/foods", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
   const query = (req.query.query?.toString() ?? "").trim().toLowerCase();
+  const usageCounts = await getFoodUsageCounts(query);
   const dbFoods = await prisma.pulseFood.findMany({
     where: query
       ? {
           OR: [
-            { name: { contains: query, mode: "insensitive" } },
-            { userId: req.user!.id },
+            { name: { contains: query, mode: "insensitive" }, isPublic: true },
+            { name: { contains: query, mode: "insensitive" }, userId: req.user!.id },
           ],
         }
       : { OR: [{ userId: req.user!.id }, { isPublic: true }] },
-    orderBy: [{ userId: "desc" }, { createdAt: "desc" }],
-    take: 20,
+    orderBy: [{ createdAt: "desc" }],
+    take: 40,
   });
   const normalizedDefaults = DEFAULT_FOODS.filter((food) => !query || food.name.toLowerCase().includes(query)).map((food) => ({
     id: `default:${food.key}`,
@@ -965,15 +1359,40 @@ router.get("/pulse/nutrition/foods", requireAuth, asyncHandler(async (req: Authe
     carbs: food.carbs,
     isHealthy: food.isHealthy,
     isPublic: true,
+    usageCount: usageCounts.get(`default:${food.key}`) ?? usageCounts.get(food.name.toLowerCase()) ?? 0,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   }));
+  const normalizedFoods = dbFoods.map((food) => ({
+    ...food,
+    usageCount: usageCounts.get(food.id) ?? usageCounts.get(food.name.toLowerCase()) ?? 0,
+  }));
+  const queryScore = (name: string) => {
+    const normalizedName = name.toLowerCase();
+    if (!query) return 0;
+    if (normalizedName === query) return 3;
+    if (normalizedName.startsWith(query)) return 2;
+    if (normalizedName.includes(query)) return 1;
+    return 0;
+  };
+  const dedupeRank = (food: any) => {
+    const ownScore = food.userId === req.user!.id ? 10_000 : 0;
+    return ownScore + (Number(food.usageCount) || 0);
+  };
+  const finalRank = (food: any) => {
+    return queryScore(food.name) * 100_000 + (Number(food.usageCount) || 0) * 10 + (food.userId === req.user!.id ? 1 : 0);
+  };
   const map = new Map<string, any>();
-  [...dbFoods, ...normalizedDefaults].forEach((food: any) => {
+  [...normalizedFoods, ...normalizedDefaults].forEach((food: any) => {
     const key = food.name.toLowerCase();
-    if (!map.has(key)) map.set(key, food);
+    const existing = map.get(key);
+    if (!existing || dedupeRank(food) > dedupeRank(existing)) {
+      map.set(key, food);
+    }
   });
-  res.json({ items: Array.from(map.values()).slice(0, 25) });
+  const items = Array.from(map.values())
+    .sort((a, b) => finalRank(b) - finalRank(a) || a.name.localeCompare(b.name, "ru-RU"));
+  res.json({ items: items.slice(0, 25) });
 }));
 
 router.post("/pulse/nutrition/foods", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
@@ -1002,9 +1421,34 @@ router.get("/pulse/tasks/day", requireAuth, asyncHandler(async (req: AuthedReque
   res.json({ ...data, goals });
 }));
 
+router.get("/pulse/tasks/range", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
+  const from = parseDateOrToday(req.query.from?.toString());
+  const to = parseDateOrToday(req.query.to?.toString());
+  if (to.isBefore(from, "day")) throw new HttpError(400, "Invalid date range");
+  const dayCount = to.diff(from, "day") + 1;
+  if (dayCount > 14) throw new HttpError(400, "Range is too large");
+
+  const days = await Promise.all(
+    Array.from({ length: dayCount }, (_, index) => from.add(index, "day")).map(async (current) => {
+      const data = await resolveTasksForDate(req.user!.id, current);
+      return {
+        date: current.format("YYYY-MM-DD"),
+        items: data.items,
+      };
+    }),
+  );
+
+  res.json({
+    from: from.format("YYYY-MM-DD"),
+    to: to.format("YYYY-MM-DD"),
+    days,
+    items: days.flatMap((day) => day.items),
+  });
+}));
+
 router.post("/pulse/tasks", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
   const body = pulseTaskSchema.parse(req.body);
-  const dueDate = body.date ? parseDateOrToday(body.date).toDate() : null;
+  const { dueDate, endDate, hasTime } = parseTaskDueDate(body.date, body.time, body.endTime, body.endDate);
   const task = await prisma.task.create({
     data: {
       userId: req.user!.id,
@@ -1012,24 +1456,27 @@ router.post("/pulse/tasks", requireAuth, asyncHandler(async (req: AuthedRequest,
       notes: body.notes ?? null,
       kind: "TASK",
       dueDate,
-      hasTime: false,
+      hasTime,
       completed: false,
       priority: body.priority ?? 2,
       tags: body.tags ?? [],
-      remindersJson: null,
-      recurrenceJson: {
+      remindersJson: toPrismaNullableJson(null),
+      recurrenceJson: toPrismaNullableJson({
         taskType: body.taskType,
         scheduleType: body.scheduleType,
         daysOfWeek: body.daysOfWeek ?? [],
         daysOfMonth: body.daysOfMonth ?? [],
-      },
+        time: body.time ?? null,
+        endTime: body.endTime ?? null,
+        endDate: endDate ? toDateKey(endDate) : null,
+      }),
     },
   });
   res.json({ task });
 }));
 
 router.patch("/pulse/tasks/:taskId", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
-  const existing = await prisma.task.findUnique({ where: { id: req.params.taskId } });
+  const existing = await prisma.task.findUnique({ where: { id: readSingleParam(req.params.taskId) } });
   if (!existing || existing.userId !== req.user!.id || existing.deletedAt) throw new HttpError(404, "Task not found");
   const body = pulseTaskSchema.partial().parse(req.body);
   const recurrence = { ...(existing.recurrenceJson as any || {}) };
@@ -1037,12 +1484,33 @@ router.patch("/pulse/tasks/:taskId", requireAuth, asyncHandler(async (req: Authe
   if (body.scheduleType !== undefined) recurrence.scheduleType = body.scheduleType;
   if (body.daysOfWeek !== undefined) recurrence.daysOfWeek = body.daysOfWeek;
   if (body.daysOfMonth !== undefined) recurrence.daysOfMonth = body.daysOfMonth;
+  if (body.time !== undefined) recurrence.time = body.time;
+  if (body.endTime !== undefined) recurrence.endTime = body.endTime;
+  if (body.endDate !== undefined) recurrence.endDate = body.endDate;
+  const nextDateInput = body.date !== undefined ? body.date : (existing.dueDate ? dayjs(existing.dueDate).format("YYYY-MM-DD") : null);
+  const nextTimeInput = body.time !== undefined ? body.time : (existing.hasTime && existing.dueDate ? dayjs(existing.dueDate).format("HH:mm") : null);
+  const nextEndDateInput =
+    body.endDate !== undefined
+      ? body.endDate
+      : typeof recurrence.endDate === "string" && recurrence.endDate.trim()
+        ? recurrence.endDate
+        : null;
+  const nextEndTimeInput =
+    body.endTime !== undefined
+      ? body.endTime
+      : typeof recurrence.endTime === "string" && recurrence.endTime.trim()
+        ? recurrence.endTime
+        : null;
+  const nextDue = body.date !== undefined || body.time !== undefined || body.endTime !== undefined || body.endDate !== undefined
+    ? parseTaskDueDate(nextDateInput, nextTimeInput, nextEndTimeInput, nextEndDateInput)
+    : null;
   const task = await prisma.task.update({
     where: { id: existing.id },
     data: {
       title: body.title ?? undefined,
       notes: body.notes === null ? null : body.notes ?? undefined,
-      dueDate: body.date !== undefined ? (body.date ? parseDateOrToday(body.date).toDate() : null) : undefined,
+      dueDate: nextDue ? nextDue.dueDate : undefined,
+      hasTime: nextDue ? nextDue.hasTime : undefined,
       priority: body.priority ?? undefined,
       tags: body.tags ?? undefined,
       recurrenceJson: recurrence,
@@ -1053,8 +1521,16 @@ router.patch("/pulse/tasks/:taskId", requireAuth, asyncHandler(async (req: Authe
 
 router.post("/pulse/tasks/:taskId/toggle-date", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
   const date = parseDateOrToday(req.body?.date);
-  const task = await prisma.task.findUnique({ where: { id: req.params.taskId } });
+  const task = await prisma.task.findUnique({ where: { id: readSingleParam(req.params.taskId) } });
   if (!task || task.userId !== req.user!.id || task.deletedAt) throw new HttpError(404, "Task not found");
+  const recurrence = (task.recurrenceJson || {}) as any;
+  if (
+    recurrence?.subtaskAssignmentMode === "ANYONE" &&
+    recurrence?.anyoneResolvedByUserId &&
+    recurrence.anyoneResolvedByUserId !== req.user!.id
+  ) {
+    throw new HttpError(400, "Эта задача уже закреплена за участником и больше недоступна для изменения");
+  }
   const existing = await prisma.pulseTaskCompletion.findUnique({ where: { taskId_date: { taskId: task.id, date: date.toDate() } } as any }).catch(() => null);
   let completion;
   if (existing) {
@@ -1062,17 +1538,38 @@ router.post("/pulse/tasks/:taskId/toggle-date", requireAuth, asyncHandler(async 
   } else {
     completion = await prisma.pulseTaskCompletion.create({ data: { taskId: task.id, userId: req.user!.id, date: date.toDate(), completed: true } });
   }
-  const recurrence = (task.recurrenceJson || {}) as any;
-  if ((recurrence.taskType ?? "ONE_TIME") === "ONE_TIME" && task.dueDate && dayjs(task.dueDate).isSame(date, "day")) {
-    await prisma.task.update({ where: { id: task.id }, data: { completed: completion.completed } });
+  if ((recurrence.taskType ?? "ONE_TIME") === "ONE_TIME" && (!task.dueDate || dayjs(task.dueDate).isSame(date, "day"))) {
+    const updatedTask = await prisma.task.update({ where: { id: task.id }, data: { completed: completion.completed } });
+    if (isProgramTaskSourceKey(updatedTask.sourceKey)) {
+      await syncProgramActionFromTask(prisma, { taskId: updatedTask.id, completed: updatedTask.completed });
+    }
+    if (isArtifactTaskSourceKey(updatedTask.sourceKey)) {
+      const syncResult = await syncArtifactStateFromTask(updatedTask.id, updatedTask.completed);
+      const emitter = req.app.locals.emitter as any;
+      if (syncResult?.originChatId) {
+        emitter?.emitToChat(syncResult.originChatId, "share-artifact:updated", {
+          artifactId: syncResult.artifactId,
+          chatId: syncResult.originChatId,
+          at: new Date().toISOString(),
+        });
+      }
+      if (syncResult?.ownerId) {
+        emitter?.emitToUser(syncResult.ownerId, "share-artifact:updated", {
+          artifactId: syncResult.artifactId,
+          chatId: syncResult.originChatId ?? null,
+          at: new Date().toISOString(),
+        });
+      }
+    }
   }
   res.json({ completion });
 }));
 
 router.delete("/pulse/tasks/:taskId", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
-  const task = await prisma.task.findUnique({ where: { id: req.params.taskId } });
+  const task = await prisma.task.findUnique({ where: { id: readSingleParam(req.params.taskId) } });
   if (!task || task.userId !== req.user!.id || task.deletedAt) throw new HttpError(404, "Task not found");
   await prisma.task.update({ where: { id: task.id }, data: { deletedAt: new Date() } });
+  emitShareArtifactRealtime(req, await unlinkArtifactLinkedTask(task.id));
   res.json({ ok: true });
 }));
 
@@ -1096,7 +1593,7 @@ router.post("/pulse/tasks/goals", requireAuth, asyncHandler(async (req: AuthedRe
 }));
 
 router.patch("/pulse/tasks/goals/:goalId", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
-  const existing = await prisma.pulseGoal.findUnique({ where: { id: req.params.goalId } });
+  const existing = await prisma.pulseGoal.findUnique({ where: { id: readSingleParam(req.params.goalId) } });
   if (!existing || existing.userId !== req.user!.id) throw new HttpError(404, "Goal not found");
   const body = goalSchema.partial().parse(req.body);
   const goal = await prisma.pulseGoal.update({
@@ -1112,7 +1609,7 @@ router.patch("/pulse/tasks/goals/:goalId", requireAuth, asyncHandler(async (req:
 }));
 
 router.delete("/pulse/tasks/goals/:goalId", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
-  const existing = await prisma.pulseGoal.findUnique({ where: { id: req.params.goalId } });
+  const existing = await prisma.pulseGoal.findUnique({ where: { id: readSingleParam(req.params.goalId) } });
   if (!existing || existing.userId !== req.user!.id) throw new HttpError(404, "Goal not found");
   await prisma.pulseGoal.delete({ where: { id: existing.id } });
   res.json({ ok: true });
@@ -1120,17 +1617,22 @@ router.delete("/pulse/tasks/goals/:goalId", requireAuth, asyncHandler(async (req
 
 router.get("/pulse/finance/overview", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
   const date = parseDateOrToday(req.query.date?.toString());
+  const period = ["day", "month", "year"].includes(String(req.query.period || "")) ? String(req.query.period) : "day";
+  const rangeStart = period === "year" ? date.startOf("year") : period === "month" ? date.startOf("month") : date.startOf("day");
+  const rangeEnd = period === "year" ? date.endOf("year") : period === "month" ? date.endOf("month") : date.endOf("day");
+
   await ensureDefaultFinanceCategories(req.user!.id);
   const overview = await buildOverview(req.user!.id, date);
   const entries = await prisma.pulseFinanceEntry.findMany({
-    where: { userId: req.user!.id, date: { gte: date.startOf("day").toDate(), lte: date.endOf("day").toDate() } },
+    where: { userId: req.user!.id, date: { gte: rangeStart.toDate(), lte: rangeEnd.toDate() } },
     include: { category: true },
     orderBy: { createdAt: "asc" },
   });
-  const goals = await prisma.pulseSavingsGoal.findMany({ where: { userId: req.user!.id }, orderBy: { createdAt: "desc" } });
-  const debts = await prisma.pulseDebt.findMany({ where: { userId: req.user!.id }, orderBy: { createdAt: "desc" } });
+  const goalsRaw = await prisma.pulseSavingsGoal.findMany({ where: { userId: req.user!.id }, orderBy: { createdAt: "desc" } });
+  const debtsRaw = await prisma.pulseDebt.findMany({ where: { userId: req.user!.id }, orderBy: { createdAt: "desc" } });
   const categories = await prisma.pulseFinanceCategory.findMany({ where: { userId: req.user!.id }, orderBy: { name: "asc" } });
-  res.json({ overview, entries: entries.map(serializeFinanceEntry), goals, debts, categories });
+  const enriched = await enrichFinanceEntitiesWithShareMeta(req.user!.id, req.user!.role, debtsRaw, goalsRaw);
+  res.json({ overview, entries: entries.map(serializeFinanceEntry), goals: enriched.goals, debts: enriched.debts, categories, period, range: { from: rangeStart.format("YYYY-MM-DD"), to: rangeEnd.format("YYYY-MM-DD") } });
 }));
 
 router.get("/pulse/finance/categories", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
@@ -1149,7 +1651,7 @@ router.post("/pulse/finance/categories", requireAuth, asyncHandler(async (req: A
 }));
 
 router.patch("/pulse/finance/categories/:categoryId", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
-  const existing = await prisma.pulseFinanceCategory.findUnique({ where: { id: req.params.categoryId } });
+  const existing = await prisma.pulseFinanceCategory.findUnique({ where: { id: readSingleParam(req.params.categoryId) } });
   if (!existing || existing.userId !== req.user!.id) throw new HttpError(404, "Category not found");
   const body = financeCategorySchema.partial().parse(req.body);
   const category = await prisma.pulseFinanceCategory.update({
@@ -1192,7 +1694,7 @@ router.post("/pulse/finance/entries", requireAuth, asyncHandler(async (req: Auth
 }));
 
 router.patch("/pulse/finance/entries/:entryId", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
-  const existing = await prisma.pulseFinanceEntry.findUnique({ where: { id: req.params.entryId } });
+  const existing = await prisma.pulseFinanceEntry.findUnique({ where: { id: readSingleParam(req.params.entryId) } });
   if (!existing || existing.userId !== req.user!.id) throw new HttpError(404, "Entry not found");
   const body = financeEntrySchema.partial().parse(req.body);
   const entry = await prisma.pulseFinanceEntry.update({
@@ -1213,7 +1715,7 @@ router.patch("/pulse/finance/entries/:entryId", requireAuth, asyncHandler(async 
 }));
 
 router.delete("/pulse/finance/entries/:entryId", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
-  const existing = await prisma.pulseFinanceEntry.findUnique({ where: { id: req.params.entryId } });
+  const existing = await prisma.pulseFinanceEntry.findUnique({ where: { id: readSingleParam(req.params.entryId) } });
   if (!existing || existing.userId !== req.user!.id) throw new HttpError(404, "Entry not found");
   await prisma.pulseFinanceEntry.delete({ where: { id: existing.id } });
   if (existing.linkedTaskId) {
@@ -1236,14 +1738,15 @@ router.post("/pulse/finance/goals", requireAuth, asyncHandler(async (req: Authed
       targetAmount: body.targetAmount,
       savedAmount: body.savedAmount ?? 0,
       deadline: body.deadline ? parseDateOrToday(body.deadline).toDate() : null,
-      itemsJson: body.items ?? null,
+      itemsJson: toPrismaNullableJson(body.items ?? null),
     },
   });
+  emitShareArtifactRealtime(req, await syncArtifactStateFromLinkedFinance({ savingsGoalId: goal.id }));
   res.json({ goal });
 }));
 
 router.patch("/pulse/finance/goals/:goalId", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
-  const existing = await prisma.pulseSavingsGoal.findUnique({ where: { id: req.params.goalId } });
+  const existing = await prisma.pulseSavingsGoal.findUnique({ where: { id: readSingleParam(req.params.goalId) } });
   if (!existing || existing.userId !== req.user!.id) throw new HttpError(404, "Goal not found");
   const body = savingsGoalSchema.partial().parse(req.body);
   const goal = await prisma.pulseSavingsGoal.update({
@@ -1253,16 +1756,19 @@ router.patch("/pulse/finance/goals/:goalId", requireAuth, asyncHandler(async (re
       targetAmount: body.targetAmount ?? undefined,
       savedAmount: body.savedAmount ?? undefined,
       deadline: body.deadline !== undefined ? (body.deadline ? parseDateOrToday(body.deadline).toDate() : null) : undefined,
-      itemsJson: body.items === undefined ? undefined : (body.items ?? null),
+      itemsJson: body.items === undefined ? undefined : toPrismaNullableJson(body.items ?? null),
     },
   });
+  emitShareArtifactRealtime(req, await syncArtifactStateFromLinkedFinance({ savingsGoalId: goal.id }));
   res.json({ goal });
 }));
 
 router.delete("/pulse/finance/goals/:goalId", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
-  const existing = await prisma.pulseSavingsGoal.findUnique({ where: { id: req.params.goalId } });
+  const existing = await prisma.pulseSavingsGoal.findUnique({ where: { id: readSingleParam(req.params.goalId) } });
   if (!existing || existing.userId !== req.user!.id) throw new HttpError(404, "Goal not found");
+  const realtimeTargets = await unlinkArtifactLinkedFinance({ savingsGoalId: existing.id });
   await prisma.pulseSavingsGoal.delete({ where: { id: existing.id } });
+  emitShareArtifactRealtime(req, realtimeTargets);
   res.json({ ok: true });
 }));
 
@@ -1290,11 +1796,12 @@ router.post("/pulse/finance/debts", requireAuth, asyncHandler(async (req: Authed
     },
   });
   if (debt.paymentDay) await syncDebtTask(req.user!.id, debt);
+  emitShareArtifactRealtime(req, await syncArtifactStateFromLinkedFinance({ debtId: debt.id }));
   res.json({ debt });
 }));
 
 router.patch("/pulse/finance/debts/:debtId", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
-  const existing = await prisma.pulseDebt.findUnique({ where: { id: req.params.debtId } });
+  const existing = await prisma.pulseDebt.findUnique({ where: { id: readSingleParam(req.params.debtId) } });
   if (!existing || existing.userId !== req.user!.id) throw new HttpError(404, "Debt not found");
   const body = debtSchema.partial().parse(req.body);
   const debt = await prisma.pulseDebt.update({
@@ -1314,14 +1821,17 @@ router.patch("/pulse/finance/debts/:debtId", requireAuth, asyncHandler(async (re
     },
   });
   if (debt.paymentDay) await syncDebtTask(req.user!.id, debt);
+  emitShareArtifactRealtime(req, await syncArtifactStateFromLinkedFinance({ debtId: debt.id }));
   res.json({ debt });
 }));
 
 router.delete("/pulse/finance/debts/:debtId", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
-  const existing = await prisma.pulseDebt.findUnique({ where: { id: req.params.debtId } });
+  const existing = await prisma.pulseDebt.findUnique({ where: { id: readSingleParam(req.params.debtId) } });
   if (!existing || existing.userId !== req.user!.id) throw new HttpError(404, "Debt not found");
+  const realtimeTargets = await unlinkArtifactLinkedFinance({ debtId: existing.id });
   await prisma.pulseDebt.delete({ where: { id: existing.id } });
   await prisma.task.updateMany({ where: { userId: req.user!.id, sourceKey: `debt:${existing.id}` }, data: { deletedAt: new Date() } });
+  emitShareArtifactRealtime(req, realtimeTargets);
   res.json({ ok: true });
 }));
 
@@ -1342,7 +1852,7 @@ router.get("/pulse/analytics", requireAuth, asyncHandler(async (req: AuthedReque
     include: { completions: { where: { date: { gte: from.toDate(), lte: to.toDate() } } } },
   });
   const profile = await prisma.pulseProfile.findUnique({ where: { userId: req.user!.id } });
-  const nutritionGoal = await getNutritionGoal(req.user!.id);
+  const nutritionGoal = await resolveNutritionGoal(req.user!.id);
 
   const taskSeries = [] as Array<{ date: string; percent: number; completed: number; total: number }>;
   const mealsByDay = new Map<string, any[]>();

@@ -8,9 +8,12 @@ import {
 } from '@/shared/api/storiesApi';
 import { useGetMeQuery } from '@/shared/api/usersApi';
 import { useGetMentalDayQuery, useGetNutritionQuery, useGetOverviewQuery, useGetTasksDayQuery } from '@/shared/api/pulseApi';
+import { useListShareArtifactsQuery } from '@/shared/api/programsApi';
 import { StoryEditorItem, StoryHighlight, StoryMediaTransform, StoryWidgetType } from '@/shared/types/story';
 import { Button } from '@/shared/ui/Button/Button';
 import { Icon } from '@/shared/ui/Icon/Icon';
+import type { ShareArtifact } from '@/shared/types/programs';
+import { toPulseShareEmbedArtifact } from '@/shared/lib/pulseShare';
 import styles from './Stories.module.css';
 
 function todayIso() {
@@ -218,14 +221,14 @@ async function extractVideoFrames(url: string, durationMs: number, count = 10) {
 }
 
 function widgetPreset(type: StoryWidgetType, source: any) {
-  const map: Record<StoryWidgetType, { title: string; primary: string; secondary: string }> = {
+  const map: Record<string, { title: string; primary: string; secondary: string }> = {
     pulse: { title: 'Pulse дня', primary: `${source?.overview?.today?.dayScore ?? '—'}`, secondary: `Фокус: ${source?.overview?.today?.recommendations?.[0] ?? 'день в балансе'}` },
     focus: { title: 'Фокус дня', primary: `${source?.overview?.today?.recommendations?.[0] ?? 'Одна главная задача'}`, secondary: `${source?.overview?.today?.tasksDone ?? 0} из ${source?.overview?.today?.tasksTotal ?? 0} задач` },
     health: { title: 'Здоровье', primary: `${source?.mental?.day?.todayScore ?? source?.overview?.today?.mental7Score ?? '—'}`, secondary: `Сон ${source?.mental?.day?.sleepHours ?? '—'} ч · Стресс ${source?.mental?.day?.stress ?? '—'}` },
     tasks: { title: 'Прогресс дня', primary: `${source?.tasks?.summary?.percent ?? source?.overview?.today?.tasksPercent ?? 0}%`, secondary: `${source?.tasks?.summary?.completed ?? 0}/${source?.tasks?.summary?.total ?? 0} выполнено` },
     nutrition: { title: 'Питание', primary: `${source?.nutrition?.totalCalories ?? source?.overview?.nutrition?.totalCalories ?? 0} ккал`, secondary: `Осталось ${source?.nutrition?.remainingCalories ?? source?.overview?.nutrition?.remainingCalories ?? 0}` },
   };
-  return map[type];
+  return map[type] ?? { title: 'Pulse share', primary: 'Artifact', secondary: 'Recent Pulse item' };
 }
 
 function makeSvgOverlay(points: DrawingPoint[], stroke = '#ffffff') {
@@ -269,11 +272,13 @@ export function StoryCreator({ open, onClose, onCreated }: { open: boolean; onCl
   const { data: mentalData } = useGetMentalDayQuery(today, { skip: !open });
   const { data: tasksData } = useGetTasksDayQuery(today, { skip: !open });
   const { data: nutritionData } = useGetNutritionQuery(today, { skip: !open });
+  const { data: shareArtifactsData } = useListShareArtifactsQuery(8, { skip: !open });
   const { data: highlightsData } = useGetStoryHighlightsQuery({ userId: meData?.user?.id ?? '' }, { skip: !open || !meData?.user?.id, refetchOnFocus: true, refetchOnReconnect: true });
 
   const activeDraft = drafts.find((draft) => draft.id === activeDraftId) ?? null;
   const selectedItem = activeDraft?.items.find((item) => item.id === selectedItemId) ?? null;
   const highlightItems = highlightsData?.items ?? [];
+  const shareArtifacts = shareArtifactsData?.items ?? [];
 
   useEffect(() => {
     const enableBrush = activeTool === 'brush' && toolOpen;
@@ -448,6 +453,40 @@ export function StoryCreator({ open, onClose, onCreated }: { open: boolean; onCl
     updateDraft(activeDraft.id, (draft) => ({
       ...draft,
       items: [...draft.items, { id, type: 'widget', x: 10, y: 18, w: 78, h: 22, widgetType: type, title: preset.title, payload: { primary: preset.primary, secondary: preset.secondary } }],
+    }));
+    setSelectedItemId(id);
+    setActiveTool('widgets');
+    setToolOpen(true);
+  };
+
+  const addShareWidget = (artifact: ShareArtifact) => {
+    if (!activeDraft) return;
+    const id = makeId('item');
+    const snapshot = artifact.resolvedSnapshot ?? artifact.snapshotJson ?? {};
+    const title = typeof (snapshot as any)?.title === 'string' ? String((snapshot as any).title) : artifact.title ?? 'Pulse share';
+    const primary = typeof (snapshot as any)?.primary === 'string' ? String((snapshot as any).primary) : String((snapshot as any)?.primary ?? artifact.kind);
+    const secondary = typeof (snapshot as any)?.secondary === 'string' ? String((snapshot as any).secondary) : String((snapshot as any)?.description ?? artifact.mode);
+    updateDraft(activeDraft.id, (draft) => ({
+      ...draft,
+      items: [
+        ...draft.items,
+        {
+          id,
+          type: 'widget',
+          x: 10,
+          y: 18,
+          w: 78,
+          h: 22,
+          widgetType: 'pulse_share',
+          title,
+          payload: {
+            primary,
+            secondary,
+            artifactId: artifact.id,
+            artifact: toPulseShareEmbedArtifact(artifact),
+          },
+        },
+      ],
     }));
     setSelectedItemId(id);
     setActiveTool('widgets');
@@ -908,6 +947,19 @@ export function StoryCreator({ open, onClose, onCreated }: { open: boolean; onCl
                         </button>
                       ))}
                     </div>
+                    {shareArtifacts.length ? (
+                      <>
+                        <div className={styles.creatorPanelTitle} style={{ marginTop: 14 }}>Pulse shares</div>
+                        <div className={styles.creatorWidgetGrid}>
+                          {shareArtifacts.map((artifact) => (
+                            <button key={artifact.id} type="button" className={styles.creatorChip} onClick={() => addShareWidget(artifact)}>
+                              <span>{String((artifact.snapshotJson as any)?.title ?? artifact.title ?? 'Pulse share')}</span>
+                              <small>{artifact.kind}</small>
+                            </button>
+                          ))}
+                        </div>
+                      </>
+                    ) : null}
                   </div>
                 ) : activeTool === 'brush' ? (
                   <div className={styles.creatorPanel}>

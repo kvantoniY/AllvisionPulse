@@ -117,6 +117,30 @@ jobs:
             PUBLIC_APP_URL="https://allvision-pulse.ru"
             AUTH_COOKIE_SECURE="true"
             AUTH_COOKIE_DOMAIN=".allvision-pulse.ru"
+            TURN_HOST="turn.allvision-pulse.ru"
+            TURN_PORT="3478"
+            TURN_MIN_PORT="49152"
+            TURN_MAX_PORT="49252"
+            TURN_TTL_SEC="43200"
+            TURN_EXTERNAL_IP="$(getent ahostsv4 "$TURN_HOST" | awk 'NR==1 { print $1 }')"
+            if [ -z "$TURN_EXTERNAL_IP" ]; then
+              TURN_EXTERNAL_IP="${{ secrets.ALPHA_HOST }}"
+            fi
+            TURN_SECRET="$(grep -E '^TURN_SECRET=' "$NEXT_DIR/infra/alpha/.env" | sed 's/^TURN_SECRET=//')"
+            if [ -z "$TURN_SECRET" ]; then
+              TURN_SECRET="$(openssl rand -hex 32)"
+            fi
+            WEB_PUSH_VAPID_PUBLIC_KEY="$(grep -E '^WEB_PUSH_VAPID_PUBLIC_KEY=' "$NEXT_DIR/infra/alpha/.env" | sed 's/^WEB_PUSH_VAPID_PUBLIC_KEY=//')"
+            WEB_PUSH_VAPID_PRIVATE_KEY="$(grep -E '^WEB_PUSH_VAPID_PRIVATE_KEY=' "$NEXT_DIR/infra/alpha/.env" | sed 's/^WEB_PUSH_VAPID_PRIVATE_KEY=//')"
+            WEB_PUSH_VAPID_SUBJECT="$(grep -E '^WEB_PUSH_VAPID_SUBJECT=' "$NEXT_DIR/infra/alpha/.env" | sed 's/^WEB_PUSH_VAPID_SUBJECT=//')"
+            if [ -z "$WEB_PUSH_VAPID_PUBLIC_KEY" ] || [ -z "$WEB_PUSH_VAPID_PRIVATE_KEY" ]; then
+              VAPID_KEYS="$(node -e "const { createECDH } = require('crypto'); const curve = createECDH('prime256v1'); curve.generateKeys(); console.log('WEB_PUSH_VAPID_PUBLIC_KEY=' + curve.getPublicKey('base64url', 'uncompressed')); console.log('WEB_PUSH_VAPID_PRIVATE_KEY=' + curve.getPrivateKey('base64url'));" )"
+              WEB_PUSH_VAPID_PUBLIC_KEY="$(printf '%s\n' "$VAPID_KEYS" | awk -F= '/^WEB_PUSH_VAPID_PUBLIC_KEY=/{print $2}')"
+              WEB_PUSH_VAPID_PRIVATE_KEY="$(printf '%s\n' "$VAPID_KEYS" | awk -F= '/^WEB_PUSH_VAPID_PRIVATE_KEY=/{print $2}')"
+            fi
+            if [ -z "$WEB_PUSH_VAPID_SUBJECT" ]; then
+              WEB_PUSH_VAPID_SUBJECT="mailto:notify@allvision-pulse.ru"
+            fi
 
             upsert_env() {
               local key="$1"
@@ -132,6 +156,16 @@ jobs:
             upsert_env PUBLIC_APP_URL "$PUBLIC_APP_URL"
             upsert_env AUTH_COOKIE_SECURE "$AUTH_COOKIE_SECURE"
             upsert_env AUTH_COOKIE_DOMAIN "$AUTH_COOKIE_DOMAIN"
+            upsert_env TURN_HOST "$TURN_HOST"
+            upsert_env TURN_PORT "$TURN_PORT"
+            upsert_env TURN_MIN_PORT "$TURN_MIN_PORT"
+            upsert_env TURN_MAX_PORT "$TURN_MAX_PORT"
+            upsert_env TURN_TTL_SEC "$TURN_TTL_SEC"
+            upsert_env TURN_EXTERNAL_IP "$TURN_EXTERNAL_IP"
+            upsert_env TURN_SECRET "$TURN_SECRET"
+            upsert_env WEB_PUSH_VAPID_PUBLIC_KEY "$WEB_PUSH_VAPID_PUBLIC_KEY"
+            upsert_env WEB_PUSH_VAPID_PRIVATE_KEY "$WEB_PUSH_VAPID_PRIVATE_KEY"
+            upsert_env WEB_PUSH_VAPID_SUBJECT "$WEB_PUSH_VAPID_SUBJECT"
           fi
 
           rm -rf "$PREV_DIR"
@@ -160,7 +194,7 @@ jobs:
           fi
 
           echo "=== current public env ==="
-          grep -E '^(CORS_ORIGIN|PUBLIC_APP_URL|AUTH_COOKIE_SECURE|AUTH_COOKIE_DOMAIN)=' infra/alpha/.env || true
+          grep -E '^(CORS_ORIGIN|PUBLIC_APP_URL|AUTH_COOKIE_SECURE|AUTH_COOKIE_DOMAIN|TURN_HOST|TURN_PORT|TURN_MIN_PORT|TURN_MAX_PORT|TURN_TTL_SEC|TURN_EXTERNAL_IP|WEB_PUSH_VAPID_SUBJECT|WEB_PUSH_VAPID_PUBLIC_KEY)=' infra/alpha/.env || true
 
           sleep 3
 
@@ -218,6 +252,13 @@ jobs:
             --env-file infra/alpha/.env \
             -f infra/alpha/docker-compose.alpha.yml \
             logs nginx --tail=120
+          echo
+          echo "=== turn logs ==="
+          docker compose \
+            --project-name allvision-alpha \
+            --env-file infra/alpha/.env \
+            -f infra/alpha/docker-compose.alpha.yml \
+            logs turn --tail=120
           echo
           echo "=== nginx rendered config ==="
           NGINX_ID=$(docker compose \

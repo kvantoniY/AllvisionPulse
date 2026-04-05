@@ -11,6 +11,10 @@ import type { Comment } from '@/shared/types/social';
 import styles from './PostCommentsMobileModal.module.css';
 import { Skeleton, SkeletonText } from '@/shared/ui/Skeleton/Skeleton';
 import { useLightbox } from '@/shared/ui/Lightbox/LightboxProvider';
+import { PulseShareCard } from '@/shared/ui/PulseShareCard/PulseShareCard';
+import { PulseSharePicker } from '@/shared/ui/PulseSharePicker/PulseSharePicker';
+import type { ShareArtifact } from '@/shared/types/programs';
+import { toPulseShareWidgetPayload, type PulseShareWidgetPayload } from '@/shared/lib/pulseShare';
 
 const MAX_TEXT = 5000;
 type ReplyTarget = { commentId: string; parentId: string; username: string };
@@ -26,6 +30,13 @@ const createPendingAttachment = (file: File): PendingAttachment => ({
 const revokePendingAttachments = (items: PendingAttachment[]) => {
   for (const item of items) URL.revokeObjectURL(item.url);
 };
+
+function commentWidgetLabel(widget: PulseShareWidgetPayload | null) {
+  if (!widget) return '';
+  const snapshot = widget.artifact.snapshotJson ?? {};
+  const title = typeof snapshot.title === 'string' ? snapshot.title : widget.artifact.title ?? 'Pulse artifact';
+  return `Pulse share: ${title}`;
+}
 
 function sortComments<T extends { createdAt: string; _count?: { likes?: number } }>(items: T[], mode: SortMode) {
   const list = [...items];
@@ -67,6 +78,13 @@ function CommentItem({ comment, postId, parentId, onReply }: { comment: Comment;
           {comment.parentId && comment.replyToUsername ? <span className={styles.replyTo}>· {comment.replyToUsername}</span> : null}
         </div>
         {comment.text ? <div className={styles.commentText}>{comment.text}</div> : null}
+        {(comment.widgetsJson as any)?.type === 'pulse_share' ? (
+          <PulseShareCard
+            artifactId={String((comment.widgetsJson as any)?.artifactId ?? '')}
+            artifact={(comment.widgetsJson as any)?.artifact ?? null}
+            compact
+          />
+        ) : null}
         {(comment.images ?? []).length ? (
           <div className={styles.commentImages}>
             {(comment.images ?? []).map((image, index) => (
@@ -76,7 +94,7 @@ function CommentItem({ comment, postId, parentId, onReply }: { comment: Comment;
         ) : null}
         <div className={styles.commentMetaRow}>
           <span>{new Date(comment.createdAt).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}</span>
-          <button type="button" className={styles.commentAction} onClick={() => onReply(comment, parentId ?? comment.id)}>Ответить</button>
+          <button type="button" className={styles.commentAction} onClick={() => onReply(comment, parentId ?? comment.id)}>Reply</button>
           <button type="button" className={[styles.commentLikeBtn, liked ? styles.commentLikeBtnActive : ''].filter(Boolean).join(' ')} onClick={onToggleLike}>
             <Icon name="heart" size={16} />
             <span>{comment._count?.likes ?? 0}</span>
@@ -106,7 +124,7 @@ function CommentThread({ comment, postId, onReply }: { comment: Comment; postId:
       ) : null}
       {!expanded && replies.length > visible.length ? (
         <button type="button" className={styles.moreBtn} onClick={() => setExpanded(true)}>
-          Показать ещё ответы ({replies.length - visible.length})
+          Show more replies ({replies.length - visible.length})
         </button>
       ) : null}
     </div>
@@ -124,6 +142,8 @@ export function PostCommentsMobileModal({ open, onClose, postId }: { open: boole
   const nextCursor = data?.nextCursor ?? null;
   const [text, setText] = useState('');
   const [attachments, setAttachments] = useState<PendingAttachment[]>([]);
+  const [shareWidget, setShareWidget] = useState<PulseShareWidgetPayload | null>(null);
+  const [sharePickerOpen, setSharePickerOpen] = useState(false);
   const [replyTarget, setReplyTarget] = useState<ReplyTarget | null>(null);
   const [createComment, { isLoading }] = useCreateCommentMutation();
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
@@ -165,11 +185,13 @@ export function PostCommentsMobileModal({ open, onClose, postId }: { open: boole
   useEffect(() => {
     if (!open) {
       clearAttachments();
+      setShareWidget(null);
       setReplyTarget(null);
       setText('');
       return;
     }
     clearAttachments();
+    setShareWidget(null);
     setReplyTarget(null);
     setText('');
     setCursor(null);
@@ -179,24 +201,31 @@ export function PostCommentsMobileModal({ open, onClose, postId }: { open: boole
   useEffect(() => () => revokePendingAttachments(attachmentsRef.current), []);
 
   const onSend = async () => {
-    if (!postId || (!text.trim() && !attachments.length)) return;
+    if (!postId || (!text.trim() && !attachments.length && !shareWidget)) return;
+    const widgetsJson = {
+      ...(replyTarget ? { replyToUsername: replyTarget.username, replyToCommentId: replyTarget.commentId } : {}),
+      ...(shareWidget ?? {}),
+    };
     await createComment({
       postId,
       text: text.trim() || undefined,
       images: attachments.map((item) => item.file),
       parentId: replyTarget?.parentId ?? null,
-      widgetsJson: replyTarget ? { replyToUsername: replyTarget.username, replyToCommentId: replyTarget.commentId } : undefined,
+      widgetsJson: Object.keys(widgetsJson).length ? widgetsJson : undefined,
     }).unwrap().catch(() => null);
     setText('');
     clearAttachments();
+    setShareWidget(null);
     setReplyTarget(null);
   };
 
-  const sortLabel = sortMode === 'new' ? 'Сначала новые' : sortMode === 'old' ? 'Сначала старые' : 'Самые интересные';
+  const sortLabel = sortMode === 'new' ? 'Newest first' : sortMode === 'old' ? 'Oldest first' : 'Top first';
 
   return (
-    <MobileSheet open={open} onClose={onClose} title="Комментарии">
+    <MobileSheet open={open} onClose={onClose} title="Comments">
       <div className={styles.sheet}>
+        <PulseSharePicker open={sharePickerOpen} onClose={() => setSharePickerOpen(false)} onPick={(artifact: ShareArtifact) => setShareWidget(toPulseShareWidgetPayload(artifact))} />
+
         <div className={styles.sortBar}>
           <button type="button" className={styles.sortTrigger} onClick={() => setSortOpen((v) => !v)}>
             <span>{sortLabel}</span>
@@ -205,9 +234,9 @@ export function PostCommentsMobileModal({ open, onClose, postId }: { open: boole
           {sortOpen ? (
             <div className={styles.sortMenu}>
               {[
-                ['new', 'Сначала новые'],
-                ['old', 'Сначала старые'],
-                ['top', 'Самые интересные'],
+                ['new', 'Newest first'],
+                ['old', 'Oldest first'],
+                ['top', 'Top first'],
               ].map(([value, label]) => (
                 <button key={value} type="button" className={[styles.sortOption, sortMode === value ? styles.sortOptionActive : ''].filter(Boolean).join(' ')} onClick={() => { setSortMode(value as SortMode); setSortOpen(false); }}>
                   {label}
@@ -235,12 +264,12 @@ export function PostCommentsMobileModal({ open, onClose, postId }: { open: boole
           ) : null}
 
           {!comments.length && !isFetching ? (
-            <div className={styles.empty}>Пока нет комментариев</div>
+            <div className={styles.empty}>No comments yet</div>
           ) : null}
 
           {nextCursor ? (
             <button type="button" className={styles.moreBtn} onClick={() => setCursor(nextCursor)}>
-              Показать ещё комментарии
+              Load more comments
             </button>
           ) : null}
         </div>
@@ -269,20 +298,27 @@ export function PostCommentsMobileModal({ open, onClose, postId }: { open: boole
 
           {replyTarget ? (
             <div className={styles.replyChip}>
-              <span>ответ {replyTarget.username}</span>
+              <span>Reply to {replyTarget.username}</span>
               <button type="button" onClick={() => setReplyTarget(null)}><Icon name="close" size={12} /></button>
+            </div>
+          ) : null}
+
+          {shareWidget ? (
+            <div className={styles.replyChip}>
+              <span>{commentWidgetLabel(shareWidget)}</span>
+              <button type="button" onClick={() => setShareWidget(null)}><Icon name="close" size={12} /></button>
             </div>
           ) : null}
 
           <div className={styles.composer}>
             {me ? <Avatar url={me.avatarUrl} name={me.username} size={34} /> : <Skeleton circle style={{ width: 34, height: 34 }} />}
             <div className={styles.inputShell}>
-              <textarea ref={textareaRef} className={styles.textarea} placeholder={replyTarget ? 'Написать ответ...' : 'Комментарий'} value={text} onChange={(event) => setText(event.target.value.slice(0, MAX_TEXT + 50))} rows={1} />
+              <textarea ref={textareaRef} className={styles.textarea} placeholder={replyTarget ? 'Write a reply...' : 'Comment'} value={text} onChange={(event) => setText(event.target.value.slice(0, MAX_TEXT + 50))} rows={1} />
             </div>
             <button
               type="button"
               className={styles.toolBtn}
-              aria-label="Добавить изображение"
+              aria-label="Add image"
               onClick={() => {
                 const input = fileInputRef.current;
                 if (!input) return;
@@ -292,7 +328,10 @@ export function PostCommentsMobileModal({ open, onClose, postId }: { open: boole
             >
               <Icon name="image" size={18} />
             </button>
-            <button type="button" className={styles.sendBtn} onClick={onSend} disabled={(!text.trim() && !attachments.length) || isLoading}><Icon name="send" size={19} /></button>
+            <button type="button" className={styles.toolBtn} aria-label="Attach Pulse share" onClick={() => setSharePickerOpen(true)}>
+              <Icon name="paperclip" size={18} />
+            </button>
+            <button type="button" className={styles.sendBtn} onClick={onSend} disabled={(!text.trim() && !attachments.length && !shareWidget) || isLoading}><Icon name="send" size={19} /></button>
             <input
               ref={fileInputRef}
               id={fileInputId}
@@ -312,3 +351,4 @@ export function PostCommentsMobileModal({ open, onClose, postId }: { open: boole
     </MobileSheet>
   );
 }
+

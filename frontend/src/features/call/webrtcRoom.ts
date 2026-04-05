@@ -2,8 +2,10 @@
 'use client';
 
 import { getRealtimeSocket } from '@/shared/lib/realtimeSocket';
+import { subscribeRealtimeSocket } from '@/shared/lib/realtimeSocket';
 import { PUBLIC_TURN_PASSWORD, PUBLIC_TURN_URLS, PUBLIC_TURN_USERNAME } from '@/shared/config/env';
 import { bindAudioUnlock, canPlayUiSounds } from '@/shared/lib/audio';
+import type { Socket } from 'socket.io-client';
 
 export type PeerStatus = 'connected' | 'connecting' | 'disconnected' | 'failed';
 export type CallConnectionPhase = 'stable' | 'signaling_reconnecting' | 'media_reconnecting';
@@ -51,7 +53,7 @@ export type RoomCallbacks = {
   onPeerUpdate: (peer: PeerInfo) => void;
   onPeerRemove: (userId: string) => void;
   onPeerJoined?: (userId: string) => void;
-  onPeerLeft?: (userId: string) => void;
+  onPeerLeft?: (userId: string, reason?: string) => void;
   onToast: (text: string) => void;
   onConnected: () => void;
   onConnectionHint?: (text: string, tone?: 'info' | 'warning' | 'error') => void;
@@ -61,8 +63,18 @@ export type RoomCallbacks = {
   onLocalMediaChanged?: (media: PeerMediaState) => void;
 };
 
-function buildRtcConfig(): RTCConfiguration {
-  const iceServers: RTCIceServer[] = [{ urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] }];
+type TurnCredentialsResponse = {
+  enabled?: boolean;
+  urls?: string[];
+  username?: string;
+  credential?: string;
+  expiresAt?: string;
+};
+
+const STUN_ICE_SERVERS: RTCIceServer[] = [{ urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] }];
+
+function buildFallbackIceServers(): RTCIceServer[] {
+  const iceServers: RTCIceServer[] = [...STUN_ICE_SERVERS];
   if (PUBLIC_TURN_URLS.length) {
     iceServers.push({
       urls: PUBLIC_TURN_URLS,
@@ -70,10 +82,36 @@ function buildRtcConfig(): RTCConfiguration {
       ...(PUBLIC_TURN_PASSWORD ? { credential: PUBLIC_TURN_PASSWORD } : {}),
     });
   }
+  return iceServers;
+}
+
+function buildRtcConfig(iceServers: RTCIceServer[]): RTCConfiguration {
   return { iceServers, iceCandidatePoolSize: 4 };
 }
 
-const RTC_CONFIG: RTCConfiguration = buildRtcConfig();
+const FALLBACK_RTC_CONFIG: RTCConfiguration = buildRtcConfig(buildFallbackIceServers());
+
+async function fetchTurnIceServer(): Promise<RTCIceServer | null> {
+  try {
+    const response = await fetch('/api/backend/calls/turn-credentials', {
+      method: 'GET',
+      credentials: 'include',
+      cache: 'no-store',
+    });
+    if (!response.ok) return null;
+    const payload = (await response.json()) as TurnCredentialsResponse;
+    if (!payload?.enabled) return null;
+    if (!Array.isArray(payload.urls) || !payload.urls.length) return null;
+    if (typeof payload.username !== 'string' || typeof payload.credential !== 'string') return null;
+    return {
+      urls: payload.urls,
+      username: payload.username,
+      credential: payload.credential,
+    };
+  } catch {
+    return null;
+  }
+}
 
 function logRtc(scope: string, payload: Record<string, unknown>) {
   try {
@@ -174,8 +212,15 @@ export class WebRTCRoom {
   private connectedOnce = false;
   private joining = false;
   private devices: DeviceInventory = { ...DEFAULT_INVENTORY };
+  private rtcConfig: RTCConfiguration = FALLBACK_RTC_CONFIG;
+  private rtcConfigReady = false;
+  private rtcConfigPromise: Promise<void> | null = null;
   private selectedAudioInputId = '';
   private selectedVideoInputId = '';
+  private unsubscribeSocketSubscription: (() => void) | null = null;
+  private handleDeviceChange = () => {
+    void this.refreshDevices().catch(() => null);
+  };
   private handlers: {
     peers?: (payload: unknown) => void;
     joined?: (payload: unknown) => void;
@@ -196,6 +241,9 @@ export class WebRTCRoom {
     this.callId = callId;
     this.meId = meId;
     this.callbacks = callbacks;
+    this.unsubscribeSocketSubscription = subscribeRealtimeSocket((next) => {
+      void this.handleSocketInstanceChange(next);
+    });
   }
 
   private emitMeta(patch: Partial<PeerMediaState>, toUserId?: string) {
@@ -233,6 +281,77 @@ export class WebRTCRoom {
       this.socket = getRealtimeSocket();
     }
     if (!this.socket) throw new Error('NO_SOCKET');
+  }
+
+  private async ensureRtcConfig(force = false) {
+    if (this.rtcConfigReady && !force) return;
+    if (this.rtcConfigPromise) {
+      await this.rtcConfigPromise;
+      return;
+    }
+
+    this.rtcConfigPromise = (async () => {
+      const turnIceServer = await fetchTurnIceServer();
+      this.rtcConfig = turnIceServer
+        ? buildRtcConfig([...STUN_ICE_SERVERS, turnIceServer])
+        : FALLBACK_RTC_CONFIG;
+      this.rtcConfigReady = true;
+      logRtc('rtc-config', {
+        callId: this.callId,
+        usingTurn: Boolean(turnIceServer),
+        iceServerCount: this.rtcConfig.iceServers?.length ?? 0,
+      });
+    })().finally(() => {
+      this.rtcConfigPromise = null;
+    });
+
+    await this.rtcConfigPromise;
+  }
+
+  private bindSocketListeners(socket: Socket) {
+    if (this.handlers.peers) socket.on('call:peers', this.handlers.peers);
+    if (this.handlers.joined) socket.on('call:peer_joined', this.handlers.joined);
+    if (this.handlers.left) socket.on('call:peer_left', this.handlers.left);
+    if (this.handlers.reconnecting) socket.on('call:peer_reconnecting', this.handlers.reconnecting);
+    if (this.handlers.reconnected) socket.on('call:peer_reconnected', this.handlers.reconnected);
+    if (this.handlers.signal) socket.on('call:signal', this.handlers.signal);
+    if (this.handlers.screenStarted) socket.on('call:screen_share_started', this.handlers.screenStarted);
+    if (this.handlers.screenStopped) socket.on('call:screen_share_stopped', this.handlers.screenStopped);
+    if (this.handlers.screenForceStop) socket.on('call:screen_share_force_stop', this.handlers.screenForceStop);
+    if (this.handlers.connect) socket.on('connect', this.handlers.connect);
+    if (this.handlers.disconnect) socket.on('disconnect', this.handlers.disconnect);
+  }
+
+  private unbindSocketListeners(socket: Socket | null) {
+    if (!socket) return;
+    if (this.handlers.peers) socket.off('call:peers', this.handlers.peers);
+    if (this.handlers.joined) socket.off('call:peer_joined', this.handlers.joined);
+    if (this.handlers.left) socket.off('call:peer_left', this.handlers.left);
+    if (this.handlers.reconnecting) socket.off('call:peer_reconnecting', this.handlers.reconnecting);
+    if (this.handlers.reconnected) socket.off('call:peer_reconnected', this.handlers.reconnected);
+    if (this.handlers.signal) socket.off('call:signal', this.handlers.signal);
+    if (this.handlers.screenStarted) socket.off('call:screen_share_started', this.handlers.screenStarted);
+    if (this.handlers.screenStopped) socket.off('call:screen_share_stopped', this.handlers.screenStopped);
+    if (this.handlers.screenForceStop) socket.off('call:screen_share_force_stop', this.handlers.screenForceStop);
+    if (this.handlers.connect) socket.off('connect', this.handlers.connect);
+    if (this.handlers.disconnect) socket.off('disconnect', this.handlers.disconnect);
+  }
+
+  private async handleSocketInstanceChange(next: Socket | null) {
+    if (next === this.socket) return;
+    const previous = this.socket;
+    this.unbindSocketListeners(previous);
+    this.socket = next;
+    if (!next || !this.handlers.peers) return;
+    this.bindSocketListeners(next);
+    logRtc('socket-instance-change', {
+      callId: this.callId,
+      hadPrevious: Boolean(previous),
+      connected: next.connected,
+    });
+    if (next.connected) {
+      await this.syncJoinState('reconnect');
+    }
   }
 
   private upsertPeer(userId: string, patch: PeerPatch) {
@@ -375,7 +494,7 @@ export class WebRTCRoom {
   }
 
   private createPc(remoteUserId: string) {
-    const pc = new RTCPeerConnection(RTC_CONFIG);
+    const pc = new RTCPeerConnection(this.rtcConfig);
     logRtc('pc-create', { callId: this.callId, meId: this.meId, remoteUserId });
     this.pcs.set(remoteUserId, pc);
 
@@ -444,7 +563,7 @@ export class WebRTCRoom {
       }
       if (pc.iceConnectionState === 'disconnected') {
         this.setPhase('media_reconnecting');
-        this.callbacks.onConnectionHint?.('Connection looks unstable. Trying to restore media…', 'warning');
+        this.callbacks.onConnectionHint?.('Связь нестабильна. Восстанавливаем медиапоток…', 'warning');
         const current = this.reconnectRetryTimers.get(remoteUserId);
         if (current) window.clearTimeout(current);
         const timer = window.setTimeout(() => {
@@ -603,7 +722,7 @@ export class WebRTCRoom {
     this.emitCurrentMeta();
     if (reason === 'reconnect') {
       this.setPhase('signaling_reconnecting');
-      this.callbacks.onConnectionHint?.('Restoring call connection…', 'warning');
+      this.callbacks.onConnectionHint?.('Восстанавливаем соединение звонка…', 'warning');
       for (const remoteUserId of this.pcs.keys()) {
         if (this.shouldInitiateOffer(remoteUserId)) void this.restartPeer(remoteUserId, true);
       }
@@ -791,6 +910,7 @@ export class WebRTCRoom {
     });
     if (!this.socket || this.joining) return;
     this.joining = true;
+    await this.ensureRtcConfig();
 
     const onPeers = (payload: any) => {
       if (String(payload?.callId ?? '') !== this.callId) return;
@@ -819,7 +939,7 @@ export class WebRTCRoom {
       if (String(payload?.callId ?? '') !== this.callId) return;
       const userId = String(payload?.userId ?? '');
       if (!userId) return;
-      this.callbacks.onPeerLeft?.(userId);
+      this.callbacks.onPeerLeft?.(userId, typeof payload?.reason === 'string' ? payload.reason : undefined);
       this.removePeer(userId);
     };
 
@@ -829,7 +949,7 @@ export class WebRTCRoom {
       if (!userId || userId === this.meId) return;
       this.upsertPeer(userId, { status: 'disconnected' });
       this.setPhase('media_reconnecting');
-      this.callbacks.onConnectionHint?.('A participant is reconnecting…', 'warning');
+      this.callbacks.onConnectionHint?.('Участник переподключается…', 'warning');
     };
 
     const onPeerReconnected = (payload: any) => {
@@ -841,7 +961,7 @@ export class WebRTCRoom {
       this.emitCurrentMeta(userId);
       if (this.shouldInitiateOffer(userId)) void this.restartPeer(userId, true);
       this.setPhase('media_reconnecting');
-      this.callbacks.onConnectionHint?.('Connection restored.', 'info');
+      this.callbacks.onConnectionHint?.('Соединение восстановлено.', 'info');
     };
 
     const onSignal = (payload: any) => {
@@ -883,7 +1003,7 @@ export class WebRTCRoom {
     const onSocketDisconnect = () => {
       logRtc('socket-disconnect', { callId: this.callId, online: navigator.onLine });
       this.setPhase('signaling_reconnecting');
-      const message = navigator.onLine ? 'Realtime connection lost. Reconnecting…' : 'You are offline. Waiting for network…';
+      const message = navigator.onLine ? 'Realtime connection lost. Reconnecting...' : 'You are offline. Waiting for network...';
       this.callbacks.onConnectionHint?.(message, navigator.onLine ? 'warning' : 'error');
     };
 
@@ -901,21 +1021,9 @@ export class WebRTCRoom {
       disconnect: onSocketDisconnect,
     };
 
-    this.socket.on('call:peers', onPeers);
-    this.socket.on('call:peer_joined', onJoined);
-    this.socket.on('call:peer_left', onLeft);
-    this.socket.on('call:peer_reconnecting', onPeerReconnecting);
-    this.socket.on('call:peer_reconnected', onPeerReconnected);
-    this.socket.on('call:signal', onSignal);
-    this.socket.on('call:screen_share_started', onScreenStarted);
-    this.socket.on('call:screen_share_stopped', onScreenStopped);
-    this.socket.on('call:screen_share_force_stop', onScreenForceStop);
-    this.socket.on('connect', onSocketConnect);
-    this.socket.on('disconnect', onSocketDisconnect);
+    this.bindSocketListeners(this.socket);
 
-    navigator.mediaDevices?.addEventListener?.('devicechange', () => {
-      void this.refreshDevices().catch(() => null);
-    });
+    navigator.mediaDevices?.addEventListener?.('devicechange', this.handleDeviceChange);
 
     try {
       await this.syncJoinState('initial');
@@ -949,20 +1057,13 @@ export class WebRTCRoom {
 
   destroy() {
     try {
-      if (this.handlers.peers) this.socket?.off('call:peers', this.handlers.peers);
-      if (this.handlers.joined) this.socket?.off('call:peer_joined', this.handlers.joined);
-      if (this.handlers.left) this.socket?.off('call:peer_left', this.handlers.left);
-      if (this.handlers.reconnecting) this.socket?.off('call:peer_reconnecting', this.handlers.reconnecting);
-      if (this.handlers.reconnected) this.socket?.off('call:peer_reconnected', this.handlers.reconnected);
-      if (this.handlers.signal) this.socket?.off('call:signal', this.handlers.signal);
-      if (this.handlers.screenStarted) this.socket?.off('call:screen_share_started', this.handlers.screenStarted);
-      if (this.handlers.screenStopped) this.socket?.off('call:screen_share_stopped', this.handlers.screenStopped);
-      if (this.handlers.screenForceStop) this.socket?.off('call:screen_share_force_stop', this.handlers.screenForceStop);
-      if (this.handlers.connect) this.socket?.off('connect', this.handlers.connect);
-      if (this.handlers.disconnect) this.socket?.off('disconnect', this.handlers.disconnect);
+      this.unbindSocketListeners(this.socket);
     } catch {
       // ignore
     }
+    navigator.mediaDevices?.removeEventListener?.('devicechange', this.handleDeviceChange);
+    this.unsubscribeSocketSubscription?.();
+    this.unsubscribeSocketSubscription = null;
     this.handlers = {};
     this.phase = 'stable';
 
@@ -995,7 +1096,3 @@ export class WebRTCRoom {
     this.audioCtx = null;
   }
 }
-
-
-
-

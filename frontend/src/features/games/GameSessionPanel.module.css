@@ -5242,3 +5242,944 @@
 .input { padding: 11px 12px; border-radius: 12px; }
 .rulesCard, .playerRow, .tableCard, .metaCard, .catalogCard, .sessionCard { border-radius: 14px !important; padding: 12px !important; }
 .primaryBtn, .ghostBtn, .successBtn, .dangerBtn { padding: 10px 14px; border-radius: 12px; }
+
+/* unified game frame layer */
+.shell {
+  min-height: 0;
+  height: 100%;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.shellChat {}
+
+.shellCall {}
+
+.frameStage {
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+.frameStageScroll {
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+.frameStageSession {
+  overflow: hidden;
+}
+
+.frameStageCall {
+  width: 100%;
+}
+
+.stageRoot {
+  min-height: 0;
+  height: 100%;
+  display: grid;
+  align-content: start;
+  gap: 12px;
+}
+
+.stageRootFullscreen {
+  gap: 14px;
+}
+
+.sessionStageLayout {
+  min-height: 0;
+  height: 100%;
+}
+
+.sessionStageLayoutFullscreen {
+  gap: 12px;
+}
+
+.sessionMain {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.sessionMainCompact,
+.sessionMainFullscreen {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.error,
+.empty {
+  margin: 0;
+}
+
+/* adaptive game surfaces */
+.pokerTableViewport {
+  min-height: 0;
+  width: 100%;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+
+.pokerTableFrame {
+  --poker-scale: 1;
+  --poker-table-width: 820px;
+  --poker-table-height: 470px;
+  width: var(--poker-table-width);
+  max-width: 100%;
+  height: var(--poker-table-height);
+  max-height: 100%;
+  aspect-ratio: auto;
+  padding: calc(8px * var(--poker-scale)) calc(10px * var(--poker-scale)) calc(76px * var(--poker-scale));
+  border-radius: calc(18px * var(--poker-scale));
+}
+
+.pokerTableInner {
+  border-width: calc(8px * var(--poker-scale));
+  border-radius: calc(220px * var(--poker-scale));
+}
+
+.pokerTableInner::before {
+  inset: calc(10px * var(--poker-scale));
+}
+
+.boardCluster {
+  width: min(calc(320px * var(--poker-scale)), 60%);
+  gap: calc(4px * var(--poker-scale));
+}
+
+.boardHeaderMini,
+.boardFooterMini {
+  gap: calc(4px * var(--poker-scale));
+}
+
+.boardCardsCompact {
+  gap: calc(4px * var(--poker-scale));
+}
+
+.boardCardsCompact .card {
+  width: calc(40px * var(--poker-scale));
+  height: calc(56px * var(--poker-scale));
+  padding: calc(5px * var(--poker-scale));
+  border-radius: calc(10px * var(--poker-scale));
+}
+
+.boardCardsCompact .cardTop {
+  font-size: clamp(12px, calc(12px * var(--poker-scale)), 18px);
+}
+
+.boardCardsCompact .cardSuit {
+  font-size: clamp(18px, calc(18px * var(--poker-scale)), 28px);
+}
+
+.potBadge,
+.boardHeaderMini .infoChip,
+.boardFooterMini .infoChip,
+.inlineLastAction {
+  padding: calc(4px * var(--poker-scale)) calc(8px * var(--poker-scale));
+  font-size: clamp(10px, calc(10px * var(--poker-scale)), 14px);
+}
+
+.seatPanel {
+  width: calc(78px * var(--poker-scale));
+  min-height: calc(56px * var(--poker-scale));
+  padding: calc(4px * var(--poker-scale)) calc(5px * var(--poker-scale));
+  border-radius: calc(10px * var(--poker-scale));
+  gap: calc(2px * var(--poker-scale));
+}
+
+.seatPanelTop,
+.seatPanelCards,
+.seatPanelBadges {
+  gap: calc(4px * var(--poker-scale));
+}
+
+.seatPanelMeta strong {
+  font-size: clamp(8px, calc(8px * var(--poker-scale)), 14px);
+}
+
+.seatPanelMeta span {
+  font-size: clamp(7px, calc(7px * var(--poker-scale)), 11px);
+}
+
+.seatActionPill,
+.seatStatePill,
+.seatStatusOnline,
+.seatStatusOffline {
+  padding: calc(1px * var(--poker-scale)) calc(4px * var(--poker-scale));
+  font-size: clamp(6px, calc(6px * var(--poker-scale)), 10px);
+}
+
+.dealerChip {
+  width: calc(13px * var(--poker-scale));
+  height: calc(13px * var(--poker-scale));
+  font-size: clamp(8px, calc(8px * var(--poker-scale)), 12px);
+}
+
+.seatChipBet,
+.heroChipBet {
+  min-width: calc(18px * var(--poker-scale));
+  height: calc(18px * var(--poker-scale));
+  padding: 0 calc(5px * var(--poker-scale));
+  font-size: clamp(7px, calc(7px * var(--poker-scale)), 12px);
+}
+
+.heroSeatFlat {
+  bottom: calc(6px * var(--poker-scale));
+  width: min(calc(360px * var(--poker-scale)), calc(100% - 18px));
+  gap: calc(4px * var(--poker-scale));
+}
+
+.heroSeatInfo {
+  min-width: calc(86px * var(--poker-scale));
+  padding: calc(4px * var(--poker-scale)) calc(6px * var(--poker-scale));
+  border-radius: calc(10px * var(--poker-scale));
+  gap: calc(4px * var(--poker-scale));
+}
+
+.heroSeatCards {
+  gap: calc(4px * var(--poker-scale));
+}
+
+.heroSeatCards .card {
+  width: calc(42px * var(--poker-scale));
+  height: calc(58px * var(--poker-scale));
+  padding: calc(5px * var(--poker-scale));
+  border-radius: calc(10px * var(--poker-scale));
+}
+
+.heroSeatCards .cardTop {
+  font-size: clamp(12px, calc(12px * var(--poker-scale)), 18px);
+}
+
+.heroSeatCards .cardSuit {
+  font-size: clamp(18px, calc(18px * var(--poker-scale)), 28px);
+}
+
+.heroSeatControls {
+  gap: calc(4px * var(--poker-scale));
+}
+
+.heroSeatControls .dangerBtn,
+.heroSeatControls .ghostBtn,
+.heroSeatControls .primaryBtn {
+  min-width: calc(56px * var(--poker-scale));
+  padding: calc(6px * var(--poker-scale)) calc(8px * var(--poker-scale));
+  border-radius: calc(9px * var(--poker-scale));
+  font-size: clamp(10px, calc(11px * var(--poker-scale)), 15px);
+}
+
+.raiseBoxInline {
+  grid-template-columns: calc(52px * var(--poker-scale)) auto;
+  gap: calc(4px * var(--poker-scale));
+}
+
+.raiseBoxInline .input {
+  min-width: calc(52px * var(--poker-scale));
+  padding: calc(6px * var(--poker-scale)) calc(8px * var(--poker-scale));
+  font-size: clamp(10px, calc(11px * var(--poker-scale)), 15px);
+  border-radius: calc(9px * var(--poker-scale));
+}
+
+.tableDrawer {
+  top: calc(10px * var(--poker-scale));
+  width: calc(138px * var(--poker-scale));
+  max-height: calc(136px * var(--poker-scale));
+  padding: calc(6px * var(--poker-scale));
+  border-radius: calc(12px * var(--poker-scale));
+}
+
+.tableDrawerLeft {
+  left: calc(10px * var(--poker-scale));
+}
+
+.tableDrawerRight {
+  right: calc(10px * var(--poker-scale));
+}
+
+.tableDrawerTitle {
+  font-size: clamp(10px, calc(10px * var(--poker-scale)), 14px);
+}
+
+.drawerList {
+  max-height: calc(112px * var(--poker-scale));
+}
+
+.drawerRow {
+  font-size: clamp(9px, calc(9px * var(--poker-scale)), 13px);
+  padding: calc(4px * var(--poker-scale)) calc(5px * var(--poker-scale));
+}
+
+.heroActionState .metaMuted,
+.inlineLastAction {
+  font-size: clamp(10px, calc(10px * var(--poker-scale)), 14px);
+}
+
+.flappyBody {
+  width: 100%;
+  overflow: hidden;
+}
+
+.flappyArenaWrap {
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: 100%;
+}
+
+.flappyCanvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+}
+
+.flappyOverlayCard {
+  width: min(100%, 360px);
+  max-height: calc(100% - 12px);
+  overflow: auto;
+}
+
+.shellEmbedded .flappyArenaWrap,
+.shellEmbedded .flappyCanvas {
+  max-width: none;
+}
+
+@media (max-width: 720px) {
+  .heroSeatFlat {
+    width: calc(100% - 10px);
+  }
+
+  .flappyOverlayCard {
+    width: min(100%, 300px);
+  }
+}
+
+/* revamp shell marker */
+.revampSessionViewport {
+  position: relative;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at top, rgba(84, 146, 255, 0.12), transparent 34%),
+    linear-gradient(180deg, rgba(6, 8, 12, 0.94), rgba(4, 6, 10, 1));
+}
+
+.revampSessionViewportFullscreen {
+  border-radius: 0;
+  background:
+    radial-gradient(circle at top, rgba(84, 146, 255, 0.1), transparent 28%),
+    #04060a;
+}
+
+.revampSessionError {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  right: 12px;
+  z-index: 8;
+}
+
+.revampSessionConfig {
+  min-height: 0;
+  height: 100%;
+  overflow: auto;
+  padding: clamp(12px, 1.8vw, 20px);
+}
+
+.revampGameViewport {
+  --revamp-hud-side: clamp(14px, 1.8vw, 24px);
+  --revamp-hud-top: 88px;
+  --revamp-hud-bottom: 64px;
+  position: relative;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr);
+  min-height: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.revampGameViewportLandscape {
+  --revamp-hud-top: 96px;
+  --revamp-hud-bottom: 62px;
+}
+
+.revampGameViewportPortrait {
+  --revamp-hud-top: 78px;
+  --revamp-hud-bottom: 18px;
+}
+
+.revampGameViewportCompact {
+  --revamp-hud-top: 74px;
+  --revamp-hud-bottom: 54px;
+}
+
+.revampGameViewportImmersive {
+  --revamp-hud-side: 0px;
+  --revamp-hud-top: 0px;
+  --revamp-hud-bottom: 0px;
+}
+
+.revampStageArea {
+  min-height: 0;
+  width: 100%;
+  height: 100%;
+  display: grid;
+  padding: var(--revamp-hud-top) var(--revamp-hud-side) var(--revamp-hud-bottom);
+}
+
+.revampGameViewportImmersive .revampStageArea {
+  padding: 0;
+}
+
+.revampStageMeasure {
+  min-height: 0;
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+
+.revampGameViewport .pokerTopline,
+.revampGameViewport .pokerBottomLine,
+.revampGameViewport .flappyTopbar {
+  width: auto;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  backdrop-filter: none;
+  box-shadow: none;
+}
+
+.revampGameViewport .pokerTopMain,
+.revampGameViewport .pokerTopAside {
+  min-width: 0;
+}
+
+.revampGameViewport .pokerTopAside,
+.revampGameViewport .flappyTopStats {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.revampGameViewport .pokerBottomLine {
+  width: auto;
+}
+
+.revampGameViewport .heroActionState {
+  gap: 8px;
+}
+
+.revampGameViewport .flappyBody {
+  min-height: 0;
+  width: 100%;
+  height: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+  place-items: center;
+  align-items: center;
+  justify-items: center;
+}
+
+.revampGameViewport .pokerTableViewport,
+.revampGameViewport .flappyBody {
+  align-self: stretch;
+  justify-self: stretch;
+}
+
+.revampGameViewport .flappyArenaWrap {
+  position: relative;
+  justify-self: center;
+  align-self: center;
+}
+
+.revampGameViewportPortrait .revampStageArea {
+  justify-items: center;
+}
+
+.revampGameViewport .flappyTopbar {
+  display: none;
+}
+
+.revampGameViewport .flappyOverlay {
+  padding: 12px;
+}
+
+.revampHudTop,
+.revampHudBottom {
+  position: absolute;
+  left: var(--revamp-hud-side);
+  right: var(--revamp-hud-side);
+  z-index: 4;
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.revampHudTop {
+  top: 12px;
+}
+
+.revampHudBottom {
+  bottom: 12px;
+  align-items: center;
+}
+
+.revampHudLead {
+  min-width: 0;
+  max-width: min(48ch, 54%);
+  display: grid;
+  gap: 6px;
+}
+
+.revampHudEyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.52);
+}
+
+.revampHudTitle {
+  font-size: clamp(1.05rem, 1.9vw, 1.34rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: #fff;
+}
+
+.revampHudMeta {
+  font-size: 13px;
+  line-height: 1.45;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.revampHudControls {
+  min-width: 0;
+  display: grid;
+  justify-items: end;
+  gap: 8px;
+}
+
+.revampHudChipRow,
+.revampHudActionRow {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.revampHudChip {
+  min-height: 30px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(8, 12, 18, 0.78);
+  color: rgba(255, 255, 255, 0.88);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  backdrop-filter: blur(16px);
+  white-space: nowrap;
+  font-size: 12px;
+  line-height: 1;
+}
+
+.revampHudChipStrong {
+  background: rgba(14, 22, 34, 0.92);
+  color: #fff;
+}
+
+.revampHudChipWarn {
+  border-color: rgba(219, 174, 52, 0.38);
+  background: rgba(54, 43, 12, 0.82);
+  color: #f5d87a;
+}
+
+.revampHudStatusGood {
+  border-color: rgba(71, 170, 123, 0.3);
+  background: rgba(12, 50, 34, 0.82);
+  color: #89d8ad;
+}
+
+.revampHudStatusMuted {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.revampHudBottomMeta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.revampHudBottomTrailing {
+  min-width: 0;
+  max-width: min(48ch, 48%);
+  text-align: right;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.revampSurfaceShadow {
+  filter: drop-shadow(0 28px 56px rgba(0, 0, 0, 0.36));
+}
+
+.revampGameViewportImmersive .revampSurfaceShadow {
+  filter: none;
+}
+
+.revampFlappyStageWrap {
+  border-radius: 28px;
+  overflow: hidden;
+  box-shadow: 0 28px 56px rgba(0, 0, 0, 0.34);
+}
+
+.revampGameViewportImmersive .revampFlappyStageWrap {
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.revampFlappyHudInline {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  right: 12px;
+  z-index: 3;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  pointer-events: none;
+}
+
+.revampFlappyHudInline > * {
+  pointer-events: auto;
+}
+
+.revampFlappyOverlayCard {
+  width: min(100%, 392px);
+  max-height: calc(100% - 16px);
+  border-radius: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(5, 12, 9, 0.84);
+  backdrop-filter: blur(18px);
+  box-shadow: 0 22px 44px rgba(0, 0, 0, 0.28);
+}
+
+.revampRotatePrompt {
+  min-height: 0;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  padding: clamp(18px, 3vw, 32px);
+}
+
+.revampRotateCard {
+  width: min(420px, 100%);
+  display: grid;
+  gap: 12px;
+  justify-items: center;
+  text-align: center;
+  padding: clamp(22px, 4vw, 32px);
+  border-radius: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background:
+    radial-gradient(circle at top, rgba(84, 146, 255, 0.16), transparent 42%),
+    rgba(8, 10, 15, 0.92);
+  box-shadow: 0 28px 60px rgba(0, 0, 0, 0.34);
+}
+
+.revampRotateGlyph {
+  width: 68px;
+  height: 68px;
+  border-radius: 20px;
+  display: grid;
+  place-items: center;
+  font-size: 34px;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.revampRotateTitle {
+  font-size: 1.15rem;
+  font-weight: 800;
+  line-height: 1.2;
+  color: #fff;
+}
+
+.rotatePrompt {
+  min-height: 0;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  padding: clamp(18px, 3vw, 32px);
+}
+
+.rotatePromptCard {
+  width: min(420px, 100%);
+  display: grid;
+  gap: 12px;
+  justify-items: center;
+  text-align: center;
+  padding: clamp(22px, 4vw, 32px);
+  border-radius: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background:
+    radial-gradient(circle at top, rgba(84, 146, 255, 0.16), transparent 42%),
+    rgba(8, 10, 15, 0.92);
+  box-shadow: 0 28px 60px rgba(0, 0, 0, 0.34);
+}
+
+.rotatePromptGlyph {
+  width: 68px;
+  height: 68px;
+  border-radius: 20px;
+  display: grid;
+  place-items: center;
+  font-size: 34px;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.rotatePromptTitle {
+  font-size: 1.15rem;
+  font-weight: 800;
+  line-height: 1.2;
+  color: #fff;
+}
+
+@media (max-width: 1100px) {
+  .revampHudLead {
+    max-width: min(44ch, 62%);
+  }
+}
+
+@media (max-width: 900px) {
+  .revampHudTop,
+  .revampHudBottom {
+    gap: 10px;
+  }
+
+  .revampHudLead {
+    max-width: none;
+  }
+
+  .revampHudTitle {
+    font-size: 1rem;
+  }
+
+  .revampHudMeta,
+  .revampHudChip {
+    font-size: 12px;
+  }
+
+  .revampHudBottomTrailing {
+    max-width: 42%;
+  }
+}
+
+@media (max-width: 720px) {
+  .revampSessionViewport {
+    border-radius: 0;
+  }
+
+  .revampGameViewport {
+    --revamp-hud-side: 10px;
+    --revamp-hud-top: max(14px, env(safe-area-inset-top, 0px));
+    --revamp-hud-bottom: max(10px, env(safe-area-inset-bottom, 0px));
+  }
+
+  .revampStageArea {
+    padding-top: calc(var(--revamp-hud-top) + 6px);
+  }
+
+  .revampHudTop,
+  .revampHudBottom {
+    left: 10px;
+    right: 10px;
+  }
+
+  .revampHudTop {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .revampHudControls {
+    justify-items: stretch;
+  }
+
+  .revampHudChipRow,
+  .revampHudActionRow {
+    justify-content: flex-start;
+  }
+
+  .revampHudBottom {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .revampHudBottomTrailing {
+    max-width: none;
+    text-align: left;
+    white-space: normal;
+  }
+
+  .revampFlappyOverlayCard {
+    width: min(100%, 320px);
+    border-radius: 20px;
+  }
+}
+
+.cardHighlight {
+  border-color: rgba(245, 201, 86, 0.92);
+  box-shadow:
+    0 0 0 1px rgba(255, 226, 132, 0.52),
+    0 10px 22px rgba(0, 0, 0, 0.22),
+    inset 0 0 0 1px rgba(255, 248, 220, 0.72);
+  background:
+    linear-gradient(180deg, rgba(255, 252, 240, 0.98), rgba(255, 239, 198, 0.96));
+  transform: translateY(-2px);
+}
+
+.cardHighlight .cardTop,
+.cardHighlight .cardSuit {
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.24);
+}
+
+.cardRed.cardHighlight .cardTop,
+.cardRed.cardHighlight .cardSuit {
+  color: #b12016;
+}
+
+.showdownWinningCards {
+  display: grid;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 18px;
+  border: 1px solid rgba(232, 190, 84, 0.2);
+  background:
+    linear-gradient(180deg, rgba(58, 43, 12, 0.34), rgba(19, 15, 9, 0.24)),
+    rgba(255, 255, 255, 0.03);
+}
+
+.showdownWinningGroup {
+  display: grid;
+  gap: 8px;
+}
+
+.showdownWinningLabel {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #f4d98c;
+}
+
+.showdownWinningRow,
+.resultPlaceCards {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.showdownWinningRow .card,
+.resultPlaceCards .card {
+  flex: 0 0 auto;
+}
+
+.resultPlaceWinner {
+  border-color: rgba(238, 196, 86, 0.36);
+  background:
+    linear-gradient(180deg, rgba(58, 43, 12, 0.3), rgba(16, 13, 10, 0.14)),
+    rgba(255, 255, 255, 0.03);
+  box-shadow: inset 0 0 0 1px rgba(255, 224, 132, 0.12);
+}
+
+.resultPlaceAmountWin {
+  color: #ffd976;
+  font-weight: 800;
+}
+
+.revampGameViewport .pokerTableViewport,
+.revampGameViewport .pokerTableFrame,
+.revampGameViewport .pokerTableInner {
+  overflow: visible;
+}
+
+.revampGameViewport .pokerTableViewport {
+  padding:
+    calc(14px * var(--poker-scale, 1))
+    calc(12px * var(--poker-scale, 1))
+    calc(26px * var(--poker-scale, 1));
+}
+
+.revampGameViewport .pokerTableFrame {
+  position: relative;
+}
+
+.revampGameViewport .pokerTableInner {
+  isolation: isolate;
+}
+
+.revampGameViewport .seatPanel {
+  width: clamp(74px, calc(84px * var(--poker-scale, 1)), 124px);
+  min-height: clamp(60px, calc(64px * var(--poker-scale, 1)), 88px);
+  padding: calc(6px * var(--poker-scale, 1));
+  border-radius: calc(14px * var(--poker-scale, 1));
+  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.28);
+}
+
+.revampGameViewport .seatPanelTop {
+  align-items: center;
+}
+
+.revampGameViewport .heroSeatFlat {
+  z-index: 6;
+}
+
+.revampFlappyStageWrap {
+  position: relative;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background:
+    radial-gradient(circle at top, rgba(255, 255, 255, 0.18), transparent 34%),
+    linear-gradient(180deg, rgba(8, 17, 27, 0.22), rgba(5, 12, 19, 0.34));
+}
+
+.revampFlappyStageWrap::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+  pointer-events: none;
+}
+
+.flappyCanvas {
+  display: block;
+  filter: saturate(1.04) contrast(1.03);
+}
+
+.revampFlappyOverlayCard {
+  background:
+    radial-gradient(circle at top, rgba(142, 216, 115, 0.12), transparent 34%),
+    linear-gradient(180deg, rgba(7, 17, 13, 0.92), rgba(4, 10, 8, 0.95));
+}

@@ -7,6 +7,7 @@ import { notificationsActions } from '@/entities/notification';
 import { friendsApi } from '@/shared/api/friendsApi';
 import { chatsApi, useGetChatsQuery } from '@/shared/api/chatsApi';
 import { gamesApi } from '@/shared/api/gamesApi';
+import { baseApi } from '@/shared/api/baseApi';
 import { chatUiActions } from '@/entities/chat';
 import { useGetMeQuery } from '@/shared/api/usersApi';
 import { presenceActions } from '@/entities/presence';
@@ -41,12 +42,18 @@ function normalizeAppMediaUrlsDeep<T>(input: T): T {
   }
 
   if (Array.isArray(input)) {
-    return input.map((item) => normalizeAppMediaUrlsDeep(item)) as T;
+    for (let index = 0; index < input.length; index += 1) {
+      input[index] = normalizeAppMediaUrlsDeep(input[index]);
+    }
+    return input as T;
   }
 
   if (input && typeof input === 'object') {
-    const entries = Object.entries(input as Record<string, unknown>).map(([key, value]) => [key, normalizeAppMediaUrlsDeep(value)]);
-    return Object.fromEntries(entries) as T;
+    const record = input as Record<string, unknown>;
+    for (const key of Object.keys(record)) {
+      record[key] = normalizeAppMediaUrlsDeep(record[key]);
+    }
+    return input;
   }
 
   return input;
@@ -89,6 +96,14 @@ function resolveRealtimeOrigin(): string {
     return publicAppOrigin ?? publicBackendOrigin ?? currentOrigin;
   }
 
+  if (publicBackendOrigin && publicBackendOrigin !== currentOrigin) {
+    return publicBackendOrigin;
+  }
+
+  if (publicAppOrigin && publicAppOrigin !== currentOrigin) {
+    return publicAppOrigin;
+  }
+
   return currentOrigin;
 }
 
@@ -111,9 +126,9 @@ async function getAccessToken(): Promise<string | null> {
 export function RealtimeProvider({ children }: PropsWithChildren) {
   const dispatch = useAppDispatch();
   const activeChatId = useAppSelector((s) => s.chatUi.activeChatId);
-  const { data: meData } = useGetMeQuery(undefined, { refetchOnMountOrArgChange: true, refetchOnFocus: true, refetchOnReconnect: true });
+  const { data: meData } = useGetMeQuery();
   const meId = meData?.user?.id;
-  const { data: chatsData } = useGetChatsQuery(undefined, { refetchOnMountOrArgChange: true, refetchOnFocus: true, refetchOnReconnect: true });
+  const { data: chatsData } = useGetChatsQuery();
   const knownUsers = useMemo(() => {
     const map = new Map<string, { username?: string; lastSeenAt?: string | null }>();
     const chats = chatsData?.items ?? [];
@@ -314,64 +329,23 @@ export function RealtimeProvider({ children }: PropsWithChildren) {
         }
       });
 
-      function nameById(id?: string | null) {
-        if (!id) return 'Пользователь';
-        return knownUsersRef.current.get(id)?.username ?? 'Пользователь';
-      }
-
-      function pushSocialNotification(notif: any) {
-        const type = notif?.type ?? 'NOTIFICATION';
-        const data = notif?.data ?? {};
-        const by = nameById(data?.byUserId);
-
-        let title: string | undefined;
-        let message: string | undefined;
-
-        if (type === 'POST_LIKED') {
-          title = `${by} поставил(а) лайк вашему посту`;
-          message = data?.postId ? `Пост: ${data.postId}` : undefined;
-        } else if (type === 'POST_COMMENTED') {
-          title = `${by} прокомментировал(а) ваш пост`;
-          message = data?.postId ? `Пост: ${data.postId}` : undefined;
-        } else if (type === 'COMMENT_LIKED') {
-          title = `${by} поставил(а) лайк вашему комментарию`;
-          message = data?.postId ? `Пост: ${data.postId}` : undefined;
-        } else if (type === 'FRIEND_REQUEST') {
-          title = `${by} запросил(а) подписку`;
-        } else if (type === 'FRIEND_ACCEPTED') {
-          title = `${by} подтвердил(а) подписку`;
-        } else {
-          title = type;
-        }
-
-        dispatch(
-          notificationsActions.push({
-            id: notif?.id ?? `${Date.now()}-${Math.random()}`,
-            type,
-            title,
-            message,
-            createdAt: notif?.createdAt ?? new Date().toISOString(),
-            data: notif,
-          }),
-        );
-      }
-
       socket.on('notification:new', (payload: any) => {
         const type = payload?.type;
+        dispatch(notificationsActions.push(payload));
+        dispatch(baseApi.util.invalidateTags([{ type: 'Notification', id: 'LIST' }]));
+
         if (type === 'MESSAGE') {
-          const chatId = payload?.data?.chatId;
+          const chatId = payload?.meta?.chatId;
           if (!chatId) return;
 
           dispatch(chatsApi.util.invalidateTags([{ type: 'Message', id: `LIST:${chatId}` }, { type: 'Chat', id: 'LIST' }]));
-
-          if (activeChatIdRef.current !== chatId) {
-            dispatch(chatUiActions.incUnread({ chatId }));
-            playNotify();
-          }
           return;
         }
 
-        pushSocialNotification(payload);
+        if (type === 'FRIEND_REQUEST' || type === 'FRIEND_ACCEPTED') {
+          dispatch(friendsApi.util.invalidateTags(['Requests', 'Friends', 'Followers']));
+        }
+
         playNotify();
       });
 
@@ -435,6 +409,12 @@ export function RealtimeProvider({ children }: PropsWithChildren) {
         dispatch(gamesApi.util.invalidateTags([{ type: 'Game', id: `LIST:${chatId}` }]));
         if (sessionId && !sessionPayload) dispatch(gamesApi.util.invalidateTags([{ type: 'Game', id: sessionId }]));
         dispatch(chatsApi.util.invalidateTags([{ type: 'Message', id: `LIST:${chatId}` }, { type: 'Chat', id: 'LIST' }]));
+      });
+
+      socket.on('share-artifact:updated', (payload: any) => {
+        const artifactId = String(payload?.artifactId ?? '');
+        if (!artifactId) return;
+        dispatch(baseApi.util.invalidateTags([{ type: 'ShareArtifact', id: artifactId }, { type: 'ShareArtifact', id: 'LIST' }]));
       });
 
 
@@ -543,15 +523,6 @@ export function RealtimeProvider({ children }: PropsWithChildren) {
       socketRef.current = null;
       setRealtimeSocket(null);
     };
-  }, [dispatch]);
-
-
-  // keep friend requests list in sync when something arrives (server emits notification:new already)
-  useEffect(() => {
-    const id = window.setInterval(() => {
-      dispatch(friendsApi.util.invalidateTags(['Requests']));
-    }, 15000);
-    return () => window.clearInterval(id);
   }, [dispatch]);
 
   return <>{children}</>;

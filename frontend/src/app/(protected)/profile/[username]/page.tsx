@@ -21,6 +21,7 @@ import { useCreateDirectChatMutation } from '@/shared/api/chatsApi';
 import { useGetUserPostsQuery, useLazyGetUserPostsQuery } from '@/shared/api/postsApi';
 import { PostCard } from '@/entities/post/ui/PostCard';
 import { PostComposer } from '@/features/postComposer/ui/PostComposer';
+import { ProfileAchievementsSection } from '@/features/programs/ui/ProfileAchievementsSection';
 import { PostModal } from '@/features/postModal/ui/PostModal';
 import { useIntersection } from '@/shared/lib/hooks/useIntersection';
 import { useAppSelector } from '@/shared/lib/storeHooks';
@@ -551,7 +552,7 @@ export default function ProfilePage() {
   if (isLoading) {
     return (
       <div className={["container", "appPage", styles.page].join(' ')}>
-        <Card>
+        <Card className={styles.noticeCard}>
           <CardHeader title="Профиль" />
           <div style={{ display: 'grid', gap: 16 }}><div style={{ display: 'flex', gap: 14, alignItems: 'center' }}><Skeleton circle style={{ width: 74, height: 74 }} /><div style={{ flex: 1 }}><SkeletonText lines={3} /></div></div><SkeletonText lines={3} /></div>
         </Card>
@@ -562,7 +563,7 @@ export default function ProfilePage() {
   if (isError || !user) {
     return (
       <div className={["container", "appPage", styles.page].join(' ')}>
-        <Card>
+        <Card className={styles.noticeCard}>
           <CardHeader title="Профиль недоступен" />
           <CardMuted>Пользователь скрыт, заблокирован администрацией или не существует.</CardMuted>
         </Card>
@@ -756,6 +757,7 @@ export default function ProfilePage() {
           </Card>
         ) : (
           <>
+            <ProfileAchievementsSection username={user.username} />
             <div className={styles.sectionHeader}>
               <div className={styles.sectionTitle}>Публикации</div>
             </div>

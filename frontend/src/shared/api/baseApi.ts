@@ -14,6 +14,6 @@ const loggingBaseQuery: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQueryE
 export const baseApi = createApi({
   reducerPath: 'api',
   baseQuery: loggingBaseQuery,
-  tagTypes: ['Me', 'HealthDay', 'Feed', 'Post', 'Comment', 'Requests', 'Friends', 'Chat', 'Message', 'Game', 'Story'],
+  tagTypes: ['Me', 'HealthDay', 'Feed', 'Post', 'Comment', 'Requests', 'Friends', 'Chat', 'Message', 'Game', 'Story', 'Program', 'ProgramRun', 'ProgramSession', 'Achievement', 'ShareArtifact', 'Notification'],
   endpoints: () => ({}),
 });

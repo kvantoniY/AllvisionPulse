@@ -8,6 +8,7 @@ export type UserPrivacy = {
   showHealthWidgets: boolean;
   showTasks: boolean;
   showEvents: boolean;
+  showPulseAchievements: boolean;
   profileVisibility: ProfileVisibility;
   allowMessagesFrom: ContactPrivacy;
   allowCallsFrom: ContactPrivacy;

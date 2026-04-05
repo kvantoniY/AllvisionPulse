@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import styles from './PostComposer.module.css';
 import { Card } from '@/shared/ui/Card/Card';
 import { Button } from '@/shared/ui/Button/Button';
@@ -13,6 +13,11 @@ import { Icon } from '@/shared/ui/Icon/Icon';
 import { Skeleton, SkeletonText } from '@/shared/ui/Skeleton/Skeleton';
 import { useIsMobile } from '@/shared/lib/hooks/useIsMobile';
 import { MobilePostComposerModal } from './MobilePostComposerModal';
+import { PulseSharePicker } from '@/shared/ui/PulseSharePicker/PulseSharePicker';
+import type { ShareArtifact } from '@/shared/types/programs';
+import { toPulseShareWidgetPayload, type PulseShareWidgetPayload } from '@/shared/lib/pulseShare';
+import { EmojiPicker } from '@/shared/ui/EmojiPicker';
+import { EmojiInputHandler } from '@/shared/lib/emojiInputHandler';
 
 const MAX_TEXT = 5000;
 
@@ -33,6 +38,17 @@ type HealthWidget = {
   pulse7Score: number | null;
 };
 
+type ComposerWidget = HealthWidget | PulseShareWidgetPayload;
+
+function widgetLabel(widget: ComposerWidget | null) {
+  if (!widget) return '';
+  if (widget.type === 'health') return `Сводка дня: ${widget.todayScore ?? '-'}% / ${widget.pulse7Score ?? '-'}%`;
+
+  const snapshot = widget.artifact.snapshotJson ?? {};
+  const snapshotTitle = typeof snapshot.title === 'string' ? snapshot.title : '';
+  return `Виджет Pulse: ${snapshotTitle || widget.artifact.title || 'Артефакт'}`;
+}
+
 export function PostComposer({ context = 'feed', hideMobileTrigger = false, surface = 'card' }: { context?: 'feed' | 'profile'; hideMobileTrigger?: boolean; surface?: 'card' | 'flat' }) {
   const { data, isFetching: meFetching } = useGetMeQuery();
   const me = data?.user;
@@ -45,9 +61,15 @@ export function PostComposer({ context = 'feed', hideMobileTrigger = false, surf
   const previews = useMemo(() => images.map((f) => ({ f, url: URL.createObjectURL(f) })), [images]);
   useEffect(() => () => previews.forEach((p) => URL.revokeObjectURL(p.url)), [previews]);
 
-  const [widget, setWidget] = useState<HealthWidget | null>(null);
+  const [widget, setWidget] = useState<ComposerWidget | null>(null);
   const [widgetOpen, setWidgetOpen] = useState(false);
+  const [sharePickerOpen, setSharePickerOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [attachMenuOpen, setAttachMenuOpen] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const attachMenuRef = useRef<HTMLDivElement | null>(null);
+  const emojiTriggerRef = useRef<HTMLButtonElement | null>(null);
 
   const expanded = !!text.trim() || images.length > 0 || !!widget;
   useAutosizeTextArea(textRef, text, expanded);
@@ -66,16 +88,33 @@ export function PostComposer({ context = 'feed', hideMobileTrigger = false, surf
     return () => window.removeEventListener('av:open-post-composer', onOpen as EventListener);
   }, [isMobile]);
 
+  useEffect(() => {
+    if (!attachMenuOpen) return;
+
+    const handlePointerDown = (event: MouseEvent) => {
+      if (attachMenuRef.current && !attachMenuRef.current.contains(event.target as Node)) {
+        setAttachMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handlePointerDown);
+    return () => document.removeEventListener('mousedown', handlePointerDown);
+  }, [attachMenuOpen]);
+
   const onPickImages = (files: FileList | null) => {
     if (!files) return;
     const arr = Array.from(files);
     setImages((prev) => [...prev, ...arr].slice(0, 10));
+    if (fileInputRef.current) fileInputRef.current.value = '';
+    setAttachMenuOpen(false);
   };
 
   const reset = () => {
     setText('');
     setImages([]);
     setWidget(null);
+    setAttachMenuOpen(false);
+    setShowEmojiPicker(false);
   };
 
   const onSubmit = async () => {
@@ -100,10 +139,52 @@ export function PostComposer({ context = 'feed', hideMobileTrigger = false, surf
     setWidgetOpen(false);
   };
 
+  const pickShareArtifact = (artifact: ShareArtifact) => {
+    setWidget(toPulseShareWidgetPayload(artifact));
+  };
+
+  const insertEmojiAtCursor = useCallback((emoji: string) => {
+    const normalizedEmoji = EmojiInputHandler.normalizeEmoji(emoji);
+    const textarea = textRef.current;
+    if (!textarea) {
+      setText((prev) => `${prev}${normalizedEmoji}`.slice(0, MAX_TEXT + 50));
+      return;
+    }
+
+    const start = textarea.selectionStart ?? text.length;
+    const end = textarea.selectionEnd ?? text.length;
+    const nextText = `${text.slice(0, start)}${normalizedEmoji}${text.slice(end)}`;
+    setText(nextText.slice(0, MAX_TEXT + 50));
+    requestAnimationFrame(() => {
+      textarea.focus();
+      const nextCaret = start + normalizedEmoji.length;
+      textarea.setSelectionRange(nextCaret, nextCaret);
+    });
+  }, [text]);
+
+  const handleTextPaste = (event: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const pasted = event.clipboardData.getData('text');
+    if (!pasted) return;
+    const normalized = pasted.normalize('NFC');
+    if (normalized === pasted) return;
+    event.preventDefault();
+    const textarea = textRef.current;
+    const start = textarea?.selectionStart ?? text.length;
+    const end = textarea?.selectionEnd ?? text.length;
+    setText(`${text.slice(0, start)}${normalized}${text.slice(end)}`.slice(0, MAX_TEXT + 50));
+  };
+
+  const handleTextKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault();
+      void onSubmit();
+    }
+  };
+
   if (meFetching && !me) {
     if (isMobile && hideMobileTrigger) return null;
     return (
-      <Card className={styles.card}>
+      <Card className={[styles.card, surface === 'flat' ? styles.cardFlat : ''].filter(Boolean).join(' ')}>
         <div className={styles.row}>
           <Skeleton circle style={{ width: 44, height: 44 }} />
           <div className={styles.inputWrap}>
@@ -125,22 +206,24 @@ export function PostComposer({ context = 'feed', hideMobileTrigger = false, surf
       <>
         {!hideMobileTrigger ? (
           <button type="button" className={styles.mobileTrigger} onClick={() => setMobileOpen(true)}>
-          <Avatar url={me.avatarUrl} name={me.username} size={40} />
-          <span className={styles.mobileTriggerText}>Напишите что-нибудь...</span>
+            <Avatar url={me.avatarUrl} name={me.username} size={40} />
+            <span className={styles.mobileTriggerText}>Поделиться новостью...</span>
           </button>
         ) : null}
 
-        <Modal open={widgetOpen} onClose={() => setWidgetOpen(false)} title="Добавить виджет">
+        <Modal open={widgetOpen} onClose={() => setWidgetOpen(false)} title="Прикрепить виджет">
           <div style={{ display: 'grid', gap: 12 }}>
             <div style={{ color: 'var(--muted)', fontSize: 14, lineHeight: 1.5 }}>
-              Сейчас можно прикрепить краткий виджет со сводкой по дню и недельным пульсом.
+              Добавьте компактную сводку дня из Pulse.
             </div>
             {widgetLoading || statsLoading ? <SkeletonText lines={3} /> : null}
             <Button variant="primary" onClick={pickTodayWidget} loading={widgetLoading || statsLoading}>
-              Добавить сводку дня
+              Прикрепить сводку
             </Button>
           </div>
         </Modal>
+
+        <PulseSharePicker open={sharePickerOpen} onClose={() => setSharePickerOpen(false)} onPick={pickShareArtifact} />
 
         <MobilePostComposerModal
           open={mobileOpen}
@@ -153,7 +236,9 @@ export function PostComposer({ context = 'feed', hideMobileTrigger = false, surf
           onPickImages={onPickImages}
           onRemoveImage={(index) => setImages((arr) => arr.filter((_, i) => i !== index))}
           widget={widget}
+          widgetLabel={widgetLabel(widget)}
           onOpenWidget={() => setWidgetOpen(true)}
+          onOpenSharePicker={() => setSharePickerOpen(true)}
           onRemoveWidget={() => setWidget(null)}
           onSubmit={onSubmit}
           isLoading={isLoading}
@@ -164,81 +249,169 @@ export function PostComposer({ context = 'feed', hideMobileTrigger = false, surf
 
   return (
     <Card className={[styles.card, expanded ? styles.cardExpanded : '', surface === 'flat' ? styles.cardFlat : ''].filter(Boolean).join(' ')}>
-      <Modal open={widgetOpen} onClose={() => setWidgetOpen(false)} title="Добавить виджет">
+      <Modal open={widgetOpen} onClose={() => setWidgetOpen(false)} title="Прикрепить виджет">
         <div style={{ display: 'grid', gap: 12 }}>
           <div style={{ color: 'var(--muted)', fontSize: 14, lineHeight: 1.5 }}>
-            Сейчас можно прикрепить краткий виджет со сводкой по дню и недельным пульсом.
+            Добавьте компактную сводку дня из Pulse.
           </div>
           {widgetLoading || statsLoading ? <SkeletonText lines={3} /> : null}
           <Button variant="primary" onClick={pickTodayWidget} loading={widgetLoading || statsLoading}>
-            Добавить сводку дня
+            Прикрепить сводку
           </Button>
-          {widget ? <div style={{ color: 'var(--text-soft)', fontSize: 13 }}>Выбрано: {widget.todayScore ?? '—'}% / {widget.pulse7Score ?? '—'}%</div> : null}
+          {widget ? <div style={{ color: 'var(--text-soft)', fontSize: 13 }}>Выбрано: {widgetLabel(widget)}</div> : null}
         </div>
       </Modal>
+
+      <PulseSharePicker open={sharePickerOpen} onClose={() => setSharePickerOpen(false)} onPick={pickShareArtifact} />
+      <input ref={fileInputRef} type="file" accept="image/*" multiple hidden onChange={(event) => onPickImages(event.target.files)} />
 
       <div className={styles.row}>
         <Avatar url={me.avatarUrl} name={me.username} size={44} />
 
         <div className={styles.inputWrap}>
-          <textarea
-            ref={textRef}
-            className={[styles.textarea, expanded ? styles.textareaExpanded : styles.textareaCollapsed].join(' ')}
-            placeholder={context === 'profile' ? 'Поделиться записью…' : 'Что у вас нового?'}
-            value={text}
-            rows={1}
-            onChange={(e) => setText(e.target.value.slice(0, MAX_TEXT + 50))}
-          />
+          <div className={styles.composerStage}>
+            {showEmojiPicker ? (
+              <EmojiPicker
+                className={styles.inlineEmojiPicker}
+                triggerRef={emojiTriggerRef}
+                autoFocusSearch={false}
+                onSelect={insertEmojiAtCursor}
+                onClose={() => setShowEmojiPicker(false)}
+              />
+            ) : null}
 
-          {widget ? (
-            <div className={styles.widgetRow}>
-              <span className={styles.widgetTag}>
-                <Icon name="sparkles" size={14} />
-                Сводка дня: {widget.todayScore ?? '—'}% / {widget.pulse7Score ?? '—'}%
-                <button className={styles.widgetRemove} onClick={() => setWidget(null)} type="button" aria-label="Удалить виджет">
-                  <Icon name="close" size={14} />
+            <div className={styles.composerShell}>
+              <div className={styles.leadingActions}>
+                <button
+                  ref={emojiTriggerRef}
+                  className={[styles.actionBtn, showEmojiPicker ? styles.actionBtnActive : ''].filter(Boolean).join(' ')}
+                  type="button"
+                  onClick={() => {
+                    setAttachMenuOpen(false);
+                    setShowEmojiPicker((value) => !value);
+                  }}
+                  aria-label="Открыть эмодзи"
+                  title="Эмодзи"
+                >
+                  <Icon name="smile" size={18} />
                 </button>
-              </span>
-            </div>
-          ) : null}
 
-          {previews.length ? (
-            <div className={styles.previews}>
-              {previews.map((p, idx) => (
-                <div className={styles.preview} key={p.url}>
-                  <img src={p.url} alt="" />
-                  <button className={styles.remove} type="button" onClick={() => setImages((arr) => arr.filter((_, i) => i !== idx))} aria-label="Удалить изображение">
-                    <Icon name="close" size={14} />
+                <div className={styles.attachWrap} ref={attachMenuRef}>
+                  <button
+                    className={[styles.actionBtn, attachMenuOpen ? styles.actionBtnActive : ''].filter(Boolean).join(' ')}
+                    type="button"
+                    onClick={() => {
+                      setShowEmojiPicker(false);
+                      setAttachMenuOpen((value) => !value);
+                    }}
+                    aria-label="Открыть вложения"
+                    title="Вложения"
+                  >
+                    <Icon name="paperclip" size={18} />
                   </button>
-                </div>
-              ))}
-            </div>
-          ) : null}
 
-          <div className={expanded ? styles.toolsExpanded : styles.toolsCollapsed}>
-            <div className={styles.leftTools}>
-              <label className={styles.toolBtn} title="Добавить фото" aria-label="Добавить фото">
-                <Icon name="image" size={18} />
-                {expanded ? <span>Фото</span> : null}
-                <input type="file" accept="image/*" multiple hidden onChange={(e) => onPickImages(e.target.files)} />
-              </label>
-              <button className={styles.toolBtn} type="button" onClick={() => setWidgetOpen(true)} title="Добавить виджет" aria-label="Добавить виджет">
-                <Icon name="sparkles" size={18} />
-                {expanded ? <span>Сводка</span> : null}
+                  {attachMenuOpen ? (
+                    <div className={styles.attachMenu}>
+                      <button
+                        className={styles.attachMenuItem}
+                        type="button"
+                        onClick={() => {
+                          setAttachMenuOpen(false);
+                          fileInputRef.current?.click();
+                        }}
+                      >
+                        <Icon name="image" size={16} />
+                        <span>Фото</span>
+                      </button>
+                      <button
+                        className={styles.attachMenuItem}
+                        type="button"
+                        onClick={() => {
+                          setAttachMenuOpen(false);
+                          setShowEmojiPicker(false);
+                          setWidgetOpen(true);
+                        }}
+                      >
+                        <Icon name="sparkles" size={16} />
+                        <span>Сводка дня</span>
+                      </button>
+                      <button
+                        className={styles.attachMenuItem}
+                        type="button"
+                        onClick={() => {
+                          setAttachMenuOpen(false);
+                          setShowEmojiPicker(false);
+                          setSharePickerOpen(true);
+                        }}
+                      >
+                        <Icon name="paperclip" size={16} />
+                        <span>Виджет Pulse</span>
+                      </button>
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+
+              <div className={styles.textColumn}>
+                <textarea
+                  ref={textRef}
+                  className={[styles.textarea, expanded ? styles.textareaExpanded : styles.textareaCollapsed].join(' ')}
+                  placeholder={context === 'profile' ? 'Поделитесь новостью...' : 'Что нового сегодня?'}
+                  value={text}
+                  rows={1}
+                  onChange={(e) => setText(e.target.value.slice(0, MAX_TEXT + 50))}
+                  onFocus={() => setAttachMenuOpen(false)}
+                  onPaste={handleTextPaste}
+                  onKeyDown={handleTextKeyDown}
+                />
+
+                {previews.length ? (
+                  <div className={styles.previews}>
+                    {previews.map((p, idx) => (
+                      <div className={styles.preview} key={p.url}>
+                        <img src={p.url} alt="" />
+                        <button className={styles.remove} type="button" onClick={() => setImages((arr) => arr.filter((_, i) => i !== idx))} aria-label="Удалить изображение">
+                          <Icon name="close" size={14} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
+
+                {widget ? (
+                  <div className={styles.widgetRow}>
+                    <span className={styles.widgetTag}>
+                      <Icon name="sparkles" size={14} />
+                      {widgetLabel(widget)}
+                      <button className={styles.widgetRemove} onClick={() => setWidget(null)} type="button" aria-label="Удалить виджет">
+                        <Icon name="close" size={14} />
+                      </button>
+                    </span>
+                  </div>
+                ) : null}
+
+                {text.length > 0 || remaining < 300 ? (
+                  <div className={styles.meta}>
+                    <span className={remaining < 0 ? styles.counterBad : ''}>{remaining}</span>
+                  </div>
+                ) : null}
+              </div>
+
+              <button
+                className={[styles.actionBtn, styles.actionBtnPrimary].join(' ')}
+                type="button"
+                onClick={() => void onSubmit()}
+                disabled={!canSubmit}
+                aria-label="Опубликовать"
+                title="Опубликовать"
+              >
+                <Icon name="send" size={18} />
               </button>
             </div>
-
-            {expanded ? (
-              <div className={styles.meta}>
-                <span className={remaining < 0 ? styles.counterBad : ''}>{remaining}</span>
-                <Button variant="primary" onClick={onSubmit} disabled={!canSubmit} loading={isLoading}>
-                  Опубликовать
-                </Button>
-              </div>
-            ) : null}
           </div>
         </div>
       </div>
     </Card>
   );
 }
+

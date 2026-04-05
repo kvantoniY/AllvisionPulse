@@ -28,6 +28,10 @@ import { RepostModal } from '@/features/postRepost/ui/RepostModal';
 import { PostLikesModal } from '@/features/postLikes/ui/PostLikesModal';
 import { EditPostModal } from '@/features/postEdit/ui/EditPostModal';
 import { lockBodyScroll } from '@/shared/lib/dom/scrollLock';
+import { PulseShareCard } from '@/shared/ui/PulseShareCard/PulseShareCard';
+import { PulseSharePicker } from '@/shared/ui/PulseSharePicker/PulseSharePicker';
+import type { ShareArtifact } from '@/shared/types/programs';
+import { toPulseShareWidgetPayload, type PulseShareWidgetPayload } from '@/shared/lib/pulseShare';
 
 const MAX_TEXT = 5000;
 
@@ -49,6 +53,13 @@ const createPendingAttachment = (file: File): PendingAttachment => ({
 const revokePendingAttachments = (items: PendingAttachment[]) => {
   for (const item of items) URL.revokeObjectURL(item.url);
 };
+
+function commentWidgetLabel(widget: PulseShareWidgetPayload | null) {
+  if (!widget) return '';
+  const snapshot = widget.artifact.snapshotJson ?? {};
+  const title = typeof snapshot.title === 'string' ? snapshot.title : widget.artifact.title ?? 'Pulse artifact';
+  return `Pulse share: ${title}`;
+}
 
 function getOriginalPost(post: Post): Post {
   let current = post;
@@ -132,6 +143,14 @@ function CommentBubble({
         </div>
 
         {comment.text ? <div className={styles.commentText}>{comment.text}</div> : null}
+
+        {(comment.widgetsJson as any)?.type === 'pulse_share' ? (
+          <PulseShareCard
+            artifactId={String((comment.widgetsJson as any)?.artifactId ?? '')}
+            artifact={(comment.widgetsJson as any)?.artifact ?? null}
+            compact
+          />
+        ) : null}
 
         {(comment.images ?? []).length ? (
           <div className={styles.commentImages}>
@@ -234,6 +253,10 @@ function CommentComposer({
   attachments,
   onAddFiles,
   onRemoveFile,
+  widget,
+  widgetLabel,
+  onOpenSharePicker,
+  onClearWidget,
   replyTarget,
   onClearReply,
   onSend,
@@ -245,6 +268,10 @@ function CommentComposer({
   attachments: PendingAttachment[];
   onAddFiles: (files: FileList | File[] | null) => void;
   onRemoveFile: (index: number) => void;
+  widget: PulseShareWidgetPayload | null;
+  widgetLabel: string;
+  onOpenSharePicker: () => void;
+  onClearWidget: () => void;
   replyTarget: ReplyTarget | null;
   onClearReply: () => void;
   onSend: () => void;
@@ -254,7 +281,7 @@ function CommentComposer({
   const fileInputId = useId();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   useAutosize(ref, value);
-  const canSend = (!!value.trim() || attachments.length > 0) && !sending;
+  const canSend = (!!value.trim() || attachments.length > 0 || !!widget) && !sending;
 
   return (
     <div className={styles.commentComposer}>
@@ -279,6 +306,15 @@ function CommentComposer({
                 </button>
               </div>
             ))}
+          </div>
+        ) : null}
+
+        {widget ? (
+          <div className={styles.replyChip}>
+            <span>{widgetLabel}</span>
+            <button type="button" className={styles.replyChipClose} onClick={onClearWidget} aria-label="Clear share artifact">
+              <Icon name="close" size={12} />
+            </button>
           </div>
         ) : null}
 
@@ -319,6 +355,9 @@ function CommentComposer({
             >
               <Icon name="image" size={17} />
             </button>
+            <button type="button" className={styles.inputToolBtn} aria-label="Attach Pulse share" onClick={onOpenSharePicker}>
+              <Icon name="paperclip" size={17} />
+            </button>
           </div>
         </div>
       </div>
@@ -357,6 +396,8 @@ export function PostModal({
   const pendingMediaResetRef = useRef(false);
   const [commentText, setCommentText] = useState('');
   const [commentAttachments, setCommentAttachments] = useState<PendingAttachment[]>([]);
+  const [shareWidget, setShareWidget] = useState<PulseShareWidgetPayload | null>(null);
+  const [sharePickerOpen, setSharePickerOpen] = useState(false);
   const [replyTarget, setReplyTarget] = useState<ReplyTarget | null>(null);
   const commentAttachmentsRef = useRef<PendingAttachment[]>([]);
 
@@ -425,6 +466,7 @@ export function PostModal({
   useEffect(() => {
     if (!open) {
       clearCommentAttachments();
+      setShareWidget(null);
       setReplyTarget(null);
       setCommentText('');
       return;
@@ -433,6 +475,7 @@ export function PostModal({
     resetSurfaceScroll();
     setCommentText('');
     clearCommentAttachments();
+    setShareWidget(null);
     setReplyTarget(null);
     setCursor(null);
     setCommentToDelete(null);
@@ -460,16 +503,21 @@ export function PostModal({
   const canDeletePost = !!me && !!post && (post.authorId === me.id || me.role === 'ADMIN');
 
   const onSend = async () => {
-    if (!postId || (!commentText.trim() && !commentAttachments.length)) return;
+    if (!postId || (!commentText.trim() && !commentAttachments.length && !shareWidget)) return;
+    const widgetsJson = {
+      ...(replyTarget ? { replyToUsername: replyTarget.username, replyToCommentId: replyTarget.commentId } : {}),
+      ...(shareWidget ?? {}),
+    };
     await createComment({
       postId,
       text: commentText.trim() || undefined,
       images: commentAttachments.map((item) => item.file),
       parentId: replyTarget?.parentId ?? null,
-      widgetsJson: replyTarget ? { replyToUsername: replyTarget.username, replyToCommentId: replyTarget.commentId } : undefined,
+      widgetsJson: Object.keys(widgetsJson).length ? widgetsJson : undefined,
     }).unwrap().catch(() => null);
     setCommentText('');
     clearCommentAttachments();
+    setShareWidget(null);
     setReplyTarget(null);
   };
 
@@ -682,6 +730,10 @@ export function PostModal({
         if (target) URL.revokeObjectURL(target.url);
         return prev.filter((_, i) => i !== index);
       })}
+      widget={shareWidget}
+      widgetLabel={commentWidgetLabel(shareWidget)}
+      onOpenSharePicker={() => setSharePickerOpen(true)}
+      onClearWidget={() => setShareWidget(null)}
       replyTarget={replyTarget}
       onClearReply={() => setReplyTarget(null)}
       onSend={onSend}
@@ -691,6 +743,7 @@ export function PostModal({
 
   return (
     <>
+      <PulseSharePicker open={sharePickerOpen} onClose={() => setSharePickerOpen(false)} onPick={(artifact: ShareArtifact) => setShareWidget(toPulseShareWidgetPayload(artifact))} />
       <div className={styles.backdrop} role="dialog" aria-modal="true" onMouseDown={onClose}>
         <button className={styles.close} onClick={onClose} aria-label="Закрыть">
           <Icon name="close" size={22} />

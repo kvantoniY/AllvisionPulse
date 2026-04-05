@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { StoryRingAvatar } from '@/features/stories';
 import { Button } from '@/shared/ui/Button/Button';
-import { useGetChatsQuery, useGetMessagesQuery, useCreateGroupChatMutation } from '@/shared/api/chatsApi';
+import { useGetChatsQuery, useCreateGroupChatMutation } from '@/shared/api/chatsApi';
 import { useGetMeQuery } from '@/shared/api/usersApi';
 import { useGetFriendsQuery } from '@/shared/api/friendsApi';
 import { useAppSelector } from '@/shared/lib/storeHooks';
@@ -12,6 +12,7 @@ import styles from './ChatSidebar.module.css';
 import { Icon } from '@/shared/ui/Icon/Icon';
 import { AdminBadge } from '@/shared/ui/AdminBadge/AdminBadge';
 import { Skeleton, SkeletonText } from '@/shared/ui/Skeleton/Skeleton';
+import { NotificationStatusPill } from '@/features/notifications/ui/NotificationStatusPill';
 
 function getChatTitle(chat: any, meId: string | undefined) {
   if (chat.type === 'GROUP') return chat.title ?? 'Группа';
@@ -26,9 +27,7 @@ function getChatAvatar(chat: any, meId: string | undefined) {
 }
 
 function ChatListItem({ chat, meId, unread, activeId, onOpen, presence }: any) {
-  const cachedLast = (chat as any).lastMessage as any | undefined;
-  const { data } = useGetMessagesQuery({ chatId: chat.id, take: 1, cursor: null }, { skip: Boolean(cachedLast) });
-  const last = cachedLast ?? (data?.items?.[0] ?? null);
+  const last = (chat as any).lastMessage ?? null;
 
   const typeLabel = last?.type === 'AUDIO' ? 'Голосовое' : last?.type === 'VIDEO_NOTE' ? 'Видеосообщение' : last?.attachments?.length ? 'Вложение' : last?.type === 'SYSTEM' ? 'Системное сообщение' : 'Сообщение';
   const lastText = last?.text ? String(last.text) : last ? typeLabel : '—';
@@ -83,7 +82,7 @@ export function ChatSidebar({ activeChatId }: { activeChatId?: string | null }) 
   const { data: meData } = useGetMeQuery();
   const meId = meData?.user?.id;
 
-  const { data, isFetching, isError, refetch } = useGetChatsQuery(undefined, { refetchOnMountOrArgChange: true, refetchOnFocus: true, refetchOnReconnect: true });
+  const { data, isFetching, isError, refetch } = useGetChatsQuery(undefined, { refetchOnFocus: true, refetchOnReconnect: true });
   const chats = data?.items ?? [];
   const unreadByChat = useAppSelector((s) => s.chatUi.unreadByChat);
   const presence = useAppSelector((s) => s.presence.byUserId);
@@ -115,6 +114,9 @@ export function ChatSidebar({ activeChatId }: { activeChatId?: string | null }) 
         <div>
           <div className={styles.eyebrow}>Сообщения</div>
           <div className={styles.title}>Ваши чаты</div>
+          <div style={{ marginTop: 8 }}>
+            <NotificationStatusPill compact />
+          </div>
         </div>
         <div className={styles.actions}>
           <Button className={styles.actionBtn} iconOnly type="button" onClick={() => setGroupOpen(true)} aria-label="Новая группа" title="Новая группа">

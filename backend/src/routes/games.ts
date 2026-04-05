@@ -73,11 +73,26 @@ type PokerActionLog = {
   note?: string;
 };
 
+type PokerPlacement = {
+  userId: string;
+  amount: number;
+  handLabel?: string;
+  bestCards?: string[];
+  isWinner?: boolean;
+};
+
 type PokerResult = {
   winners: string[];
-  placements: { userId: string; amount: number; handLabel?: string }[];
+  placements: PokerPlacement[];
   reason: 'winner' | 'cancelled' | 'everyone_left';
   endedBy?: string | null;
+};
+
+type HandEvaluation = {
+  category: number;
+  values: number[];
+  label: string;
+  cards: string[];
 };
 
 type PokerState = {
