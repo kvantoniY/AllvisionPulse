@@ -189,6 +189,47 @@ jobs:
             --env-file infra/alpha/.env \
             -f infra/alpha/docker-compose.alpha.yml \
             up -d --build --remove-orphans; then
+            echo "=== failed release diagnostics before rollback ==="
+            docker compose \
+              --project-name allvision-alpha \
+              --env-file infra/alpha/.env \
+              -f infra/alpha/docker-compose.alpha.yml \
+              ps || true
+            echo
+            echo "=== failed backend logs ==="
+            docker compose \
+              --project-name allvision-alpha \
+              --env-file infra/alpha/.env \
+              -f infra/alpha/docker-compose.alpha.yml \
+              logs backend --tail=300 || true
+            echo
+            echo "=== failed postgres logs ==="
+            docker compose \
+              --project-name allvision-alpha \
+              --env-file infra/alpha/.env \
+              -f infra/alpha/docker-compose.alpha.yml \
+              logs postgres --tail=120 || true
+            echo
+            echo "=== failed frontend logs ==="
+            docker compose \
+              --project-name allvision-alpha \
+              --env-file infra/alpha/.env \
+              -f infra/alpha/docker-compose.alpha.yml \
+              logs frontend --tail=120 || true
+            echo
+            echo "=== failed nginx logs ==="
+            docker compose \
+              --project-name allvision-alpha \
+              --env-file infra/alpha/.env \
+              -f infra/alpha/docker-compose.alpha.yml \
+              logs nginx --tail=120 || true
+            echo
+            echo "=== failed turn logs ==="
+            docker compose \
+              --project-name allvision-alpha \
+              --env-file infra/alpha/.env \
+              -f infra/alpha/docker-compose.alpha.yml \
+              logs turn --tail=120 || true
             if [ -d "$PREV_DIR" ]; then
               rm -rf "$CURRENT_DIR"
               mv "$PREV_DIR" "$CURRENT_DIR"
