@@ -93,7 +93,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          ssh alpha 'bash -s' <<'EOFREMOTE'
+          GENERATED_VAPID_KEYS="$(node -e "const { createECDH } = require('crypto'); const curve = createECDH('prime256v1'); curve.generateKeys(); console.log('WEB_PUSH_VAPID_PUBLIC_KEY=' + curve.getPublicKey('base64url', 'uncompressed')); console.log('WEB_PUSH_VAPID_PRIVATE_KEY=' + curve.getPrivateKey('base64url'));" )"
+          GENERATED_WEB_PUSH_VAPID_PUBLIC_KEY="$(printf '%s\n' "$GENERATED_VAPID_KEYS" | awk -F= '/^WEB_PUSH_VAPID_PUBLIC_KEY=/{print $2}')"
+          GENERATED_WEB_PUSH_VAPID_PRIVATE_KEY="$(printf '%s\n' "$GENERATED_VAPID_KEYS" | awk -F= '/^WEB_PUSH_VAPID_PRIVATE_KEY=/{print $2}')"
+          ssh alpha "GENERATED_WEB_PUSH_VAPID_PUBLIC_KEY='$GENERATED_WEB_PUSH_VAPID_PUBLIC_KEY' GENERATED_WEB_PUSH_VAPID_PRIVATE_KEY='$GENERATED_WEB_PUSH_VAPID_PRIVATE_KEY' bash -s" <<'EOFREMOTE'
           set -euo pipefail
 
           APP_ROOT=/opt/allvision-pulse
@@ -137,12 +140,15 @@ jobs:
             WEB_PUSH_VAPID_PRIVATE_KEY="$(grep -E '^WEB_PUSH_VAPID_PRIVATE_KEY=' "$NEXT_DIR/infra/alpha/.env" | sed 's/^WEB_PUSH_VAPID_PRIVATE_KEY=//' || true)"
             WEB_PUSH_VAPID_SUBJECT="$(grep -E '^WEB_PUSH_VAPID_SUBJECT=' "$NEXT_DIR/infra/alpha/.env" | sed 's/^WEB_PUSH_VAPID_SUBJECT=//' || true)"
             if [ -z "$WEB_PUSH_VAPID_PUBLIC_KEY" ] || [ -z "$WEB_PUSH_VAPID_PRIVATE_KEY" ]; then
-              VAPID_KEYS="$(node -e "const { createECDH } = require('crypto'); const curve = createECDH('prime256v1'); curve.generateKeys(); console.log('WEB_PUSH_VAPID_PUBLIC_KEY=' + curve.getPublicKey('base64url', 'uncompressed')); console.log('WEB_PUSH_VAPID_PRIVATE_KEY=' + curve.getPrivateKey('base64url'));" )"
-              WEB_PUSH_VAPID_PUBLIC_KEY="$(printf '%s\n' "$VAPID_KEYS" | awk -F= '/^WEB_PUSH_VAPID_PUBLIC_KEY=/{print $2}')"
-              WEB_PUSH_VAPID_PRIVATE_KEY="$(printf '%s\n' "$VAPID_KEYS" | awk -F= '/^WEB_PUSH_VAPID_PRIVATE_KEY=/{print $2}')"
+              WEB_PUSH_VAPID_PUBLIC_KEY="${GENERATED_WEB_PUSH_VAPID_PUBLIC_KEY:-}"
+              WEB_PUSH_VAPID_PRIVATE_KEY="${GENERATED_WEB_PUSH_VAPID_PRIVATE_KEY:-}"
             fi
             if [ -z "$WEB_PUSH_VAPID_SUBJECT" ]; then
               WEB_PUSH_VAPID_SUBJECT="mailto:notify@allvision-pulse.ru"
+            fi
+            if [ -z "$WEB_PUSH_VAPID_PUBLIC_KEY" ] || [ -z "$WEB_PUSH_VAPID_PRIVATE_KEY" ]; then
+              echo "WEB_PUSH_VAPID keys are empty after generation" >&2
+              exit 1
             fi
 
             upsert_env() {
