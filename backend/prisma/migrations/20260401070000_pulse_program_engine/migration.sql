@@ -1,4 +1,4 @@
-﻿-- CreateEnum
+-- CreateEnum
 CREATE TYPE "ProgramAccessMode" AS ENUM ('PRIVATE', 'RESTRICTED', 'PUBLIC');
 
 -- CreateEnum
