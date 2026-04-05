@@ -7,7 +7,7 @@
 docker compose up -d
 ```
 
-### 2) Настрой env2
+### 2) Настрой env
 ```bash
 cp .env.example .env
 ```
