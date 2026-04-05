@@ -122,17 +122,20 @@ jobs:
             TURN_MIN_PORT="49152"
             TURN_MAX_PORT="49252"
             TURN_TTL_SEC="43200"
-            TURN_EXTERNAL_IP="$(getent ahostsv4 "$TURN_HOST" | awk 'NR==1 { print $1 }')"
+            TURN_EXTERNAL_IP="$({ getent ahostsv4 "$TURN_HOST" 2>/dev/null || true; } | awk 'NR==1 { print $1 }')"
+            if [ -z "$TURN_EXTERNAL_IP" ]; then
+              TURN_EXTERNAL_IP="$({ getent ahostsv4 "${{ secrets.ALPHA_HOST }}" 2>/dev/null || true; } | awk 'NR==1 { print $1 }')"
+            fi
             if [ -z "$TURN_EXTERNAL_IP" ]; then
               TURN_EXTERNAL_IP="${{ secrets.ALPHA_HOST }}"
             fi
-            TURN_SECRET="$(grep -E '^TURN_SECRET=' "$NEXT_DIR/infra/alpha/.env" | sed 's/^TURN_SECRET=//')"
+            TURN_SECRET="$(grep -E '^TURN_SECRET=' "$NEXT_DIR/infra/alpha/.env" | sed 's/^TURN_SECRET=//' || true)"
             if [ -z "$TURN_SECRET" ]; then
               TURN_SECRET="$(openssl rand -hex 32)"
             fi
-            WEB_PUSH_VAPID_PUBLIC_KEY="$(grep -E '^WEB_PUSH_VAPID_PUBLIC_KEY=' "$NEXT_DIR/infra/alpha/.env" | sed 's/^WEB_PUSH_VAPID_PUBLIC_KEY=//')"
-            WEB_PUSH_VAPID_PRIVATE_KEY="$(grep -E '^WEB_PUSH_VAPID_PRIVATE_KEY=' "$NEXT_DIR/infra/alpha/.env" | sed 's/^WEB_PUSH_VAPID_PRIVATE_KEY=//')"
-            WEB_PUSH_VAPID_SUBJECT="$(grep -E '^WEB_PUSH_VAPID_SUBJECT=' "$NEXT_DIR/infra/alpha/.env" | sed 's/^WEB_PUSH_VAPID_SUBJECT=//')"
+            WEB_PUSH_VAPID_PUBLIC_KEY="$(grep -E '^WEB_PUSH_VAPID_PUBLIC_KEY=' "$NEXT_DIR/infra/alpha/.env" | sed 's/^WEB_PUSH_VAPID_PUBLIC_KEY=//' || true)"
+            WEB_PUSH_VAPID_PRIVATE_KEY="$(grep -E '^WEB_PUSH_VAPID_PRIVATE_KEY=' "$NEXT_DIR/infra/alpha/.env" | sed 's/^WEB_PUSH_VAPID_PRIVATE_KEY=//' || true)"
+            WEB_PUSH_VAPID_SUBJECT="$(grep -E '^WEB_PUSH_VAPID_SUBJECT=' "$NEXT_DIR/infra/alpha/.env" | sed 's/^WEB_PUSH_VAPID_SUBJECT=//' || true)"
             if [ -z "$WEB_PUSH_VAPID_PUBLIC_KEY" ] || [ -z "$WEB_PUSH_VAPID_PRIVATE_KEY" ]; then
               VAPID_KEYS="$(node -e "const { createECDH } = require('crypto'); const curve = createECDH('prime256v1'); curve.generateKeys(); console.log('WEB_PUSH_VAPID_PUBLIC_KEY=' + curve.getPublicKey('base64url', 'uncompressed')); console.log('WEB_PUSH_VAPID_PRIVATE_KEY=' + curve.getPrivateKey('base64url'));" )"
               WEB_PUSH_VAPID_PUBLIC_KEY="$(printf '%s\n' "$VAPID_KEYS" | awk -F= '/^WEB_PUSH_VAPID_PUBLIC_KEY=/{print $2}')"
