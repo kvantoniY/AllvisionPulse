@@ -184,52 +184,35 @@ jobs:
           mv "$NEXT_DIR" "$CURRENT_DIR"
           cd "$CURRENT_DIR"
 
-          if ! docker compose \
-            --project-name allvision-alpha \
-            --env-file infra/alpha/.env \
-            -f infra/alpha/docker-compose.alpha.yml \
-            up -d --build --remove-orphans; then
-            echo "=== failed release diagnostics before rollback ==="
+          compose_alpha() {
             docker compose \
               --project-name allvision-alpha \
               --env-file infra/alpha/.env \
               -f infra/alpha/docker-compose.alpha.yml \
-              ps || true
+              "$@"
+          }
+
+          failed_release_diagnostics() {
+            echo "=== failed release diagnostics before rollback ==="
+            compose_alpha ps || true
             echo
             echo "=== failed backend logs ==="
-            docker compose \
-              --project-name allvision-alpha \
-              --env-file infra/alpha/.env \
-              -f infra/alpha/docker-compose.alpha.yml \
-              logs backend --tail=300 || true
+            compose_alpha logs backend --tail=300 || true
             echo
             echo "=== failed postgres logs ==="
-            docker compose \
-              --project-name allvision-alpha \
-              --env-file infra/alpha/.env \
-              -f infra/alpha/docker-compose.alpha.yml \
-              logs postgres --tail=120 || true
+            compose_alpha logs postgres --tail=120 || true
             echo
             echo "=== failed frontend logs ==="
-            docker compose \
-              --project-name allvision-alpha \
-              --env-file infra/alpha/.env \
-              -f infra/alpha/docker-compose.alpha.yml \
-              logs frontend --tail=120 || true
+            compose_alpha logs frontend --tail=120 || true
             echo
             echo "=== failed nginx logs ==="
-            docker compose \
-              --project-name allvision-alpha \
-              --env-file infra/alpha/.env \
-              -f infra/alpha/docker-compose.alpha.yml \
-              logs nginx --tail=120 || true
+            compose_alpha logs nginx --tail=120 || true
             echo
             echo "=== failed turn logs ==="
-            docker compose \
-              --project-name allvision-alpha \
-              --env-file infra/alpha/.env \
-              -f infra/alpha/docker-compose.alpha.yml \
-              logs turn --tail=120 || true
+            compose_alpha logs turn --tail=120 || true
+          }
+
+          rollback_previous_release() {
             if [ -d "$PREV_DIR" ]; then
               rm -rf "$CURRENT_DIR"
               mv "$PREV_DIR" "$CURRENT_DIR"
@@ -240,6 +223,30 @@ jobs:
                 -f infra/alpha/docker-compose.alpha.yml \
                 up -d --build --remove-orphans || true
             fi
+          }
+
+          if ! compose_alpha build backend frontend; then
+            failed_release_diagnostics
+            rollback_previous_release
+            exit 1
+          fi
+
+          if ! compose_alpha up -d postgres turn; then
+            failed_release_diagnostics
+            rollback_previous_release
+            exit 1
+          fi
+
+          echo "=== prisma migrate deploy ==="
+          if ! compose_alpha run --rm --no-deps backend sh -lc "npx prisma migrate deploy --schema prisma/schema.prisma"; then
+            failed_release_diagnostics
+            rollback_previous_release
+            exit 1
+          fi
+
+          if ! compose_alpha up -d --remove-orphans backend frontend nginx turn; then
+            failed_release_diagnostics
+            rollback_previous_release
             exit 1
           fi
 
