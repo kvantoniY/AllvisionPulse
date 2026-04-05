@@ -403,8 +403,9 @@ export default function ChatPage() {
   const { data: otherUserProfile } = useGetUserByUsernameQuery(otherUser?.username ?? '', { skip: !otherUser?.username });
   const directRelationship = otherUserProfile?.relationship;
   const isDirectChat = chat?.type === 'DIRECT';
-  const canWriteInChat = !isDirectChat || Boolean(directRelationship?.canMessage);
-  const canCallInChat = !isDirectChat || Boolean(directRelationship?.canCall);
+  const relationshipResolved = !isDirectChat || !otherUser?.username || Boolean(otherUserProfile);
+  const canWriteInChat = !isDirectChat || !relationshipResolved || Boolean(directRelationship?.canMessage);
+  const canCallInChat = !isDirectChat || !relationshipResolved || Boolean(directRelationship?.canCall);
   const composerLockReason = !canWriteInChat
     ? (directRelationship?.blockedMe
         ? 'Пользователь добавил вас в чёрный список. Сообщения недоступны.'

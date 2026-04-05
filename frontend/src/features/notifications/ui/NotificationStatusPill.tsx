@@ -16,11 +16,14 @@ export function NotificationStatusPill({ compact = false }: Props) {
   if (experience.notificationPermission === 'granted' && experience.pushEnabled) {
     label = 'Уведомления включены';
     toneClass = styles.ok;
+  } else if (experience.notificationPermission === 'granted' && experience.pushSyncing) {
+    label = 'Подключаем уведомления';
+    toneClass = styles.warn;
   } else if (experience.notificationPermission === 'granted' && !experience.pushConfigured) {
     label = 'Push временно недоступны';
     toneClass = styles.warn;
   } else if (experience.notificationPermission === 'granted') {
-    label = 'Подключаем уведомления';
+    label = 'Завершаем подключение';
     toneClass = styles.warn;
   } else if (experience.notificationPermission === 'denied') {
     label = 'Уведомления выключены';

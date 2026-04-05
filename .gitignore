@@ -65,6 +65,10 @@ storage/
 *.7z
 *.tar
 *.gz
+!frontend/public/brand-eye-32.png
+!frontend/public/brand-eye-180.png
+!frontend/public/brand-eye-192.png
+!frontend/public/brand-eye-512.png
 
 # optional prisma/sqlite local artifacts
 *.db

@@ -212,6 +212,36 @@ jobs:
             compose_alpha logs turn --tail=120 || true
           }
 
+          wait_for_healthy() {
+            local service="$1"
+            local timeout_sec="${2:-180}"
+            local elapsed=0
+            local container_id
+            local status
+
+            container_id="$(compose_alpha ps -q "$service")"
+            if [ -z "$container_id" ]; then
+              echo "Service $service container was not created" >&2
+              return 1
+            fi
+
+            while [ "$elapsed" -lt "$timeout_sec" ]; do
+              status="$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' "$container_id" 2>/dev/null || true)"
+              if [ "$status" = "healthy" ] || [ "$status" = "running" ]; then
+                return 0
+              fi
+              if [ "$status" = "unhealthy" ] || [ "$status" = "exited" ] || [ "$status" = "dead" ]; then
+                echo "Service $service entered bad state: $status" >&2
+                return 1
+              fi
+              sleep 3
+              elapsed=$((elapsed + 3))
+            done
+
+            echo "Timed out waiting for $service to become healthy" >&2
+            return 1
+          }
+
           rollback_previous_release() {
             if [ -d "$PREV_DIR" ]; then
               rm -rf "$CURRENT_DIR"
@@ -244,7 +274,25 @@ jobs:
             exit 1
           fi
 
-          if ! compose_alpha up -d --remove-orphans backend frontend nginx turn; then
+          if ! compose_alpha up -d --remove-orphans backend frontend turn; then
+            failed_release_diagnostics
+            rollback_previous_release
+            exit 1
+          fi
+
+          if ! wait_for_healthy backend 240; then
+            failed_release_diagnostics
+            rollback_previous_release
+            exit 1
+          fi
+
+          if ! wait_for_healthy frontend 240; then
+            failed_release_diagnostics
+            rollback_previous_release
+            exit 1
+          fi
+
+          if ! compose_alpha up -d --no-deps --force-recreate nginx; then
             failed_release_diagnostics
             rollback_previous_release
             exit 1

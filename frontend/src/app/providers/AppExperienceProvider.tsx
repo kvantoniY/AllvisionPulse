@@ -232,9 +232,26 @@ export function AppExperienceProvider({ children }: { children: React.ReactNode 
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    if (!('serviceWorker' in navigator)) return;
 
     let cancelled = false;
+    void fetchPushPublicKey()
+      .then((pushKey) => {
+        if (!cancelled) {
+          setPushConfigured(pushKey.enabled);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setPushConfigured(false);
+        }
+      });
+
+    if (!('serviceWorker' in navigator)) {
+      return () => {
+        cancelled = true;
+      };
+    }
+
     navigator.serviceWorker
       .register('/sw.js')
       .then((registration) => {
@@ -242,17 +259,10 @@ export function AppExperienceProvider({ children }: { children: React.ReactNode 
         registrationRef.current = registration;
         if (getNotificationPermission() === 'granted') {
           void syncPushSubscription();
-        } else {
-          void fetchPushPublicKey()
-            .then((pushKey) => {
-              if (!cancelled) setPushConfigured(pushKey.enabled);
-            })
-            .catch(() => {
-              if (!cancelled) setPushConfigured(false);
-            });
         }
       })
       .catch((error) => {
+        registrationRef.current = null;
         console.error('[sw:register-error]', error);
       });
 
