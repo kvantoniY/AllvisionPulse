@@ -93,10 +93,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          RELEASE_SHA="${GITHUB_SHA}"
           GENERATED_VAPID_KEYS="$(node -e "const { createECDH } = require('crypto'); const curve = createECDH('prime256v1'); curve.generateKeys(); console.log('WEB_PUSH_VAPID_PUBLIC_KEY=' + curve.getPublicKey('base64url', 'uncompressed')); console.log('WEB_PUSH_VAPID_PRIVATE_KEY=' + curve.getPrivateKey('base64url'));" )"
           GENERATED_WEB_PUSH_VAPID_PUBLIC_KEY="$(printf '%s\n' "$GENERATED_VAPID_KEYS" | awk -F= '/^WEB_PUSH_VAPID_PUBLIC_KEY=/{print $2}')"
           GENERATED_WEB_PUSH_VAPID_PRIVATE_KEY="$(printf '%s\n' "$GENERATED_VAPID_KEYS" | awk -F= '/^WEB_PUSH_VAPID_PRIVATE_KEY=/{print $2}')"
-          ssh alpha "GENERATED_WEB_PUSH_VAPID_PUBLIC_KEY='$GENERATED_WEB_PUSH_VAPID_PUBLIC_KEY' GENERATED_WEB_PUSH_VAPID_PRIVATE_KEY='$GENERATED_WEB_PUSH_VAPID_PRIVATE_KEY' bash -s" <<'EOFREMOTE'
+          ssh alpha "RELEASE_SHA='$RELEASE_SHA' GENERATED_WEB_PUSH_VAPID_PUBLIC_KEY='$GENERATED_WEB_PUSH_VAPID_PUBLIC_KEY' GENERATED_WEB_PUSH_VAPID_PRIVATE_KEY='$GENERATED_WEB_PUSH_VAPID_PRIVATE_KEY' bash -s" <<'EOFREMOTE'
           set -euo pipefail
 
           APP_ROOT=/opt/allvision-pulse
@@ -104,6 +105,7 @@ jobs:
           NEXT_DIR="$APP_ROOT/next"
           PREV_DIR="$APP_ROOT/previous"
           RELEASE_ARCHIVE=/tmp/allvision-alpha-release.tgz
+          RELEASE_SHA="${RELEASE_SHA:-unknown}"
 
           mkdir -p "$APP_ROOT"
           rm -rf "$NEXT_DIR"
@@ -165,6 +167,7 @@ jobs:
             upsert_env PUBLIC_APP_URL "$PUBLIC_APP_URL"
             upsert_env AUTH_COOKIE_SECURE "$AUTH_COOKIE_SECURE"
             upsert_env AUTH_COOKIE_DOMAIN "$AUTH_COOKIE_DOMAIN"
+            upsert_env RELEASE_SHA "$RELEASE_SHA"
             upsert_env TURN_HOST "$TURN_HOST"
             upsert_env TURN_PORT "$TURN_PORT"
             upsert_env TURN_MIN_PORT "$TURN_MIN_PORT"
@@ -242,6 +245,27 @@ jobs:
             return 1
           }
 
+          verify_release_sha() {
+            local service="$1"
+            local expected_sha="$2"
+            local container_id
+            local actual_sha
+
+            container_id="$(compose_alpha ps -q "$service")"
+            if [ -z "$container_id" ]; then
+              echo "Service $service container is missing during release verification" >&2
+              return 1
+            fi
+
+            actual_sha="$(docker inspect --format '{{ index .Config.Labels "org.allvision.release-sha" }}' "$container_id" 2>/dev/null || true)"
+            if [ "$actual_sha" != "$expected_sha" ]; then
+              echo "Service $service release mismatch: expected $expected_sha, got ${actual_sha:-<empty>}" >&2
+              return 1
+            fi
+
+            echo "Verified $service release SHA: $actual_sha"
+          }
+
           rollback_previous_release() {
             if [ -d "$PREV_DIR" ]; then
               rm -rf "$CURRENT_DIR"
@@ -251,11 +275,11 @@ jobs:
                 --project-name allvision-alpha \
                 --env-file infra/alpha/.env \
                 -f infra/alpha/docker-compose.alpha.yml \
-                up -d --build --remove-orphans || true
+                up -d --build --force-recreate --remove-orphans || true
             fi
           }
 
-          if ! compose_alpha build backend frontend; then
+          if ! compose_alpha build --pull backend frontend; then
             failed_release_diagnostics
             rollback_previous_release
             exit 1
@@ -274,7 +298,7 @@ jobs:
             exit 1
           fi
 
-          if ! compose_alpha up -d --remove-orphans backend frontend turn; then
+          if ! compose_alpha up -d --force-recreate --remove-orphans backend frontend turn; then
             failed_release_diagnostics
             rollback_previous_release
             exit 1
@@ -287,6 +311,18 @@ jobs:
           fi
 
           if ! wait_for_healthy frontend 240; then
+            failed_release_diagnostics
+            rollback_previous_release
+            exit 1
+          fi
+
+          if ! verify_release_sha backend "$RELEASE_SHA"; then
+            failed_release_diagnostics
+            rollback_previous_release
+            exit 1
+          fi
+
+          if ! verify_release_sha frontend "$RELEASE_SHA"; then
             failed_release_diagnostics
             rollback_previous_release
             exit 1
@@ -305,8 +341,11 @@ jobs:
             exit 1
           fi
 
+          echo "=== deployed release ==="
+          echo "RELEASE_SHA=$RELEASE_SHA"
+
           echo "=== current public env ==="
-          grep -E '^(CORS_ORIGIN|PUBLIC_APP_URL|AUTH_COOKIE_SECURE|AUTH_COOKIE_DOMAIN|TURN_HOST|TURN_PORT|TURN_MIN_PORT|TURN_MAX_PORT|TURN_TTL_SEC|TURN_EXTERNAL_IP|WEB_PUSH_VAPID_SUBJECT|WEB_PUSH_VAPID_PUBLIC_KEY)=' infra/alpha/.env || true
+          grep -E '^(RELEASE_SHA|CORS_ORIGIN|PUBLIC_APP_URL|AUTH_COOKIE_SECURE|AUTH_COOKIE_DOMAIN|TURN_HOST|TURN_PORT|TURN_MIN_PORT|TURN_MAX_PORT|TURN_TTL_SEC|TURN_EXTERNAL_IP|WEB_PUSH_VAPID_SUBJECT|WEB_PUSH_VAPID_PUBLIC_KEY)=' infra/alpha/.env || true
 
           sleep 3
 

@@ -19,12 +19,17 @@ services:
     build:
       context: ../../backend
       dockerfile: Dockerfile.alpha
+      args:
+        RELEASE_SHA: ${RELEASE_SHA:-local}
     container_name: allvision-alpha-backend
     restart: unless-stopped
+    labels:
+      org.allvision.release-sha: ${RELEASE_SHA:-local}
     depends_on:
       postgres:
         condition: service_healthy
     environment:
+      APP_RELEASE_SHA: ${RELEASE_SHA:-local}
       NODE_ENV: ${NODE_ENV}
       PORT: ${BACKEND_PORT}
       DATABASE_URL: ${DATABASE_URL}
@@ -82,12 +87,17 @@ services:
     build:
       context: ../../frontend
       dockerfile: Dockerfile.alpha
+      args:
+        RELEASE_SHA: ${RELEASE_SHA:-local}
     container_name: allvision-alpha-frontend
     restart: unless-stopped
+    labels:
+      org.allvision.release-sha: ${RELEASE_SHA:-local}
     depends_on:
       backend:
         condition: service_healthy
     environment:
+      APP_RELEASE_SHA: ${RELEASE_SHA:-local}
       NODE_ENV: production
       PORT: ${FRONTEND_PORT}
       HOSTNAME: 0.0.0.0

@@ -402,10 +402,11 @@ export function AppExperienceProvider({ children }: { children: React.ReactNode 
     }
 
     navigator.serviceWorker
-      .register('/sw.js')
+      .register('/sw.js', { updateViaCache: 'none' })
       .then((registration) => {
         if (cancelled) return;
         registrationRef.current = registration;
+        void registration.update().catch(() => {});
         if (getNotificationPermission() === 'granted') {
           void syncPushSubscription();
         }
