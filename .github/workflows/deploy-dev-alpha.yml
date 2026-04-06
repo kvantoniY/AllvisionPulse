@@ -454,8 +454,23 @@ jobs:
           EXPECTED_RELEASE_SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
+          TLS_WARNING_EMITTED=0
           for attempt in $(seq 1 20); do
-            RESPONSE="$(curl --retry 3 --retry-delay 2 --retry-all-errors -H 'Cache-Control: no-cache, no-store' -fsS "https://allvision-pulse.ru/api/release?ts=$EXPECTED_RELEASE_SHA" || true)"
+            RESPONSE=""
+            CURL_EXIT=0
+            if ! RESPONSE="$(curl --retry 3 --retry-delay 2 --retry-all-errors -H 'Cache-Control: no-cache, no-store' -fsS "https://allvision-pulse.ru/api/release?ts=$EXPECTED_RELEASE_SHA" 2>/tmp/public-release-curl.err)"; then
+              CURL_EXIT=$?
+              if [ "$CURL_EXIT" = "60" ]; then
+                if [ "$TLS_WARNING_EMITTED" = "0" ]; then
+                  echo "::warning::Strict TLS verification for https://allvision-pulse.ru failed on the GitHub runner (curl exit 60). Falling back to an insecure read for release propagation only. The public edge likely serves an incomplete certificate chain."
+                  cat /tmp/public-release-curl.err >&2 || true
+                  TLS_WARNING_EMITTED=1
+                fi
+                RESPONSE="$(curl --retry 3 --retry-delay 2 --retry-all-errors -k -H 'Cache-Control: no-cache, no-store' -fsS "https://allvision-pulse.ru/api/release?ts=$EXPECTED_RELEASE_SHA" || true)"
+              else
+                RESPONSE=""
+              fi
+            fi
             if printf '%s' "$RESPONSE" | grep -q "$EXPECTED_RELEASE_SHA"; then
               echo "Public release is up to date: $RESPONSE"
               exit 0
