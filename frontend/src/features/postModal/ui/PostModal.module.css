@@ -335,8 +335,7 @@
   text-align: left;
 }
 
-.sortOptionActive,
-.sortOption:hover {
+.sortOptionActive {
   background: rgba(255, 255, 255, 0.05);
   color: var(--text);
 }
@@ -685,20 +684,33 @@
   color: #f4a3a3;
 }
 
-.headerToolBtn:hover,
-.repostLinkBtn:hover,
-.metricBtn:hover,
-.metricCountBtn:hover,
-.metricIconBtn:hover,
-.commentActionBtn:hover,
-.commentDelete:hover,
-.loadMore:hover,
-.loadMoreInline:hover,
-.inputToolBtn:hover,
-.replyChipClose:hover,
-.modalMenuAction:hover {
-  color: var(--text);
-  background: rgba(255, 255, 255, 0.055);
+@media (hover: hover) and (pointer: fine) {
+  .sortOption:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text);
+  }
+
+  .headerToolBtn:hover,
+  .repostLinkBtn:hover,
+  .metricBtn:hover,
+  .metricCountBtn:hover,
+  .metricIconBtn:hover,
+  .commentActionBtn:hover,
+  .commentDelete:hover,
+  .loadMore:hover,
+  .loadMoreInline:hover,
+  .inputToolBtn:hover,
+  .replyChipClose:hover,
+  .modalMenuAction:hover {
+    color: var(--text);
+    background: rgba(255, 255, 255, 0.055);
+  }
+
+  .metricBtnActive:hover,
+  .metricGroup .metricBtnActive:hover {
+    color: var(--accent-strong);
+    background: transparent;
+  }
 }
 
 .modalSkeleton {

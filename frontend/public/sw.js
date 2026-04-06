@@ -32,6 +32,54 @@ function normalizePayload(rawPayload) {
   };
 }
 
+function normalizeIncomingCallIntent(payload, timestamp = Date.now()) {
+  const meta = payload?.meta && typeof payload.meta === 'object' ? payload.meta : {};
+  const chatId = typeof meta.chatId === 'string' ? meta.chatId.trim() : '';
+  const callId = typeof meta.callId === 'string' ? meta.callId.trim() : '';
+
+  if (!chatId || !callId) {
+    return null;
+  }
+
+  return {
+    chatId,
+    callId,
+    fromUserId: typeof meta.fromUserId === 'string' ? meta.fromUserId.trim() : '',
+    kind: meta.kind === 'group' ? 'group' : 'direct',
+    receivedAt: timestamp,
+  };
+}
+
+function buildTargetUrl(payload, timestamp = Date.now()) {
+  const href = typeof payload?.href === 'string' && payload.href.trim() ? payload.href : '/';
+  const targetUrl = new URL(href, self.location.origin);
+  const intent = normalizeIncomingCallIntent(payload, timestamp);
+
+  if (payload?.kind === 'incoming_call' && intent) {
+    targetUrl.searchParams.set('incomingCall', '1');
+    targetUrl.searchParams.set('chatId', intent.chatId);
+    targetUrl.searchParams.set('callId', intent.callId);
+    if (intent.fromUserId) targetUrl.searchParams.set('fromUserId', intent.fromUserId);
+    targetUrl.searchParams.set('callKind', intent.kind);
+    targetUrl.searchParams.set('callIntentAt', String(intent.receivedAt));
+  }
+
+  return targetUrl.toString();
+}
+
+async function notifyClients(message) {
+  const clients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+
+  await Promise.all(
+    clients.map(async (client) => {
+      if (!('postMessage' in client)) return;
+      try {
+        client.postMessage(message);
+      } catch {}
+    }),
+  );
+}
+
 self.addEventListener('push', (event) => {
   event.waitUntil(
     (async () => {
@@ -44,6 +92,15 @@ self.addEventListener('push', (event) => {
       }
 
       const payload = normalizePayload(rawPayload);
+      const incomingCallIntent = payload.kind === 'incoming_call' ? normalizeIncomingCallIntent(payload) : null;
+
+      if (incomingCallIntent) {
+        await notifyClients({
+          type: 'incoming_call_push',
+          intent: incomingCallIntent,
+        });
+      }
+
       if (await hasVisibleClient()) {
         return;
       }
@@ -71,11 +128,12 @@ self.addEventListener('notificationclick', (event) => {
 
   event.waitUntil(
     (async () => {
-      const href =
-        typeof event.notification.data?.href === 'string' && event.notification.data.href.trim()
-          ? event.notification.data.href
-          : '/';
-      const targetUrl = new URL(href, self.location.origin).toString();
+      const rawData = event.notification.data && typeof event.notification.data === 'object' ? event.notification.data : {};
+      const clickedAt = Date.now();
+      const targetUrl = buildTargetUrl(rawData, clickedAt);
+      const incomingCallIntent = rawData.kind === 'incoming_call'
+        ? normalizeIncomingCallIntent({ meta: rawData.meta }, clickedAt)
+        : null;
       const clients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
 
       for (const client of clients) {
@@ -86,11 +144,25 @@ self.addEventListener('notificationclick', (event) => {
           if ('navigate' in client) {
             await client.navigate(targetUrl);
           }
+          if (incomingCallIntent && 'postMessage' in client) {
+            client.postMessage({
+              type: 'incoming_call_notification_click',
+              intent: incomingCallIntent,
+            });
+          }
           return;
         } catch {}
       }
 
-      await self.clients.openWindow(targetUrl);
+      const nextClient = await self.clients.openWindow(targetUrl);
+      if (incomingCallIntent && nextClient && 'postMessage' in nextClient) {
+        try {
+          nextClient.postMessage({
+            type: 'incoming_call_notification_click',
+            intent: incomingCallIntent,
+          });
+        } catch {}
+      }
     })(),
   );
 });

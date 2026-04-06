@@ -179,7 +179,7 @@ export function GameFrame({
         </div>
 
         <div className={styles.actions}>
-          {headerActions}
+          {headerActions ? <div className={styles.headerActions}>{headerActions}</div> : null}
           {allowFullscreen && presentation.allowFullscreen ? (
             <button type="button" className={styles.fullscreenToggle} onClick={() => void fullscreen.toggleFullscreen()}>
               <Icon name={viewState.fullscreenScope === 'none' ? 'arrowUp' : 'arrowDown'} size={16} />

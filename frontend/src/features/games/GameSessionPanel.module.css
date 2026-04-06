@@ -46,6 +46,22 @@
   font-weight: 700;
 }
 
+.catalogTabs {
+  padding: 4px;
+  border-radius: 18px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.04);
+}
+
+.catalogTab {
+  min-height: 38px;
+  padding: 0 14px;
+  border-radius: 14px;
+  font-size: 13px;
+  line-height: 1;
+  justify-content: center;
+}
+
 .tabStatus {
   font-size: 11px;
   opacity: 0.8;
@@ -169,6 +185,53 @@
   border: 0;
   cursor: pointer;
   font-weight: 700;
+}
+
+.headerActionRail {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.headerActionCluster,
+.headerSegmentRail,
+.headerUtilityRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  min-width: 0;
+  justify-content: flex-end;
+}
+
+.iconActionBtn {
+  width: 40px;
+  min-width: 40px;
+  min-height: 40px;
+  padding: 0;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+}
+
+.headerPrimaryAction,
+.headerUtilityAction {
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: 12px;
+  font-size: 13px;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.headerUtilityActionSecondary {
+  color: rgba(255,255,255,0.86);
+}
+
+.headerUtilityActionPrimary {
+  font-weight: 800;
 }
 
 .primaryBtn { background: #e0b12d; color: #111; }
@@ -6182,4 +6245,403 @@
   background:
     radial-gradient(circle at top, rgba(142, 216, 115, 0.12), transparent 34%),
     linear-gradient(180deg, rgba(7, 17, 13, 0.92), rgba(4, 10, 8, 0.95));
+}
+
+@media (max-width: 720px) {
+  .directoryLayout,
+  .sessionStageLayout,
+  .revampSessionConfig {
+    padding: 12px;
+    gap: 12px;
+  }
+
+  .directoryHeader,
+  .gameCatalogTop,
+  .sessionOverviewBar,
+  .sessionOverviewBarMinimal {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .directoryColumns,
+  .overviewGrid,
+  .lobbyLayout,
+  .lobbyLayoutCompact,
+  .formGrid,
+  .formGridCompact,
+  .gameCatalogGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .directoryColumns,
+  .lobbyLayout,
+  .lobbyLayoutCompact {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .stageRoot,
+  .directorySection,
+  .groupCard,
+  .leftPanel,
+  .rightPanel,
+  .sessionList,
+  .groupedList,
+  .playerGrid,
+  .gameCatalogGrid {
+    max-height: none;
+    padding-right: 0;
+    overflow: visible;
+  }
+
+  .directorySection,
+  .groupCard,
+  .sessionMain,
+  .rulesCard,
+  .sessionCard,
+  .gameCatalogTile,
+  .playerRow {
+    padding: 14px !important;
+    border-radius: 18px !important;
+  }
+
+  .directorySection,
+  .groupCard {
+    gap: 12px;
+  }
+
+  .directorySection,
+  .groupCard,
+  .leftPanel,
+  .rightPanel {
+    display: flex;
+    flex-direction: column;
+    height: auto;
+    min-height: auto;
+  }
+
+  .directorySection {
+    grid-template-rows: none;
+  }
+
+  .leftPanel,
+  .rightPanel {
+    padding: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.03);
+    gap: 12px;
+  }
+
+  .leftPanel {
+    border-right: 1px solid rgba(255, 255, 255, 0.08);
+    grid-template-rows: none;
+  }
+
+  .rightPanel {
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .sectionRow {
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  .catalogTabs {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .catalogTab {
+    min-height: 36px;
+    padding: 0 12px;
+  }
+
+  .headerActionRail,
+  .headerActionCluster,
+  .headerSegmentRail,
+  .headerUtilityRow {
+    width: 100%;
+  }
+
+  .headerActionCluster {
+    justify-content: space-between;
+  }
+
+  .headerPrimaryAction {
+    flex: 1 1 auto;
+  }
+
+  .headerUtilityRow {
+    display: grid;
+    grid-template-columns: minmax(0, auto) minmax(0, 1fr);
+    align-items: stretch;
+  }
+
+  .headerUtilityAction {
+    min-height: 38px;
+    padding: 0 12px;
+  }
+
+  .headerUtilityActionPrimary {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .toolbarRight,
+  .sessionOverviewBar .toolbarRight,
+  .sessionOverviewBarMinimal .toolbarRight {
+    width: auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .sectionTitle {
+    font-size: 18px;
+  }
+
+  .metaMuted {
+    font-size: 12px;
+    line-height: 1.4;
+  }
+
+  .sessionCardTop,
+  .sessionCardMeta,
+  .groupSummary {
+    align-items: flex-start;
+  }
+
+  .sessionCardTop,
+  .sessionCardMeta {
+    flex-wrap: wrap;
+  }
+
+  .sessionCardTop strong,
+  .groupSummary {
+    font-size: 14px;
+  }
+
+  .gamePreview {
+    min-height: 88px;
+    font-size: 48px;
+  }
+
+  .field {
+    gap: 6px;
+  }
+
+  .field span,
+  .metaLabel {
+    font-size: 11px;
+  }
+
+  .input,
+  .valueField {
+    min-height: 44px;
+    padding: 11px 12px;
+    border-radius: 12px;
+  }
+
+  .lobbyActions {
+    position: static;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 4px;
+    padding-top: 0;
+    background: none;
+    z-index: auto;
+  }
+
+  .lobbyActions .primaryBtn,
+  .lobbyActions .ghostBtn,
+  .lobbyActions .successBtn,
+  .lobbyActions .dangerBtn {
+    min-height: 38px;
+    padding: 0 12px;
+    justify-content: center;
+  }
+
+  .lobbyActions .dangerBtn {
+    margin-left: auto;
+  }
+
+  .playerGrid {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .playerRow {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .playerMeta {
+    flex: 1 1 180px;
+  }
+
+  .playerMeta strong {
+    font-size: 15px;
+  }
+
+  .playerMeta span {
+    font-size: 12px;
+    line-height: 1.35;
+  }
+
+  .tag,
+  .tagReady,
+  .tagMuted,
+  .tagWarn {
+    min-height: 28px;
+  }
+}
+
+@media (max-width: 520px) {
+  .directoryLayout,
+  .sessionStageLayout,
+  .revampSessionConfig {
+    padding:
+      10px
+      10px
+      calc(10px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .sessionCard,
+  .playerRow,
+  .gameCatalogTile,
+  .directorySection,
+  .groupCard,
+  .rulesCard {
+    padding: 12px !important;
+  }
+
+  .leftPanel,
+  .rightPanel {
+    padding: 12px;
+    border-radius: 18px;
+  }
+
+  .headerUtilityRow {
+    grid-template-columns: 1fr;
+  }
+
+  .headerUtilityActionPrimary,
+  .headerUtilityActionSecondary {
+    width: 100%;
+  }
+
+  .toolbarRight {
+    width: 100%;
+  }
+
+  .lobbyActions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .lobbyActions .dangerBtn {
+    margin-left: 0;
+  }
+
+  .sessionCardTop strong,
+  .groupSummary {
+    font-size: 14px;
+  }
+
+  .sectionTitle {
+    font-size: 18px;
+  }
+
+  .gamePreview {
+    min-height: 84px;
+    font-size: 44px;
+  }
+}
+
+@media (max-width: 720px) {
+  .frameStageScroll {
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
+  }
+
+  .stageRoot {
+    height: auto !important;
+    min-height: 100%;
+    overflow: visible !important;
+  }
+
+  .directoryLayout {
+    display: flex !important;
+    flex-direction: column !important;
+    height: auto !important;
+    min-height: max-content !important;
+    overflow: visible !important;
+  }
+
+  .directoryColumns,
+  .groupedList,
+  .sessionList,
+  .gameCatalogGrid {
+    width: 100%;
+    max-height: none !important;
+    overflow: visible !important;
+    padding-right: 0 !important;
+  }
+
+  .gameCatalogGrid {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    grid-auto-rows: max-content;
+    align-content: start;
+    gap: 12px;
+  }
+
+  .gameCatalogTile,
+  .directorySection,
+  .groupCard {
+    height: auto !important;
+    min-height: auto !important;
+    overflow: visible !important;
+  }
+
+  .revampSessionViewport,
+  .revampSessionConfig {
+    height: auto !important;
+    min-height: 100%;
+    overflow: visible !important;
+  }
+
+  .revampSessionConfig {
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .lobbyLayout,
+  .lobbyLayoutCompact,
+  .leftPanel,
+  .rightPanel {
+    height: auto !important;
+    min-height: auto !important;
+    overflow: visible !important;
+  }
+}
+
+@media (max-width: 520px) {
+  .frameStageScroll,
+  .revampSessionConfig {
+    padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+  }
 }

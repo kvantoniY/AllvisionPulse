@@ -98,3 +98,103 @@
 .sessionFacts { display: flex; gap: 12px; flex-wrap: wrap; }
 
 @media (max-width: 880px) { .sessionRow, .sessionSummaryRow { flex-direction: column; align-items: stretch; } }
+
+.appStatusGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.appStatusCard {
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid var(--stroke);
+  background: rgba(255,255,255,0.03);
+}
+
+.appStatusLabel {
+  font-size: 11px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.appStatusValue {
+  margin-top: 6px;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.appWarning {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,122,26,0.2);
+  background: rgba(255,122,26,0.08);
+  color: #ffd1aa;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.appActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.appSteps,
+.appChecklist {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.appStep {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid var(--stroke);
+  background: rgba(255,255,255,0.02);
+}
+
+.appStepIndex {
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background: rgba(255,122,26,0.12);
+  color: #ffd1aa;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.appStepText,
+.appChecklistItem {
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--text-soft);
+}
+
+.appChecklistItem {
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid var(--stroke);
+  background: rgba(255,255,255,0.02);
+}
+
+@media (max-width: 960px) {
+  .appStatusGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .appActions > * {
+    width: 100%;
+  }
+}

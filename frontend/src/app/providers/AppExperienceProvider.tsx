@@ -4,21 +4,50 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useR
 
 type PermissionState = NotificationPermission | 'unsupported';
 type InstallMode = 'none' | 'prompt' | 'ios_manual';
+type DeviceKind = 'desktop' | 'phone' | 'tablet';
+type PlatformFamily = 'ios' | 'android' | 'other';
+type NotificationIssue =
+  | 'unsupported'
+  | 'permission_required'
+  | 'permission_blocked'
+  | 'config_missing'
+  | 'syncing'
+  | 'subscription_error'
+  | null;
 
 type BeforeInstallPromptEvent = Event & {
   prompt: () => Promise<void>;
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed'; platform: string }>;
 };
 
+type PushCapability = {
+  secureContext: boolean;
+  notificationsApi: boolean;
+  serviceWorker: boolean;
+  pushManager: boolean;
+  browserSupported: boolean;
+  availableInContext: boolean;
+  installRequiredForPush: boolean;
+  reason: string | null;
+};
+
 type AppExperienceContextValue = {
   notificationPermission: PermissionState;
   notificationSupported: boolean;
+  notificationIssue: NotificationIssue;
   pushConfigured: boolean;
+  pushConfigResolved: boolean;
   pushEnabled: boolean;
   pushSyncing: boolean;
+  pushStatusMessage: string | null;
+  pushCapability: PushCapability;
   isStandalone: boolean;
   canInstall: boolean;
   installMode: InstallMode;
+  installRecommended: boolean;
+  deviceKind: DeviceKind;
+  platformFamily: PlatformFamily;
+  canRequestNotifications: boolean;
   requestNotifications: () => Promise<PermissionState>;
   dismissNotificationBanner: () => void;
   promptInstall: () => Promise<void>;
@@ -32,15 +61,34 @@ const INSTALL_BANNER_SNOOZE_KEY = 'av:install-banner-snooze-until';
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 const INSTALL_BANNER_SNOOZE_MS = 3 * ONE_DAY_MS;
 
+const DEFAULT_PUSH_CAPABILITY: PushCapability = {
+  secureContext: false,
+  notificationsApi: false,
+  serviceWorker: false,
+  pushManager: false,
+  browserSupported: false,
+  availableInContext: false,
+  installRequiredForPush: false,
+  reason: 'Push недоступны до загрузки приложения.',
+};
+
 const AppExperienceContext = createContext<AppExperienceContextValue>({
   notificationPermission: 'unsupported',
   notificationSupported: false,
+  notificationIssue: 'unsupported',
   pushConfigured: false,
+  pushConfigResolved: false,
   pushEnabled: false,
   pushSyncing: false,
+  pushStatusMessage: null,
+  pushCapability: DEFAULT_PUSH_CAPABILITY,
   isStandalone: false,
   canInstall: false,
   installMode: 'none',
+  installRecommended: false,
+  deviceKind: 'desktop',
+  platformFamily: 'other',
+  canRequestNotifications: false,
   requestNotifications: async () => 'unsupported',
   dismissNotificationBanner: () => {},
   promptInstall: async () => {},
@@ -62,12 +110,56 @@ function isStandaloneMode() {
   );
 }
 
-function isIosManualInstallAvailable() {
-  if (typeof window === 'undefined') return false;
+function detectDeviceMeta(): { deviceKind: DeviceKind; platformFamily: PlatformFamily; iosManualInstallAvailable: boolean } {
+  if (typeof window === 'undefined') {
+    return { deviceKind: 'desktop', platformFamily: 'other', iosManualInstallAvailable: false };
+  }
+
   const userAgent = window.navigator.userAgent.toLowerCase();
-  const isIos = /iphone|ipad|ipod/.test(userAgent);
-  const isSafari = /safari/.test(userAgent) && !/crios|fxios|edgios|yabrowser|ya(searchbrowser)?/.test(userAgent);
-  return isIos && isSafari;
+  const platform = window.navigator.platform.toLowerCase();
+  const maxTouchPoints = window.navigator.maxTouchPoints ?? 0;
+  const isIphone = /iphone|ipod/.test(userAgent);
+  const isIpad = /ipad/.test(userAgent) || (platform === 'macintel' && maxTouchPoints > 1);
+  const isAndroid = /android/.test(userAgent);
+  const isMobile = /mobile/.test(userAgent);
+  const isSafari = /safari/.test(userAgent) && !/crios|fxios|edgios|opr\/|yabrowser|ya(searchbrowser)?/.test(userAgent);
+
+  let deviceKind: DeviceKind = 'desktop';
+  if (isIphone || (isAndroid && isMobile)) deviceKind = 'phone';
+  else if (isIpad || isAndroid) deviceKind = 'tablet';
+
+  const platformFamily: PlatformFamily = isIphone || isIpad ? 'ios' : isAndroid ? 'android' : 'other';
+  const iosManualInstallAvailable = platformFamily === 'ios' && isSafari;
+
+  return { deviceKind, platformFamily, iosManualInstallAvailable };
+}
+
+function getPushCapability(platformFamily: PlatformFamily, isStandalone: boolean): PushCapability {
+  if (typeof window === 'undefined') return DEFAULT_PUSH_CAPABILITY;
+
+  const secureContext = window.isSecureContext;
+  const notificationsApi = 'Notification' in window;
+  const serviceWorker = 'serviceWorker' in navigator;
+  const pushManager = 'PushManager' in window;
+  const browserSupported = secureContext && notificationsApi && serviceWorker && pushManager;
+  const installRequiredForPush = platformFamily === 'ios' && !isStandalone;
+
+  let reason: string | null = null;
+  if (!secureContext) reason = 'Push работают только по HTTPS или на localhost.';
+  else if (!notificationsApi) reason = 'Этот браузер не поддерживает уведомления.';
+  else if (!serviceWorker || !pushManager) reason = 'В этом браузере нет полной поддержки Service Worker или Push API.';
+  else if (installRequiredForPush) reason = 'На iPhone и iPad web push включаются только внутри установленного приложения с экрана Домой.';
+
+  return {
+    secureContext,
+    notificationsApi,
+    serviceWorker,
+    pushManager,
+    browserSupported,
+    availableInContext: browserSupported && !installRequiredForPush,
+    installRequiredForPush,
+    reason,
+  };
 }
 
 function getStoredTimestamp(key: string) {
@@ -142,23 +234,51 @@ async function deleteSubscription(endpoint: string) {
   }
 }
 
+function describePushSyncError(error: unknown, capability: PushCapability) {
+  if (capability.installRequiredForPush) {
+    return capability.reason;
+  }
+
+  const name =
+    typeof error === 'object' && error && 'name' in error ? String((error as { name?: unknown }).name ?? '') : '';
+
+  if (name === 'NotAllowedError') {
+    return 'Браузер отклонил подписку на push. Проверьте разрешение уведомлений и попробуйте снова.';
+  }
+
+  if (name === 'AbortError') {
+    return 'Подключение push было прервано браузером. Повторите попытку.';
+  }
+
+  return 'Не удалось синхронизировать push-подписку с этим устройством.';
+}
+
 export function AppExperienceProvider({ children }: { children: React.ReactNode }) {
   const [notificationPermission, setNotificationPermission] = useState<PermissionState>(() => getNotificationPermission());
   const [pushConfigured, setPushConfigured] = useState(false);
+  const [pushConfigResolved, setPushConfigResolved] = useState(false);
   const [pushEnabled, setPushEnabled] = useState(false);
   const [pushSyncing, setPushSyncing] = useState(false);
+  const [pushStatusMessage, setPushStatusMessage] = useState<string | null>(null);
   const [isStandalone, setIsStandalone] = useState(false);
+  const [deviceKind, setDeviceKind] = useState<DeviceKind>('desktop');
+  const [platformFamily, setPlatformFamily] = useState<PlatformFamily>('other');
   const [installPromptEvent, setInstallPromptEvent] = useState<BeforeInstallPromptEvent | null>(null);
   const [notificationBannerSnoozedUntil, setNotificationBannerSnoozedUntil] = useState(0);
   const [installBannerSnoozedUntil, setInstallBannerSnoozedUntil] = useState(0);
   const [iosManualInstallAvailable, setIosManualInstallAvailable] = useState(false);
 
   const registrationRef = useRef<ServiceWorkerRegistration | null>(null);
+  const pushCapability = useMemo(() => getPushCapability(platformFamily, isStandalone), [isStandalone, platformFamily]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
+
+    const nextDeviceMeta = detectDeviceMeta();
     setIsStandalone(isStandaloneMode());
-    setIosManualInstallAvailable(isIosManualInstallAvailable());
+    setDeviceKind(nextDeviceMeta.deviceKind);
+    setPlatformFamily(nextDeviceMeta.platformFamily);
+    setIosManualInstallAvailable(nextDeviceMeta.iosManualInstallAvailable);
     setNotificationBannerSnoozedUntil(getStoredTimestamp(NOTIFICATION_BANNER_SNOOZE_KEY));
     setInstallBannerSnoozedUntil(getStoredTimestamp(INSTALL_BANNER_SNOOZE_KEY));
   }, []);
@@ -171,7 +291,7 @@ export function AppExperienceProvider({ children }: { children: React.ReactNode 
     }
 
     const registration = registrationRef.current ?? (await navigator.serviceWorker.ready.catch(() => null));
-    if (!registration) {
+    if (!registration || !('pushManager' in registration)) {
       setPushEnabled(false);
       return;
     }
@@ -193,22 +313,39 @@ export function AppExperienceProvider({ children }: { children: React.ReactNode 
 
   const syncPushSubscription = useCallback(async () => {
     if (typeof window === 'undefined') return false;
-    if (!('serviceWorker' in navigator) || !('PushManager' in window)) return false;
+
+    const capability = getPushCapability(platformFamily, isStandalone);
+    if (!capability.browserSupported || !capability.availableInContext) {
+      setPushEnabled(false);
+      setPushStatusMessage(capability.reason);
+      return false;
+    }
+
     if (getNotificationPermission() !== 'granted') {
+      setPushStatusMessage(null);
       await unsubscribePushSubscription();
       return false;
     }
 
     const registration = registrationRef.current ?? (await navigator.serviceWorker.ready.catch(() => null));
-    if (!registration) return false;
+    if (!registration || !('pushManager' in registration)) {
+      setPushEnabled(false);
+      setPushStatusMessage('Браузер не подготовил Service Worker для push-подписки.');
+      return false;
+    }
     registrationRef.current = registration;
 
     setPushSyncing(true);
+    setPushStatusMessage(null);
+
     try {
       const pushKey = await fetchPushPublicKey();
       setPushConfigured(pushKey.enabled);
+      setPushConfigResolved(true);
+
       if (!pushKey.enabled || !pushKey.publicKey) {
         setPushEnabled(false);
+        setPushStatusMessage('На сервере не настроены VAPID-ключи для web push.');
         return false;
       }
 
@@ -223,35 +360,39 @@ export function AppExperienceProvider({ children }: { children: React.ReactNode 
       const serialized = subscription.toJSON();
       if (!serialized.endpoint || !serialized.keys?.p256dh || !serialized.keys?.auth) {
         setPushEnabled(false);
+        setPushStatusMessage('Браузер вернул неполную push-подписку.');
         return false;
       }
 
       await saveSubscription(serialized);
       setPushEnabled(true);
+      setPushStatusMessage(null);
       return true;
     } catch (error) {
       console.error('[push:sync-error]', error);
       setPushEnabled(false);
+      setPushStatusMessage(describePushSyncError(error, capability));
       return false;
     } finally {
       setPushSyncing(false);
     }
-  }, [unsubscribePushSubscription]);
+  }, [isStandalone, platformFamily, unsubscribePushSubscription]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
     let cancelled = false;
+
     void fetchPushPublicKey()
       .then((pushKey) => {
-        if (!cancelled) {
-          setPushConfigured(pushKey.enabled);
-        }
+        if (cancelled) return;
+        setPushConfigured(pushKey.enabled);
+        setPushConfigResolved(true);
       })
       .catch(() => {
-        if (!cancelled) {
-          setPushConfigured(false);
-        }
+        if (cancelled) return;
+        setPushConfigured(false);
+        setPushConfigResolved(true);
       });
 
     if (!('serviceWorker' in navigator)) {
@@ -283,9 +424,12 @@ export function AppExperienceProvider({ children }: { children: React.ReactNode 
     if (typeof window === 'undefined') return;
 
     const updateExperience = () => {
+      const nextDeviceMeta = detectDeviceMeta();
       setNotificationPermission(getNotificationPermission());
       setIsStandalone(isStandaloneMode());
-      setIosManualInstallAvailable(isIosManualInstallAvailable());
+      setDeviceKind(nextDeviceMeta.deviceKind);
+      setPlatformFamily(nextDeviceMeta.platformFamily);
+      setIosManualInstallAvailable(nextDeviceMeta.iosManualInstallAvailable);
     };
 
     updateExperience();
@@ -310,10 +454,11 @@ export function AppExperienceProvider({ children }: { children: React.ReactNode 
       void syncPushSubscription();
       return;
     }
+
     if (notificationPermission !== 'unsupported') {
       void unsubscribePushSubscription();
     }
-  }, [notificationPermission, syncPushSubscription, unsubscribePushSubscription]);
+  }, [isStandalone, notificationPermission, platformFamily, syncPushSubscription, unsubscribePushSubscription]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -326,6 +471,7 @@ export function AppExperienceProvider({ children }: { children: React.ReactNode 
     const handleInstalled = () => {
       setInstallPromptEvent(null);
       setIsStandalone(true);
+      setPushStatusMessage(null);
       const nextTimestamp = Date.now() + INSTALL_BANNER_SNOOZE_MS;
       setStoredTimestamp(INSTALL_BANNER_SNOOZE_KEY, nextTimestamp);
       setInstallBannerSnoozedUntil(nextTimestamp);
@@ -341,14 +487,23 @@ export function AppExperienceProvider({ children }: { children: React.ReactNode 
   }, []);
 
   const requestNotifications = useCallback(async (): Promise<PermissionState> => {
+    const capability = getPushCapability(platformFamily, isStandalone);
     if (typeof window === 'undefined' || !('Notification' in window)) return 'unsupported';
+
+    if (!capability.browserSupported || !capability.availableInContext) {
+      setPushStatusMessage(capability.reason);
+      return getNotificationPermission();
+    }
+
     const permission = await Notification.requestPermission();
     setNotificationPermission(permission);
+
     if (permission === 'granted') {
       await syncPushSubscription();
     }
+
     return permission;
-  }, [syncPushSubscription]);
+  }, [isStandalone, platformFamily, syncPushSubscription]);
 
   const dismissNotificationBanner = useCallback(() => {
     const nextTimestamp = Date.now() + ONE_DAY_MS;
@@ -377,18 +532,49 @@ export function AppExperienceProvider({ children }: { children: React.ReactNode 
   const value = useMemo<AppExperienceContextValue>(() => {
     const notificationSupported = notificationPermission !== 'unsupported';
     const installMode: InstallMode = isStandalone ? 'none' : installPromptEvent ? 'prompt' : iosManualInstallAvailable ? 'ios_manual' : 'none';
-    const showNotificationBanner = notificationSupported && notificationPermission !== 'granted' && !isSnoozed(notificationBannerSnoozedUntil);
-    const showInstallBanner = installMode !== 'none' && !isSnoozed(installBannerSnoozedUntil);
+    const installRecommended = deviceKind !== 'desktop' && !isStandalone;
+    const canRequestNotifications = notificationSupported && pushCapability.availableInContext;
+
+    let notificationIssue: NotificationIssue = null;
+    if (pushCapability.installRequiredForPush) {
+      notificationIssue = notificationPermission === 'denied' ? 'permission_blocked' : 'permission_required';
+    } else if (!notificationSupported || !pushCapability.browserSupported) {
+      notificationIssue = 'unsupported';
+    } else if (notificationPermission === 'denied') {
+      notificationIssue = 'permission_blocked';
+    } else if (notificationPermission === 'default') {
+      notificationIssue = 'permission_required';
+    } else if (pushSyncing) {
+      notificationIssue = 'syncing';
+    } else if (pushConfigResolved && !pushConfigured) {
+      notificationIssue = 'config_missing';
+    } else if (pushConfigResolved && pushConfigured && !pushEnabled) {
+      notificationIssue = 'subscription_error';
+    }
+
+    const showNotificationBanner =
+      canRequestNotifications &&
+      notificationPermission !== 'granted' &&
+      !isSnoozed(notificationBannerSnoozedUntil);
+    const showInstallBanner = installRecommended && !isSnoozed(installBannerSnoozedUntil);
 
     return {
       notificationPermission,
       notificationSupported,
+      notificationIssue,
       pushConfigured,
+      pushConfigResolved,
       pushEnabled,
       pushSyncing,
+      pushStatusMessage: pushStatusMessage ?? (pushCapability.installRequiredForPush ? pushCapability.reason : null),
+      pushCapability,
       isStandalone,
       canInstall: installMode !== 'none',
       installMode,
+      installRecommended,
+      deviceKind,
+      platformFamily,
+      canRequestNotifications,
       requestNotifications,
       dismissNotificationBanner,
       promptInstall,
@@ -397,6 +583,7 @@ export function AppExperienceProvider({ children }: { children: React.ReactNode 
       showInstallBanner,
     };
   }, [
+    deviceKind,
     dismissInstallBanner,
     dismissNotificationBanner,
     installBannerSnoozedUntil,
@@ -406,8 +593,11 @@ export function AppExperienceProvider({ children }: { children: React.ReactNode 
     notificationBannerSnoozedUntil,
     notificationPermission,
     promptInstall,
+    pushCapability,
+    pushConfigResolved,
     pushConfigured,
     pushEnabled,
+    pushStatusMessage,
     pushSyncing,
     requestNotifications,
   ]);

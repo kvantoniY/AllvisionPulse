@@ -14,6 +14,98 @@
   color: #f7f8fb;
 }
 
+.callMiniWrap {
+  position: fixed;
+  right: 18px;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 18px);
+  z-index: 2050;
+  width: min(380px, calc(100vw - 24px));
+}
+
+.callMiniCard {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 20px;
+  background: rgba(7, 10, 17, 0.94);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.34);
+  backdrop-filter: blur(18px);
+}
+
+.callMiniSummary {
+  min-width: 0;
+  border: none;
+  background: transparent;
+  color: #f7f8fb;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  padding: 0;
+  text-align: left;
+}
+
+.callMiniMeta {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.callMiniTitle {
+  font-size: 14px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.callMiniSub {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.7);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.callMiniActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.callMiniAction {
+  width: 42px;
+  height: 42px;
+  padding: 0;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.06);
+  color: #f7f8fb;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@media (max-width: 640px) {
+  .callMiniWrap {
+    right: 10px;
+    left: 10px;
+    width: auto;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 10px);
+  }
+
+  .callMiniCard {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .callMiniActions {
+    justify-content: flex-end;
+  }
+}
+
 .topBar {
   display: flex;
   align-items: center;

@@ -1833,54 +1833,72 @@ function GameSessionPanelRevamp({
   );
 
   const uiHeaderActions = view === 'session' && session ? (
-    <>
-      <button className={styles.ghostBtn} onClick={() => setView('directory')} aria-label={'\u041a \u0441\u043f\u0438\u0441\u043a\u0443 \u0441\u0435\u0441\u0441\u0438\u0439'} title={'\u041a \u0441\u043f\u0438\u0441\u043a\u0443 \u0441\u0435\u0441\u0441\u0438\u0439'}>
-        <Icon name="arrowLeft" size={16} />
-      </button>
-      {(session.status === 'CONFIG' || session.status === 'ACTIVE') ? (
-        <button className={styles.dangerBtn} disabled={cancelling} onClick={handleCancel}>
-          {'\u0417\u0430\u0432\u0435\u0440\u0448\u0438\u0442\u044c'}
+    <div className={styles.headerActionRail}>
+      <div className={styles.headerActionCluster}>
+        <button
+          className={[styles.ghostBtn, styles.iconActionBtn].join(' ')}
+          onClick={() => setView('directory')}
+          aria-label={'\u041a \u0441\u043f\u0438\u0441\u043a\u0443 \u0441\u0435\u0441\u0441\u0438\u0439'}
+          title={'\u041a \u0441\u043f\u0438\u0441\u043a\u0443 \u0441\u0435\u0441\u0441\u0438\u0439'}
+        >
+          <Icon name="arrowLeft" size={16} />
         </button>
-      ) : null}
-      {(session.status === 'FINISHED' || session.status === 'CANCELLED') ? (
-        <button className={styles.dangerBtn} disabled={deleting} onClick={handleDelete}>
-          {'\u0423\u0434\u0430\u043b\u0438\u0442\u044c'}
-        </button>
-      ) : null}
-    </>
+        {(session.status === 'CONFIG' || session.status === 'ACTIVE') ? (
+          <button className={[styles.dangerBtn, styles.headerPrimaryAction].join(' ')} disabled={cancelling} onClick={handleCancel}>
+            {'\u0417\u0430\u0432\u0435\u0440\u0448\u0438\u0442\u044c'}
+          </button>
+        ) : null}
+        {(session.status === 'FINISHED' || session.status === 'CANCELLED') ? (
+          <button className={[styles.dangerBtn, styles.headerPrimaryAction].join(' ')} disabled={deleting} onClick={handleDelete}>
+            {'\u0423\u0434\u0430\u043b\u0438\u0442\u044c'}
+          </button>
+        ) : null}
+      </div>
+    </div>
   ) : view === 'create' ? (
-    <>
-      <button className={styles.ghostBtn} onClick={() => setView('directory')} aria-label={'\u041d\u0430\u0437\u0430\u0434'} title={'\u041d\u0430\u0437\u0430\u0434'}>
-        <Icon name="arrowLeft" size={16} />
-      </button>
-      <button className={styles.primaryBtn} disabled={creating || selectedMeta.status === 'development'} onClick={() => void create()}>
-        {creating ? <Spinner size={16} /> : '\u0421\u043e\u0437\u0434\u0430\u0442\u044c \u0441\u0435\u0441\u0441\u0438\u044e'}
-      </button>
-    </>
-  ) : (
-    <>
-      <div className={styles.catalogTabs}>
-        <button className={[styles.catalogTab, directoryMode === 'all' ? styles.catalogTabActive : ''].join(' ')} onClick={() => setDirectoryMode('all')}>
-          {'\u0412\u0441\u0435 \u0441\u0435\u0441\u0441\u0438\u0438'}
+    <div className={styles.headerActionRail}>
+      <div className={styles.headerActionCluster}>
+        <button
+          className={[styles.ghostBtn, styles.iconActionBtn].join(' ')}
+          onClick={() => setView('directory')}
+          aria-label={'\u041d\u0430\u0437\u0430\u0434'}
+          title={'\u041d\u0430\u0437\u0430\u0434'}
+        >
+          <Icon name="arrowLeft" size={16} />
         </button>
-        <button className={[styles.catalogTab, directoryMode === 'byGame' ? styles.catalogTabActive : ''].join(' ')} onClick={() => setDirectoryMode('byGame')}>
-          {'\u041f\u043e \u0438\u0433\u0440\u0430\u043c'}
+        <button className={[styles.primaryBtn, styles.headerPrimaryAction].join(' ')} disabled={creating || selectedMeta.status === 'development'} onClick={() => void create()}>
+          {creating ? <Spinner size={16} /> : '\u0421\u043e\u0437\u0434\u0430\u0442\u044c \u0441\u0435\u0441\u0441\u0438\u044e'}
         </button>
       </div>
-      <button className={styles.ghostBtn} disabled={clearing || !archivedSessions.length} onClick={() => void handleClearArchive()}>
-        {'\u041e\u0447\u0438\u0441\u0442\u0438\u0442\u044c \u0430\u0440\u0445\u0438\u0432'}
-      </button>
-      <button
-        className={styles.primaryBtn}
-        disabled={creating}
-        onClick={() => {
-          setError('');
-          setView('create');
-        }}
-      >
-        {creating ? <Spinner size={16} /> : '\u041d\u043e\u0432\u0430\u044f \u0441\u0435\u0441\u0441\u0438\u044f'}
-      </button>
-    </>
+    </div>
+  ) : (
+    <div className={styles.headerActionRail}>
+      <div className={styles.headerSegmentRail}>
+        <div className={styles.catalogTabs}>
+          <button className={[styles.catalogTab, directoryMode === 'all' ? styles.catalogTabActive : ''].join(' ')} onClick={() => setDirectoryMode('all')}>
+            {'\u0412\u0441\u0435 \u0441\u0435\u0441\u0441\u0438\u0438'}
+          </button>
+          <button className={[styles.catalogTab, directoryMode === 'byGame' ? styles.catalogTabActive : ''].join(' ')} onClick={() => setDirectoryMode('byGame')}>
+            {'\u041f\u043e \u0438\u0433\u0440\u0430\u043c'}
+          </button>
+        </div>
+      </div>
+      <div className={styles.headerUtilityRow}>
+        <button className={[styles.ghostBtn, styles.headerUtilityAction, styles.headerUtilityActionSecondary].join(' ')} disabled={clearing || !archivedSessions.length} onClick={() => void handleClearArchive()}>
+          {'\u041e\u0447\u0438\u0441\u0442\u0438\u0442\u044c \u0430\u0440\u0445\u0438\u0432'}
+        </button>
+        <button
+          className={[styles.primaryBtn, styles.headerUtilityAction, styles.headerUtilityActionPrimary].join(' ')}
+          disabled={creating}
+          onClick={() => {
+            setError('');
+            setView('create');
+          }}
+        >
+          {creating ? <Spinner size={16} /> : '\u041d\u043e\u0432\u0430\u044f \u0441\u0435\u0441\u0441\u0438\u044f'}
+        </button>
+      </div>
+    </div>
   );
 
   return (

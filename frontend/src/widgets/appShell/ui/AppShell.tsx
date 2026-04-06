@@ -10,6 +10,7 @@ import { NotificationExperienceBanner } from '@/features/notifications/ui/Notifi
 
 export function AppShell({ children }: PropsWithChildren) {
   const pathname = usePathname();
+  const isMessagesRoute = pathname.startsWith('/messages');
   const isMobileImmersiveRoute = /^\/messages\/[^/]+$/.test(pathname);
   const isHealthRoute = pathname.startsWith('/health');
 
@@ -25,7 +26,7 @@ export function AppShell({ children }: PropsWithChildren) {
             isHealthRoute ? styles.contentHealth : '',
           ].filter(Boolean).join(' ')}
         >
-          {!isMobileImmersiveRoute ? <NotificationExperienceBanner /> : null}
+          {!isMessagesRoute ? <NotificationExperienceBanner /> : null}
           {children}
         </div>
       </div>

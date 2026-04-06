@@ -28,12 +28,15 @@ const LazyGameSessionPanel = dynamic(
 
 type Props = {
   open: boolean;
+  minimized?: boolean;
   stage: 'idle' | 'incoming' | 'outgoing' | 'connecting' | 'in_call' | 'reconnecting' | 'ending' | 'ended' | 'failed';
   chat?: Chat;
   callId: string;
   initiator: boolean;
   onConnected: () => void;
   onConnectionPhase?: (phase: CallConnectionPhase) => void;
+  onMinimize?: () => void;
+  onRestore?: () => void;
   onHangup: (reason?: string) => void;
   onClose: () => void;
 };
@@ -164,7 +167,7 @@ function getBannerClass(tone: Banner['tone']) {
   return styles.bannerInfo;
 }
 
-function iconPath(name: 'mic' | 'micOff' | 'camera' | 'cameraOff' | 'screen' | 'chat' | 'game' | 'phone' | 'shareBack' | 'settings') {
+function iconPath(name: 'mic' | 'micOff' | 'camera' | 'cameraOff' | 'screen' | 'chat' | 'game' | 'phone' | 'shareBack' | 'settings' | 'minimize' | 'expand') {
   switch (name) {
     case 'mic':
       return 'M12 4a3 3 0 0 1 3 3v5a3 3 0 1 1-6 0V7a3 3 0 0 1 3-3Zm5 8a1 1 0 1 1 2 0 7 7 0 0 1-6 6.93V21h3a1 1 0 1 1 0 2H8a1 1 0 1 1 0-2h3v-2.07A7 7 0 0 1 5 12a1 1 0 1 1 2 0 5 5 0 1 0 10 0Z';
@@ -186,6 +189,10 @@ function iconPath(name: 'mic' | 'micOff' | 'camera' | 'cameraOff' | 'screen' | '
       return 'M11 5a1 1 0 0 1 1 1v2h4a4 4 0 1 1 0 8h-1a1 1 0 1 1 0-2h1a2 2 0 1 0 0-4h-4v2a1 1 0 0 1-1.7.71l-4-4a1 1 0 0 1 0-1.42l4-4A1 1 0 0 1 11 5Z';
     case 'settings':
       return 'M19.14 12.94a7.48 7.48 0 0 0 .05-.94 7.48 7.48 0 0 0-.05-.94l2.03-1.58a.5.5 0 0 0 .12-.64l-1.92-3.32a.5.5 0 0 0-.6-.22l-2.39.96a7.18 7.18 0 0 0-1.63-.94l-.36-2.54A.5.5 0 0 0 13.9 2h-3.8a.5.5 0 0 0-.49.42l-.36 2.54c-.58.22-1.12.53-1.63.94l-2.39-.96a.5.5 0 0 0-.6.22L2.7 8.48a.5.5 0 0 0 .12.64l2.03 1.58a7.48 7.48 0 0 0-.05.94c0 .32.02.63.05.94L2.82 14.16a.5.5 0 0 0-.12.64l1.92 3.32a.5.5 0 0 0 .6.22l2.39-.96c.5.4 1.05.72 1.63.94l.36 2.54a.5.5 0 0 0 .49.42h3.8a.5.5 0 0 0 .49-.42l.36-2.54c.58-.22 1.13-.54 1.63-.94l2.39.96a.5.5 0 0 0 .6-.22l1.92-3.32a.5.5 0 0 0-.12-.64l-2.03-1.58ZM12 15.5A3.5 3.5 0 1 1 12 8a3.5 3.5 0 0 1 0 7.5Z';
+    case 'minimize':
+      return 'M5 12a1 1 0 0 1 1-1h12a1 1 0 1 1 0 2H6a1 1 0 0 1-1-1Z';
+    case 'expand':
+      return 'M8 4a1 1 0 0 1 0 2H6v2a1 1 0 1 1-2 0V5a1 1 0 0 1 1-1h3Zm11 0a1 1 0 0 1 1 1v3a1 1 0 1 1-2 0V6h-2a1 1 0 1 1 0-2h3ZM5 14a1 1 0 0 1 1 1v2h2a1 1 0 1 1 0 2H5a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1Zm14 0a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-3a1 1 0 1 1 0-2h2v-2a1 1 0 0 1 1-1Z';
   }
 }
 
@@ -333,7 +340,19 @@ const EMPTY_DEVICES: DeviceInventory = {
   canSelectAudioOutput: false,
 };
 
-export function CallScreen({ open, stage, chat, callId, initiator, onConnected, onConnectionPhase, onHangup }: Props) {
+export function CallScreen({
+  open,
+  minimized = false,
+  stage,
+  chat,
+  callId,
+  initiator,
+  onConnected,
+  onConnectionPhase,
+  onMinimize,
+  onRestore,
+  onHangup,
+}: Props) {
   const { data: meRes } = useGetMeQuery();
   const me = meRes?.user;
   const meId = me?.id ?? '';
@@ -524,6 +543,37 @@ export function CallScreen({ open, stage, chat, callId, initiator, onConnected, 
       bannerTimerRef.current = null;
     };
   }, [open, callId, meId, pushBanner]);
+
+  useEffect(() => {
+    if (!open || !room) return;
+
+    const resumeRoom = (reason: 'visibility' | 'pageshow' | 'online') => {
+      void room.resume(reason);
+    };
+
+    const onVisibility = () => {
+      if (document.visibilityState !== 'visible') return;
+      resumeRoom('visibility');
+    };
+
+    const onPageShow = () => {
+      resumeRoom('pageshow');
+    };
+
+    const onOnline = () => {
+      resumeRoom('online');
+    };
+
+    document.addEventListener('visibilitychange', onVisibility);
+    window.addEventListener('pageshow', onPageShow);
+    window.addEventListener('online', onOnline);
+
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('pageshow', onPageShow);
+      window.removeEventListener('online', onOnline);
+    };
+  }, [open, room]);
 
   useEffect(() => {
     if (!open) return;
@@ -753,7 +803,77 @@ export function CallScreen({ open, stage, chat, callId, initiator, onConnected, 
     onHangup();
   };
 
+  const handleMinimize = useCallback(() => {
+    setSettingsOpen(false);
+    onMinimize?.();
+  }, [onMinimize]);
+
+  const handleRestore = useCallback(() => {
+    onRestore?.();
+  }, [onRestore]);
+
   if (!open) return null;
+
+  if (minimized) {
+    return (
+      <>
+        {banner ? <div className={[styles.banner, getBannerClass(banner.tone)].join(' ')}>{banner.text}</div> : null}
+        {deviceProblem ? <div className={styles.deviceHint}>РЎРѕСЃС‚РѕСЏРЅРёРµ СѓСЃС‚СЂРѕР№СЃС‚РІР°: {deviceProblem.message}</div> : null}
+        <div className={styles.callMiniWrap}>
+          <div className={styles.callMiniCard}>
+            <button type="button" className={styles.callMiniSummary} onClick={handleRestore} aria-label="Развернуть звонок">
+              <Avatar url={me?.avatarUrl ?? undefined} name={title} size={40} />
+              <div className={styles.callMiniMeta}>
+                <div className={styles.callMiniTitle}>{title}</div>
+                <div className={styles.callMiniSub}>{topSub}</div>
+              </div>
+            </button>
+            <div className={styles.callMiniActions}>
+              <button
+                type="button"
+                className={[styles.callMiniAction, !micOn ? styles.ctrlDanger : ''].filter(Boolean).join(' ')}
+                onClick={() => void toggleMic()}
+                aria-label="Переключить микрофон"
+                title={micOn ? 'Выключить микрофон' : 'Включить микрофон'}
+              >
+                <ControlIcon name={micOn ? 'mic' : 'micOff'} />
+              </button>
+              <button type="button" className={styles.callMiniAction} onClick={handleRestore} aria-label="Развернуть звонок" title="Развернуть звонок">
+                <ControlIcon name="expand" />
+              </button>
+              <button type="button" className={[styles.callMiniAction, styles.ctrlHang].join(' ')} onClick={endCall} aria-label="Завершить звонок" title="Завершить звонок">
+                <ControlIcon name="phone" />
+              </button>
+            </div>
+          </div>
+        </div>
+        {toast ? <div className={styles.toast}>{toast}</div> : null}
+        {confirm ? (
+          <div className={styles.confirmWrap} role="dialog" aria-modal="true">
+            <div className={styles.confirmCard}>
+              <div className={styles.confirmTitle}>Завершить звонок для всех?</div>
+              <div className={styles.confirmText}>Как владелец звонка, вы отключите всех текущих участников.</div>
+              <div className={styles.confirmActions}>
+                <button type="button" className={styles.ctrlBtn} onClick={() => setConfirm(false)}>
+                  Отмена
+                </button>
+                <button
+                  type="button"
+                  className={[styles.ctrlBtn, styles.ctrlHang].join(' ')}
+                  onClick={() => {
+                    setConfirm(false);
+                    onHangup();
+                  }}
+                >
+                  Завершить для всех
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : null}
+      </>
+    );
+  }
 
   return (
     <div className={[styles.callWrap, isGameFullscreen ? styles.callGameFullscreen : ''].filter(Boolean).join(' ')} role="dialog" aria-modal="true">
@@ -771,6 +891,11 @@ export function CallScreen({ open, stage, chat, callId, initiator, onConnected, 
             <button type="button" className={styles.topGhostBtn} onClick={() => setPinnedId('')} aria-label="Вернуться к демонстрации" title="Вернуться к демонстрации">
               <ControlIcon name="shareBack" />
               
+            </button>
+          ) : null}
+          {onMinimize ? (
+            <button type="button" className={styles.topGhostBtn} onClick={handleMinimize} aria-label="Свернуть звонок" title="Свернуть звонок">
+              <ControlIcon name="minimize" />
             </button>
           ) : null}
           <button type="button" className={styles.topGhostBtn} onClick={() => setSettingsOpen((value) => !value)} aria-label="Настройки устройств" title="Настройки устройств">

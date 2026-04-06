@@ -364,12 +364,18 @@
   font-weight: 600;
 }
 
-.actionStat:hover {
-  color: var(--text);
-}
-
 .actionStatActive {
   color: var(--accent-strong);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .actionStat:hover {
+    color: var(--text);
+  }
+
+  .actionStatActive:hover {
+    color: var(--accent-strong);
+  }
 }
 
 .actionCount {

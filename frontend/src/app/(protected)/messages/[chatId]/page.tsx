@@ -46,7 +46,6 @@ import { PulseShareCard } from '@/shared/ui/PulseShareCard/PulseShareCard';
 import { PulseSharePicker } from '@/shared/ui/PulseSharePicker/PulseSharePicker';
 import type { ShareArtifact } from '@/shared/types/programs';
 import { toPulseShareMessageMeta, type PulseShareMessageMeta } from '@/shared/lib/pulseShare';
-import { NotificationStatusPill } from '@/features/notifications/ui/NotificationStatusPill';
 
 const LazyGameSessionPanel = dynamic(
   () => import('@/features/games').then((mod) => mod.GameSessionPanel),
@@ -1358,6 +1357,7 @@ export default function ChatPage() {
 
         <div className={[gridStyles.rightChat, gridStyles.chatPanel].filter(Boolean).join(' ')}>
           <div className={styles.wrap}>
+            <div className={styles.headerStack}>
             {chat?.type === 'GROUP' && hasLiveCall ? (
               <div className={styles.returnBanner}>
                 <div className={styles.returnBannerText}>Групповой звонок всё ещё активен.</div>
@@ -1366,11 +1366,6 @@ export default function ChatPage() {
                 </Button>
               </div>
             ) : null}
-
-            <div className={styles.notificationPillRow}>
-              <NotificationStatusPill compact />
-            </div>
-
             <div className={styles.top}>
               <Button className={styles.back} iconOnly type="button" onClick={() => router.push('/messages')} aria-label="Назад к чатам" title="Назад к чатам">
                 <Icon name="arrowLeft" size={18} />
@@ -1558,6 +1553,7 @@ export default function ChatPage() {
                 </div>
               </div>
             ) : null}
+            </div>
 
             <div className={[styles.middle, mediaOpen ? styles.withMedia : ''].filter(Boolean).join(' ')}>
               <div className={styles.messages} ref={scrollRef} onScroll={onScroll}>

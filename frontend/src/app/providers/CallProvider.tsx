@@ -41,6 +41,27 @@ type SessionState = {
 };
 
 const CALL_SESSION_KEY = 'av:active-call';
+const CALL_INTENT_KEY = 'av:incoming-call-intent';
+const CALL_UI_KEY = 'av:call-ui';
+const CALL_INTENT_TTL_MS = 20_000;
+
+type IncomingCallIntentSource = 'service_worker' | 'push' | 'url' | 'storage';
+
+type IncomingCallIntent = {
+  chatId: string;
+  callId: string;
+  fromUserId: string;
+  kind: CallKind;
+  receivedAt: number;
+  source: IncomingCallIntentSource;
+};
+
+type QueuedCallAction = {
+  type: 'accept' | 'decline';
+  chatId: string;
+  callId: string;
+  direct: boolean;
+};
 
 export type CallContextValue = {
   startCall: (chatId: string) => void;
@@ -96,6 +117,61 @@ function normalizeCallState(payload: any): ActiveCallState | null {
   };
 }
 
+function normalizeIncomingIntent(payload: any, source: IncomingCallIntentSource): IncomingCallIntent | null {
+  const chatId = String(payload?.chatId ?? '').trim();
+  const callId = String(payload?.callId ?? '').trim();
+  if (!chatId || !callId) return null;
+
+  return {
+    chatId,
+    callId,
+    fromUserId: String(payload?.fromUserId ?? '').trim(),
+    kind: payload?.kind === 'group' ? 'group' : 'direct',
+    receivedAt:
+      typeof payload?.receivedAt === 'number' && Number.isFinite(payload.receivedAt)
+        ? payload.receivedAt
+        : Date.now(),
+    source,
+  };
+}
+
+function readIncomingIntentFromUrl(): IncomingCallIntent | null {
+  if (typeof window === 'undefined') return null;
+
+  const url = new URL(window.location.href);
+  if (url.searchParams.get('incomingCall') !== '1') return null;
+
+  return normalizeIncomingIntent(
+    {
+      chatId: url.searchParams.get('chatId'),
+      callId: url.searchParams.get('callId'),
+      fromUserId: url.searchParams.get('fromUserId'),
+      kind: url.searchParams.get('callKind'),
+      receivedAt: Number(url.searchParams.get('callIntentAt') ?? Date.now()),
+    },
+    'url',
+  );
+}
+
+function stripIncomingIntentFromUrl() {
+  if (typeof window === 'undefined') return;
+
+  const url = new URL(window.location.href);
+  const params = ['incomingCall', 'chatId', 'callId', 'fromUserId', 'callKind', 'callIntentAt'];
+  let changed = false;
+
+  for (const param of params) {
+    if (!url.searchParams.has(param)) continue;
+    url.searchParams.delete(param);
+    changed = true;
+  }
+
+  if (!changed) return;
+
+  const next = `${url.pathname}${url.search}${url.hash}`;
+  window.history.replaceState(window.history.state, document.title, next);
+}
+
 export function CallProvider({ children }: { children: React.ReactNode }) {
   const [socket, setSocket] = useState<Socket | null>(null);
   const { data: chatsRes } = useGetChatsQuery();
@@ -107,6 +183,8 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<SessionState>(createIdleSession);
   const [startedAt, setStartedAt] = useState<number | null>(null);
   const [activeCallsByChat, setActiveCallsByChat] = useState<Record<string, ActiveCallState>>({});
+  const [incomingIntent, setIncomingIntent] = useState<IncomingCallIntent | null>(null);
+  const [callUiMinimized, setCallUiMinimized] = useState(false);
 
   const didPostStartRef = useRef(false);
   const didPostJoinRef = useRef(false);
@@ -117,6 +195,8 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
   const startedAtRef = useRef<number | null>(startedAt);
   const callKindRef = useRef<CallKind>('direct');
   const dismissedIncomingRef = useRef<Set<string>>(new Set());
+  const incomingIntentRef = useRef<IncomingCallIntent | null>(null);
+  const queuedActionRef = useRef<QueuedCallAction | null>(null);
   const autoResumeRef = useRef<{ enabled: boolean; chatId: string; callId: string; initiator: boolean }>({
     enabled: false,
     chatId: '',
@@ -133,7 +213,8 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     activeCallsRef.current = activeCallsByChat;
     startedAtRef.current = startedAt;
     callKindRef.current = callKind;
-  }, [activeCallsByChat, callKind, session, startedAt]);
+    incomingIntentRef.current = incomingIntent;
+  }, [activeCallsByChat, callKind, incomingIntent, session, startedAt]);
 
   useEffect(() => {
     const initialSocket = getRealtimeSocket();
@@ -146,6 +227,33 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
   const persistSession = useCallback((next: { chatId: string; callId: string }) => {
     try { window.sessionStorage.setItem(CALL_SESSION_KEY, JSON.stringify(next)); } catch {}
   }, []);
+
+  const persistCallUi = useCallback((next: { minimized: boolean }) => {
+    try { window.sessionStorage.setItem(CALL_UI_KEY, JSON.stringify(next)); } catch {}
+  }, []);
+
+  const updateCallUiMinimized = useCallback((next: boolean) => {
+    setCallUiMinimized(next);
+    persistCallUi({ minimized: next });
+  }, [persistCallUi]);
+
+  const persistIncomingIntent = useCallback((next: IncomingCallIntent | null) => {
+    try {
+      if (!next) {
+        window.sessionStorage.removeItem(CALL_INTENT_KEY);
+        return;
+      }
+      window.sessionStorage.setItem(CALL_INTENT_KEY, JSON.stringify(next));
+    } catch {}
+  }, []);
+
+  const clearIncomingIntent = useCallback((callId?: string) => {
+    const current = incomingIntentRef.current;
+    if (callId && current?.callId && current.callId !== callId) return;
+    incomingIntentRef.current = null;
+    setIncomingIntent(null);
+    persistIncomingIntent(null);
+  }, [persistIncomingIntent]);
 
   const armAutoResume = useCallback((next: { chatId: string; callId: string; initiator: boolean }) => {
     autoResumeRef.current = { enabled: true, ...next };
@@ -162,13 +270,118 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     endingRef.current = false;
   }, []);
 
-  const closeAll = useCallback((opts?: { preserveResume?: boolean }) => {
+  const captureIncomingIntent = useCallback((next: IncomingCallIntent | null) => {
+    if (!next) return;
+    if (Date.now() - next.receivedAt > CALL_INTENT_TTL_MS) return;
+
+    incomingIntentRef.current = next;
+    setIncomingIntent(next);
+    persistIncomingIntent(next);
+    dismissedIncomingRef.current.delete(next.callId);
+
+    const currentSession = sessionRef.current;
+    if (currentSession.stage === 'idle' || currentSession.callId === next.callId) {
+      resetRuntimeFlags();
+      setStartedAt(null);
+      updateCallUiMinimized(false);
+      setSession((prev) => {
+        if (prev.stage !== 'idle' && prev.callId !== next.callId) return prev;
+        return {
+          stage: 'incoming',
+          chatId: next.chatId,
+          callId: next.callId,
+          initiator: false,
+          inviterId: next.fromUserId,
+          error: '',
+        };
+      });
+    }
+
+    const currentSocket = socket ?? getRealtimeSocket();
+    if (currentSocket && !currentSocket.connected) {
+      currentSocket.connect();
+    }
+  }, [persistIncomingIntent, resetRuntimeFlags, socket, updateCallUiMinimized]);
+
+  const flushQueuedAction = useCallback((targetSocket: Socket | null) => {
+    const pending = queuedActionRef.current;
+    if (!pending || !targetSocket) return;
+    if (!targetSocket.connected) targetSocket.connect();
+    if (pending.type === 'accept') {
+      targetSocket.emit('call:accept', { chatId: pending.chatId, callId: pending.callId });
+    } else {
+      targetSocket.emit('call:decline', { chatId: pending.chatId, callId: pending.callId });
+      if (pending.direct) {
+        targetSocket.emit('call:end', { chatId: pending.chatId, callId: pending.callId });
+      }
+    }
+    queuedActionRef.current = null;
+  }, []);
+
+  const closeAll = useCallback((opts?: { preserveResume?: boolean; keepIncomingIntent?: boolean }) => {
     try { window.sessionStorage.removeItem(CALL_SESSION_KEY); } catch {}
     if (!opts?.preserveResume) disarmAutoResume();
+    if (!opts?.keepIncomingIntent) {
+      const activeCallId = sessionRef.current.callId || undefined;
+      clearIncomingIntent(activeCallId);
+    }
     resetRuntimeFlags();
+    updateCallUiMinimized(false);
     setStartedAt(null);
     setSession(createIdleSession());
-  }, [disarmAutoResume, resetRuntimeFlags]);
+  }, [clearIncomingIntent, disarmAutoResume, resetRuntimeFlags, updateCallUiMinimized]);
+
+  useEffect(() => {
+    try {
+      const rawUi = window.sessionStorage.getItem(CALL_UI_KEY);
+      if (rawUi) {
+        const savedUi = JSON.parse(rawUi) as { minimized?: boolean };
+        setCallUiMinimized(Boolean(savedUi?.minimized));
+      }
+    } catch {}
+
+    try {
+      const rawIntent = window.sessionStorage.getItem(CALL_INTENT_KEY);
+      if (rawIntent) {
+        const savedIntent = normalizeIncomingIntent(JSON.parse(rawIntent), 'storage');
+        if (savedIntent) {
+          captureIncomingIntent(savedIntent);
+        } else {
+          window.sessionStorage.removeItem(CALL_INTENT_KEY);
+        }
+      }
+    } catch {}
+
+    const urlIntent = readIncomingIntentFromUrl();
+    if (urlIntent) {
+      captureIncomingIntent(urlIntent);
+      stripIncomingIntentFromUrl();
+    }
+  }, [captureIncomingIntent]);
+
+  useEffect(() => {
+    if (!('serviceWorker' in navigator)) return;
+
+    const onMessage = (event: MessageEvent) => {
+      const type = String(event.data?.type ?? '');
+      if (type !== 'incoming_call_notification_click' && type !== 'incoming_call_push') return;
+
+      const source: IncomingCallIntentSource = type === 'incoming_call_notification_click' ? 'service_worker' : 'push';
+      const intent = normalizeIncomingIntent(event.data?.intent, source);
+      if (!intent) return;
+      captureIncomingIntent(intent);
+    };
+
+    navigator.serviceWorker.addEventListener('message', onMessage);
+    return () => {
+      navigator.serviceWorker.removeEventListener('message', onMessage);
+    };
+  }, [captureIncomingIntent]);
+
+  useEffect(() => {
+    if (!socket) return;
+    flushQueuedAction(socket);
+  }, [flushQueuedAction, socket]);
 
   const postSystem = useCallback(async (targetChatId: string, text: string) => {
     if (!targetChatId) return;
@@ -184,28 +397,43 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     await postSystem(targetChatId, text);
   }, [postSystem]);
 
-  const openExistingCall = useCallback((targetChatId: string, callId: string, options?: { initiator?: boolean; stage?: CallStage }) => {
+  const openExistingCall = useCallback((
+    targetChatId: string,
+    callId: string,
+    options?: { initiator?: boolean; stage?: CallStage; inviterId?: string },
+  ) => {
     resetRuntimeFlags();
     setStartedAt(null);
     dismissedIncomingRef.current.delete(callId);
     const initiator = Boolean(options?.initiator);
     const nextStage = options?.stage ?? 'connecting';
+    updateCallUiMinimized(false);
+    if (nextStage !== 'incoming') clearIncomingIntent(callId);
     armAutoResume({ chatId: targetChatId, callId, initiator });
-    setSession({ stage: nextStage, chatId: targetChatId, callId, initiator, inviterId: '', error: '' });
+    setSession({
+      stage: nextStage,
+      chatId: targetChatId,
+      callId,
+      initiator,
+      inviterId: options?.inviterId ?? '',
+      error: '',
+    });
     persistSession({ chatId: targetChatId, callId });
     socket?.emit('call:join', { callId });
-  }, [armAutoResume, persistSession, resetRuntimeFlags, socket]);
+  }, [armAutoResume, clearIncomingIntent, persistSession, resetRuntimeFlags, socket, updateCallUiMinimized]);
 
   const startCall = useCallback((targetChatId: string) => {
     if (!socket) return;
     const nextCallId = uuid();
     resetRuntimeFlags();
     setStartedAt(null);
+    clearIncomingIntent();
+    updateCallUiMinimized(false);
     armAutoResume({ chatId: targetChatId, callId: nextCallId, initiator: true });
     setSession({ stage: 'outgoing', chatId: targetChatId, callId: nextCallId, initiator: true, inviterId: '', error: '' });
     persistSession({ chatId: targetChatId, callId: nextCallId });
     socket.emit('call:invite', { chatId: targetChatId, callId: nextCallId });
-  }, [armAutoResume, persistSession, resetRuntimeFlags, socket]);
+  }, [armAutoResume, clearIncomingIntent, persistSession, resetRuntimeFlags, socket, updateCallUiMinimized]);
 
   const joinCall = useCallback((targetChatId: string) => {
     if (!socket) return;
@@ -218,37 +446,53 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
   const hasReturnableCall = useCallback((targetChatId: string) => Boolean(activeCallsByChat[targetChatId]?.callId), [activeCallsByChat]);
 
   const accept = useCallback(() => {
-    if (!socket || !session.chatId || !session.callId) return;
+    if (!session.chatId || !session.callId) return;
     dismissedIncomingRef.current.delete(session.callId);
     armAutoResume({ chatId: session.chatId, callId: session.callId, initiator: false });
-    socket.emit('call:accept', { chatId: session.chatId, callId: session.callId });
+    clearIncomingIntent(session.callId);
+    updateCallUiMinimized(false);
     persistSession({ chatId: session.chatId, callId: session.callId });
     setSession((prev) => ({ ...prev, stage: 'connecting', error: '' }));
-  }, [armAutoResume, persistSession, session.callId, session.chatId, socket]);
+    if (!socket) {
+      queuedActionRef.current = { type: 'accept', chatId: session.chatId, callId: session.callId, direct: false };
+      return;
+    }
+    if (!socket.connected) socket.connect();
+    socket.emit('call:accept', { chatId: session.chatId, callId: session.callId });
+  }, [armAutoResume, clearIncomingIntent, persistSession, session.callId, session.chatId, socket, updateCallUiMinimized]);
 
   const decline = useCallback(() => {
-    if (!socket || !session.chatId || !session.callId) return;
+    if (!session.chatId || !session.callId) return;
     dismissedIncomingRef.current.add(session.callId);
-    socket.emit('call:decline', { chatId: session.chatId, callId: session.callId });
+    clearIncomingIntent(session.callId);
+    updateCallUiMinimized(false);
+    if (!socket) {
+      queuedActionRef.current = { type: 'decline', chatId: session.chatId, callId: session.callId, direct: callKind === 'direct' };
+    } else {
+      if (!socket.connected) socket.connect();
+      socket.emit('call:decline', { chatId: session.chatId, callId: session.callId });
+    }
     disarmAutoResume();
     if (callKind === 'direct') {
-      socket.emit('call:end', { chatId: session.chatId, callId: session.callId });
+      socket?.emit('call:end', { chatId: session.chatId, callId: session.callId });
       void postSystem(session.chatId, 'Missed call');
     }
     closeAll();
-  }, [socket, session.chatId, session.callId, callKind, closeAll, disarmAutoResume, postSystem]);
+  }, [socket, session.chatId, session.callId, callKind, clearIncomingIntent, closeAll, disarmAutoResume, postSystem, updateCallUiMinimized]);
 
   const hangup = useCallback(async (reason?: string) => {
     if (!session.chatId || !session.callId) return closeAll();
     if (endingRef.current) return;
+    clearIncomingIntent(session.callId);
     disarmAutoResume();
+    updateCallUiMinimized(false);
     endingRef.current = true;
     setSession((prev) => ({ ...prev, stage: 'ending' }));
     socket?.emit('call:leave', { callId: session.callId });
     if (callKind === 'direct') socket?.emit('call:end', { chatId: session.chatId, callId: session.callId });
     await postEndRecord(session.chatId, reason);
     closeAll();
-  }, [callKind, closeAll, disarmAutoResume, postEndRecord, session.callId, session.chatId, socket]);
+  }, [callKind, clearIncomingIntent, closeAll, disarmAutoResume, postEndRecord, session.callId, session.chatId, socket, updateCallUiMinimized]);
 
   useEffect(() => {
     if (!socket) return;
@@ -257,12 +501,22 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       const nextChatId = String(payload?.chatId ?? '');
       const nextCallId = String(payload?.callId ?? '');
       const nextFromUserId = String(payload?.fromUserId ?? '');
+      const nextKind: CallKind = payload?.kind === 'group' ? 'group' : 'direct';
       if (!nextChatId || !nextCallId) return;
       const currentSession = sessionRef.current;
       if (currentSession.stage !== 'idle' && currentSession.chatId !== nextChatId) return;
       dismissedIncomingRef.current.delete(nextCallId);
       resetRuntimeFlags();
       setStartedAt(null);
+      updateCallUiMinimized(false);
+      captureIncomingIntent({
+        chatId: nextChatId,
+        callId: nextCallId,
+        fromUserId: nextFromUserId,
+        kind: nextKind,
+        receivedAt: Date.now(),
+        source: 'push',
+      });
       setSession({ stage: 'incoming', chatId: nextChatId, callId: nextCallId, initiator: false, inviterId: nextFromUserId, error: '' });
     };
 
@@ -270,6 +524,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       const currentSession = sessionRef.current;
       if (String(payload?.chatId ?? '') !== currentSession.chatId) return;
       if (String(payload?.callId ?? '') !== currentSession.callId) return;
+      clearIncomingIntent(currentSession.callId);
       setSession((prev) => ({ ...prev, stage: prev.stage === 'outgoing' ? 'connecting' : prev.stage, error: '' }));
     };
 
@@ -279,6 +534,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       if (String(payload?.callId ?? '') !== currentSession.callId) return;
       if (callKindRef.current !== 'direct' || currentSession.stage !== 'outgoing') return;
       disarmAutoResume();
+      clearIncomingIntent(currentSession.callId);
       void postSystem(currentSession.chatId, 'Missed call');
       closeAll();
     };
@@ -288,6 +544,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       const currentSession = sessionRef.current;
       if (!payloadCallId || payloadCallId !== currentSession.callId || currentSession.stage === 'idle') return;
       disarmAutoResume();
+      clearIncomingIntent(payloadCallId);
       if (endingRef.current) return closeAll();
       endingRef.current = true;
       void postEndRecord(currentSession.chatId);
@@ -321,6 +578,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       if (String(payload?.chatId ?? '') !== currentSession.chatId) return;
       if (String(payload?.callId ?? '') !== currentSession.callId) return;
       disarmAutoResume();
+      clearIncomingIntent(currentSession.callId);
       setSession((prev) => ({ ...prev, stage: 'failed', error: 'Call room is full' }));
       void postSystem(currentSession.chatId, 'Call room is full');
       window.setTimeout(() => closeAll(), 1200);
@@ -354,7 +612,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       socket.off('call:room_full', onRoomFull);
       socket.off('call:error', onCallError);
     };
-  }, [socket, closeAll, disarmAutoResume, openExistingCall, postEndRecord, postSystem, resetRuntimeFlags]);
+  }, [socket, captureIncomingIntent, clearIncomingIntent, closeAll, disarmAutoResume, openExistingCall, postEndRecord, postSystem, resetRuntimeFlags, updateCallUiMinimized]);
 
   useEffect(() => {
     if (session.stage !== 'outgoing' || !session.initiator || didPostStartRef.current) return;
@@ -383,6 +641,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
         openExistingCall(savedChatId, savedCallId);
         return;
       }
+      if (!socket.connected) socket.connect();
       socket.emit('call:join', { callId: savedCallId, reason: 'refresh_restore' });
     } catch {}
   }, [activeCallsByChat, openExistingCall, session.stage, socket]);
@@ -409,19 +668,28 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!meId || session.stage !== 'idle') return;
 
-    const pendingIncoming = Object.values(activeCallsByChat)
+    const pendingCalls = Object.values(activeCallsByChat)
       .filter((call) => {
         if (!call.active || !call.callId) return false;
         if (dismissedIncomingRef.current.has(call.callId)) return false;
         if (call.createdBy === meId) return false;
         return !call.participants.some((participant) => participant.userId === meId);
       })
-      .sort((left, right) => new Date(right.createdAt ?? 0).getTime() - new Date(left.createdAt ?? 0).getTime())[0];
+      .sort((left, right) => new Date(right.createdAt ?? 0).getTime() - new Date(left.createdAt ?? 0).getTime());
+
+    const intentMatch = incomingIntentRef.current
+      ? pendingCalls.find((call) => (
+          call.chatId === incomingIntentRef.current?.chatId &&
+          call.callId === incomingIntentRef.current?.callId
+        )) ?? null
+      : null;
+    const pendingIncoming = intentMatch ?? pendingCalls[0] ?? null;
 
     if (!pendingIncoming) return;
 
     resetRuntimeFlags();
     setStartedAt(null);
+    updateCallUiMinimized(false);
     setSession({
       stage: 'incoming',
       chatId: pendingIncoming.chatId,
@@ -430,7 +698,32 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       inviterId: pendingIncoming.createdBy ?? '',
       error: '',
     });
-  }, [activeCallsByChat, meId, resetRuntimeFlags, session.stage]);
+  }, [activeCallsByChat, meId, resetRuntimeFlags, session.stage, updateCallUiMinimized]);
+
+  useEffect(() => {
+    if (!incomingIntent) return;
+    const active = activeCallsByChat[incomingIntent.chatId];
+    if (active?.callId === incomingIntent.callId) return;
+    if (session.stage !== 'incoming' || session.callId !== incomingIntent.callId) return;
+
+    const remaining = Math.max(0, CALL_INTENT_TTL_MS - (Date.now() - incomingIntent.receivedAt));
+    const timer = window.setTimeout(() => {
+      const latestIntent = incomingIntentRef.current;
+      const latestSession = sessionRef.current;
+      const latestActive = activeCallsRef.current[incomingIntent.chatId];
+      if (!latestIntent || latestIntent.callId !== incomingIntent.callId) return;
+      if (latestActive?.callId === incomingIntent.callId) return;
+      if (latestSession.stage === 'incoming' && latestSession.callId === incomingIntent.callId) {
+        clearIncomingIntent(incomingIntent.callId);
+        resetRuntimeFlags();
+        updateCallUiMinimized(false);
+        setStartedAt(null);
+        setSession(createIdleSession());
+      }
+    }, remaining);
+
+    return () => window.clearTimeout(timer);
+  }, [activeCallsByChat, clearIncomingIntent, incomingIntent, resetRuntimeFlags, session.callId, session.stage, updateCallUiMinimized]);
 
   const handleConnectionPhase = useCallback((phase: 'stable' | 'signaling_reconnecting' | 'media_reconnecting') => {
     setSession((prev) => {
@@ -442,11 +735,13 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!socket) return;
+    flushQueuedAction(socket);
     const onDisconnect = () => {
       if (!sessionRef.current.callId || sessionRef.current.stage === 'idle') return;
       setSession((prev) => (prev.stage === 'idle' || prev.stage === 'ending' || prev.stage === 'ended' ? prev : { ...prev, stage: 'reconnecting' }));
     };
     const onConnect = () => {
+      flushQueuedAction(socket);
       if (!sessionRef.current.callId || sessionRef.current.stage === 'idle') return;
       setSession((prev) => (prev.stage === 'reconnecting' ? { ...prev, stage: 'connecting' } : prev));
     };
@@ -455,6 +750,39 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     return () => {
       socket.off('disconnect', onDisconnect);
       socket.off('connect', onConnect);
+    };
+  }, [flushQueuedAction, socket]);
+
+  useEffect(() => {
+    if (!socket) return;
+
+    const ensureRealtime = () => {
+      const currentSession = sessionRef.current;
+      if (!currentSession.callId && !incomingIntentRef.current) return;
+      if (!socket.connected) socket.connect();
+    };
+
+    const onVisibility = () => {
+      if (document.visibilityState !== 'visible') return;
+      ensureRealtime();
+    };
+
+    const onPageShow = () => {
+      ensureRealtime();
+    };
+
+    const onOnline = () => {
+      ensureRealtime();
+    };
+
+    document.addEventListener('visibilitychange', onVisibility);
+    window.addEventListener('pageshow', onPageShow);
+    window.addEventListener('online', onOnline);
+
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('pageshow', onPageShow);
+      window.removeEventListener('online', onOnline);
     };
   }, [socket]);
 
@@ -473,15 +801,19 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       />
       <CallScreen
         open={['outgoing', 'connecting', 'in_call', 'reconnecting', 'ending', 'failed'].includes(session.stage)}
+        minimized={callUiMinimized}
         stage={session.stage}
         chat={chat}
         callId={session.callId}
         initiator={session.initiator}
         onConnected={() => {
+          clearIncomingIntent(session.callId);
           setStartedAt((value) => value ?? Date.now());
           setSession((prev) => ({ ...prev, stage: 'in_call', error: '' }));
         }}
         onConnectionPhase={handleConnectionPhase}
+        onMinimize={() => updateCallUiMinimized(true)}
+        onRestore={() => updateCallUiMinimized(false)}
         onHangup={(reason) => void hangup(reason)}
         onClose={closeAll}
       />

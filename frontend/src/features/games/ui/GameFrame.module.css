@@ -103,6 +103,7 @@
 
 .headerMain {
   min-width: 0;
+  flex: 1 1 auto;
   display: grid;
   gap: 6px;
 }
@@ -184,6 +185,15 @@
   gap: 10px;
   flex-wrap: wrap;
   flex: 0 0 auto;
+}
+
+.headerActions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+  min-width: 0;
 }
 
 .fullscreenToggle {
@@ -310,12 +320,24 @@
     border-radius: 18px;
   }
 
+  .header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    align-items: stretch;
+    gap: 12px;
+  }
+
   .appFullscreen {
     padding: 0;
     border-radius: 0 !important;
   }
 
+  .headerMain {
+    gap: 8px;
+  }
+
   .titleRow {
+    align-items: flex-start;
     gap: 10px;
   }
 
@@ -328,6 +350,10 @@
 
   .title {
     font-size: 15px;
+    line-height: 1.15;
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
   }
 
   .subtitle,
@@ -335,8 +361,33 @@
     font-size: 11px;
   }
 
+  .actions {
+    width: 100%;
+    justify-content: flex-start;
+    gap: 8px;
+  }
+
+  .headerActions {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .headerActions > * {
+    min-width: 0;
+  }
+
+  .headerActions > button,
+  .headerActions > a {
+    flex: 0 0 auto;
+  }
+
   .fullscreenToggle {
     min-height: 36px;
+    flex: 0 0 auto;
+    justify-content: center;
     padding: 0 12px;
     border-radius: 12px;
     font-size: 12px;
@@ -347,5 +398,36 @@
     padding: 0 14px;
     border-radius: 14px;
     font-size: 12px;
+  }
+}
+
+@media (max-width: 520px) {
+  .header {
+    padding: 10px 12px;
+  }
+
+  .viewport {
+    padding: 10px;
+  }
+
+  .titleRow {
+    gap: 8px;
+  }
+
+  .badge {
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+    font-size: 16px;
+  }
+
+  .headerActions {
+    gap: 6px;
+  }
+
+  .headerActions > button,
+  .headerActions > a,
+  .fullscreenToggle {
+    min-height: 40px;
   }
 }

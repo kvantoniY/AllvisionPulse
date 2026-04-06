@@ -1416,6 +1416,12 @@
   padding-bottom: 0 !important;
 }
 
+.headerStack {
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+}
+
 .composer {
   padding-bottom: 0;
 }
@@ -2485,5 +2491,36 @@
 
   .pulseMediaSearchRow {
     grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* v8 message layout fix */
+.wrap {
+  height: 100% !important;
+  min-height: 0;
+  max-height: 100%;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto !important;
+  overflow: hidden;
+}
+
+.middle {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.messages {
+  min-height: 0;
+}
+
+.composer {
+  position: relative;
+  bottom: auto;
+}
+
+@media (max-width: 960px) {
+  .composer {
+    position: relative !important;
+    bottom: auto !important;
   }
 }

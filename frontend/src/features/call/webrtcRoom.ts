@@ -1032,6 +1032,23 @@ export class WebRTCRoom {
     }
   }
 
+  async resume(reason: 'visibility' | 'pageshow' | 'online') {
+    await this.ensureSocket().catch(() => null);
+    if (!this.socket) return;
+
+    if (!this.socket.connected) {
+      this.setPhase('signaling_reconnecting');
+      const message = navigator.onLine ? 'Restoring call connection...' : 'You are offline. Waiting for network...';
+      this.callbacks.onConnectionHint?.(message, navigator.onLine ? 'warning' : 'error');
+      this.socket.connect();
+      return;
+    }
+
+    await this.ensureRtcConfig(true).catch(() => null);
+    logRtc('resume', { callId: this.callId, reason });
+    await this.syncJoinState('reconnect');
+  }
+
   private removePeer(userId: string) {
     const timer = this.reconnectRetryTimers.get(userId);
     if (timer) {
