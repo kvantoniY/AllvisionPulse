@@ -713,10 +713,12 @@ export default function ChatPage() {
   const resizeTextarea = useCallback(() => {
     const textarea = textAreaRef.current;
     if (!textarea) return;
+    const minHeight = Math.max(40, Number.parseFloat(window.getComputedStyle(textarea).minHeight || '40') || 40);
     textarea.style.height = '0px';
-    const nextHeight = Math.min(textarea.scrollHeight, 160);
+    const measuredHeight = textarea.scrollHeight || minHeight;
+    const nextHeight = Math.max(minHeight, Math.min(measuredHeight, 160));
     textarea.style.height = `${nextHeight}px`;
-    textarea.style.overflowY = textarea.scrollHeight > 160 ? 'auto' : 'hidden';
+    textarea.style.overflowY = measuredHeight > 160 ? 'auto' : 'hidden';
   }, []);
 
   useEffect(() => {
