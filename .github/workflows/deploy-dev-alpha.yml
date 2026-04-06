@@ -74,6 +74,17 @@ jobs:
           chmod 600 ~/.ssh/config
           ssh -o BatchMode=yes alpha "echo SSH_OK"
 
+      - name: Show deploy target host
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "ALPHA_HOST=${{ secrets.ALPHA_HOST }}"
+          ssh alpha 'bash -s' <<'EOFREMOTE'
+          set -euo pipefail
+          echo "REMOTE_HOSTNAME=$(hostname)"
+          echo "REMOTE_IPV4=$(hostname -I | xargs)"
+          EOFREMOTE
+
       - name: Upload release archive
         shell: bash
         run: |
@@ -458,18 +469,19 @@ jobs:
           for attempt in $(seq 1 20); do
             RESPONSE=""
             CURL_EXIT=0
-            if ! RESPONSE="$(curl --retry 3 --retry-delay 2 --retry-all-errors -H 'Cache-Control: no-cache, no-store' -fsS "https://allvision-pulse.ru/api/release?ts=$EXPECTED_RELEASE_SHA" 2>/tmp/public-release-curl.err)"; then
-              CURL_EXIT=$?
-              if [ "$CURL_EXIT" = "60" ]; then
-                if [ "$TLS_WARNING_EMITTED" = "0" ]; then
-                  echo "::warning::Strict TLS verification for https://allvision-pulse.ru failed on the GitHub runner (curl exit 60). Falling back to an insecure read for release propagation only. The public edge likely serves an incomplete certificate chain."
-                  cat /tmp/public-release-curl.err >&2 || true
-                  TLS_WARNING_EMITTED=1
-                fi
-                RESPONSE="$(curl --retry 3 --retry-delay 2 --retry-all-errors -k -H 'Cache-Control: no-cache, no-store' -fsS "https://allvision-pulse.ru/api/release?ts=$EXPECTED_RELEASE_SHA" || true)"
-              else
-                RESPONSE=""
+            set +e
+            RESPONSE="$(curl --retry 3 --retry-delay 2 --retry-all-errors -H 'Cache-Control: no-cache, no-store' -fsS "https://allvision-pulse.ru/api/release?ts=$EXPECTED_RELEASE_SHA" 2>/tmp/public-release-curl.err)"
+            CURL_EXIT=$?
+            set -e
+            if [ "$CURL_EXIT" = "60" ]; then
+              if [ "$TLS_WARNING_EMITTED" = "0" ]; then
+                echo "::warning::Strict TLS verification for https://allvision-pulse.ru failed on the GitHub runner (curl exit 60). Falling back to an insecure read for release propagation only. The public edge likely serves an incomplete certificate chain."
+                cat /tmp/public-release-curl.err >&2 || true
+                TLS_WARNING_EMITTED=1
               fi
+              RESPONSE="$(curl --retry 3 --retry-delay 2 --retry-all-errors -k -H 'Cache-Control: no-cache, no-store' -fsS "https://allvision-pulse.ru/api/release?ts=$EXPECTED_RELEASE_SHA" || true)"
+            elif [ "$CURL_EXIT" != "0" ]; then
+              RESPONSE=""
             fi
             if printf '%s' "$RESPONSE" | grep -q "$EXPECTED_RELEASE_SHA"; then
               echo "Public release is up to date: $RESPONSE"
@@ -480,3 +492,25 @@ jobs:
           done
           echo "Public domain did not switch to release $EXPECTED_RELEASE_SHA" >&2
           exit 1
+
+      - name: Public release diagnostics
+        if: always()
+        shell: bash
+        env:
+          EXPECTED_RELEASE_SHA: ${{ github.sha }}
+        run: |
+          set +e
+          echo "=== dns ==="
+          getent hosts allvision-pulse.ru || true
+          echo
+          echo "=== public release headers (strict TLS) ==="
+          curl -svI -H 'Cache-Control: no-cache, no-store' "https://allvision-pulse.ru/api/release?ts=$EXPECTED_RELEASE_SHA" 2>&1 || true
+          echo
+          echo "=== public release body (insecure fallback for diagnostics only) ==="
+          curl -sk -H 'Cache-Control: no-cache, no-store' "https://allvision-pulse.ru/api/release?ts=$EXPECTED_RELEASE_SHA" || true
+          echo
+          echo "=== public sw.js markers (insecure fallback for diagnostics only) ==="
+          curl -sk -H 'Cache-Control: no-cache, no-store' "https://allvision-pulse.ru/sw.js?ts=$EXPECTED_RELEASE_SHA" | grep -E 'normalizeIncomingCallIntent|incoming_call_push|incoming_call_notification_click' || true
+          echo
+          echo "=== deployed vm localhost release ==="
+          ssh alpha "curl -fsS 'http://127.0.0.1/api/release?ts=$EXPECTED_RELEASE_SHA' || true"
