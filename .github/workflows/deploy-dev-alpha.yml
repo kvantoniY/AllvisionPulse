@@ -290,7 +290,15 @@ jobs:
             fi
           }
 
-          if ! compose_alpha build --pull backend frontend; then
+          echo "=== build backend image ==="
+          if ! compose_alpha build --pull backend; then
+            failed_release_diagnostics
+            rollback_previous_release
+            exit 1
+          fi
+
+          echo "=== build frontend image (no cache) ==="
+          if ! compose_alpha build --pull --no-cache frontend; then
             failed_release_diagnostics
             rollback_previous_release
             exit 1
@@ -308,6 +316,9 @@ jobs:
             rollback_previous_release
             exit 1
           fi
+
+          echo "=== remove old runtime containers before recreate ==="
+          compose_alpha rm -sf backend frontend nginx || true
 
           if ! compose_alpha up -d --force-recreate --remove-orphans backend frontend turn; then
             failed_release_diagnostics
@@ -334,6 +345,20 @@ jobs:
           fi
 
           if ! verify_release_sha frontend "$RELEASE_SHA"; then
+            failed_release_diagnostics
+            rollback_previous_release
+            exit 1
+          fi
+
+          echo "=== frontend release from inside container ==="
+          if ! compose_alpha exec -T frontend node -e "fetch('http://127.0.0.1:3000/api/release?ts=' + encodeURIComponent(process.env.APP_RELEASE_SHA || 'missing')).then(async (r) => { const text = await r.text(); if (!r.ok) { console.error(text); process.exit(1); } process.stdout.write(text); }).catch((error) => { console.error(error); process.exit(1); });" | tee /tmp/allvision-frontend-release.json; then
+            failed_release_diagnostics
+            rollback_previous_release
+            exit 1
+          fi
+
+          if ! grep -q "$RELEASE_SHA" /tmp/allvision-frontend-release.json; then
+            echo "Frontend container does not serve expected release $RELEASE_SHA" >&2
             failed_release_diagnostics
             rollback_previous_release
             exit 1
