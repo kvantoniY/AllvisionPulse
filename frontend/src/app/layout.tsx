@@ -25,6 +25,9 @@ export const metadata: Metadata = {
     statusBarStyle: 'black-translucent',
     title: 'Allvision Pulse',
   },
+  other: {
+    'mobile-web-app-capable': 'yes',
+  },
   formatDetection: {
     telephone: false,
   },

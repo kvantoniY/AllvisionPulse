@@ -275,12 +275,6 @@ router.post("/:chatId/messages", requireAuth, upload.array("files", 10), asyncHa
       ]);
 
       if (blockEntry) throw new HttpError(403, "Blocked");
-      if (targetPrivacy?.allowMessagesFrom === "followers" && !follow && req.user!.role !== "ADMIN") {
-        throw new HttpError(403, "User accepts messages from followers only");
-      }
-      if (targetPrivacy?.allowMessagesFrom === "none" && req.user!.role !== "ADMIN") {
-        throw new HttpError(403, "User disabled direct messages");
-      }
     }
   }
 

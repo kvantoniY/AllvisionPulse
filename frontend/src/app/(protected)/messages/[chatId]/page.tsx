@@ -404,8 +404,9 @@ export default function ChatPage() {
   const directRelationship = otherUserProfile?.relationship;
   const isDirectChat = chat?.type === 'DIRECT';
   const relationshipResolved = !isDirectChat || !otherUser?.username || Boolean(otherUserProfile);
-  const canWriteInChat = !isDirectChat || !relationshipResolved || Boolean(directRelationship?.canMessage);
-  const canCallInChat = !isDirectChat || !relationshipResolved || Boolean(directRelationship?.canCall);
+  const isDirectChatBlocked = Boolean(directRelationship?.blockedMe || directRelationship?.blockedByMe || directRelationship?.isBlocked);
+  const canWriteInChat = !isDirectChat || !relationshipResolved || !isDirectChatBlocked;
+  const canCallInChat = !isDirectChat || !relationshipResolved || !isDirectChatBlocked;
   const composerLockReason = !canWriteInChat
     ? (directRelationship?.blockedMe
         ? 'Пользователь добавил вас в чёрный список. Сообщения недоступны.'
