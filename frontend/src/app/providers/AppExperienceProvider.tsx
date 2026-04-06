@@ -117,21 +117,29 @@ async function fetchPushPublicKey() {
 }
 
 async function saveSubscription(subscription: PushSubscriptionJSON) {
-  await fetch('/api/backend/notifications/push/subscribe', {
+  const response = await fetch('/api/backend/notifications/push/subscribe', {
     method: 'POST',
     credentials: 'include',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ subscription }),
   });
+
+  if (!response.ok) {
+    throw new Error(`Push subscribe failed with status ${response.status}`);
+  }
 }
 
 async function deleteSubscription(endpoint: string) {
-  await fetch('/api/backend/notifications/push/subscribe', {
+  const response = await fetch('/api/backend/notifications/push/subscribe', {
     method: 'DELETE',
     credentials: 'include',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ endpoint }),
   });
+
+  if (!response.ok) {
+    throw new Error(`Push unsubscribe failed with status ${response.status}`);
+  }
 }
 
 export function AppExperienceProvider({ children }: { children: React.ReactNode }) {
