@@ -351,6 +351,8 @@ jobs:
 
           echo "=== nginx health ==="
           curl --retry 15 --retry-delay 2 --retry-all-errors -fsS http://127.0.0.1/healthz >/dev/null
+          curl --retry 15 --retry-delay 2 --retry-all-errors -H "Cache-Control: no-cache, no-store" -fsS "http://127.0.0.1/api/release?ts=$RELEASE_SHA" | tee /tmp/allvision-release.json
+          grep -q "$RELEASE_SHA" /tmp/allvision-release.json
           curl --retry 15 --retry-delay 2 --retry-all-errors -fsS http://127.0.0.1/sw.js >/dev/null
           curl --retry 15 --retry-delay 2 --retry-all-errors -fsS http://127.0.0.1/brand-eye-180.png >/dev/null
           curl --retry 15 --retry-delay 2 --retry-all-errors -fsS http://127.0.0.1/brand-eye-192.png >/dev/null
@@ -445,3 +447,21 @@ jobs:
             fi
           done
           EOFREMOTE
+
+      - name: Verify public release
+        shell: bash
+        env:
+          EXPECTED_RELEASE_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 20); do
+            RESPONSE="$(curl --retry 3 --retry-delay 2 --retry-all-errors -H 'Cache-Control: no-cache, no-store' -fsS "https://allvision-pulse.ru/api/release?ts=$EXPECTED_RELEASE_SHA" || true)"
+            if printf '%s' "$RESPONSE" | grep -q "$EXPECTED_RELEASE_SHA"; then
+              echo "Public release is up to date: $RESPONSE"
+              exit 0
+            fi
+            echo "Attempt $attempt/20: public domain still serves stale release: ${RESPONSE:-<empty>}"
+            sleep 6
+          done
+          echo "Public domain did not switch to release $EXPECTED_RELEASE_SHA" >&2
+          exit 1
