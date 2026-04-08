@@ -1,21 +1,35 @@
 .card {
-  background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
-  border: 1px solid var(--stroke);
+  background: var(--surface-1);
+  border: 1px solid var(--stroke-subtle);
   border-radius: var(--radius);
-  padding: 16px;
+  padding: var(--sp-5);
+  transition: border-color var(--dur) var(--ease);
+}
+
+.card:hover {
+  border-color: var(--stroke);
+}
+
+.cardFlush {
+  background: transparent;
+  border: none;
+  padding: 0;
 }
 
 .cardHeader {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 12px;
+  margin-bottom: var(--sp-4);
 }
 
 .title {
-  font-weight: 700;
+  font-weight: 600;
+  font-size: var(--fs-base);
+  color: var(--text);
 }
 
 .muted {
-  color: var(--muted);
+  color: var(--text-secondary);
+  font-size: var(--fs-sm);
 }
