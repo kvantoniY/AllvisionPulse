@@ -163,8 +163,10 @@ wait_for_service() {
   local release_dir="$1"
   local service="$2"
   local timeout_sec="${3:-240}"
+  local require_healthcheck="${4:-false}"
   local elapsed=0
   local container_id
+  local health_present
   local status
 
   container_id="$(compose_in_release "${release_dir}" ps -q "${service}")"
@@ -173,9 +175,20 @@ wait_for_service() {
     return 1
   fi
 
+  if [ "${require_healthcheck}" = "true" ]; then
+    health_present="$(docker inspect --format '{{if .State.Health}}yes{{else}}no{{end}}' "${container_id}" 2>/dev/null || true)"
+    if [ "${health_present}" != "yes" ]; then
+      echo "Service ${service} is missing a Docker healthcheck" >&2
+      return 1
+    fi
+  fi
+
   while [ "${elapsed}" -lt "${timeout_sec}" ]; do
     status="$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' "${container_id}" 2>/dev/null || true)"
-    if [ "${status}" = "healthy" ] || [ "${status}" = "running" ]; then
+    if [ "${status}" = "healthy" ]; then
+      return 0
+    fi
+    if [ "${require_healthcheck}" != "true" ] && [ "${status}" = "running" ]; then
       return 0
     fi
     if [ "${status}" = "unhealthy" ] || [ "${status}" = "dead" ] || [ "${status}" = "exited" ]; then
@@ -452,7 +465,7 @@ compose_in_release "${RELEASE_DIR}" build --pull frontend || fail_release "Faile
 
 log "Start postgres"
 recreate_service "${RELEASE_DIR}" postgres || fail_release "Failed to start postgres"
-wait_for_service "${RELEASE_DIR}" postgres 180 || fail_release "Postgres did not become healthy"
+wait_for_service "${RELEASE_DIR}" postgres 180 true || fail_release "Postgres did not become healthy"
 
 log "Start turn"
 recreate_service "${RELEASE_DIR}" turn || fail_release "Failed to start turn"
@@ -463,12 +476,12 @@ compose_in_release "${RELEASE_DIR}" run --rm --no-deps backend sh -lc "npx prism
 
 log "Start backend"
 recreate_service "${RELEASE_DIR}" backend || fail_release "Failed to start backend"
-wait_for_service "${RELEASE_DIR}" backend 240 || fail_release "Backend did not become healthy"
+wait_for_service "${RELEASE_DIR}" backend 240 true || fail_release "Backend did not become healthy"
 verify_release_sha "${RELEASE_DIR}" backend "${RELEASE_SHA}" || fail_release "Backend release SHA verification failed"
 
 log "Start frontend"
 recreate_service "${RELEASE_DIR}" frontend || fail_release "Failed to start frontend"
-wait_for_service "${RELEASE_DIR}" frontend 240 || fail_release "Frontend did not become healthy"
+wait_for_service "${RELEASE_DIR}" frontend 240 true || fail_release "Frontend did not become healthy"
 verify_release_sha "${RELEASE_DIR}" frontend "${RELEASE_SHA}" || fail_release "Frontend release SHA verification failed"
 frontend_release_check "${RELEASE_DIR}" "${RELEASE_SHA}" || fail_release "Frontend container does not serve the expected release"
 
@@ -477,7 +490,7 @@ compose_in_release "${RELEASE_DIR}" exec -T frontend sh -lc "test -f /app/public
 
 log "Start nginx"
 recreate_service "${RELEASE_DIR}" nginx || fail_release "Failed to start nginx"
-wait_for_service "${RELEASE_DIR}" nginx 180 || fail_release "Nginx did not become healthy"
+wait_for_service "${RELEASE_DIR}" nginx 180 true || fail_release "Nginx did not become healthy"
 verify_release_sha "${RELEASE_DIR}" nginx "${RELEASE_SHA}" || fail_release "Nginx release SHA verification failed"
 
 log "Verify localhost release"

@@ -193,7 +193,7 @@ jobs:
         if: always()
         run: |
           set +e
-          cat infra/alpha/scripts/collect-runtime-diagnostics.sh | ssh alpha 'bash -s'
+          cat infra/alpha/scripts/collect-runtime-diagnostics.sh | ssh alpha "RELEASE_SHA='${GITHUB_SHA}' bash -s"
 
       - name: Verify public release
         run: |
