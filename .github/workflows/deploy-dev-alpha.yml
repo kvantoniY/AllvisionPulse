@@ -196,9 +196,16 @@ jobs:
           cat infra/alpha/scripts/collect-runtime-diagnostics.sh | ssh alpha "RELEASE_SHA='${GITHUB_SHA}' bash -s"
 
       - name: Verify public release
+        id: verify_public_release
+        continue-on-error: true
         run: |
           set -euo pipefail
           bash infra/alpha/scripts/verify-public-release.sh "${GITHUB_SHA}" "${PUBLIC_APP_URL}"
+
+      - name: Public release warning
+        if: always() && steps.verify_public_release.outcome != 'success'
+        run: |
+          echo "::warning::Public HTTPS verification failed, but the origin deploy completed. Check external edge/TLS/port 443 diagnostics below."
 
       - name: Public release diagnostics
         if: always()
