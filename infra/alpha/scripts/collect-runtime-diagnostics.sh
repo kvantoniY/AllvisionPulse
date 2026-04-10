@@ -119,3 +119,13 @@ for service in backend frontend nginx; do
     docker inspect --format '{{json .State.Health}}' "${CID}" 2>/dev/null || true
   fi
 done
+echo
+
+echo "=== docker inspect labels ==="
+for service in backend frontend nginx; do
+  CID="$(compose_in_release "${TARGET_RELEASE_DIR}" ps -q "${service}")"
+  if [ -n "${CID}" ]; then
+    echo "--- ${service} ---"
+    docker inspect --format '{{ index .Config.Labels "org.allvision.release-sha" }}' "${CID}" 2>/dev/null || true
+  fi
+done

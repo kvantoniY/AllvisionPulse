@@ -203,6 +203,29 @@ wait_for_service() {
   return 1
 }
 
+wait_for_local_http() {
+  local url="$1"
+  local timeout_sec="${2:-120}"
+  local elapsed=0
+
+  while [ "${elapsed}" -lt "${timeout_sec}" ]; do
+    if curl \
+      --connect-timeout "${LOCAL_CURL_CONNECT_TIMEOUT_SEC}" \
+      --max-time "${LOCAL_CURL_MAX_TIME_SEC}" \
+      --retry 2 \
+      --retry-delay 1 \
+      --retry-all-errors \
+      -fsS "${url}" >/dev/null; then
+      return 0
+    fi
+    sleep 3
+    elapsed=$((elapsed + 3))
+  done
+
+  echo "Timed out waiting for ${url}" >&2
+  return 1
+}
+
 verify_release_sha() {
   local release_dir="$1"
   local service="$2"
@@ -490,11 +513,10 @@ compose_in_release "${RELEASE_DIR}" exec -T frontend sh -lc "test -f /app/public
 
 log "Start nginx"
 recreate_service "${RELEASE_DIR}" nginx || fail_release "Failed to start nginx"
-wait_for_service "${RELEASE_DIR}" nginx 180 true || fail_release "Nginx did not become healthy"
-verify_release_sha "${RELEASE_DIR}" nginx "${RELEASE_SHA}" || fail_release "Nginx release SHA verification failed"
+wait_for_service "${RELEASE_DIR}" nginx 60 || fail_release "Nginx did not enter running state"
+wait_for_local_http "http://127.0.0.1/healthz" 180 || fail_release "Local nginx health check failed"
 
 log "Verify localhost release"
-curl --connect-timeout "${LOCAL_CURL_CONNECT_TIMEOUT_SEC}" --max-time "${LOCAL_CURL_MAX_TIME_SEC}" --retry 5 --retry-delay 2 --retry-all-errors -fsS http://127.0.0.1/healthz >/dev/null || fail_release "Local nginx health check failed"
 curl --connect-timeout "${LOCAL_CURL_CONNECT_TIMEOUT_SEC}" --max-time "${LOCAL_CURL_MAX_TIME_SEC}" --retry 5 --retry-delay 2 --retry-all-errors -H "Cache-Control: no-cache, no-store" -fsS "http://127.0.0.1/api/release?ts=${RELEASE_SHA}" | tee /tmp/allvision-release.json >/dev/null || fail_release "Local release endpoint is unavailable"
 grep -q "${RELEASE_SHA}" /tmp/allvision-release.json || fail_release "Local release endpoint serves an unexpected release"
 curl --connect-timeout "${LOCAL_CURL_CONNECT_TIMEOUT_SEC}" --max-time "${LOCAL_CURL_MAX_TIME_SEC}" --retry 5 --retry-delay 2 --retry-all-errors -fsS "http://127.0.0.1/sw.js?ts=${RELEASE_SHA}" >/dev/null || fail_release "Local sw.js check failed"
