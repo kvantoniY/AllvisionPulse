@@ -129,3 +129,29 @@ for service in backend frontend nginx; do
     docker inspect --format '{{ index .Config.Labels "org.allvision.release-sha" }}' "${CID}" 2>/dev/null || true
   fi
 done
+echo
+
+echo "=== localhost checks ==="
+curl -sS -D - http://127.0.0.1/healthz -o /tmp/allvision-local-healthz.out || true
+sed -n '1,20p' /tmp/allvision-local-healthz.out 2>/dev/null || true
+echo
+
+curl -sS -D - "http://127.0.0.1/api/release?ts=${REQUESTED_RELEASE_SHA:-diagnostics}" -o /tmp/allvision-local-release.out || true
+sed -n '1,20p' /tmp/allvision-local-release.out 2>/dev/null || true
+echo
+
+curl -sSI "http://127.0.0.1/sw.js?ts=${REQUESTED_RELEASE_SHA:-diagnostics}" || true
+echo
+
+curl -sSI "http://127.0.0.1/brand-eye-180.png?ts=${REQUESTED_RELEASE_SHA:-diagnostics}" || true
+echo
+
+curl -sSI "http://127.0.0.1/brand-eye-192.png?ts=${REQUESTED_RELEASE_SHA:-diagnostics}" || true
+echo
+
+echo "=== localhost socket polling ==="
+TOKEN="$(compose_in_release "${TARGET_RELEASE_DIR}" exec -T backend node -e "const jwt=require('jsonwebtoken'); process.stdout.write(jwt.sign({ sub: 'healthcheck-socket', role: 'USER', sessionId: 'healthcheck-socket' }, process.env.JWT_ACCESS_SECRET, { expiresIn: '2m' }));" 2>/dev/null || true)"
+if [ -n "${TOKEN}" ]; then
+  curl -sS -D - -H "Authorization: Bearer ${TOKEN}" "http://127.0.0.1/socket.io/?EIO=4&transport=polling" -o /tmp/allvision-local-socket.out || true
+  sed -n '1,20p' /tmp/allvision-local-socket.out 2>/dev/null || true
+fi

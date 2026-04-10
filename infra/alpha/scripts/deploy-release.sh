@@ -288,11 +288,28 @@ frontend_release_check() {
 socket_polling_check() {
   local release_dir="$1"
   local token
+  local response_file
+  local endpoint
 
-  token="$(compose_in_release "${release_dir}" exec -T backend node -e "const jwt=require('jsonwebtoken'); process.stdout.write(jwt.sign({ sub: 'healthcheck-socket', role: 'USER' }, process.env.JWT_ACCESS_SECRET, { expiresIn: '2m' }));")"
-  curl --connect-timeout "${LOCAL_CURL_CONNECT_TIMEOUT_SEC}" --max-time "${LOCAL_CURL_MAX_TIME_SEC}" --retry 5 --retry-delay 2 --retry-all-errors -fsS \
-    -H "Authorization: Bearer ${token}" \
-    "http://127.0.0.1/socket.io?EIO=4&transport=polling" | grep -q '"sid"'
+  token="$(compose_in_release "${release_dir}" exec -T backend node -e "const jwt=require('jsonwebtoken'); process.stdout.write(jwt.sign({ sub: 'healthcheck-socket', role: 'USER', sessionId: 'healthcheck-socket' }, process.env.JWT_ACCESS_SECRET, { expiresIn: '2m' }));")"
+  response_file="$(mktemp)"
+
+  for endpoint in \
+    "http://127.0.0.1/socket.io/?EIO=4&transport=polling" \
+    "http://127.0.0.1/socket.io?EIO=4&transport=polling"
+  do
+    if curl --connect-timeout "${LOCAL_CURL_CONNECT_TIMEOUT_SEC}" --max-time "${LOCAL_CURL_MAX_TIME_SEC}" --retry 5 --retry-delay 2 --retry-all-errors -fsS \
+      -H "Authorization: Bearer ${token}" \
+      "${endpoint}" > "${response_file}" && grep -q '"sid"' "${response_file}"; then
+      rm -f "${response_file}"
+      return 0
+    fi
+  done
+
+  echo "Socket polling response:" >&2
+  cat "${response_file}" >&2 || true
+  rm -f "${response_file}"
+  return 1
 }
 
 failed_release_diagnostics() {
@@ -514,14 +531,22 @@ compose_in_release "${RELEASE_DIR}" exec -T frontend sh -lc "test -f /app/public
 log "Start nginx"
 recreate_service "${RELEASE_DIR}" nginx || fail_release "Failed to start nginx"
 wait_for_service "${RELEASE_DIR}" nginx 60 || fail_release "Nginx did not enter running state"
+
+log "Verify localhost nginx health"
 wait_for_local_http "http://127.0.0.1/healthz" 180 || fail_release "Local nginx health check failed"
 
 log "Verify localhost release"
 curl --connect-timeout "${LOCAL_CURL_CONNECT_TIMEOUT_SEC}" --max-time "${LOCAL_CURL_MAX_TIME_SEC}" --retry 5 --retry-delay 2 --retry-all-errors -H "Cache-Control: no-cache, no-store" -fsS "http://127.0.0.1/api/release?ts=${RELEASE_SHA}" | tee /tmp/allvision-release.json >/dev/null || fail_release "Local release endpoint is unavailable"
 grep -q "${RELEASE_SHA}" /tmp/allvision-release.json || fail_release "Local release endpoint serves an unexpected release"
+
+log "Verify localhost service worker"
 curl --connect-timeout "${LOCAL_CURL_CONNECT_TIMEOUT_SEC}" --max-time "${LOCAL_CURL_MAX_TIME_SEC}" --retry 5 --retry-delay 2 --retry-all-errors -fsS "http://127.0.0.1/sw.js?ts=${RELEASE_SHA}" >/dev/null || fail_release "Local sw.js check failed"
+
+log "Verify localhost brand assets"
 curl --connect-timeout "${LOCAL_CURL_CONNECT_TIMEOUT_SEC}" --max-time "${LOCAL_CURL_MAX_TIME_SEC}" --retry 5 --retry-delay 2 --retry-all-errors -fsS "http://127.0.0.1/brand-eye-180.png?ts=${RELEASE_SHA}" >/dev/null || fail_release "Local brand-eye-180.png check failed"
 curl --connect-timeout "${LOCAL_CURL_CONNECT_TIMEOUT_SEC}" --max-time "${LOCAL_CURL_MAX_TIME_SEC}" --retry 5 --retry-delay 2 --retry-all-errors -fsS "http://127.0.0.1/brand-eye-192.png?ts=${RELEASE_SHA}" >/dev/null || fail_release "Local brand-eye-192.png check failed"
+
+log "Verify localhost socket.io polling"
 socket_polling_check "${RELEASE_DIR}" || fail_release "Socket.io polling check failed"
 
 log "Update release pointers"
