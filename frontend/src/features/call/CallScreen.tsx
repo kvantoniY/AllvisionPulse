@@ -210,25 +210,55 @@ function StreamRenderer({
   showVideo = true,
   muted = false,
   sinkId,
+  mirror = false,
 }: {
   stream: MediaStream;
   className: string;
   showVideo?: boolean;
   muted?: boolean;
   sinkId?: string;
+  mirror?: boolean;
 }) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
+    let disposed = false;
+    const pendingUnlock: HTMLMediaElement[] = [];
+
+    const unlockPending = () => {
+      while (pendingUnlock.length) {
+        const element = pendingUnlock.shift();
+        if (!element) continue;
+        const playPromise = element.play();
+        if (playPromise && typeof playPromise.catch === 'function') playPromise.catch(() => null);
+      }
+      window.removeEventListener('pointerdown', unlockPending, true);
+      window.removeEventListener('keydown', unlockPending, true);
+      window.removeEventListener('touchstart', unlockPending, true);
+    };
+
     const attachStream = (element: HTMLMediaElement | null) => {
-      if (!element) return;
+      if (!element || disposed) return;
       if ((element as HTMLMediaElement & { srcObject?: MediaStream }).srcObject !== stream) {
         (element as HTMLMediaElement & { srcObject?: MediaStream }).srcObject = stream;
       }
       const tryPlay = () => {
         const playPromise = element.play();
-        if (playPromise && typeof playPromise.catch === 'function') playPromise.catch(() => null);
+        if (playPromise && typeof playPromise.catch === 'function') {
+          playPromise.catch((error) => {
+            // Autoplay was blocked by the browser (common in Chrome when
+            // the tab hasn't seen a user gesture yet). Queue a retry that
+            // fires on the next user interaction.
+            const name = typeof error === 'object' && error && 'name' in error ? String((error as { name?: unknown }).name ?? '') : '';
+            if (name === 'NotAllowedError' || name === 'AbortError') {
+              if (!pendingUnlock.includes(element)) pendingUnlock.push(element);
+              window.addEventListener('pointerdown', unlockPending, { capture: true, once: false });
+              window.addEventListener('keydown', unlockPending, { capture: true, once: false });
+              window.addEventListener('touchstart', unlockPending, { capture: true, once: false });
+            }
+          });
+        }
       };
       if (element.readyState >= 1) {
         tryPlay();
@@ -243,6 +273,13 @@ function StreamRenderer({
 
     if (showVideo && videoRef.current) attachStream(videoRef.current);
     if (!muted && audioRef.current) attachStream(audioRef.current);
+
+    return () => {
+      disposed = true;
+      window.removeEventListener('pointerdown', unlockPending, true);
+      window.removeEventListener('keydown', unlockPending, true);
+      window.removeEventListener('touchstart', unlockPending, true);
+    };
   }, [stream, muted, showVideo]);
 
   useEffect(() => {
@@ -261,7 +298,16 @@ function StreamRenderer({
 
   return (
     <>
-      {showVideo ? <video ref={videoRef} className={className} autoPlay playsInline muted /> : null}
+      {showVideo ? (
+        <video
+          ref={videoRef}
+          className={[className, mirror ? styles.videoMirror : ''].filter(Boolean).join(' ')}
+          style={mirror ? { transform: 'scaleX(-1)' } : undefined}
+          autoPlay
+          playsInline
+          muted
+        />
+      ) : null}
       {!muted ? <audio ref={audioRef} autoPlay className={styles.hiddenAudio} /> : null}
     </>
   );
@@ -302,6 +348,7 @@ function MediaTile({
           muted={tile.isSelf}
           showVideo={showVideo}
           sinkId={tile.isSelf ? undefined : audioOutputId}
+          mirror={tile.isSelf && !tile.screenOn}
         />
       ) : null}
 
@@ -387,6 +434,7 @@ export function CallScreen({
   const chatRef = useRef(chat);
   const meRef = useRef(me);
   const onConnectedRef = useRef(onConnected);
+  const onHangupRef = useRef(onHangup);
   const [, tick] = useState(0);
   const toastTimerRef = useRef<number | null>(null);
   const bannerTimerRef = useRef<number | null>(null);
@@ -425,7 +473,8 @@ export function CallScreen({
     chatRef.current = chat;
     meRef.current = me;
     onConnectedRef.current = onConnected;
-  }, [chat, me, onConnected]);
+    onHangupRef.current = onHangup;
+  }, [chat, me, onConnected, onHangup]);
 
   useEffect(() => {
     if (!open) return;
@@ -498,6 +547,20 @@ export function CallScreen({
         setSharing(media.screenOn);
         if (!media.screenOn) setScreenStream(null);
       },
+      onTakenOver: () => {
+        pushBanner('Звонок продолжается в другой вкладке.', 'warning', 4200);
+        onHangupRef.current?.('taken-over');
+      },
+      onFatalError: (code) => {
+        pushBanner(
+          code === 'CALL_NOT_FOUND'
+            ? 'Звонок уже завершён.'
+            : 'Не удалось присоединиться к звонку.',
+          'error',
+          0,
+        );
+        onHangupRef.current?.(code.toLowerCase());
+      },
     });
 
     setRoom(nextRoom);
@@ -543,37 +606,6 @@ export function CallScreen({
       bannerTimerRef.current = null;
     };
   }, [open, callId, meId, pushBanner]);
-
-  useEffect(() => {
-    if (!open || !room) return;
-
-    const resumeRoom = (reason: 'visibility' | 'pageshow' | 'online') => {
-      void room.resume(reason);
-    };
-
-    const onVisibility = () => {
-      if (document.visibilityState !== 'visible') return;
-      resumeRoom('visibility');
-    };
-
-    const onPageShow = () => {
-      resumeRoom('pageshow');
-    };
-
-    const onOnline = () => {
-      resumeRoom('online');
-    };
-
-    document.addEventListener('visibilitychange', onVisibility);
-    window.addEventListener('pageshow', onPageShow);
-    window.addEventListener('online', onOnline);
-
-    return () => {
-      document.removeEventListener('visibilitychange', onVisibility);
-      window.removeEventListener('pageshow', onPageShow);
-      window.removeEventListener('online', onOnline);
-    };
-  }, [open, room]);
 
   useEffect(() => {
     if (!open) return;
@@ -1000,10 +1032,11 @@ export function CallScreen({
                   {mainTile?.stream ? (
                     <StreamRenderer
                       stream={mainTile.stream}
-                      className={styles.mainVideoEl}
+                      className={[styles.mainVideoEl, !mainTile.isScreen ? styles.videoContain : ''].filter(Boolean).join(' ')}
                       muted={mainTile.muted}
                       showVideo={mainTile.isScreen || mainTile.camOn}
                       sinkId={mainTile.muted ? undefined : audioOutputId}
+                      mirror={mainTile.isSelf && !mainTile.isScreen}
                     />
                   ) : null}
 
@@ -1037,13 +1070,11 @@ export function CallScreen({
 
                   {!isGroup && !screenOwnerId ? (
                     <div className={styles.pip}>
-                      {localStream ? (
-                        <StreamRenderer stream={localStream} className={styles.pipVideo} muted showVideo={camOn} />
-                      ) : null}
+                      {localStream ? <StreamRenderer stream={localStream} className={styles.pipVideo} muted showVideo={camOn} mirror /> : null}
                       {!camOn || !localStream ? (
                         <div className={styles.pipPlaceholder}>
                           <Avatar url={me?.avatarUrl ?? undefined} name={me?.username ?? 'Вы'} size={40} />
-                          <div className={styles.pipName} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>{me?.username ?? 'Вы'}<AdminBadge role={me?.role} /></div>
+                          <div className={styles.pipName} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>{me?.username ?? 'Вы'}<AdminBadge role={me?.role} username={me?.username} /></div>
                         </div>
                       ) : null}
                     </div>

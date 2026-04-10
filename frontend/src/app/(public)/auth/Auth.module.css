@@ -1,5 +1,5 @@
 .wrap {
-  min-height: 100vh;
+  min-height: 100dvh;
   display: grid;
   place-items: center;
   padding: 24px;
@@ -8,45 +8,84 @@
 .card {
   width: 100%;
   max-width: 420px;
-  background: linear-gradient(180deg, rgba(16,18,22,0.96), rgba(10,11,13,0.99));
+  background: linear-gradient(180deg, rgba(14, 16, 20, 0.98), rgba(10, 11, 14, 0.99));
   border: 1px solid var(--stroke);
-  border-radius: 20px;
-  padding: 22px;
+  border-radius: var(--radius-xl);
+  padding: 28px 24px;
   box-shadow: var(--shadow-lg);
 }
 
 .head {
-  font-size: 30px;
+  font-size: clamp(1.5rem, 4vw, 1.875rem);
   font-weight: 800;
   margin-bottom: 6px;
   letter-spacing: -0.04em;
+  line-height: 1.1;
 }
 
 .sub {
   color: var(--muted);
-  margin-bottom: 18px;
+  margin-bottom: 22px;
   line-height: 1.55;
-  font-size: 14px;
+  font-size: var(--text-body);
 }
 
-.form { display: grid; gap: 12px; }
-.row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.err, .error { color: var(--danger); font-size: 13px; }
-.link { color: var(--text); text-decoration: none; font-weight: 600; }
-.link:hover { color: var(--accent-strong); }
+.form {
+  display: grid;
+  gap: 12px;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.err,
+.error {
+  color: var(--danger);
+  font-size: var(--text-small);
+}
+
+.link {
+  color: var(--text-soft);
+  text-decoration: none;
+  font-weight: 600;
+  transition: color 120ms ease;
+}
+
+.link:hover {
+  color: var(--accent-strong);
+}
+
 .bottom {
   display: flex;
   justify-content: center;
   gap: 8px;
-  margin-top: 14px;
+  margin-top: 16px;
   color: var(--muted);
-  font-size: 13px;
+  font-size: var(--text-small);
   flex-wrap: wrap;
 }
-.full { width: 100%; }
+
+.full {
+  width: 100%;
+}
 
 @media (max-width: 560px) {
-  .wrap { padding: 12px; }
-  .card { padding: 18px; border-radius: 18px; }
-  .row { grid-template-columns: 1fr; }
+  .wrap {
+    padding: 12px;
+    align-items: flex-end;
+  }
+
+  .card {
+    padding: 20px 18px;
+    border-radius: var(--radius-xl);
+    border-bottom-left-radius: calc(var(--radius-xl) + env(safe-area-inset-bottom, 0px));
+    border-bottom-right-radius: calc(var(--radius-xl) + env(safe-area-inset-bottom, 0px));
+  }
+
+  .row {
+    grid-template-columns: 1fr;
+  }
 }

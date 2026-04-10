@@ -13,7 +13,7 @@ export function Switch({
 }) {
   return (
     <div className={styles.row}>
-      <div>
+      <div className={styles.copy}>
         <div className={styles.label}>{label}</div>
         {description ? <div className={styles.muted}>{description}</div> : null}
       </div>

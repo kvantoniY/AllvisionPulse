@@ -14,7 +14,8 @@ export function Modal({
   size = 'md',
   subtitle,
   icon,
-}: PropsWithChildren<{ open: boolean; onClose: () => void; title?: string; subtitle?: string; icon?: ReactNode; size?: 'md' | 'lg' | 'xl' | 'game' }>) {
+  bodyClassName = '',
+}: PropsWithChildren<{ open: boolean; onClose: () => void; title?: string; subtitle?: string; icon?: ReactNode; size?: 'md' | 'lg' | 'xl' | 'game'; bodyClassName?: string }>) {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -62,7 +63,7 @@ export function Modal({
             <Icon name="close" size={18} />
           </button>
         </div>
-        <div className={[styles.body, size === 'game' ? styles.bodyGame : ''].filter(Boolean).join(' ')}>{children}</div>
+        <div className={[styles.body, size === 'game' ? styles.bodyGame : '', bodyClassName].filter(Boolean).join(' ')}>{children}</div>
       </div>
     </div>,
     document.body,

@@ -45,9 +45,43 @@
   transform: none;
 }
 
+.mobileLayout {
+  min-height: calc(100dvh - 64px);
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  padding: 16px;
+}
+
+.mobileContent {
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 14px;
+  text-align: center;
+  color: var(--text-soft);
+}
+
+.mobileIconWrap {
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  color: var(--accent);
+  background: rgba(255, 122, 26, 0.1);
+  border: 1px solid rgba(255, 122, 26, 0.16);
+}
+
+.mobileDescription {
+  max-width: 320px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
 @media (max-width: 640px) {
   .actions {
     flex-direction: column-reverse;
+    width: 100%;
   }
 
   .cancelBtn,

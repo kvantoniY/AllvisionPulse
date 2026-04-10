@@ -55,7 +55,6 @@ export function Sidebar() {
 
   return (
     <aside className={styles.sidebar}>
-
       <nav className={styles.nav}>
         <NavItem href={ROUTES.app.feed} label="Лента" icon="home" active={pathname === '/' || pathname.startsWith('/feed')} />
         <NavItem href={ROUTES.app.health} label="Пульс" icon="pulse" active={pathname.startsWith('/health')} />
@@ -72,7 +71,7 @@ export function Sidebar() {
           <div style={{ minWidth: 0 }}>
             <div className={styles.name} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               {me?.username ?? '—'}
-              <AdminBadge role={me?.role} />
+              <AdminBadge role={me?.role} username={me?.username} />
             </div>
             <div className={styles.handle}>{me ? `@${me.username}` : ''}</div>
           </div>

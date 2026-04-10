@@ -32,6 +32,7 @@ import { PulseShareCard } from '@/shared/ui/PulseShareCard/PulseShareCard';
 import { PulseSharePicker } from '@/shared/ui/PulseSharePicker/PulseSharePicker';
 import type { ShareArtifact } from '@/shared/types/programs';
 import { toPulseShareWidgetPayload, type PulseShareWidgetPayload } from '@/shared/lib/pulseShare';
+import { getPulseShareWidgetPayload } from '@/shared/lib/socialWidgets';
 
 const MAX_TEXT = 5000;
 
@@ -58,7 +59,7 @@ function commentWidgetLabel(widget: PulseShareWidgetPayload | null) {
   if (!widget) return '';
   const snapshot = widget.artifact.snapshotJson ?? {};
   const title = typeof snapshot.title === 'string' ? snapshot.title : widget.artifact.title ?? 'Pulse artifact';
-  return `Pulse share: ${title}`;
+  return `Виджет Pulse: ${title}`;
 }
 
 function getOriginalPost(post: Post): Post {
@@ -111,6 +112,7 @@ function CommentBubble({
   onReply: () => void;
 }) {
   const lightbox = useLightbox();
+  const pulseShareWidget = useMemo(() => getPulseShareWidgetPayload(comment.widgetsJson), [comment.widgetsJson]);
   const liked = !!meId && (comment.likes ?? []).some((item) => item.userId === meId);
   const [likeComment] = useLikeCommentMutation();
   const [unlikeComment] = useUnlikeCommentMutation();
@@ -130,7 +132,7 @@ function CommentBubble({
           <div style={{ minWidth: 0 }}>
             <div className={styles.commentAuthorRow}>
               <span className={styles.commentAuthor}>{comment.author.username}</span>
-              <AdminBadge role={comment.author.role} />
+              <AdminBadge role={comment.author.role} username={comment.author.username} />
               {comment.parentId && comment.replyToUsername ? <span className={styles.commentReplyTo}>· {comment.replyToUsername}</span> : null}
             </div>
             <div className={styles.commentMeta}>{formatRelative(comment.createdAt)}</div>
@@ -144,10 +146,10 @@ function CommentBubble({
 
         {comment.text ? <div className={styles.commentText}>{comment.text}</div> : null}
 
-        {(comment.widgetsJson as any)?.type === 'pulse_share' ? (
+        {pulseShareWidget ? (
           <PulseShareCard
-            artifactId={String((comment.widgetsJson as any)?.artifactId ?? '')}
-            artifact={(comment.widgetsJson as any)?.artifact ?? null}
+            artifactId={String(pulseShareWidget.artifactId ?? '')}
+            artifact={pulseShareWidget.artifact ?? null}
             compact
           />
         ) : null}
@@ -312,7 +314,7 @@ function CommentComposer({
         {widget ? (
           <div className={styles.replyChip}>
             <span>{widgetLabel}</span>
-            <button type="button" className={styles.replyChipClose} onClick={onClearWidget} aria-label="Clear share artifact">
+            <button type="button" className={styles.replyChipClose} onClick={onClearWidget} aria-label="Удалить виджет">
               <Icon name="close" size={12} />
             </button>
           </div>
@@ -355,7 +357,7 @@ function CommentComposer({
             >
               <Icon name="image" size={17} />
             </button>
-            <button type="button" className={styles.inputToolBtn} aria-label="Attach Pulse share" onClick={onOpenSharePicker}>
+            <button type="button" className={styles.inputToolBtn} aria-label="Прикрепить виджет Pulse" onClick={onOpenSharePicker}>
               <Icon name="paperclip" size={17} />
             </button>
           </div>
@@ -572,6 +574,7 @@ export function PostModal({
   const images = mediaPost?.images ?? [];
   const singleImage = images.length === 1 ? images[0] : null;
   const hasMedia = images.length > 0;
+  const postPulseShareWidget = useMemo(() => getPulseShareWidgetPayload(post?.widgetsJson), [post?.widgetsJson]);
   const textContent = post?.text || (!hasMedia && mediaPost && mediaPost.id !== post?.id ? mediaPost.text || '' : '');
   const descriptionClassName = [styles.description, !textExpanded ? styles.descriptionCollapsed : ''].filter(Boolean).join(' ');
 
@@ -761,7 +764,7 @@ export function PostModal({
                 ) : null}
 
                 <div className={styles.contentPane}>
-                {(textContent || post.repostOf || !hasMedia) ? (
+                {(textContent || post.repostOf || postPulseShareWidget || !hasMedia) ? (
                   <div className={styles.textBlock}>
                     <div className={styles.postMetaRow}>
                       <div className={styles.author}>
@@ -769,7 +772,7 @@ export function PostModal({
                         <div className={styles.authorText}>
                           <div className={styles.authorNameRow}>
                             <span className={styles.authorName}>{post.author.username}</span>
-                            <AdminBadge role={post.author.role} />
+                            <AdminBadge role={post.author.role} username={post.author.username} />
                           </div>
                           <div className={styles.authorMeta}>{formatAbsoluteDate(post.createdAt)}</div>
                           {post.repostOf ? <div className={styles.repostMeta}>репостнул публикацию</div> : null}
@@ -802,6 +805,14 @@ export function PostModal({
                       <button type="button" className={styles.moreTextBtnModal} onClick={() => setTextExpanded((value) => !value)}>
                         {textExpanded ? 'Свернуть' : 'Показать ещё'}
                       </button>
+                    ) : null}
+
+                    {postPulseShareWidget ? (
+                      <PulseShareCard
+                        artifactId={String(postPulseShareWidget.artifactId ?? '')}
+                        artifact={postPulseShareWidget.artifact ?? null}
+                        className={styles.postWidgetCard}
+                      />
                     ) : null}
 
                     {post.repostOf && originalPost ? (

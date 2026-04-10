@@ -253,11 +253,6 @@ export function RealtimeProvider({ children }: PropsWithChildren) {
     const connect = async () => {
       const currentSocket = socketRef.current;
       if (currentSocket?.connected || currentSocket?.active) return;
-      if (currentSocket) {
-        currentSocket.disconnect();
-        socketRef.current = null;
-        setRealtimeSocket(null);
-      }
 
       const token = await refreshAccessToken();
       if (!alive) return;
@@ -267,6 +262,16 @@ export function RealtimeProvider({ children }: PropsWithChildren) {
       }
 
       clearRetry();
+
+      if (currentSocket) {
+        currentSocket.auth = { token } as any;
+        try {
+          currentSocket.connect();
+        } catch {
+          scheduleBootstrapRetry(3000);
+        }
+        return;
+      }
 
       const socket = io(resolveRealtimeOrigin(), {
         path: REALTIME_PATH,
@@ -293,7 +298,7 @@ export function RealtimeProvider({ children }: PropsWithChildren) {
           return;
         }
         socket.auth = { token: next } as any;
-        if (!socket.active) {
+        if (!socket.connected) {
           try {
             socket.connect();
           } catch {
@@ -368,15 +373,24 @@ export function RealtimeProvider({ children }: PropsWithChildren) {
           }),
         );
 
-        dispatch(
-          chatsApi.util.updateQueryData('getMessages', { chatId, take: 50, cursor: null }, (draft: any) => {
-            const items: any[] = draft.items ?? [];
-            if (!items.some((m) => m.id === msg.id)) {
-              items.unshift(msg);
-              draft.items = items;
-            }
-          }),
-        );
+        /* Skip message-cache update for own messages in the active chat.
+           The optimistic pending → resolvePendingMessage flow handles them;
+           adding here too causes a brief duplicate (pending + real). */
+        const isOwnInActiveChat =
+          activeChatIdRef.current === chatId &&
+          msg.senderId === meIdRef.current;
+
+        if (!isOwnInActiveChat) {
+          dispatch(
+            chatsApi.util.updateQueryData('getMessages', { chatId, take: 50, cursor: null }, (draft: any) => {
+              const items: any[] = draft.items ?? [];
+              if (!items.some((m) => m.id === msg.id)) {
+                items.unshift(msg);
+                draft.items = items;
+              }
+            }),
+          );
+        }
 
         dispatch(chatsApi.util.invalidateTags([{ type: 'Chat', id: 'LIST' }]));
 

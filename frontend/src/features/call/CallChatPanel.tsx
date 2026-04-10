@@ -12,6 +12,7 @@ import { Icon } from '@/shared/ui/Icon/Icon';
 import { Spinner } from '@/shared/ui/Spinner/Spinner';
 import { SkeletonText } from '@/shared/ui/Skeleton/Skeleton';
 import { AdminBadge } from '@/shared/ui/AdminBadge/AdminBadge';
+import { createMessageMediaMeta } from '@/shared/lib/mediaCore/messageMediaMeta';
 
 export function CallChatPanel({ chatId }: { chatId: string }) {
   const { data: meRes } = useGetMeQuery();
@@ -50,14 +51,14 @@ export function CallChatPanel({ chatId }: { chatId: string }) {
     if (!chatId) return;
     setIsRecording(false);
     try {
-      const formData = new FormData();
-      formData.append('file', blob, 'voice-message.webm');
-      formData.append('chatId', chatId);
-      formData.append('type', 'AUDIO');
-      formData.append('duration', duration.toString());
-      const response = await fetch('/api/backend/messages/upload', { method: 'POST', body: formData });
-      if (!response.ok) throw new Error('Upload failed');
-      await sendMessage({ chatId, text: 'Голосовое сообщение', type: 'AUDIO' }).unwrap();
+      const extension = blob.type.includes('ogg') ? 'ogg' : blob.type.includes('mp4') ? 'm4a' : 'webm';
+      const file = new File([blob], `call-voice-${Date.now()}.${extension}`, { type: blob.type || 'audio/webm' });
+      await sendMessage({
+        chatId,
+        type: 'AUDIO',
+        files: [file],
+        metaJson: createMessageMediaMeta('audio', duration),
+      }).unwrap();
     } catch (err) {
       console.error('Error sending audio:', err);
       alert('Не удалось отправить голосовое сообщение');
@@ -101,11 +102,22 @@ export function CallChatPanel({ chatId }: { chatId: string }) {
         {list.map((message) => {
           const mine = message.senderId === meId;
           const messageType = message.type ?? 'TEXT';
+          const duration = Number((message.metaJson as { media?: { durationSec?: number | null } } | null)?.media?.durationSec ?? 0) || undefined;
+
           return (
             <div key={message.id} className={[styles.callChatMsg, mine ? styles.callChatMine : styles.callChatTheir].join(' ')}>
-              <div className={styles.callChatName} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>{mine ? 'Вы' : message.sender?.username ?? 'Участник'}{!mine ? <AdminBadge role={message.sender?.role} /> : null}</div>
+              <div className={styles.callChatName} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                {mine ? 'Вы' : message.sender?.username ?? 'Участник'}
+                {!mine ? <AdminBadge role={message.sender?.role} username={message.sender?.username} /> : null}
+              </div>
               {messageType === 'AUDIO' ? (
-                <AudioMessage url={message.attachments?.[0]?.url || ''} duration={Number(message.attachments?.[0]?.durationSec ?? 0) || undefined} title="Голосовое сообщение" />
+                <AudioMessage
+                  url={message.attachments?.[0]?.url}
+                  duration={duration}
+                  title="Голосовое сообщение"
+                  tone={mine ? 'outgoing' : 'incoming'}
+                  mediaId={`${chatId}:${message.id}:audio`}
+                />
               ) : (
                 <div className={styles.callChatText}>{message.text ?? ''}</div>
               )}

@@ -200,34 +200,30 @@ export function ProgramSessionPage({ sessionId, embedded = false }: { sessionId:
       ) : null}
 
       <Card className={styles.sectionCard}>
-        <div className={styles.list}>
-          <div className={styles.actionRow}>
-            <div className={styles.actionMeta}>
-              <div className={styles.actionTitle}>Программа</div>
-              <div className={styles.actionSub}>{session.program.title}</div>
-            </div>
+        <div className={styles.sessionOverviewGrid}>
+          <article className={styles.sessionOverviewCard}>
+            <div className={styles.sessionOverviewLabel}>Программа</div>
+            <strong className={styles.sessionOverviewTitle}>{session.program.title}</strong>
+            <span className={styles.sessionOverviewText}>Сессия наследует шаги, этапы и все сценарии программы. Здесь вы следите за общим темпом, а не редактируете структуру.</span>
             <Link href={buildHealthProgramsHref({ screen: 'detail', programId: session.program.id })} className={styles.linkButton}>
               <Button size="sm">Открыть программу</Button>
             </Link>
-          </div>
-
-          <div className={styles.actionRow}>
-            <div className={styles.actionMeta}>
-              <div className={styles.actionTitle}>Кто запускает</div>
-              <div className={styles.actionSub}>
-                {session.startMode === 'HOST_MANUAL' || session.startMode === 'NOW'
-                  ? session.host?.username
-                    ? `Владелец @${session.host.username}`
-                    : 'Владелец сессии'
-                  : startModeLabel(session.startMode)}
-              </div>
-            </div>
+          </article>
+          <article className={styles.sessionOverviewCard}>
+            <div className={styles.sessionOverviewLabel}>Как запускается</div>
+            <strong className={styles.sessionOverviewTitle}>
+              {session.startMode === 'HOST_MANUAL' || session.startMode === 'NOW'
+                ? session.host?.username
+                  ? `Владелец @${session.host.username}`
+                  : 'Владелец сессии'
+                : startModeLabel(session.startMode)}
+            </strong>
             <div className={styles.metaRow}>
               <span className={styles.pill}>{session.inviteLinkToken ? 'Ссылка готова' : 'Без ссылки'}</span>
               {session.startedAt ? <span className={styles.pill}>Старт {formatProgramDate(session.startedAt, true)}</span> : null}
               {session.scheduledStartAt ? <span className={styles.pill}>План {formatProgramDate(session.scheduledStartAt, true)}</span> : null}
             </div>
-          </div>
+          </article>
         </div>
       </Card>
 
@@ -291,6 +287,7 @@ export function ProgramSessionPage({ sessionId, embedded = false }: { sessionId:
       {tab === 'Сегодня' ? (
         <Card className={styles.sectionCard}>
           <CardHeader title="Сегодня в сессии" />
+          <div className={styles.sectionHint}>Кто уже двигается по сценарию, кто ждёт старта и какие шаги уже отмечены сегодня.</div>
           <div className={styles.participantsBlock}>
             {session.members.map((member) => (
               <div key={member.id} className={styles.participantRow}>

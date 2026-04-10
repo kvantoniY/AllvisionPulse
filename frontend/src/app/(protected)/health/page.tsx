@@ -11,6 +11,7 @@ import {
   CalendarDays,
   Check,
   ChevronDown,
+  ChevronLeft,
   ChevronRight,
   CircleCheckBig,
   Coffee,
@@ -28,6 +29,7 @@ import {
   Settings2,
   Sparkles,
   Target,
+  Trash2,
   TrendingUp,
   TriangleAlert,
   UtensilsCrossed,
@@ -79,8 +81,10 @@ import {
   useUpdateSavingsGoalMutation,
 } from '@/shared/api/pulseApi';
 import type { PulseFinanceEntry, PulseFinanceShareMeta, PulseFood, PulseMeal, PulseMealItem, PulseTaskGoal, PulseTaskItem } from '@/shared/types/pulse';
+import { DiaryTimelineBoard } from '@/features/dailyPlanner/ui/DiaryTimelineBoard';
 import { ProgramTodayWidget } from '@/features/programs/ui/ProgramTodayWidget';
 import { Field, FinanceComparisonMetricCard, FinanceEntryCompactRow, FinanceShareParticipants, HealthSlider, MiniRing, PulseIcon, Segmented, SliderCard } from '@/features/pulse/ui/HealthPageWidgets';
+import type { PulseIconName } from '@/features/pulse/ui/HealthPageWidgets';
 const ProgramsPulseTab = dynamic(
   () => import('@/features/programs/ui/ProgramsPulseTab').then((mod) => mod.ProgramsPulseTab),
   {
@@ -114,6 +118,14 @@ const ConfigTab = dynamic(
 );
 
 const weekdayLabels = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+const NUTRITION_HEIGHT_SCALE = [200, 195, 190, 185, 180, 175, 170, 165, 160, 155, 150];
+
+const DIARY_TIMELINE_START_HOUR = 6;
+const DIARY_TIMELINE_TOTAL_HOURS = 24;
+const DIARY_TIMELINE_LABELS = Array.from(
+  { length: DIARY_TIMELINE_TOTAL_HOURS + 1 },
+  (_, index) => (DIARY_TIMELINE_START_HOUR + index) % 24,
+);
 
 function fmtDate(date: Date) {
   const yyyy = date.getFullYear();
@@ -166,8 +178,19 @@ function formatShortDate(value: string) {
   return new Intl.DateTimeFormat('ru-RU', { day: '2-digit', month: 'short' }).format(parsed);
 }
 
+function formatToolbarWeekday(value: string) {
+  const parsed = parseDate(value);
+  if (!parsed) return '—';
+  return new Intl.DateTimeFormat('ru-RU', { weekday: 'long' }).format(parsed);
+}
+
 function formatMoney(value: number | null | undefined) {
   return new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(value ?? 0);
+}
+
+function formatNumericValue(value: number | null | undefined, maximumFractionDigits = 1) {
+  if (value == null || Number.isNaN(value)) return '—';
+  return new Intl.NumberFormat('ru-RU', { maximumFractionDigits }).format(value);
 }
 
 function formatMoneyCompact(value: number | null | undefined) {
@@ -398,36 +421,6 @@ function pillTone(value: number, target: number) {
   return 'danger';
 }
 
-type PulseIconName =
-  | 'pulse'
-  | 'ruler'
-  | 'scale'
-  | 'calendar'
-  | 'target'
-  | 'trend'
-  | 'flame'
-  | 'check'
-  | 'card'
-  | 'spark'
-  | 'meal'
-  | 'wallet'
-  | 'heart'
-  | 'arrow'
-  | 'brain'
-  | 'moon'
-  | 'bolt'
-  | 'warning'
-  | 'activity'
-  | 'wine'
-  | 'coffee'
-  | 'info'
-  | 'plus'
-  | 'trash'
-  | 'utensils'
-  | 'gear'
-  | 'alert'
-  | 'pencil';
-
 function formatMealTime(value?: string | null) {
   const parsed = parseDate(value ?? null);
   if (!parsed) return '—';
@@ -513,6 +506,17 @@ function getFinanceCategoryMeta(name?: string | null) {
   if (/(досуг|хобби|кино|игр|развлеч)/.test(value)) return { icon: 'spark' as const, tone: 'purple' as const };
   if (/(зарплат|прем|доход|подар)/.test(value)) return { icon: 'trend' as const, tone: 'green' as const };
   return { icon: 'wallet' as const, tone: 'orange' as const };
+}
+
+function getHabitOverviewMeta(title: string) {
+  const value = title.toLowerCase();
+
+  if (/(кур|сигар|вейп|никотин)/.test(value)) return { icon: 'cigarette' as const, tone: 'accent' as const };
+  if (/(кровать|сон|спать|отбой|подъём|подъем|постель)/.test(value)) return { icon: 'bed' as const, tone: 'success' as const };
+  if (/(алког|вино|пиво|бар|коктейл)/.test(value)) return { icon: 'wine' as const, tone: 'info' as const };
+  if (/(вода|пить|стакан)/.test(value)) return { icon: 'meal' as const, tone: 'info' as const };
+  if (/(шаг|ход|трен|спорт|бег|зал|заряд)/.test(value)) return { icon: 'activity' as const, tone: 'success' as const };
+  return { icon: 'flame' as const, tone: 'accent' as const };
 }
 
 function getRecurrenceLabel(recurrenceJson: unknown) {
@@ -846,6 +850,322 @@ function getParticipantInitials(username?: string | null) {
 }
 
 
+function clampNumber(value: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, value));
+}
+
+type DiaryTimelineEntry = {
+  key: string;
+  task: PulseTaskItem;
+  label: string;
+  tone: ReturnType<typeof getTaskVisualMeta>['tone'];
+  left: number;
+  minutes: number;
+  windowLabel: string;
+  excerpt: string;
+};
+
+function getDiaryTimelineMinutes(value?: string | null) {
+  const parsed = parseDate(value ?? null);
+  if (!parsed) return null;
+
+  const minutes = parsed.getHours() * 60 + parsed.getMinutes();
+  return minutes < DIARY_TIMELINE_START_HOUR * 60 ? minutes + 24 * 60 : minutes;
+}
+
+function getDiaryTimelinePercent(minutes: number) {
+  return clampNumber(
+    ((minutes - DIARY_TIMELINE_START_HOUR * 60) / (DIARY_TIMELINE_TOTAL_HOURS * 60)) * 100,
+    0,
+    100,
+  );
+}
+
+function getDiaryTaskWindowLabel(task: PulseTaskItem) {
+  const startLabel = getTaskPrimaryTime(task);
+  if (!task.endDate) return startLabel;
+
+  const endLabel = formatTimeLabel(task.endDate);
+  if (!endLabel || endLabel === 'Без времени') return startLabel;
+  return `${startLabel} - ${endLabel}`;
+}
+
+function getDiaryTaskExcerpt(task: PulseTaskItem, max = 72) {
+  const clean = task.notes?.trim() ?? '';
+  if (!clean) return '';
+  if (clean.length <= max) return clean;
+  return `${clean.slice(0, max).trim()}...`;
+}
+
+function getDiaryTaskKey(task: PulseTaskItem) {
+  return task.occurrenceKey ?? task.id;
+}
+
+function pickDiaryFeaturedTask(entries: DiaryTimelineEntry[], date: string, now: Date) {
+  if (!entries.length) return null;
+
+  const openEntries = entries.filter((entry) => !entry.task.completedForDate);
+  if (!openEntries.length) return entries[0] ?? null;
+
+  if (date === fmtDate(now)) {
+    const currentMinutesRaw = now.getHours() * 60 + now.getMinutes();
+    const currentMinutes =
+      currentMinutesRaw < DIARY_TIMELINE_START_HOUR * 60 ? currentMinutesRaw + 24 * 60 : currentMinutesRaw;
+
+    return openEntries.find((entry) => entry.minutes >= currentMinutes) ?? openEntries[0] ?? entries[0] ?? null;
+  }
+
+  return openEntries[0] ?? entries[0] ?? null;
+}
+
+function DiaryTimelineHero({
+  date,
+  tasks,
+  onOpenTask,
+}: {
+  date: string;
+  tasks: PulseTaskItem[];
+  onOpenTask: (task: PulseTaskItem) => void;
+}) {
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+  const [selectedKey, setSelectedKey] = useState<string | null>(null);
+  const [scrollThumb, setScrollThumb] = useState({ visible: false, width: 32, left: 0 });
+  const [now, setNow] = useState(() => new Date());
+
+  const entries = useMemo<DiaryTimelineEntry[]>(() => {
+    return tasks
+      .map((task) => {
+        const minutes = getDiaryTimelineMinutes(task.dueDate);
+        if (minutes == null) return null;
+
+        const visualMeta = getTaskVisualMeta(task);
+        return {
+          key: getDiaryTaskKey(task),
+          task,
+          label: visualMeta.label,
+          tone: visualMeta.tone,
+          left: getDiaryTimelinePercent(minutes),
+          minutes,
+          windowLabel: getDiaryTaskWindowLabel(task),
+          excerpt: getDiaryTaskExcerpt(task),
+        };
+      })
+      .filter((entry): entry is DiaryTimelineEntry => Boolean(entry))
+      .sort((left, right) => left.minutes - right.minutes);
+  }, [tasks]);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(new Date()), 60_000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    if (!entries.length) {
+      setSelectedKey(null);
+      return;
+    }
+
+    setSelectedKey((current) => {
+      if (current && entries.some((entry) => entry.key === current)) return current;
+      return pickDiaryFeaturedTask(entries, date, now)?.key ?? entries[0]?.key ?? null;
+    });
+  }, [date, entries, now]);
+
+  const selectedEntry = entries.find((entry) => entry.key === selectedKey) ?? entries[0] ?? null;
+  const isToday = date === fmtDate(now);
+  const currentMinutesRaw = now.getHours() * 60 + now.getMinutes();
+  const currentMinutes =
+    currentMinutesRaw < DIARY_TIMELINE_START_HOUR * 60 ? currentMinutesRaw + 24 * 60 : currentMinutesRaw;
+  const progressPercent = isToday ? getDiaryTimelinePercent(currentMinutes) : selectedEntry?.left ?? 0;
+  const bubbleLeft = clampNumber(selectedEntry?.left ?? 50, 12, 88);
+  const bubbleClassName = [
+    styles.diaryHeroBubble,
+    selectedEntry && selectedEntry.left < 18 ? styles.diaryHeroBubbleStart : '',
+    selectedEntry && selectedEntry.left > 82 ? styles.diaryHeroBubbleEnd : '',
+  ].filter(Boolean).join(' ');
+
+  useEffect(() => {
+    const updateThumb = () => {
+      const node = scrollRef.current;
+      if (!node) return;
+
+      const hasOverflow = node.scrollWidth - node.clientWidth > 6;
+      if (!hasOverflow) {
+        setScrollThumb({ visible: false, width: 100, left: 0 });
+        return;
+      }
+
+      const width = clampNumber((node.clientWidth / node.scrollWidth) * 100, 18, 100);
+      const maxOffset = Math.max(0, 100 - width);
+      const left =
+        node.scrollWidth === node.clientWidth
+          ? 0
+          : (node.scrollLeft / (node.scrollWidth - node.clientWidth)) * maxOffset;
+
+      setScrollThumb({ visible: true, width, left });
+    };
+
+    updateThumb();
+    const node = scrollRef.current;
+    if (!node) return;
+
+    node.addEventListener('scroll', updateThumb, { passive: true });
+    window.addEventListener('resize', updateThumb);
+    return () => {
+      node.removeEventListener('scroll', updateThumb);
+      window.removeEventListener('resize', updateThumb);
+    };
+  }, [entries.length]);
+
+  useEffect(() => {
+    const node = scrollRef.current;
+    if (!node || !selectedEntry || node.scrollWidth <= node.clientWidth) return;
+
+    const targetLeft = (selectedEntry.left / 100) * node.scrollWidth - node.clientWidth * 0.5;
+    node.scrollTo({
+      left: clampNumber(targetLeft, 0, node.scrollWidth - node.clientWidth),
+      behavior: 'smooth',
+    });
+  }, [selectedEntry?.key]);
+
+  return (
+    <section className={styles.diaryHeroSection}>
+      <div className={styles.diaryHeroFrame}>
+        <div ref={scrollRef} className={styles.diaryHeroScroller}>
+          <div className={styles.diaryHeroCanvas}>
+            <div className={styles.diaryHeroBackdrop} aria-hidden="true">
+              <div className={[styles.diaryHeroSegment, styles.diaryHeroSegmentMorning].join(' ')} />
+              <div className={[styles.diaryHeroSegment, styles.diaryHeroSegmentDay].join(' ')} />
+              <div className={[styles.diaryHeroSegment, styles.diaryHeroSegmentSunset].join(' ')} />
+              <div className={[styles.diaryHeroSegment, styles.diaryHeroSegmentNight].join(' ')} />
+
+              <span className={[styles.diaryHeroOrb, styles.diaryHeroSunrise].join(' ')} />
+              <span className={[styles.diaryHeroOrb, styles.diaryHeroSun].join(' ')} />
+              <span className={[styles.diaryHeroOrb, styles.diaryHeroSunsetGlow].join(' ')} />
+              <span className={[styles.diaryHeroOrb, styles.diaryHeroMoon].join(' ')} />
+
+              <span className={[styles.diaryHeroCloud, styles.diaryHeroCloudMorning].join(' ')} />
+              <span className={[styles.diaryHeroCloud, styles.diaryHeroCloudDay].join(' ')} />
+              <span className={[styles.diaryHeroLandscape, styles.diaryHeroLandscapeFar].join(' ')} />
+              <span className={[styles.diaryHeroLandscape, styles.diaryHeroLandscapeNear].join(' ')} />
+              <span className={styles.diaryHeroCitySunset} />
+              <span className={styles.diaryHeroCityNight} />
+              <span className={styles.diaryHeroStars} />
+            </div>
+
+            {selectedEntry ? (
+              <button
+                type="button"
+                className={bubbleClassName}
+                style={{ left: `${bubbleLeft}%` }}
+                onClick={() => onOpenTask(selectedEntry.task)}
+              >
+                <span className={styles.diaryHeroBubbleTitle}>
+                  <span className={styles.diaryHeroBubbleDot} data-tone={selectedEntry.tone} />
+                  {selectedEntry.task.title}
+                </span>
+                {selectedEntry.excerpt ? <span className={styles.diaryHeroBubbleText}>{selectedEntry.excerpt}</span> : null}
+                <span className={styles.diaryHeroBubbleTime}>{selectedEntry.windowLabel}</span>
+              </button>
+            ) : null}
+
+            {isToday ? (
+              <div
+                className={styles.diaryHeroNow}
+                style={{ left: `${clampNumber(progressPercent, 4, 96)}%` }}
+                aria-hidden="true"
+              >
+                <span className={styles.diaryHeroNowBadge}>
+                  {now.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
+                </span>
+                <span className={styles.diaryHeroNowDot} />
+              </div>
+            ) : null}
+
+            <div className={styles.diaryHeroMarkers}>
+              {entries.map((entry) => (
+                <button
+                  key={entry.key}
+                  type="button"
+                  className={[
+                    styles.diaryHeroMarker,
+                    entry.key === selectedEntry?.key ? styles.diaryHeroMarkerActive : '',
+                  ].filter(Boolean).join(' ')}
+                  style={{ left: `${entry.left}%` }}
+                  onClick={() => setSelectedKey(entry.key)}
+                  aria-label={`${entry.task.title}, ${entry.windowLabel}`}
+                >
+                  <span className={styles.diaryHeroMarkerStem} />
+                  <span className={styles.diaryHeroMarkerDot} data-tone={entry.tone} />
+                </button>
+              ))}
+            </div>
+
+            <div className={styles.diaryHeroProgressTrack} aria-hidden="true">
+              <span style={{ width: `${clampNumber(progressPercent, 0, 100)}%` }} />
+            </div>
+
+            <div className={styles.diaryHeroScale} aria-hidden="true">
+              {DIARY_TIMELINE_LABELS.map((hour, index) => (
+                <span key={`${hour}-${index}`} className={styles.diaryHeroScaleTick}>
+                  {hour}
+                </span>
+              ))}
+            </div>
+
+            {!entries.length ? (
+              <div className={styles.diaryHeroEmpty}>
+                Добавьте задачи со временем, и они появятся на ленте дня.
+              </div>
+            ) : null}
+          </div>
+        </div>
+      </div>
+
+      {scrollThumb.visible ? (
+        <div className={styles.diaryHeroScrollbar} aria-hidden="true">
+          <span
+            className={styles.diaryHeroScrollbarThumb}
+            style={{ width: `${scrollThumb.width}%`, left: `${scrollThumb.left}%` }}
+          />
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
+function NutritionFigureIllustration() {
+  return (
+    <svg viewBox="0 0 160 260" className={styles.nutritionFigureSvg} aria-hidden="true">
+      <g>
+        <circle cx="80" cy="58" r="22" fill="#efc3a0" />
+        <path d="M56 55c2-17 16-28 34-28c17 0 31 11 34 28v9c-7-4-18-6-33-6c-15 0-26 2-34 6c-1-2-1-5-1-9Z" fill="#5b473a" />
+        <path d="M63 46c6-5 15-8 27-8c11 0 20 3 26 8" fill="none" stroke="#765847" strokeWidth="4.5" strokeLinecap="round" />
+        <circle cx="72" cy="60" r="2.5" fill="#201f24" />
+        <circle cx="88" cy="60" r="2.5" fill="#201f24" />
+        <path d="M72 72c5 6 11 6 16 0" fill="none" stroke="#201f24" strokeWidth="3" strokeLinecap="round" />
+        <path d="M72 81h16l4 14H68Z" fill="#efc3a0" />
+      </g>
+      <g>
+        <rect x="58" y="96" width="44" height="78" rx="14" fill="#4a84f4" />
+        <path d="M58 134h44v40H58Z" fill="#3d73db" />
+        <path d="M62 105c-9 18-15 34-19 49" fill="none" stroke="#efc3a0" strokeWidth="9" strokeLinecap="round" />
+        <path d="M98 105c9 18 15 34 19 49" fill="none" stroke="#efc3a0" strokeWidth="9" strokeLinecap="round" />
+        <path d="M46 146l-7 15" fill="none" stroke="#4a84f4" strokeWidth="9" strokeLinecap="round" />
+        <path d="M114 146l7 15" fill="none" stroke="#4a84f4" strokeWidth="9" strokeLinecap="round" />
+        <path d="M33 160c-3 2-4 6-2 9c2 4 8 5 11 2c3-3 2-8-2-10c-3-2-5-2-7-1Z" fill="#efc3a0" />
+        <path d="M127 160c3 2 4 6 2 9c-2 4-8 5-11 2c-3-3-2-8 2-10c3-2 5-2 7-1Z" fill="#efc3a0" />
+      </g>
+      <g>
+        <path d="M69 174v46" fill="none" stroke="#24314a" strokeWidth="12" strokeLinecap="round" />
+        <path d="M91 174v46" fill="none" stroke="#24314a" strokeWidth="12" strokeLinecap="round" />
+        <path d="M68 220h-12" fill="none" stroke="#ff7a18" strokeWidth="10" strokeLinecap="round" />
+        <path d="M92 220h12" fill="none" stroke="#ff7a18" strokeWidth="10" strokeLinecap="round" />
+      </g>
+    </svg>
+  );
+}
+
 export default function HealthPage() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -874,12 +1194,10 @@ export default function HealthPage() {
     debts: null,
     stats: null,
   });
-  const [showProfileEditor, setShowProfileEditor] = useState(false);
+  const [profileModalOpen, setProfileModalOpen] = useState(false);
   const [showAllRecommendations, setShowAllRecommendations] = useState(false);
   const [nutritionGoalModalOpen, setNutritionGoalModalOpen] = useState(false);
   const skipSearchSyncRef = useRef(false);
-  const pulseProfileEditorRef = useRef<HTMLDivElement | null>(null);
-  const pulseProfileEditorFirstFieldRef = useRef<HTMLInputElement | null>(null);
   const weekDates = useMemo(() => getWeekDates(selectedDate), [selectedDate]);
   const financeEntryScope = financeSubTab === 'expenses' || financeSubTab === 'income' ? (financeRange.toLowerCase() as 'day' | 'month' | 'year') : 'day';
   const needsOverview = mainTab === 'pulse' || mainTab === 'analytics';
@@ -1036,8 +1354,10 @@ export default function HealthPage() {
   const [taskDetailsItem, setTaskDetailsItem] = useState<PulseTaskItem | null>(null);
   const [goalModalOpen, setGoalModalOpen] = useState(false);
   const [taskFilter, setTaskFilter] = useState<'ALL' | 'TASKS' | 'HABITS'>('ALL');
+  const [showScheduledTasksInList, setShowScheduledTasksInList] = useState(false);
   const [showCompletedTasks, setShowCompletedTasks] = useState(false);
   const [showPulseCompletedTasks, setShowPulseCompletedTasks] = useState(false);
+  const [expandedMealId, setExpandedMealId] = useState<string | null | undefined>(undefined);
   const [expandedGoalIds, setExpandedGoalIds] = useState<string[]>([]);
   const [quickTaskExpanded, setQuickTaskExpanded] = useState(false);
   const [financeModalOpen, setFinanceModalOpen] = useState(false);
@@ -1056,6 +1376,18 @@ export default function HealthPage() {
   const [mealItems, setMealItems] = useState<PulseMealItem[]>([]);
   const [editingMealId, setEditingMealId] = useState<string | null>(null);
   const { data: foodSearchData } = useSearchFoodsQuery(foodSearch, { skip: !mealModalOpen && !foodModalOpen });
+
+  useEffect(() => {
+    const meals = nutritionData?.meals ?? [];
+    if (!meals.length) {
+      if (expandedMealId !== null) setExpandedMealId(null);
+      return;
+    }
+
+    if (expandedMealId === undefined || (expandedMealId !== null && !meals.some((meal) => meal.id === expandedMealId))) {
+      setExpandedMealId(meals[0]?.id ?? null);
+    }
+  }, [expandedMealId, nutritionData?.meals]);
 
   const [customFoodForm, setCustomFoodForm] = useState({
     name: '',
@@ -1170,13 +1502,13 @@ export default function HealthPage() {
   };
 
   const visibleTabs = useMemo(() => {
-    const tabs: Array<{ value: 'pulse' | 'health' | 'tasks' | 'finance' | 'programs' | 'analytics' | 'config'; label: string }> = [{ value: 'pulse', label: 'Пульс' }];
-    tabs.push({ value: 'health', label: 'Здоровье' });
-    tabs.push({ value: 'tasks', label: 'Ежедневник' });
-    tabs.push({ value: 'finance', label: 'Финансы' });
-    tabs.push({ value: 'programs', label: 'Программы' });
-    tabs.push({ value: 'analytics', label: 'Аналитика' });
-    tabs.push({ value: 'config', label: 'Конфигурация' });
+    const tabs: Array<{ value: 'pulse' | 'health' | 'tasks' | 'finance' | 'programs' | 'analytics' | 'config'; label: string; icon: PulseIconName }> = [{ value: 'pulse', label: 'Обзор', icon: 'grid' }];
+    tabs.push({ value: 'health', label: 'Здоровье', icon: 'heart' });
+    tabs.push({ value: 'tasks', label: 'Задачи', icon: 'check' });
+    tabs.push({ value: 'finance', label: 'Финансы', icon: 'card' });
+    tabs.push({ value: 'programs', label: 'Программы', icon: 'book' });
+    tabs.push({ value: 'analytics', label: 'Аналитика', icon: 'trend' });
+    tabs.push({ value: 'config', label: 'Настройки', icon: 'gear' });
     return tabs;
   }, []);
 
@@ -1191,6 +1523,7 @@ export default function HealthPage() {
     const query = params.toString();
     const nextUrl = query ? `${pathname ?? '/health'}?${query}` : pathname ?? '/health';
     window.history.replaceState(window.history.state, '', nextUrl);
+    window.dispatchEvent(new CustomEvent('av:pulse-tab-change', { detail: { tab: nextTab } }));
   };
 
   const changeMainTab = (nextTab: typeof mainTab) => {
@@ -1247,7 +1580,7 @@ export default function HealthPage() {
 
     if (mainTab === 'tasks') {
       return {
-        title: 'Ежедневник',
+        title: 'Задачи',
         description: 'План дня по времени, список задач и привычек без лишнего шума',
       };
     }
@@ -1275,7 +1608,7 @@ export default function HealthPage() {
 
     if (mainTab === 'config') {
       return {
-        title: 'Конфигурация',
+        title: 'Настройки',
         description: 'Настройка модулей, целей и персональных параметров Pulse',
       };
     }
@@ -1285,6 +1618,7 @@ export default function HealthPage() {
       description: 'Ваш ежедневный центр контроля',
     };
   }, [mainTab, healthSubTab]);
+
 
   const mealPreviewCalories = mealItems.reduce((sum, item) => sum + Number(item.calories || 0), 0);
   const groupedMealItems = useMemo(() => {
@@ -1530,6 +1864,26 @@ export default function HealthPage() {
   const trendAverage = analyticsData?.healthRows?.length
     ? Math.round(analyticsData.healthRows.reduce((sum, row) => sum + row.todayScore, 0) / analyticsData.healthRows.length)
     : pulseDay?.mental7Score ?? 0;
+  const allDiaryItems = useMemo(
+    () => sortTasksByPlannerOrder(tasksData?.items ?? []),
+    [tasksData?.items],
+  );
+  const scheduledDiaryItems = useMemo(
+    () => allDiaryItems.filter((task) => Boolean(task.hasTime && task.dueDate)),
+    [allDiaryItems],
+  );
+  const diaryTaskItems = useMemo(
+    () => allDiaryItems.filter((task) => task.taskType !== 'HABIT'),
+    [allDiaryItems],
+  );
+  const diaryHabitItems = useMemo(
+    () => allDiaryItems.filter((task) => task.taskType === 'HABIT'),
+    [allDiaryItems],
+  );
+  const listedDiaryTaskItems = useMemo(() => {
+    if (showScheduledTasksInList) return diaryTaskItems;
+    return diaryTaskItems.filter((task) => !(task.hasTime && task.dueDate));
+  }, [diaryTaskItems, showScheduledTasksInList]);
   const filteredTasks = useMemo(() => {
     const source = [...(tasksData?.items ?? [])];
     const filtered = source.filter((task) => {
@@ -1540,12 +1894,10 @@ export default function HealthPage() {
 
     return sortTasksByPlannerOrder(filtered);
   }, [taskFilter, tasksData?.items]);
-
   const timedTasks = useMemo(
     () => filteredTasks.filter((task) => Boolean(task.hasTime && task.dueDate)),
     [filteredTasks],
   );
-
   const untimedTasks = useMemo(
     () => filteredTasks.filter((task) => !(task.hasTime && task.dueDate)),
     [filteredTasks],
@@ -1574,6 +1926,18 @@ export default function HealthPage() {
     () => pulseTodayItems.filter((task) => task.completedForDate),
     [pulseTodayItems],
   );
+  const habitStreakMap = useMemo(() => {
+    const next = new Map<string, number>();
+    (analyticsData?.habitStreaks ?? []).forEach((item) => {
+      next.set(item.id, item.streak);
+    });
+    diaryHabitItems.forEach((task) => {
+      if (!next.has(task.id)) {
+        next.set(task.id, task.completedForDate ? 1 : 0);
+      }
+    });
+    return next;
+  }, [analyticsData?.habitStreaks, diaryHabitItems]);
   const filteredCompletionPercent = filteredTasks.length ? Math.round((completedTasks.length / filteredTasks.length) * 100) : 0;
   const taskLayoutMode: 'list' | 'day' | 'week' = taskViewMode === 'list' ? 'list' : plannerMode;
   const isTimelineMode = taskLayoutMode !== 'list';
@@ -1711,6 +2075,92 @@ export default function HealthPage() {
     );
   };
 
+  const renderDiaryTaskRow = (task: PulseTaskItem) => {
+    const visualMeta = getTaskVisualMeta(task);
+    const hasSchedule = Boolean(task.hasTime && task.dueDate);
+
+    return (
+      <article
+        key={getDiaryTaskKey(task)}
+        className={[
+          styles.diaryListItem,
+          task.completedForDate ? styles.diaryListItemDone : '',
+        ].filter(Boolean).join(' ')}
+      >
+        <button
+          type="button"
+          className={[styles.diaryListToggle, task.completedForDate ? styles.diaryListToggleDone : ''].filter(Boolean).join(' ')}
+          onClick={(event) => {
+            event.stopPropagation();
+            void togglePulseTaskDate({ taskId: task.id, date: selectedDate });
+          }}
+          aria-label={task.completedForDate ? 'Снять выполнение задачи' : 'Отметить задачу выполненной'}
+        >
+          {task.completedForDate ? <Check className={styles.diaryListToggleIcon} strokeWidth={3} /> : null}
+        </button>
+
+        <button
+          type="button"
+          className={styles.diaryListButton}
+          onClick={() => setTaskDetailsItem(task)}
+          aria-label={`Открыть задачу ${task.title}`}
+        >
+          <div className={styles.diaryListContent}>
+            <strong className={styles.diaryListTitle}>{task.title}</strong>
+            {hasSchedule ? (
+              <span className={styles.diaryListMeta}>
+                {getDiaryTaskWindowLabel(task)} · {visualMeta.label}
+              </span>
+            ) : null}
+          </div>
+        </button>
+      </article>
+    );
+  };
+
+  const renderDiaryHabitRow = (task: PulseTaskItem) => {
+    const streak = habitStreakMap.get(task.id) ?? 0;
+
+    return (
+      <article
+        key={getDiaryTaskKey(task)}
+        className={[
+          styles.diaryListItem,
+          styles.diaryHabitItem,
+          task.completedForDate ? styles.diaryListItemDone : '',
+        ].filter(Boolean).join(' ')}
+      >
+        <button
+          type="button"
+          className={[styles.diaryListToggle, task.completedForDate ? styles.diaryListToggleDone : ''].filter(Boolean).join(' ')}
+          onClick={(event) => {
+            event.stopPropagation();
+            void togglePulseTaskDate({ taskId: task.id, date: selectedDate });
+          }}
+          aria-label={task.completedForDate ? 'Снять выполнение привычки' : 'Отметить привычку выполненной'}
+        >
+          {task.completedForDate ? <Check className={styles.diaryListToggleIcon} strokeWidth={3} /> : null}
+        </button>
+
+        <button
+          type="button"
+          className={styles.diaryListButton}
+          onClick={() => setTaskDetailsItem(task)}
+          aria-label={`Открыть привычку ${task.title}`}
+        >
+          <div className={styles.diaryListContent}>
+            <strong className={styles.diaryListTitle}>{task.title}</strong>
+          </div>
+        </button>
+
+        <span className={styles.diaryHabitStreak}>
+          <Flame className={styles.diaryHabitStreakIcon} />
+          {streak}
+        </span>
+      </article>
+    );
+  };
+
   const preparedGoals = useMemo(() => {
     return [...(tasksData?.goals ?? [])]
       .map((goal) => decorateGoal(goal))
@@ -1734,6 +2184,8 @@ export default function HealthPage() {
   const financeRangeLabelPlural = financeRange === 'DAY' ? 'за день' : financeRange === 'MONTH' ? 'за месяц' : 'за год';
   const expenseOperationsLabel = formatOperationsCountLabel(expenseEntries.length, financeRange);
   const incomeOperationsLabel = formatOperationsCountLabel(incomeEntries.length, financeRange);
+  const primaryIncomeEntry = incomeEntries[0] ?? null;
+  const averageExpenseAmount = expenseEntries.length ? Math.round(periodExpenseTotal / expenseEntries.length) : 0;
   const monthlyIncome = financeOverview?.monthIncome ?? 0;
   const monthlyExpenses = financeOverview?.monthExpenses ?? 0;
   const monthlyBalance = financeOverview?.balance ?? monthlyIncome - monthlyExpenses;
@@ -1773,6 +2225,7 @@ export default function HealthPage() {
     return source.sort((a, b) => (b.spent ?? 0) - (a.spent ?? 0));
   }, [expenseEntries, financeData?.categories]);
   const financeStatsRows = financeCategoriesView.filter((item) => (item.spent ?? 0) > 0 || (item.limitAmount ?? 0) > 0).slice(0, 6);
+  const primaryExpenseCategory = financeStatsRows[0] ?? null;
   const upcomingPayments = useMemo(
     () => [...(financeOverview?.upcomingPayments ?? [])].sort((a, b) => (parseDate(a.date)?.getTime() ?? 0) - (parseDate(b.date)?.getTime() ?? 0)),
     [financeOverview?.upcomingPayments],
@@ -1900,10 +2353,85 @@ export default function HealthPage() {
 
   const mentalTodayScore = mentalData?.day?.todayScore ?? pulseDay?.dayScore ?? 0;
   const mentalWeekScore = mentalData?.day?.pulse7Score ?? pulseDay?.mental7Score ?? 0;
+  const nutritionMeals = nutritionData?.meals ?? [];
   const nutritionConsumed = nutritionData?.totalCalories ?? 0;
   const nutritionRemaining = nutritionData?.remainingCalories != null ? Math.max(0, nutritionData.remainingCalories) : Math.max(0, caloriesTarget - nutritionConsumed);
   const nutritionProgress = caloriesTarget > 0 ? Math.min(100, Math.round((nutritionConsumed / caloriesTarget) * 100)) : 0;
   const nutritionRating = Math.max(0, Math.round(mentalData?.autoNutrition ?? (nutritionData as any)?.averageNutritionScore ?? 0));
+  const nutritionCurrentWeight = profile?.currentWeightKg ?? profile?.startWeightKg ?? profile?.targetWeightKg ?? null;
+  const nutritionHeightValue = profile?.heightCm ?? null;
+  const nutritionGoalDeltaValue = useMemo(() => {
+    if (profile?.currentWeightKg == null || profile?.targetWeightKg == null) return null;
+    return Number((profile.targetWeightKg - profile.currentWeightKg).toFixed(1));
+  }, [profile?.currentWeightKg, profile?.targetWeightKg]);
+  const nutritionGoalDeltaLabel = useMemo(() => {
+    if (nutritionGoalDeltaValue == null) return 'не задана';
+    if (Math.abs(nutritionGoalDeltaValue) < 0.05) return 'поддержание';
+    return `${nutritionGoalDeltaValue > 0 ? '+' : '-'}${formatNumericValue(Math.abs(nutritionGoalDeltaValue), 1)} кг`;
+  }, [nutritionGoalDeltaValue]);
+  const nutritionStartDeltaValue = useMemo(() => {
+    if (profile?.startWeightKg == null || profile?.currentWeightKg == null) return null;
+    return Number((profile.currentWeightKg - profile.startWeightKg).toFixed(1));
+  }, [profile?.currentWeightKg, profile?.startWeightKg]);
+  const nutritionStartDeltaLabel = useMemo(() => {
+    if (nutritionStartDeltaValue == null) return 'Добавьте стартовый вес';
+    if (Math.abs(nutritionStartDeltaValue) < 0.05) return 'Без изменений от старта';
+    return `${nutritionStartDeltaValue > 0 ? '+' : '-'}${formatNumericValue(Math.abs(nutritionStartDeltaValue), 1)} кг от старта`;
+  }, [nutritionStartDeltaValue]);
+  const nutritionStartDeltaTone = useMemo(() => {
+    if (weightDelta?.tone) return weightDelta.tone;
+    if (nutritionStartDeltaValue == null || Math.abs(nutritionStartDeltaValue) < 0.05) return 'neutral';
+    return nutritionStartDeltaValue > 0 ? 'success' : 'danger';
+  }, [nutritionStartDeltaValue, weightDelta?.tone]);
+  const nutritionHeightMarkerPosition = useMemo(() => {
+    if (nutritionHeightValue == null) return 42;
+    const min = 150;
+    const max = 200;
+    const ratio = (max - nutritionHeightValue) / (max - min);
+    return Math.max(8, Math.min(92, ratio * 100));
+  }, [nutritionHeightValue]);
+  const nutritionMacroCards = useMemo(
+    () => [
+      {
+        key: 'protein',
+        label: 'Белки',
+        value: nutritionData?.totalProtein ?? 0,
+        target: nutritionGoal?.protein ?? profile?.proteinGoal ?? profileSuggestion?.protein ?? 0,
+        fillClassName: styles.nutritionMacroFillProtein,
+        valueClassName: styles.nutritionMacroValueProtein,
+      },
+      {
+        key: 'fat',
+        label: 'Жиры',
+        value: nutritionData?.totalFat ?? 0,
+        target: nutritionGoal?.fat ?? profile?.fatGoal ?? profileSuggestion?.fat ?? 0,
+        fillClassName: styles.nutritionMacroFillFat,
+        valueClassName: styles.nutritionMacroValueFat,
+      },
+      {
+        key: 'carbs',
+        label: 'Углеводы',
+        value: nutritionData?.totalCarbs ?? 0,
+        target: nutritionGoal?.carbs ?? profile?.carbsGoal ?? profileSuggestion?.carbs ?? 0,
+        fillClassName: styles.nutritionMacroFillCarbs,
+        valueClassName: styles.nutritionMacroValueCarbs,
+      },
+    ],
+    [
+      nutritionData?.totalCarbs,
+      nutritionData?.totalFat,
+      nutritionData?.totalProtein,
+      nutritionGoal?.carbs,
+      nutritionGoal?.fat,
+      nutritionGoal?.protein,
+      profile?.carbsGoal,
+      profile?.fatGoal,
+      profile?.proteinGoal,
+      profileSuggestion?.carbs,
+      profileSuggestion?.fat,
+      profileSuggestion?.protein,
+    ],
+  );
 
   const mentalInsights = useMemo(() => {
     const source = (analyticsData?.suggestions?.length ? analyticsData.suggestions : pulseDay?.recommendations ?? []).slice(0, 4);
@@ -1929,6 +2457,174 @@ export default function HealthPage() {
       };
     });
   }, [analyticsData?.suggestions, mentalForm.activityLevel, mentalForm.alcoholLevel, mentalForm.productivity, mentalForm.sleepHours, pulseDay?.recommendations]);
+
+  const overviewScoreValue = Math.max(0, Math.min(100, Math.round(trendAverage || pulseDay?.dayScore || 0)));
+  const financePulseScore = useMemo(() => {
+    let score = 62;
+
+    if (monthlyIncome > 0) {
+      const expenseShare = monthlyExpenses / monthlyIncome;
+      if (expenseShare <= 0.55) score += 18;
+      else if (expenseShare <= 0.8) score += 10;
+      else if (expenseShare <= 1) score += 2;
+      else score -= Math.min(24, Math.round((expenseShare - 1) * 38));
+    }
+
+    if (monthlyBalance > 0) score += 8;
+    if (monthlyBalance < 0) score -= 16;
+
+    if (debtMonthlyLoad > 0 && monthlyIncome > 0) {
+      const debtShare = debtMonthlyLoad / monthlyIncome;
+      if (debtShare > 0.35) score -= 12;
+      else if (debtShare > 0.2) score -= 6;
+      else score += 4;
+    }
+
+    score -= Math.min(16, upcomingPayments.length * 5);
+    score -= Math.min(20, (financeOverview?.overLimitCategories?.length ?? 0) * 10);
+
+    return Math.max(0, Math.min(100, Math.round(score)));
+  }, [debtMonthlyLoad, financeOverview?.overLimitCategories?.length, monthlyBalance, monthlyExpenses, monthlyIncome, upcomingPayments.length]);
+
+  const weightProgressSummary = useMemo(() => {
+    const height = profile?.heightCm ?? null;
+    const age = profile?.age ?? null;
+    const start = profile?.startWeightKg ?? null;
+    const current = profile?.currentWeightKg ?? null;
+    const target = profile?.targetWeightKg ?? null;
+
+    const startValue = start ?? current ?? target;
+    const currentValue = current ?? start ?? target;
+    const targetValue = target ?? current ?? start;
+    const delta = startValue != null && currentValue != null ? Number((currentValue - startValue).toFixed(1)) : null;
+    const distance = startValue != null && targetValue != null ? Math.abs(targetValue - startValue) : 0;
+    const moved = delta != null ? Math.abs(delta) : 0;
+    const progressPercent = distance > 0 ? Math.max(0, Math.min(100, Math.round((moved / distance) * 100))) : 0;
+    const progressWidth = progressPercent > 0 ? Math.max(progressPercent, 8) : 0;
+    const deltaSign = delta == null || Math.abs(delta) < 0.05 ? '' : delta > 0 ? '+' : '−';
+    const progressLabel = delta == null
+      ? 'Добавьте стартовый вес'
+      : `${deltaSign}${formatNumericValue(Math.abs(delta), 1)} кг${distance > 0 ? ` (${progressPercent}%)` : ''}`;
+
+    return {
+      age,
+      currentValue,
+      hasFullWeightProfile: start != null && current != null && target != null,
+      height,
+      progressLabel,
+      progressPercent,
+      progressWidth,
+      startValue,
+      targetValue,
+    };
+  }, [profile?.age, profile?.currentWeightKg, profile?.heightCm, profile?.startWeightKg, profile?.targetWeightKg]);
+
+  const overviewProgressRows = useMemo(() => {
+    const rows: Array<{
+      key: string;
+      label: string;
+      tone: 'tasks' | 'mental' | 'nutrition' | 'finance';
+      target: 'tasks' | 'health-mental' | 'health-nutrition' | 'finance';
+      value: number;
+    }> = [];
+
+    if (isTasksEnabled) {
+      rows.push({ key: 'tasks', label: 'Задачи', value: tasksProgress, tone: 'tasks', target: 'tasks' });
+    }
+    if (isMentalEnabled) {
+      rows.push({ key: 'mental', label: 'Ментальное здоровье', value: mentalTodayScore, tone: 'mental', target: 'health-mental' });
+    }
+    if (isNutritionEnabled) {
+      rows.push({
+        key: 'nutrition',
+        label: 'Питание',
+        value: caloriesTarget > 0 ? nutritionProgress : Math.max(0, Math.min(100, nutritionRating * 10)),
+        tone: 'nutrition',
+        target: 'health-nutrition',
+      });
+    }
+    if (isFinanceEnabled) {
+      rows.push({ key: 'finance', label: 'Финансы', value: financePulseScore, tone: 'finance', target: 'finance' });
+    }
+
+    return rows;
+  }, [caloriesTarget, financePulseScore, isFinanceEnabled, isMentalEnabled, isNutritionEnabled, isTasksEnabled, mentalTodayScore, nutritionProgress, nutritionRating, tasksProgress]);
+
+  const overviewInsightItems = useMemo(() => {
+    if (pulseRecommendationItems.length) {
+      return pulseRecommendationItems.slice(0, 3).map((item) => ({
+        id: item.id,
+        target: item.meta.target,
+        text: item.text,
+        tone: item.meta.tone,
+      }));
+    }
+
+    return mentalInsights.slice(0, 3).map((item, index) => ({
+      id: `mental-insight-${index}`,
+      target: 'health' as const,
+      text: item.text,
+      tone: item.tone,
+    }));
+  }, [mentalInsights, pulseRecommendationItems]);
+
+  const overviewReminderItems = useMemo(() => {
+    const items: Array<{ id: string; text: string; target: 'finance' | 'tasks' | 'health' }> = [];
+
+    upcomingPayments.slice(0, 2).forEach((payment, index) => {
+      const relative = getDaysUntilLabel(payment.date, selectedDate);
+      const prefix = relative === 'сегодня' ? 'Сегодня' : relative === 'через 1 день' ? 'Завтра' : formatShortDate(payment.date);
+      items.push({
+        id: `payment-${index}-${payment.title}`,
+        text: `${prefix} списание: ${payment.title}${payment.amount ? ` — ${formatMoney(payment.amount)}` : ''}`,
+        target: 'finance',
+      });
+    });
+
+    const openTasks = pulseTimedOpenItems.length ? pulseTimedOpenItems : pulseUntimedOpenItems;
+    openTasks.slice(0, Math.max(0, 3 - items.length)).forEach((task) => {
+      const taskLead = task.hasTime && task.dueDate ? `${getTaskPrimaryTime(task)} · ` : '';
+      items.push({
+        id: `task-${task.id}`,
+        text: `${taskLead}${task.title}`,
+        target: 'tasks',
+      });
+    });
+
+    if (!items.length) {
+      pulseAttentionItems.slice(0, 3).forEach((item) => {
+        items.push({
+          id: `attention-${item.id}`,
+          text: item.text,
+          target: item.meta.target === 'health' ? 'health' : item.meta.target === 'finance' ? 'finance' : 'tasks',
+        });
+      });
+    }
+
+    return items.slice(0, 3);
+  }, [pulseAttentionItems, pulseTimedOpenItems, pulseUntimedOpenItems, selectedDate, upcomingPayments]);
+
+  const overviewHabitStreaks = useMemo(() => {
+    const source = analyticsData?.habitStreaks?.length
+      ? analyticsData.habitStreaks
+      : (tasksData?.items ?? [])
+        .filter((task) => task.taskType === 'HABIT')
+        .map((task) => ({
+          id: task.id,
+          title: task.title,
+          streak: task.completedForDate ? 1 : 0,
+        }));
+
+    return source.slice(0, 3).map((item) => ({
+      ...item,
+      ...getHabitOverviewMeta(item.title),
+    }));
+  }, [analyticsData?.habitStreaks, tasksData?.items]);
+  const overviewRingSize = 196;
+  const overviewRingStroke = 12;
+  const overviewRingRadius = (overviewRingSize - overviewRingStroke) / 2;
+  const overviewRingCircumference = 2 * Math.PI * overviewRingRadius;
+  const overviewRingOffset = overviewRingCircumference * (1 - overviewScoreValue / 100);
 
   const impactPills = useMemo(() => {
     const sleepValue = Number(mentalForm.sleepHours || 0);
@@ -2018,23 +2714,13 @@ export default function HealthPage() {
 
   function closeProfileEditor() {
     resetProfileForm();
-    setShowProfileEditor(false);
+    setProfileModalOpen(false);
   }
 
   function openProfileEditor() {
     resetProfileForm();
-    setShowProfileEditor(true);
+    setProfileModalOpen(true);
   }
-
-  useEffect(() => {
-    if (!showProfileEditor) return;
-    const frame = window.requestAnimationFrame(() => {
-      pulseProfileEditorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-      pulseProfileEditorFirstFieldRef.current?.focus();
-    });
-
-    return () => window.cancelAnimationFrame(frame);
-  }, [showProfileEditor]);
 
   function openDatePicker() {
     const input = dateInputRef.current;
@@ -2136,7 +2822,7 @@ export default function HealthPage() {
       targetWeightKg: num(profileForm.targetWeightKg),
       age: intNum(profileForm.age),
     }).unwrap();
-    setShowProfileEditor(false);
+    setProfileModalOpen(false);
   }
 
   async function handleMentalSave() {
@@ -2535,342 +3221,374 @@ export default function HealthPage() {
     setActiveSavingsGoalId(null);
   }
 
+  const recommendationTargetLabels: Record<'pulse' | 'health' | 'meal' | 'finance' | 'tasks', string> = {
+    pulse: 'Обзор',
+    health: 'Здоровье',
+    meal: 'Питание',
+    finance: 'Финансы',
+    tasks: 'Задачи',
+  };
+
   return (
     <div className={styles.page}>
-      <div className={[styles.hero, mainTab === 'tasks' || mainTab === 'pulse' ? styles.heroCompact : ''].filter(Boolean).join(' ')}>
-        <div className={styles.heroCopy}>
-          <h1 className={styles.pageTitle}>{mainTabMeta.title}</h1>
-        </div>
-      </div>
-      <div className={styles.toolbarStack}>
-        <div className={styles.toolbarHeadPanel}>
-          <div className={styles.toolbarHead}>
-          <div className={styles.dateSwitcher}>
+      <header className={styles.pulseShellHeader}>
+        <div className={styles.pulseShellTitleWrap}>
+          <h1 className={styles.pulseShellTitle}>{mainTabMeta.title}</h1>
+          <div className={styles.pulseCalendarRail}>
             <input ref={dateInputRef} type="date" value={selectedDate} onChange={(event) => setSelectedDate(event.target.value)} className={styles.hiddenDateInput} />
-          </div>
+            <div ref={weekRowRef} className={styles.weekRow}>
+              {weekDates.map((date, index) => {
+                const isActive = selectedDate === date;
 
-          <div ref={weekRowRef} className={styles.weekRow}>
-            {weekDates.map((date, index) => {
-              const isActive = selectedDate === date;
-
-              return (
-                <button
-                  key={date}
-                  ref={(node) => {
-                    weekButtonRefs.current[index] = node;
-                  }}
-                  type="button"
-                  aria-pressed={isActive}
-                  data-state={isActive ? 'active' : 'inactive'}
-                  className={[styles.weekDay, isActive ? styles.weekDayActive : ''].filter(Boolean).join(' ')}
-                  onClick={() => {
-                    if (isActive) {
-                      openDatePicker();
-                      return;
-                    }
-                    setSelectedDate(date);
-                  }}
-                >
-                  <span>{weekdayLabels[index]}</span>
-                  <strong>{(parseDate(date) ?? new Date()).getDate()}</strong>
-                </button>
-              );
-            })}
-          </div>
+                return (
+                  <button
+                    key={date}
+                    ref={(node) => {
+                      weekButtonRefs.current[index] = node;
+                    }}
+                    type="button"
+                    aria-pressed={isActive}
+                    data-state={isActive ? 'active' : 'inactive'}
+                    className={[styles.weekDay, isActive ? styles.weekDayActive : ''].filter(Boolean).join(' ')}
+                    onClick={() => {
+                      if (isActive) {
+                        openDatePicker();
+                        return;
+                      }
+                      setSelectedDate(date);
+                    }}
+                  >
+                    <span>{weekdayLabels[index]}</span>
+                    <strong>{(parseDate(date) ?? new Date()).getDate()}</strong>
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
+      </header>
 
-        <div className={styles.toolbarTabsPanel}>
-          <Segmented value={mainTab} onChange={(value) => changeMainTab(value as any)} options={visibleTabs} />
+      <div className={styles.pulseCalendarRailLegacyHidden} aria-hidden="true">
+        <div className={styles.weekRow}>
+          {weekDates.map((date, index) => {
+            const isActive = selectedDate === date;
+
+            return (
+              <button
+                key={`${date}-legacy`}
+                type="button"
+                aria-pressed={isActive}
+                data-state={isActive ? 'active' : 'inactive'}
+                className={[styles.weekDay, isActive ? styles.weekDayActive : ''].filter(Boolean).join(' ')}
+                onClick={() => {
+                  if (isActive) {
+                    openDatePicker();
+                    return;
+                  }
+                  setSelectedDate(date);
+                }}
+              >
+                <span>{weekdayLabels[index]}</span>
+                <strong>{(parseDate(date) ?? new Date()).getDate()}</strong>
+              </button>
+            );
+          })}
         </div>
       </div>
+
+      <nav className={styles.pulseMainTabs} aria-label="Разделы Pulse">
+        {visibleTabs.map((tab) => {
+          const active = tab.value === mainTab;
+          return (
+            <button
+              key={tab.value}
+              type="button"
+              className={[styles.pulseMainTab, active ? styles.pulseMainTabActive : ''].filter(Boolean).join(' ')}
+              onClick={() => changeMainTab(tab.value)}
+              aria-current={active ? 'page' : undefined}
+            >
+              <PulseIcon name={tab.icon} className={styles.pulseMainTabIcon} />
+              <span>{tab.label}</span>
+            </button>
+          );
+        })}
+      </nav>
 
       {mainTab === 'pulse' ? (
         <div className={styles.pulseScene}>
-          <section className={styles.pulseHubSurface}>
-            <div className={styles.pulseHubHead}>
-              <div className={styles.pulseHubCopy}>
-                <span className={styles.pulseHubEyebrow}>Сегодня</span>
-                <h2 className={styles.pulseHubTitle}>{pulseHeadline}</h2>
-              </div>
-
-            </div>
-
-            <div className={styles.pulseSupportingGrid}>
-              {isMentalEnabled ? (
-                <div className={styles.pulseSupportMetric}>
-                  <span className={styles.pulseSupportLabel}>Состояние</span>
-                  <strong className={styles.pulseSupportValue}>{pulseStateSummary.value}</strong>
-                  <span className={styles.pulseSupportMeta}>{pulseStateSummary.meta}</span>
-                  <div className={styles.pulseSupportBar}><span style={{ width: `${Math.max(0, Math.min(100, pulseDay?.dayScore ?? 0))}%` }} /></div>
-                </div>
-              ) : null}
-
-              {isTasksEnabled ? (
-                <div className={styles.pulseSupportMetric}>
-                  <span className={styles.pulseSupportLabel}>Задачи</span>
-                  <strong className={styles.pulseSupportValue}>{pulseDay?.tasksDone ?? 0} из {pulseDay?.tasksTotal ?? 0}</strong>
-                  <span className={styles.pulseSupportMeta}>{pulseTodayItems.length ? `${pulseOpenTodayCount} ещё в работе` : 'На день пока нет задач'}</span>
-                  <div className={[styles.pulseSupportBar, styles.pulseSupportBarSuccess].join(' ')}><span style={{ width: `${tasksProgress}%` }} /></div>
-                </div>
-              ) : null}
-
-              {isNutritionEnabled ? (
-                <div className={styles.pulseSupportMetric}>
-                  <span className={styles.pulseSupportLabel}>Питание</span>
-                  <strong className={styles.pulseSupportValue}>{caloriesTarget ? `${nutritionRemaining} ккал` : 'Цель не задана'}</strong>
-                  <span className={styles.pulseSupportMeta}>
-                    {caloriesTarget ? `${nutritionConsumed} из ${caloriesTarget} ккал` : 'Добавьте дневную цель, чтобы видеть понятную шкалу'}
-                  </span>
-                  {caloriesTarget ? <div className={styles.pulseSupportBar}><span style={{ width: `${nutritionProgress}%` }} /></div> : null}
-                </div>
-              ) : isFinanceEnabled ? (
-                <div className={styles.pulseSupportMetric}>
-                  <span className={styles.pulseSupportLabel}>Платежи</span>
-                  <strong className={styles.pulseSupportValue}>{paymentsToday.length ? `${paymentsToday.length} на сегодня` : 'Спокойно'}</strong>
-                  <span className={styles.pulseSupportMeta}>
-                    {paymentsPreview.length
-                      ? paymentsPreview.map((item) => `${item.title} · ${formatMoney(item.amount)}`).join(' · ')
-                      : 'Обязательных платежей на день нет'}
-                  </span>
-                </div>
-              ) : null}
-            </div>
-
-            {profileCardsVisible ? (
-              <div className={styles.pulseProfileSummaryStrip}>
-                {profileQuickStats.length ? (
-                  <div className={styles.pulseProfileSummaryGrid}>
-                    {profileQuickStats.map((card) => (
-                      <div key={card.key} className={styles.pulseProfileSummaryStat}>
-                        <span>{card.label}</span>
-                        <strong>
-                          {card.value}
-                          {card.unit ? <small>{card.unit}</small> : null}
-                        </strong>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className={styles.pulseProfileSummaryNote}>
-                    Добавьте параметры профиля, чтобы расчёты были точнее.
-                  </div>
-                )}
-
-                <div className={styles.summaryRailActions}>
-                  {showProfileEditor ? (
-                    <>
-                      <Button size="sm" onClick={closeProfileEditor}>Скрыть</Button>
-                      <Button size="sm" variant="primary" onClick={handleProfileSave} loading={profileSaving}>
-                        Сохранить
-                      </Button>
-                    </>
-                  ) : (
-                    <Button size="sm" onClick={openProfileEditor}>Редактировать</Button>
-                  )}
-                </div>
-              </div>
-            ) : null}
-
-            {profileCardsVisible && showProfileEditor ? (
-              <div ref={pulseProfileEditorRef} className={styles.pulseProfileEditorInline}>
-                <div className={styles.compactGrid}>
-                  {isHealthEnabled ? (
-                    <label className={styles.field}>
-                      <span>Рост</span>
-                      <input
-                        ref={pulseProfileEditorFirstFieldRef}
-                        value={profileForm.heightCm}
-                        onChange={(e) => setProfileForm((prev) => ({ ...prev, heightCm: e.target.value }))}
-                        inputMode="decimal"
-                      />
-                    </label>
-                  ) : null}
-                  {isHealthEnabled ? (
-                    <label className={styles.field}>
-                      <span>Возраст</span>
-                      <input value={profileForm.age} onChange={(e) => setProfileForm((prev) => ({ ...prev, age: e.target.value }))} inputMode="numeric" />
-                    </label>
-                  ) : null}
-                  {isNutritionEnabled ? (
-                    <label className={styles.field}>
-                      <span>Вес на старте</span>
-                      <input
-                        ref={!isHealthEnabled ? pulseProfileEditorFirstFieldRef : undefined}
-                        value={profileForm.startWeightKg}
-                        onChange={(e) => setProfileForm((prev) => ({ ...prev, startWeightKg: e.target.value }))}
-                        inputMode="decimal"
-                      />
-                    </label>
-                  ) : null}
-                  {isNutritionEnabled ? (
-                    <label className={styles.field}>
-                      <span>Вес сейчас</span>
-                      <input value={profileForm.currentWeightKg} onChange={(e) => setProfileForm((prev) => ({ ...prev, currentWeightKg: e.target.value }))} inputMode="decimal" />
-                    </label>
-                  ) : null}
-                  {isNutritionEnabled ? (
-                    <label className={styles.field}>
-                      <span>Целевой вес</span>
-                      <input value={profileForm.targetWeightKg} onChange={(e) => setProfileForm((prev) => ({ ...prev, targetWeightKg: e.target.value }))} inputMode="decimal" />
-                    </label>
-                  ) : null}
-                </div>
-              </div>
-            ) : null}
-          </section>
-
-          {isTasksEnabled ? (
-            <section className={styles.pulseSection}>
-              <div className={styles.pulseSectionHead}>
-                <div className={styles.pulseSectionCopy}>
-                  <span className={styles.pulseSectionEyebrow}>Задачи</span>
-                  <h2 className={styles.pulseSectionHeading}>Сегодня</h2>
-                </div>
-
-                <div className={styles.summaryRailActions}>
-                  <Button size="sm" variant="primary" onClick={() => openTaskModal()}>Новая задача</Button>
-                  <Button size="sm" onClick={() => changeMainTab('tasks')}>Ежедневник</Button>
-                </div>
-              </div>
-
-              <div className={styles.taskListStack}>
-                {pulseTimedOpenItems.length ? (
-                  <section className={styles.taskSectionGroup}>
-                    <div className={styles.taskSectionHeader}>
-                      <span className={styles.taskSectionTitle}>Со временем</span>
-                      <span className={styles.taskSectionCount}>{pulseTimedOpenItems.length}</span>
-                    </div>
-                    <div className={styles.taskSectionList}>
-                      {pulseTimedOpenItems.map((task) => renderTaskRow(task, { compact: true, context: 'pulse' }))}
-                    </div>
-                  </section>
-                ) : null}
-
-                {pulseUntimedOpenItems.length ? (
-                  <section className={styles.taskSectionGroup}>
-                    <div className={styles.taskSectionHeader}>
-                      <span className={styles.taskSectionTitle}>Без времени</span>
-                      <span className={styles.taskSectionCount}>{pulseUntimedOpenItems.length}</span>
-                    </div>
-                    <div className={styles.taskSectionList}>
-                      {pulseUntimedOpenItems.map((task) => renderTaskRow(task, { compact: true, context: 'pulse' }))}
-                    </div>
-                  </section>
-                ) : null}
-
-                {pulseCompletedItems.length ? (
-                  <section className={styles.taskSectionGroup}>
-                    <button type="button" className={styles.taskSectionCollapse} onClick={() => setShowPulseCompletedTasks((prev) => !prev)}>
-                      <span className={styles.taskSectionCollapseLabel}>{`Выполнено (${pulseCompletedItems.length})`}</span>
-                      <ChevronDown
-                        size={16}
-                        className={[styles.taskSectionCollapseIcon, showPulseCompletedTasks ? styles.taskSectionCollapseIconOpen : ''].filter(Boolean).join(' ')}
-                        aria-hidden="true"
-                      />
-                    </button>
-                    {showPulseCompletedTasks ? (
-                      <div className={styles.taskSectionList}>
-                        {pulseCompletedItems.map((task) => renderTaskRow(task, { compact: true, context: 'pulse' }))}
-                      </div>
-                    ) : null}
-                  </section>
-                ) : null}
-
-                {!pulseTodayItems.length ? <div className={styles.emptyText}>На выбранный день пока нет задач.</div> : null}
-              </div>
-            </section>
-          ) : null}
-
-          <section className={styles.pulseSection}>
-            <div className={styles.pulseSectionHead}>
-              <div className={styles.pulseSectionCopy}>
-                <span className={styles.pulseSectionEyebrow}>Сигналы</span>
-                <h2 className={styles.pulseSectionHeading}>Что важно сегодня</h2>
-              </div>
-            </div>
-
-            <div className={styles.pulseRecommendationGrid}>
-              <div className={[styles.pulseRecommendationColumn, styles.pulseRecommendationPanel].join(' ')}>
-                <div className={styles.pulseRecommendationColumnHeader}>
-                  <div className={styles.pulseRecommendationColumnTitleGroup}>
-                    <div className={styles.pulseRecommendationColumnTitle}>Нужно внимание</div>
-                    <span className={styles.pulseRecommendationColumnMeta}>{pulseAttentionCount}</span>
-                  </div>
-                </div>
-
-                <div className={styles.pulseRecommendationList}>
-                  {pulseAttentionItems.slice(0, 3).map((item) => (
-                    <button
-                      key={item.id}
-                      type="button"
-                      className={[styles.pulseRecommendationRow, styles.pulseRecommendationRowAttention].join(' ')}
-                      onClick={() => handlePulseRecommendationOpen(item.meta.target)}
-                    >
-                      <span className={styles.pulseRecommendationLead}>
-                        <PulseIcon name={item.meta.icon} className={styles.recommendationIcon} />
-                        <span className={styles.pulseRecommendationText}>{item.text}</span>
-                      </span>
-                      <span className={styles.pulseRecommendationChevron} aria-hidden="true">
-                        <ChevronRight size={16} strokeWidth={1.8} />
-                      </span>
-                    </button>
-                  ))}
-
-                  {!pulseAttentionItems.length ? <div className={styles.emptyText}>Важных сигналов нет.</div> : null}
-                </div>
-              </div>
-
-              <div className={[styles.pulseRecommendationColumn, styles.pulseRecommendationPanel].join(' ')}>
-                <div className={styles.pulseRecommendationColumnHeader}>
-                  <div className={styles.pulseRecommendationColumnTitleGroup}>
-                    <div className={styles.pulseRecommendationColumnTitle}>Подсказки</div>
-                    <span className={styles.pulseRecommendationColumnMeta}>{pulseSuggestionCount}</span>
-                  </div>
-                </div>
-
-                <div className={styles.pulseRecommendationList}>
-                  {(showAllRecommendations ? pulseSuggestionItems : pulseSuggestionItems.slice(0, 3)).map((item) => (
-                    <button
-                      key={item.id}
-                      type="button"
-                      className={[
-                        styles.pulseRecommendationRow,
-                        item.meta.tone === 'info' ? styles.pulseRecommendationRowInfo : '',
-                      ].filter(Boolean).join(' ')}
-                      onClick={() => handlePulseRecommendationOpen(item.meta.target)}
-                    >
-                      <span className={styles.pulseRecommendationLead}>
-                        <PulseIcon name={item.meta.icon} className={styles.recommendationIcon} />
-                        <span className={styles.pulseRecommendationText}>{item.text}</span>
-                      </span>
-                      <span className={styles.pulseRecommendationChevron} aria-hidden="true">
-                        <ChevronRight size={16} strokeWidth={1.8} />
-                      </span>
-                    </button>
-                  ))}
-
-                  {!pulseSuggestionItems.length ? <div className={styles.emptyText}>Подсказок нет.</div> : null}
-                </div>
-
-                {pulseSuggestionItems.length > 3 ? (
-                  <button type="button" className={styles.inlineLink} onClick={() => setShowAllRecommendations((value) => !value)}>
-                    {showAllRecommendations ? 'Скрыть' : 'Ещё подсказки'}
+          <section className={styles.overviewSection}>
+            <div className={styles.overviewHeroCard}>
+              <div className={styles.overviewHeroHeader}>
+                <div className={styles.overviewHeroTitle}>Пульс</div>
+                {pulseSecondarySignal ? (
+                  <button
+                    type="button"
+                    className={styles.overviewHeroAction}
+                    onClick={() => handlePulseRecommendationOpen(pulseSecondarySignal.meta.target)}
+                  >
+                    <PulseIcon name={pulseSecondarySignal.meta.icon} className={styles.overviewHeroActionIcon} />
+                    <span>{pulseSecondarySignal.text}</span>
                   </button>
                 ) : null}
               </div>
+
+              <div className={styles.overviewTopGrid}>
+              <section className={styles.overviewScoreCard}>
+                <div className={styles.overviewScoreRing} aria-label={`Средняя эффективность ${overviewScoreValue}`}>
+                  <svg
+                    width={overviewRingSize}
+                    height={overviewRingSize}
+                    viewBox={`0 0 ${overviewRingSize} ${overviewRingSize}`}
+                    className={styles.overviewScoreSvg}
+                    aria-hidden="true"
+                  >
+                    <defs>
+                      <linearGradient id="overview-score-gradient" x1="12%" y1="8%" x2="88%" y2="92%">
+                        <stop offset="0%" stopColor="#ffc72d" />
+                        <stop offset="100%" stopColor="#ff821d" />
+                      </linearGradient>
+                    </defs>
+                    <circle
+                      cx={overviewRingSize / 2}
+                      cy={overviewRingSize / 2}
+                      r={overviewRingRadius}
+                      className={styles.overviewScoreTrack}
+                      strokeWidth={overviewRingStroke}
+                      fill="none"
+                    />
+                    <circle
+                      cx={overviewRingSize / 2}
+                      cy={overviewRingSize / 2}
+                      r={overviewRingRadius}
+                      className={styles.overviewScoreProgress}
+                      strokeWidth={overviewRingStroke}
+                      fill="none"
+                      stroke="url(#overview-score-gradient)"
+                      strokeLinecap="round"
+                      strokeDasharray={overviewRingCircumference}
+                      strokeDashoffset={overviewRingOffset}
+                      transform={`rotate(-78 ${overviewRingSize / 2} ${overviewRingSize / 2})`}
+                    />
+                  </svg>
+                  <div className={styles.overviewScoreRingInner}>
+                    <strong>{overviewScoreValue}</strong>
+                  </div>
+                </div>
+                <span className={styles.overviewScoreLabel}>Средняя эффективность</span>
+              </section>
+
+              <section className={styles.overviewProfileCard}>
+                {profileCardsVisible ? (
+                  <>
+                    <div className={styles.overviewProfileMetrics}>
+                      {isHealthEnabled ? (
+                        <div className={styles.overviewProfileMetric}>
+                          <span className={styles.overviewProfileMetricIcon}>
+                            <PulseIcon name="ruler" className={styles.overviewProfileMetricSvg} />
+                          </span>
+                          <strong>{formatNumericValue(weightProgressSummary.height, 0)}</strong>
+                          <span>см</span>
+                        </div>
+                      ) : null}
+
+                      {isHealthEnabled ? (
+                        <div className={styles.overviewProfileMetric}>
+                          <span className={styles.overviewProfileMetricIcon}>
+                            <PulseIcon name="calendar" className={styles.overviewProfileMetricSvg} />
+                          </span>
+                          <strong>{formatNumericValue(weightProgressSummary.age, 0)}</strong>
+                          <span>лет</span>
+                        </div>
+                      ) : null}
+
+                      {isNutritionEnabled ? (
+                        <div className={[styles.overviewProfileMetric, styles.overviewProfileMetricAccent].join(' ')}>
+                          <span className={styles.overviewProfileMetricIcon}>
+                            <PulseIcon name="trend" className={styles.overviewProfileMetricSvg} />
+                          </span>
+                          <strong>{formatNumericValue(weightProgressSummary.currentValue, 1)}</strong>
+                          <span>кг</span>
+                        </div>
+                      ) : null}
+                    </div>
+
+                    <div className={styles.overviewWeightBlock}>
+                      <div className={styles.overviewWeightHead}>
+                        <span>Прогресс веса</span>
+                        <strong>
+                          {weightProgressSummary.currentValue != null && weightProgressSummary.targetValue != null
+                            ? `${formatNumericValue(weightProgressSummary.currentValue, 1)} / ${formatNumericValue(weightProgressSummary.targetValue, 1)} кг`
+                            : 'Добавьте профиль'}
+                        </strong>
+                      </div>
+
+                      <div className={styles.overviewWeightTrack}>
+                        <span style={{ width: `${weightProgressSummary.progressWidth}%` }} />
+                      </div>
+
+                      <div className={styles.overviewWeightMeta}>
+                        <span>{weightProgressSummary.startValue != null ? `${formatNumericValue(weightProgressSummary.startValue, 1)} кг` : '—'}</span>
+                        <span>{weightProgressSummary.hasFullWeightProfile ? weightProgressSummary.progressLabel : 'Добавьте стартовый и целевой вес'}</span>
+                        <span>{weightProgressSummary.targetValue != null ? `${formatNumericValue(weightProgressSummary.targetValue, 1)} кг` : '—'}</span>
+                      </div>
+                    </div>
+
+                    <div className={styles.overviewProfileActions}>
+                      <button type="button" className={styles.overviewActionButton} onClick={openProfileEditor}>
+                        Редактировать профиль
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <div className={styles.overviewProfileFallback}>
+                    <strong>{pulseHeadline}</strong>
+                    <span>{pulseSummaryText}</span>
+                    {pulseSecondarySignal ? (
+                      <button type="button" className={styles.overviewFallbackLink} onClick={() => handlePulseRecommendationOpen(pulseSecondarySignal.meta.target)}>
+                        {pulseSecondarySignal.text}
+                      </button>
+                    ) : null}
+                  </div>
+                )}
+              </section>
+
+              <section className={styles.overviewProgressCard}>
+                {overviewProgressRows.map((row) => (
+                  <button
+                    key={row.key}
+                    type="button"
+                    className={styles.overviewProgressRow}
+                    data-tone={row.tone}
+                    onClick={() => {
+                      if (row.target === 'tasks') {
+                        changeMainTab('tasks');
+                        return;
+                      }
+                      if (row.target === 'health-mental') {
+                        setHealthSubTab('mental');
+                        changeMainTab('health');
+                        return;
+                      }
+                      if (row.target === 'health-nutrition') {
+                        setHealthSubTab('nutrition');
+                        changeMainTab('health');
+                        return;
+                      }
+                      changeMainTab('finance');
+                    }}
+                  >
+                    <div className={styles.overviewProgressLead}>
+                      <div className={styles.overviewProgressHead}>
+                        <span>{row.label}</span>
+                      </div>
+                      <div className={styles.overviewProgressTrack}>
+                        <span style={{ width: `${row.value}%` }} />
+                      </div>
+                    </div>
+                    <div className={styles.overviewProgressTail}>
+                      <strong>{row.value}%</strong>
+                      <ChevronRight size={16} strokeWidth={1.8} className={styles.overviewProgressChevron} aria-hidden="true" />
+                    </div>
+                  </button>
+                ))}
+              </section>
             </div>
+            </div>
+
+            <section className={styles.overviewNotesCard}>
+              <div className={styles.overviewNotesTitle}>Инсайты</div>
+
+              <div className={styles.overviewBulletList}>
+                {overviewInsightItems.length ? overviewInsightItems.map((item) => (
+                  <button key={item.id} type="button" className={styles.overviewBulletRow} onClick={() => handlePulseRecommendationOpen(item.target)}>
+                    <span className={styles.overviewBulletLead}>
+                      <span className={styles.overviewBulletDot} aria-hidden="true" />
+                      <span className={styles.overviewBulletText}>{item.text}</span>
+                    </span>
+                    <span className={styles.overviewBulletArrow} aria-hidden="true">
+                      <ChevronRight size={16} strokeWidth={1.8} />
+                    </span>
+                  </button>
+                )) : <div className={styles.emptyText}>Инсайты появятся, когда накопится больше данных за день.</div>}
+              </div>
+
+              <div className={styles.overviewNotesDivider} />
+
+              <div className={styles.overviewNotesSubtitle}>Напоминания</div>
+              <div className={styles.overviewBulletList}>
+                {overviewReminderItems.length ? overviewReminderItems.map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    className={[styles.overviewBulletRow, styles.overviewBulletRowMuted].join(' ')}
+                    onClick={() => {
+                      if (item.target === 'tasks') {
+                        changeMainTab('tasks');
+                        return;
+                      }
+                      if (item.target === 'health') {
+                        setHealthSubTab('mental');
+                        changeMainTab('health');
+                        return;
+                      }
+                      changeMainTab('finance');
+                    }}
+                  >
+                    <span className={styles.overviewBulletLead}>
+                      <span className={styles.overviewBulletDot} aria-hidden="true" />
+                      <span className={styles.overviewBulletText}>{item.text}</span>
+                    </span>
+                    <span className={styles.overviewBulletArrow} aria-hidden="true">
+                      <ChevronRight size={16} strokeWidth={1.8} />
+                    </span>
+                  </button>
+                )) : <div className={styles.emptyText}>На выбранный день напоминаний нет.</div>}
+              </div>
+            </section>
+
+            <section className={styles.overviewStreaksCard}>
+              <div className={styles.overviewStreaksHeader}>
+                <div className={styles.overviewNotesTitle}>Стрики привычек</div>
+                <button type="button" className={styles.overviewStreaksLink} onClick={() => changeMainTab('tasks')}>
+                  Все привычки
+                </button>
+              </div>
+
+              <div className={styles.overviewStreaksList}>
+                {overviewHabitStreaks.length ? overviewHabitStreaks.map((item) => (
+                  <button key={item.id} type="button" className={styles.overviewStreakRow} onClick={() => changeMainTab('tasks')}>
+                    <span className={styles.overviewStreakLead}>
+                      <span className={styles.overviewStreakIcon} data-tone={item.tone}>
+                        <PulseIcon name={item.icon} className={styles.overviewStreakIconSvg} />
+                      </span>
+                      <strong>{item.title}</strong>
+                    </span>
+                    <span className={styles.overviewStreakValue} data-tone={item.tone}>
+                      <PulseIcon name="flame" className={styles.overviewStreakValueIcon} />
+                      <strong>{item.streak}</strong>
+                      <span>дней</span>
+                    </span>
+                  </button>
+                )) : <div className={styles.emptyText}>Стрики появятся после нескольких дней отметок по привычкам.</div>}
+              </div>
+            </section>
+
           </section>
 
-          <section className={styles.pulseSection}>
-            <div className={styles.pulseSectionHead}>
-              <div className={styles.pulseSectionCopy}>
-                <span className={styles.pulseSectionEyebrow}>Программы</span>
-                <h2 className={styles.pulseSectionHeading}>Программы сегодня</h2>
+          <section className={[styles.pulseSection, styles.overviewProgramsSection].join(' ')}>
+            <div className={styles.overviewProgramsCard}>
+              <div className={styles.overviewProgramsHeader}>
+                <div className={styles.pulseSectionCopy}>
+                  <span className={styles.pulseSectionEyebrow}>Программы</span>
+                  <h2 className={styles.pulseSectionHeading}>Программы сегодня</h2>
+                </div>
+                <button type="button" className={styles.overviewProgramsLink} onClick={() => changeMainTab('programs')}>
+                  Открыть
+                </button>
               </div>
-            </div>
 
-            <ProgramTodayWidget compact variant="pulse" />
+              <ProgramTodayWidget compact variant="pulse" />
+            </div>
           </section>
 
         </div>
@@ -3009,112 +3727,290 @@ export default function HealthPage() {
           ) : null}
 
           {healthSubTab === 'nutrition' ? (
-            <>
-              <div className={styles.nutritionTopGrid}>
-                <section className={styles.healthSurface}>
-                  <div className={styles.healthSectionHeader}>
-                    <div className={styles.healthSectionTitle}><PulseIcon name="flame" className={styles.sectionIconAccent} />Калории</div>
-                    <div className={styles.healthActionGroup}>
-                      <span className={styles.healthChip}>Цель: {caloriesTarget || '—'} ккал</span>
-                      <button type="button" className={styles.healthGhostButton} onClick={openNutritionGoalModal}>
-                        <PulseIcon name="gear" className={styles.healthButtonIcon} />
-                        <span>{nutritionGoal ? 'Изменить цель' : 'Задать цель'}</span>
-                      </button>
+            <div className={styles.nutritionScene}>
+              <section className={[styles.healthSurface, styles.nutritionHeroCard].join(' ')}>
+                <div className={styles.nutritionHeroGrid}>
+                  <div className={styles.nutritionHeroVisual}>
+                    <div className={styles.nutritionGoalLine}>
+                      <PulseIcon name="target" className={styles.nutritionGoalIcon} />
+                      <span>Цель:</span>
+                      <strong>{nutritionGoalDeltaLabel}</strong>
+                    </div>
+
+                    <div className={styles.nutritionVisualBody}>
+                      <div className={styles.nutritionFigureScene}>
+                        <div className={styles.nutritionHeightScale} aria-hidden="true">
+                          {NUTRITION_HEIGHT_SCALE.map((mark) => {
+                            const isMajor = mark % 10 === 0;
+                            return (
+                              <div
+                                key={mark}
+                                className={[
+                                  styles.nutritionHeightTick,
+                                  isMajor ? styles.nutritionHeightTickMajor : styles.nutritionHeightTickMinor,
+                                ].filter(Boolean).join(' ')}
+                              >
+                                <span>{isMajor ? mark : ''}</span>
+                                <i />
+                              </div>
+                            );
+                          })}
+                          {nutritionHeightValue != null ? (
+                            <div className={styles.nutritionHeightMarker} style={{ top: `${nutritionHeightMarkerPosition}%` }}>
+                              <span>{formatNumericValue(nutritionHeightValue, 0)} см</span>
+                            </div>
+                          ) : null}
+                        </div>
+
+                        <div className={styles.nutritionFigureWrap}>
+                          <NutritionFigureIllustration />
+                        </div>
+                      </div>
+
+                      <div className={styles.nutritionWeightCard}>
+                        <div className={styles.nutritionWeightValue}>
+                          <strong>{formatNumericValue(nutritionCurrentWeight, 1)}</strong>
+                          <span>кг</span>
+                        </div>
+                        <div
+                          className={[
+                            styles.nutritionWeightDelta,
+                            nutritionStartDeltaTone === 'success' ? styles.nutritionWeightDeltaPositive : '',
+                            nutritionStartDeltaTone === 'danger' ? styles.nutritionWeightDeltaNegative : '',
+                          ].filter(Boolean).join(' ')}
+                        >
+                          {nutritionStartDeltaLabel}
+                        </div>
+                        <button type="button" className={styles.nutritionWeightEditButton} onClick={openProfileEditor}>
+                          <Pencil className={styles.nutritionWeightEditIcon} strokeWidth={1.8} />
+                          <span>Редактировать</span>
+                        </button>
+                      </div>
                     </div>
                   </div>
 
-                  <div className={styles.nutritionMetricsRow}>
-                    <div className={styles.nutritionMetric}><strong>{nutritionConsumed}</strong><span>Потреблено</span></div>
-                    <div className={styles.nutritionMetricDivider} />
-                    <div className={styles.nutritionMetric}><strong className={styles.nutritionAccentValue}>{nutritionRemaining}</strong><span>Осталось</span></div>
-                    <div className={styles.nutritionMetricDivider} />
-                    <div className={styles.nutritionMetric}><strong>{caloriesTarget || 0}</strong><span>Цель</span></div>
-                  </div>
-
-                  <div className={styles.nutritionProgressWrap}>
-                    <div className={styles.nutritionProgressBar}><span style={{ width: `${nutritionProgress}%` }} /></div>
-                    <div className={styles.nutritionProgressCaption}>{nutritionProgress}% от дневной нормы</div>
-                  </div>
-                </section>
-
-                <aside className={styles.healthSurface}>
-                  <div className={styles.healthSectionHeader}>
-                    <div className={styles.healthSectionTitle}><PulseIcon name="target" className={styles.sectionIconAccent} />БЖУ</div>
-                  </div>
-
-                  <div className={styles.macroList}>
-                    {[
-                      { label: 'Белки', value: nutritionData?.totalProtein ?? 0, target: nutritionGoal?.protein ?? profile?.proteinGoal ?? profileSuggestion?.protein ?? 0, className: styles.macroFillProtein },
-                      { label: 'Жиры', value: nutritionData?.totalFat ?? 0, target: nutritionGoal?.fat ?? profile?.fatGoal ?? profileSuggestion?.fat ?? 0, className: styles.macroFillFat },
-                      { label: 'Углеводы', value: nutritionData?.totalCarbs ?? 0, target: nutritionGoal?.carbs ?? profile?.carbsGoal ?? profileSuggestion?.carbs ?? 0, className: styles.macroFillCarbs },
-                    ].map((macro) => {
-                      const maxTarget = Math.max(macro.target || 0, macro.value || 0, 1);
-                      const percent = Math.min(100, Math.round((macro.value / maxTarget) * 100));
-                      return (
-                        <div key={macro.label} className={styles.macroItem}>
-                          <div className={styles.macroHead}>
-                            <span>{macro.label}</span>
-                            <strong>{macro.value} / {macro.target || 0} г</strong>
-                          </div>
-                          <div className={styles.macroTrack}><span className={macro.className} style={{ width: `${percent}%` }} /></div>
+                  <div className={styles.nutritionHeroPanels}>
+                    <section className={styles.nutritionHeroPanel}>
+                      <div className={styles.nutritionPanelHeader}>
+                        <div className={styles.nutritionPanelTitle}>
+                          <PulseIcon name="flame" className={styles.sectionIconAccent} />
+                          <span>Калории</span>
                         </div>
+
+                        <div className={styles.nutritionPanelActions}>
+                          <span className={styles.nutritionGoalChip}>
+                            {caloriesTarget > 0 ? `${formatNumericValue(caloriesTarget, 0)} ккал` : 'Без цели'}
+                          </span>
+                          <button type="button" className={styles.nutritionPanelAction} onClick={openNutritionGoalModal}>
+                            <Settings2 className={styles.nutritionPanelActionIcon} strokeWidth={1.8} />
+                            <span>{nutritionGoal ? 'Изменить' : 'Задать'}</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className={styles.nutritionMetricsRow}>
+                        <div className={styles.nutritionMetric}>
+                          <strong className={styles.nutritionMetricValueAccent}>{formatNumericValue(nutritionConsumed, 0)}</strong>
+                          <span>Потреблено</span>
+                        </div>
+                        <div className={styles.nutritionMetricDivider} />
+                        <div className={styles.nutritionMetric}>
+                          <strong>{formatNumericValue(nutritionRemaining, 0)}</strong>
+                          <span>Осталось</span>
+                        </div>
+                        <div className={styles.nutritionMetricDivider} />
+                        <div className={styles.nutritionMetric}>
+                          <strong>{formatNumericValue(caloriesTarget || 0, 0)}</strong>
+                          <span>Цель</span>
+                        </div>
+                      </div>
+
+                      <div className={styles.nutritionProgressWrap}>
+                        <div className={styles.nutritionProgressBar}><span style={{ width: `${nutritionProgress}%` }} /></div>
+                        <div className={styles.nutritionProgressCaption}>{nutritionProgress}% от дневной нормы</div>
+                      </div>
+                    </section>
+
+                    <section className={[styles.nutritionHeroPanel, styles.nutritionHeroPanelSeparated].join(' ')}>
+                      <div className={styles.nutritionPanelHeader}>
+                        <div className={styles.nutritionPanelTitle}>
+                          <PulseIcon name="gear" className={styles.sectionIconMuted} />
+                          <span>БЖУ</span>
+                        </div>
+                      </div>
+
+                      <div className={styles.nutritionMacroGrid}>
+                        {nutritionMacroCards.map((macro) => {
+                          const maxTarget = Math.max(macro.target || 0, macro.value || 0, 1);
+                          const percent = Math.min(100, Math.round((macro.value / maxTarget) * 100));
+                          const fillWidth = macro.value > 0 ? Math.max(percent, 8) : 0;
+                          return (
+                            <div key={macro.key} className={styles.nutritionMacroCard}>
+                              <strong className={macro.valueClassName}>{formatNumericValue(macro.value, 0)}</strong>
+                              <span className={styles.nutritionMacroTarget}>из {formatNumericValue(macro.target, 1)} г</span>
+                              <div className={styles.nutritionMacroTrack}>
+                                <span className={macro.fillClassName} style={{ width: `${fillWidth}%` }} />
+                              </div>
+                              <span className={styles.nutritionMacroLabel}>{macro.label}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </section>
+                  </div>
+                </div>
+                <div className={styles.nutritionSectionDivider} />
+                <section className={styles.nutritionMealsSection}>
+                  <div className={styles.nutritionMealsHeader}>
+                    <div className={styles.nutritionMealsTitle}>Приёмы пищи</div>
+                    <button type="button" className={styles.nutritionAddButton} onClick={() => openMealModal()}>
+                      <PulseIcon name="plus" className={styles.healthButtonIcon} />
+                      <span>Добавить</span>
+                    </button>
+                  </div>
+
+                  <div className={styles.mealListSurface}>
+                    {nutritionMeals.map((meal) => {
+                      const expanded = expandedMealId === meal.id;
+                      return (
+                        <article key={meal.id} className={[styles.mealRowCard, expanded ? styles.mealRowCardExpanded : ''].filter(Boolean).join(' ')}>
+                          <div className={styles.mealRowHead}>
+                            <button
+                              type="button"
+                              className={styles.mealHeaderButton}
+                              onClick={() => setExpandedMealId(expanded ? null : meal.id)}
+                              aria-expanded={expanded}
+                              aria-label={`${expanded ? 'Свернуть' : 'Развернуть'} ${meal.title}`}
+                            >
+                              <span className={styles.mealTimeBadge}>{formatMealTime(meal.date)}</span>
+                              <span className={styles.mealHeadlineBlock}>
+                                <span className={styles.mealTitleRow}>
+                                  <strong>{meal.title}</strong>
+                                  <span className={styles.mealCaloriesBadge}>{formatNumericValue(meal.totalCalories, 0)} ккал</span>
+                                  <ChevronDown className={[styles.mealChevron, expanded ? styles.mealChevronExpanded : ''].filter(Boolean).join(' ')} />
+                                </span>
+                                {!expanded ? <span className={styles.mealHeaderPreview}>{meal.itemsJson.map((item) => item.name).join(' · ') || 'Без продуктов'}</span> : null}
+                              </span>
+                            </button>
+
+                            <div className={styles.mealActions}>
+                              <button type="button" className={styles.mealIconButton} onClick={() => openMealModal(meal)} aria-label="Изменить приём пищи">
+                                <PulseIcon name="pencil" className={styles.mealActionIcon} />
+                              </button>
+                              <button type="button" className={[styles.mealIconButton, styles.destructiveIconAction].filter(Boolean).join(' ')} onClick={() => deleteMeal(meal.id)} aria-label="Удалить приём пищи">
+                                <Trash2 className={styles.mealActionIcon} strokeWidth={1.8} />
+                              </button>
+                            </div>
+                          </div>
+
+                          {expanded ? (
+                            <div className={styles.mealDetails}>
+                              {meal.notes ? <div className={styles.mealExpandedNote}>{meal.notes}</div> : null}
+                              <div className={styles.mealTable}>
+                                <div className={styles.mealTableHead}>
+                                  <span>Продукт</span>
+                                  <span>ккал</span>
+                                  <span>Б</span>
+                                  <span>Ж</span>
+                                  <span>У</span>
+                                </div>
+                                <div className={styles.mealTableBody}>
+                                  {meal.itemsJson.map((item, index) => (
+                                    <div key={`${meal.id}-${item.name}-${index}`} className={styles.mealItemRow}>
+                                      <div className={styles.mealItemName}>
+                                        <strong>{item.name}</strong>
+                                        <span>{formatNumericValue(item.grams, 0)} г</span>
+                                      </div>
+                                      <span>{formatNumericValue(item.calories, 0)}</span>
+                                      <span className={styles.mealValueProtein}>{formatNumericValue(item.protein ?? 0, 1)}</span>
+                                      <span className={styles.mealValueFat}>{formatNumericValue(item.fat ?? 0, 1)}</span>
+                                      <span className={styles.mealValueCarbs}>{formatNumericValue(item.carbs ?? 0, 1)}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+                          ) : null}
+                        </article>
                       );
                     })}
+
+                    {!nutritionMeals.length ? <div className={styles.emptyText}>На выбранный день приёмы пищи ещё не добавлены.</div> : null}
                   </div>
-                </aside>
-              </div>
-
-              <section className={[styles.healthSurface, styles.healthInfoSurface].join(' ')}>
-                <div className={styles.healthInfoRow}>
-                  <PulseIcon name="info" className={styles.healthInfoIcon} />
-                  <div>
-                    <strong>Влияние на ментальное здоровье</strong>
-                    <span>Текущий показатель питания: <b>{nutritionRating}/10</b> — вносит <b>+{nutritionRating}</b> баллов в общее состояние</span>
-                  </div>
-                </div>
+                </section>
               </section>
-
-              <section className={styles.healthSurface}>
-                <div className={styles.healthSectionHeader}>
-                  <div className={styles.healthSectionTitle}>Приёмы пищи</div>
-                  <button type="button" className={styles.healthPrimaryButton} onClick={() => openMealModal()}>
-                    <PulseIcon name="plus" className={styles.healthButtonIcon} />
-                    <span>Добавить</span>
-                  </button>
-                </div>
-
-                <div className={styles.mealListSurface}>
-                  {(nutritionData?.meals ?? []).map((meal) => (
-                    <article key={meal.id} className={styles.mealRowCard}>
-                      <div className={styles.mealTimeBadge}>{formatMealTime(meal.date)}</div>
-                      <div className={styles.mealMain}>
-                        <strong>{meal.title}</strong>
-                        <span>Б: {meal.totalProtein ?? 0}г &nbsp; Ж: {meal.totalFat ?? 0}г &nbsp; У: {meal.totalCarbs ?? 0}г</span>
-                        <span>{meal.itemsJson.map((item) => item.name).join(' · ')}</span>
-                      </div>
-                      <div className={styles.mealSide}>
-                        <strong>{meal.totalCalories} ккал</strong>
-                        <div className={styles.mealActions}>
-                          <button type="button" className={styles.mealIconButton} onClick={() => openMealModal(meal)} aria-label="Изменить приём пищи">
-                            <PulseIcon name="pencil" className={styles.mealActionIcon} />
-                          </button>
-                          <button type="button" className={[styles.mealIconButton, styles.destructiveIconAction].filter(Boolean).join(' ')} onClick={() => deleteMeal(meal.id)} aria-label="Удалить приём пищи">
-                            <PulseIcon name="trash" className={styles.mealActionIcon} />
-                          </button>
-                        </div>
-                      </div>
-                    </article>
-                  ))}
-                  {!nutritionData?.meals?.length ? <div className={styles.emptyText}>На выбранный день приёмы пищи ещё не добавлены.</div> : null}
-                </div>
-              </section>
-            </>
+            </div>
           ) : null}
         </div>
       ) : null}
 
       {mainTab === 'tasks' ? (
         <div className={styles.tasksScene}>
+          <section className={styles.diarySurface}>
+            <div className={styles.diarySurfaceHeader}>
+              <h2 className={styles.diarySurfaceTitle}>Ежедневник</h2>
+              <button type="button" className={styles.diarySurfaceAction} onClick={() => openTaskModal()} aria-label="Добавить задачу">
+                <Plus size={16} aria-hidden="true" />
+              </button>
+            </div>
+
+            <DiaryTimelineBoard
+              date={selectedDate}
+              tasks={scheduledDiaryItems}
+              onCreateTaskAtSlot={handleCreateTaskFromPlannerSlot}
+              onOpenTask={openTaskEditModal}
+              onUpdateTask={async (taskId, body) => {
+                await updatePulseTask({ taskId, body }).unwrap();
+              }}
+            />
+
+            <div className={styles.diarySectionStack}>
+              <section className={styles.diarySection}>
+                <div className={styles.diarySectionHeader}>
+                  <h3 className={styles.diarySectionTitle}>Список задач</h3>
+                  <label className={styles.diarySectionToggle}>
+                    <input
+                      type="checkbox"
+                      checked={showScheduledTasksInList}
+                      onChange={(event) => setShowScheduledTasksInList(event.target.checked)}
+                    />
+                    <span className={styles.diarySectionToggleBox}>
+                      {showScheduledTasksInList ? <Check className={styles.diarySectionToggleIcon} strokeWidth={3} /> : null}
+                    </span>
+                    <span>Показывать задачи из ежедневника</span>
+                  </label>
+                </div>
+
+                <div className={styles.diaryList}>
+                  {listedDiaryTaskItems.length ? (
+                    listedDiaryTaskItems.map((task) => renderDiaryTaskRow(task))
+                  ) : (
+                    <div className={styles.emptyText}>
+                      {diaryTaskItems.length
+                        ? 'Все задачи этого дня уже вынесены на ленту времени.'
+                        : 'На выбранный день пока нет задач.'}
+                    </div>
+                  )}
+                </div>
+              </section>
+
+              <section className={styles.diarySection}>
+                <div className={styles.diarySectionHeader}>
+                  <h3 className={styles.diarySectionTitle}>Привычки</h3>
+                </div>
+
+                <div className={styles.diaryList}>
+                  {diaryHabitItems.length ? (
+                    diaryHabitItems.map((task) => renderDiaryHabitRow(task))
+                  ) : (
+                    <div className={styles.emptyText}>На выбранный день пока нет привычек.</div>
+                  )}
+                </div>
+              </section>
+            </div>
+          </section>
+
+          <div className={styles.diaryLegacyHidden}>
           <section className={styles.taskWorkspaceSurface}>
             <div className={styles.taskWorkspaceHeader}>
               <div className={styles.taskWorkspaceCopy}>
@@ -3124,6 +4020,23 @@ export default function HealthPage() {
             </div>
 
             <section className={styles.taskSummaryStrip}>
+              <div className={styles.taskSummaryHeader}>
+                <div className={styles.taskSummaryMetrics}>
+                  <div className={styles.taskSummaryMetric}>
+                    <span>Открыто</span>
+                    <strong>{timedOpenTasks.length + untimedOpenTasks.length}</strong>
+                  </div>
+                  <div className={styles.taskSummaryMetric}>
+                    <span>Выполнено</span>
+                    <strong>{completedTasks.length}</strong>
+                  </div>
+                  <div className={styles.taskSummaryMetric}>
+                    <span>Всего</span>
+                    <strong>{filteredTasks.length}</strong>
+                  </div>
+                </div>
+                <div className={styles.taskSummaryCaption}>{filteredCompletionPercent}% за день</div>
+              </div>
               <div
                 className={styles.taskSummaryProgressTrack}
                 style={{
@@ -3132,8 +4045,8 @@ export default function HealthPage() {
                 }}
               >
                 <span style={{ width: `${filteredCompletionPercent}%` }} />
-                <strong>{`Выполнено ${completedTasks.length}/${filteredTasks.length}`}</strong>
               </div>
+              <div className={styles.taskSummaryLegend}>Завершено {completedTasks.length} из {filteredTasks.length || 0} задач на выбранный день.</div>
             </section>
 
             <div className={styles.taskToolbar}>
@@ -3415,6 +4328,7 @@ export default function HealthPage() {
               </div>
             )}
           </section>
+          </div>
 
           <section className={styles.goalSummarySurface}>
             <div className={styles.goalSummaryHeader}>
@@ -3582,6 +4496,11 @@ export default function HealthPage() {
                     <PulseIcon name="plus" className={styles.financeInlineAddIcon} />
                   </button>
                 </div>
+                <div className={styles.financeHeroMetaRow}>
+                  <span>{expenseOperationsLabel}</span>
+                  {averageExpenseAmount > 0 ? <span>Средний чек {formatMoney(averageExpenseAmount)}</span> : null}
+                  {primaryExpenseCategory?.spent ? <span>Больше всего уходит на {primaryExpenseCategory.name}</span> : null}
+                </div>
               </section>
 
               <section className={[styles.financePanelSurface, styles.financePanelSurfaceCompact, styles.financeSectionSurfaceFlat].join(' ')}>
@@ -3621,7 +4540,7 @@ export default function HealthPage() {
                           </div>
                           {over ? <span className={styles.financeWarningPill}><PulseIcon name="warning" className={styles.financeInlinePillIcon} /></span> : null}
                         </div>
-                        <div className={[styles.financeProgress, over ? styles.financeProgressDanger : ''].filter(Boolean).join(' ')}><span style={{ width: `${Math.max(6, category.percent ?? 0)}%` }} /></div>
+                        <div className={[styles.financeProgress, over ? styles.financeProgressDanger : ''].filter(Boolean).join(' ')}><span style={{ width: `${(category.percent ?? 0) > 0 ? Math.max(10, category.percent ?? 0) : 0}%` }} /></div>
                         <div className={styles.financeCategoryMeta}>
                           <strong className={over ? styles.financeAmountExpense : ''}>{formatMoney(category.spent ?? 0)}</strong>
                           <span>из {formatMoney(category.limitAmount ?? 0)}</span>
@@ -3660,6 +4579,10 @@ export default function HealthPage() {
                   <button type="button" className={styles.financeInlinePlusButton} onClick={() => { resetFinanceEntryForm('INCOME'); setFinanceModalOpen(true); }} aria-label="Добавить доход">
                     <PulseIcon name="plus" className={styles.financeInlineAddIcon} />
                   </button>
+                </div>
+                <div className={styles.financeHeroMetaRow}>
+                  <span>{incomeOperationsLabel}</span>
+                  {primaryIncomeEntry ? <span>Последнее поступление — {primaryIncomeEntry.title}</span> : null}
                 </div>
               </section>
 
@@ -3911,6 +4834,90 @@ export default function HealthPage() {
       ) : null}
 
       <Modal
+        open={profileModalOpen}
+        onClose={closeProfileEditor}
+        title="Параметры профиля"
+        subtitle="Обновите рост, возраст и веса. Эти данные используются в обзоре, питании и расчётах прогресса."
+        icon={<PulseIcon name="scale" className={styles.modalHeaderSvg} />}
+      >
+        <div className={styles.modalStack}>
+          <div className={styles.profileModalGrid}>
+            {isHealthEnabled ? (
+              <Field label="Рост">
+                <input
+                  autoFocus
+                  value={profileForm.heightCm}
+                  onChange={(e) => setProfileForm((prev) => ({ ...prev, heightCm: e.target.value }))}
+                  inputMode="decimal"
+                  placeholder="Например, 187"
+                />
+              </Field>
+            ) : null}
+            {isHealthEnabled ? (
+              <Field label="Возраст">
+                <input
+                  autoFocus={!isHealthEnabled && !isNutritionEnabled}
+                  value={profileForm.age}
+                  onChange={(e) => setProfileForm((prev) => ({ ...prev, age: e.target.value }))}
+                  inputMode="numeric"
+                  placeholder="Например, 29"
+                />
+              </Field>
+            ) : null}
+            {isNutritionEnabled ? (
+              <Field label="Вес на старте">
+                <input
+                  autoFocus={!isHealthEnabled}
+                  value={profileForm.startWeightKg}
+                  onChange={(e) => setProfileForm((prev) => ({ ...prev, startWeightKg: e.target.value }))}
+                  inputMode="decimal"
+                  placeholder="Например, 70"
+                />
+              </Field>
+            ) : null}
+            {isNutritionEnabled ? (
+              <Field label="Вес сейчас">
+                <input
+                  value={profileForm.currentWeightKg}
+                  onChange={(e) => setProfileForm((prev) => ({ ...prev, currentWeightKg: e.target.value }))}
+                  inputMode="decimal"
+                  placeholder="Например, 73"
+                />
+              </Field>
+            ) : null}
+            {isNutritionEnabled ? (
+              <Field label="Желаемый вес">
+                <input
+                  value={profileForm.targetWeightKg}
+                  onChange={(e) => setProfileForm((prev) => ({ ...prev, targetWeightKg: e.target.value }))}
+                  inputMode="decimal"
+                  placeholder="Например, 82"
+                />
+              </Field>
+            ) : null}
+          </div>
+
+          <div className={styles.profileModalHint}>
+            Чем точнее профиль, тем аккуратнее рассчитываются цель по весу, визуал прогресса и рекомендации по питанию.
+          </div>
+
+          <div className={styles.modalFooterSummary}>
+            <strong>
+              {profile?.currentWeightKg != null
+                ? `Сейчас: ${formatNumericValue(profile?.currentWeightKg, 1)} кг`
+                : 'Профиль ещё не заполнен'}
+            </strong>
+            <div className={styles.modalActions}>
+              <Button onClick={closeProfileEditor}>Отмена</Button>
+              <Button variant="primary" onClick={handleProfileSave} loading={profileSaving}>
+                Сохранить
+              </Button>
+            </div>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal
         open={nutritionGoalModalOpen}
         onClose={closeNutritionGoalModal}
         title="Цель питания"
@@ -3955,80 +4962,106 @@ export default function HealthPage() {
         subtitle="Найдите продукты или соберите свой приём пищи из популярных вариантов."
         icon={<PulseIcon name="meal" className={styles.modalHeaderSvg} />}
         size="lg"
+        bodyClassName={styles.mealComposerModalBody}
       >
-        <div className={styles.modalStack}>
-          <div className={styles.compactGrid}>
-            <Field label="Название приёма пищи"><input placeholder="Например, Обед или Перекус" value={mealTitle} onChange={(e) => setMealTitle(e.target.value)} /></Field>
-            <Field label="Время"><input type="time" value={mealTime} onChange={(e) => setMealTime(e.target.value)} /></Field>
-          </div>
-          <Field label="Комментарий (опционально)"><textarea rows={3} placeholder="Короткая заметка о приёме пищи" value={mealNotes} onChange={(e) => setMealNotes(e.target.value)} /></Field>
-          <Field label="Поиск продукта или блюда"><input value={foodSearch} onChange={(e) => setFoodSearch(e.target.value)} placeholder="Овсянка, курица, йогурт..." /></Field>
+        <div className={styles.mealComposerModal}>
+          <div className={styles.mealComposerScroll}>
+            <div className={styles.modalStack}>
+              <div className={styles.compactGrid}>
+                <Field label="Название приёма пищи"><input placeholder="Например, Обед или Перекус" value={mealTitle} onChange={(e) => setMealTitle(e.target.value)} /></Field>
+                <Field label="Время"><input type="time" value={mealTime} onChange={(e) => setMealTime(e.target.value)} /></Field>
+              </div>
+              <Field label="Комментарий (опционально)"><textarea rows={3} placeholder="Короткая заметка о приёме пищи" value={mealNotes} onChange={(e) => setMealNotes(e.target.value)} /></Field>
+              <Field label="Поиск продукта или блюда"><input value={foodSearch} onChange={(e) => setFoodSearch(e.target.value)} placeholder="Овсянка, курица, йогурт..." /></Field>
 
-          {(nutritionData?.recentItems ?? []).length ? (
-            <div className={styles.modalBlock}>
-              <div className={styles.modalBlockTitle}>Недавние</div>
-              <div className={styles.modalChipRow}>
-                {(nutritionData?.recentItems ?? []).slice(0, 6).map((item, index) => (
-                  <button key={`${item.name}-${index}`} type="button" className={styles.modalChip} onClick={() => setMealItems((prev) => [...prev, { ...item }])}>
-                    {item.name}
-                  </button>
-                ))}
+              {(nutritionData?.recentItems ?? []).length ? (
+                <div className={styles.modalBlock}>
+                  <div className={styles.modalBlockTitle}>Недавние</div>
+                  <div className={styles.modalChipRow}>
+                    {(nutritionData?.recentItems ?? []).slice(0, 6).map((item, index) => (
+                      <button key={`${item.name}-${index}`} type="button" className={styles.modalChip} onClick={() => setMealItems((prev) => [...prev, { ...item }])}>
+                        {item.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+
+              <div className={styles.mealComposerPanel}>
+                <div className={styles.mealComposerPanelHeader}>
+                  <div className={styles.modalBlockTitle}>Результаты поиска</div>
+                  {foodSearch.trim() ? <span className={styles.mealComposerPanelMeta}>{Math.min((foodSearchData?.items ?? []).length, 8)} вариантов</span> : null}
+                </div>
+                <div className={styles.modalSearchResults}>
+                  {(foodSearchData?.items ?? []).slice(0, 8).map((food) => {
+                    const selectedCount = mealItemCountMap.get(getFoodIdentity(food)) ?? 0;
+                    return (
+                      <div key={food.id} className={styles.modalSearchRow}>
+                        <button type="button" className={styles.modalSearchButton} onClick={() => addFoodToMeal(food)}>
+                          <div className={styles.modalSearchCopy}>
+                            <strong>{food.name}</strong>
+                            <span>{food.calories} ккал · {food.defaultGrams ?? 100} г · {formatUsageCountLabel(food.usageCount)}</span>
+                          </div>
+                        </button>
+                        {selectedCount ? (
+                          <div className={[styles.modalSearchAction, styles.modalSearchActionCounter].join(' ')}>
+                            <span className={styles.modalInlineCounter}>
+                              <button type="button" className={styles.modalInlineCounterButton} onClick={() => removeMealPortion(getFoodIdentity(food))} aria-label="Уменьшить количество">−</button>
+                              <span className={styles.modalSearchCount}>{selectedCount}</span>
+                              <button type="button" className={styles.modalInlineCounterButton} onClick={() => addFoodToMeal(food)} aria-label="Увеличить количество">+</button>
+                            </span>
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            className={[styles.modalSearchAction, styles.modalSearchActionButton].join(' ')}
+                            onClick={() => addFoodToMeal(food)}
+                            aria-label={`Добавить ${food.name}`}
+                          >
+                            <PulseIcon name="plus" className={styles.modalInlineIcon} />
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
+                  {!((foodSearchData?.items ?? []).length) && foodSearch.trim() ? <div className={styles.emptyText}>Ничего не найдено. Можно добавить свой продукт ниже.</div> : null}
+                </div>
+              </div>
+
+              <div className={styles.modalInlineActions}>
+                <button type="button" className={styles.modalSecondaryButton} onClick={() => setFoodModalOpen(true)}>Создать свой продукт</button>
+              </div>
+
+              <div className={[styles.modalBlock, styles.mealComposerPanel].join(' ')}>
+                <div className={styles.mealComposerPanelHeader}>
+                  <div className={styles.modalBlockTitle}>Что войдёт в приём пищи</div>
+                  <span className={styles.mealComposerPanelMeta}>{groupedMealItems.length ? `${groupedMealItems.length} поз.` : 'Пусто'}</span>
+                </div>
+                <div className={styles.modalSelectionList}>
+                  {groupedMealItems.map((group) => (
+                    <div key={group.key} className={styles.modalSelectionRow}>
+                      <div className={styles.modalSelectionCopy}>
+                        <strong>{group.item.name}</strong>
+                        <span>{group.totalGrams} г · {Math.round(group.totalCalories)} ккал</span>
+                      </div>
+                      <div className={styles.modalCounterGroup}>
+                        <button type="button" className={styles.modalCounterButton} onClick={() => removeMealPortion(group.key)} aria-label="Уменьшить количество">−</button>
+                        <span className={styles.modalCounterValue}>{group.count}</span>
+                        <button type="button" className={styles.modalCounterButton} onClick={() => addMealPortion(group.item)} aria-label="Увеличить количество">+</button>
+                      </div>
+                    </div>
+                  ))}
+                  {!mealItems.length ? <div className={styles.emptyText}>Добавь хотя бы один продукт или блюдо.</div> : null}
+                </div>
               </div>
             </div>
-          ) : null}
-
-          <div className={styles.modalSearchResults}>
-            {(foodSearchData?.items ?? []).slice(0, 8).map((food) => {
-              const selectedCount = mealItemCountMap.get(getFoodIdentity(food)) ?? 0;
-              return (
-              <button key={food.id} type="button" className={styles.modalSearchRow} onClick={() => addFoodToMeal(food)}>
-                <div>
-                  <strong>{food.name}</strong>
-                  <span>{food.calories} ккал · {food.defaultGrams ?? 100} г · {formatUsageCountLabel(food.usageCount)}</span>
-                </div>
-                <span className={styles.modalSearchAction}>
-                  {selectedCount ? (
-                    <span className={styles.modalInlineCounter} onClick={(event) => event.stopPropagation()}>
-                      <button type="button" className={styles.modalInlineCounterButton} onClick={(event) => { event.stopPropagation(); removeMealPortion(getFoodIdentity(food)); }} aria-label="Уменьшить количество">−</button>
-                      <span className={styles.modalSearchCount}>{selectedCount}</span>
-                      <button type="button" className={styles.modalInlineCounterButton} onClick={(event) => { event.stopPropagation(); addFoodToMeal(food); }} aria-label="Увеличить количество">+</button>
-                    </span>
-                  ) : (
-                    <PulseIcon name="plus" className={styles.modalInlineIcon} />
-                  )}
-                </span>
-              </button>
-              );
-            })}
-            {!((foodSearchData?.items ?? []).length) && foodSearch.trim() ? <div className={styles.emptyText}>Ничего не найдено. Можно добавить свой продукт ниже.</div> : null}
           </div>
 
-          <div className={styles.modalInlineActions}>
-            <button type="button" className={styles.modalSecondaryButton} onClick={() => setFoodModalOpen(true)}>Создать свой продукт</button>
-          </div>
-
-          <div className={styles.modalBlock}>
-            <div className={styles.modalBlockTitle}>Что войдёт в приём пищи</div>
-            <div className={styles.modalSelectionList}>
-              {groupedMealItems.map((group) => (
-                <div key={group.key} className={styles.modalSelectionRow}>
-                  <div>
-                    <strong>{group.item.name}</strong>
-                    <span>{group.totalGrams} г · {Math.round(group.totalCalories)} ккал</span>
-                  </div>
-                  <div className={styles.modalCounterGroup}>
-                    <button type="button" className={styles.modalCounterButton} onClick={() => removeMealPortion(group.key)} aria-label="Уменьшить количество">−</button>
-                    <span className={styles.modalCounterValue}>{group.count}</span>
-                    <button type="button" className={styles.modalCounterButton} onClick={() => addMealPortion(group.item)} aria-label="Увеличить количество">+</button>
-                  </div>
-                </div>
-              ))}
-              {!mealItems.length ? <div className={styles.emptyText}>Добавь хотя бы один продукт или блюдо.</div> : null}
+          <div className={styles.mealComposerFooter}>
+            <div className={styles.mealComposerTotal}>
+              <span>Итого</span>
+              <strong>{mealPreviewCalories} ккал</strong>
             </div>
-          </div>
-
-          <div className={[styles.modalFooterSummary, styles.modalFooterSticky].join(' ')}>
-            <strong>Итого: {mealPreviewCalories} ккал</strong>
             <div className={styles.modalActions}>
               <Button onClick={closeMealModal}>Отмена</Button>
               <Button variant="primary" onClick={handleMealSave} disabled={mealSaving || !mealItems.length} loading={mealSaving}>{editingMealId ? 'Сохранить' : 'Добавить'}</Button>

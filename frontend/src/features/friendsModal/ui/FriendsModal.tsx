@@ -29,7 +29,7 @@ export function FriendsModal({ open, onClose }: { open: boolean; onClose: () => 
             <Link key={f.id} href={ROUTES.app.profile(user.username)} className={styles.item} onClick={onClose}>
               <StoryRingAvatar userId={user.id} url={user.avatarUrl} name={user.username} size={38} />
               <div className={styles.text}>
-                <div className={styles.name} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>{user.username}<AdminBadge role={user.role} /></div>
+                <div className={styles.name} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>{user.username}<AdminBadge role={user.role} username={user.username} /></div>
                 <div className={styles.handle}>@{user.username}</div>
               </div>
             </Link>

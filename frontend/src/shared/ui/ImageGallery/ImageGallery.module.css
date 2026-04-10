@@ -1,9 +1,13 @@
+/* ═══════════════════════════════════════════════════════════
+   ImageGallery — Premium Image Viewer
+   ═══════════════════════════════════════════════════════════ */
+
 .single,
 .slider {
   width: 100%;
-  border-radius: 18px;
-  border: 1px solid var(--stroke);
-  background: rgba(255, 255, 255, 0.03);
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  background: rgba(255, 255, 255, 0.02);
   overflow: hidden;
 }
 
@@ -12,13 +16,19 @@
   height: 100%;
   display: block;
   object-fit: cover;
+  transition: transform 200ms ease;
+}
+
+.single:hover .img {
+  transform: scale(1.01);
 }
 
 .imgContain {
   object-fit: contain;
-  background: #050608;
+  background: #0e0e10;
 }
 
+/* ── Slider ── */
 .slider {
   position: relative;
 }
@@ -27,7 +37,7 @@
   position: absolute;
   inset: 0;
   display: flex;
-  transition: transform 220ms ease;
+  transition: transform 280ms cubic-bezier(0.22, 0.61, 0.36, 1);
 }
 
 .slide {
@@ -35,35 +45,37 @@
   height: 100%;
 }
 
+/* ── Navigation Arrows ── */
 .navLeft,
 .navRight {
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
-  width: 38px;
-  height: 38px;
+  width: 36px;
+  height: 36px;
   border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(10, 13, 20, 0.8);
-  color: rgba(255, 255, 255, 0.96);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(12, 12, 14, 0.82);
+  color: rgba(255, 255, 255, 0.92);
   display: grid;
   place-items: center;
   cursor: pointer;
-  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.28);
-  transition: background 140ms ease, border-color 140ms ease, transform 140ms ease, color 140ms ease;
-  backdrop-filter: blur(10px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.28);
+  transition: background 140ms ease, border-color 140ms ease, transform 140ms ease;
+  backdrop-filter: blur(12px);
+  z-index: 2;
 }
 
 .navLeft:hover,
 .navRight:hover {
-  background: rgba(17, 20, 24, 0.94);
-  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(12, 12, 14, 0.96);
+  border-color: rgba(255, 255, 255, 0.18);
   color: #fff;
 }
 
 .navLeft:active,
 .navRight:active {
-  transform: translateY(-50%) scale(0.97);
+  transform: translateY(-50%) scale(0.94);
 }
 
 .navIcon {
@@ -71,17 +83,51 @@
   stroke-width: 2.1;
 }
 
-.navLeft { left: 12px; }
-.navRight { right: 12px; }
-.dots { position: absolute; left: 0; right: 0; bottom: 12px; display: flex; justify-content: center; gap: 8px; }
-.dot { width: 7px; height: 7px; border-radius: 999px; border: 1px solid rgba(255, 255, 255, 0.35); background: rgba(0, 0, 0, 0.25); cursor: pointer; }
-.dotActive { background: rgba(255,122,26,0.95); border-color: rgba(255,122,26,0.95); }
+.navLeft {
+  left: 10px;
+}
 
+.navRight {
+  right: 10px;
+}
+
+/* ── Dots ── */
+.dots {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 10px;
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  z-index: 2;
+}
+
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  border: none;
+  background: rgba(255, 255, 255, 0.28);
+  cursor: pointer;
+  transition: background 160ms ease, transform 160ms ease;
+}
+
+.dot:hover {
+  background: rgba(255, 255, 255, 0.48);
+}
+
+.dotActive {
+  background: rgba(255, 122, 26, 0.92);
+  transform: scale(1.2);
+}
+
+/* ── Modal mode ── */
 .modal {
   width: 100%;
   aspect-ratio: var(--gallery-ratio, 1.35);
   max-height: min(var(--gallery-height, 760px), 72vh);
-  background: #000;
+  background: #0e0e10;
   overflow: hidden;
 }
 
@@ -98,7 +144,7 @@
   width: 100%;
   height: 100%;
   object-fit: contain;
-  background: #000;
+  background: #0e0e10;
 }
 
 .modal .track {
@@ -110,25 +156,6 @@
   display: grid;
   place-items: center;
   height: 100%;
-}
-
-@media (max-width: 640px) {
-  .navLeft,
-  .navRight { width: 34px; height: 34px; }
-
-  .navLeft { left: 10px; }
-  .navRight { right: 10px; }
-
-  .navIcon { width: 16px; height: 16px; }
-}
-
-.single,
-.slider {
-  border-radius: 14px;
-}
-
-.dots {
-  bottom: 10px;
 }
 
 .noRadius {
@@ -144,4 +171,36 @@
   aspect-ratio: auto;
   height: min(var(--gallery-height, 760px), 72vh);
   max-height: min(var(--gallery-height, 760px), 72vh);
+}
+
+/* ── Responsive ── */
+@media (max-width: 640px) {
+  .navLeft,
+  .navRight {
+    width: 32px;
+    height: 32px;
+  }
+
+  .navLeft {
+    left: 8px;
+  }
+
+  .navRight {
+    right: 8px;
+  }
+
+  .navIcon {
+    width: 14px;
+    height: 14px;
+  }
+
+  .dots {
+    bottom: 8px;
+    gap: 5px;
+  }
+
+  .dot {
+    width: 5px;
+    height: 5px;
+  }
 }

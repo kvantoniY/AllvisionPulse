@@ -1,14 +1,19 @@
 .page {
+  width: calc(100% + (var(--page-gutter) * 2));
+  max-width: none;
   height: calc(100dvh - var(--header-height) - 20px);
   min-height: calc(100dvh - var(--header-height) - 20px);
+  margin-left: calc(var(--page-gutter) * -1);
+  margin-right: calc(var(--page-gutter) * -1);
   margin-bottom: calc(var(--content-bottom-pad-desktop) * -1);
+  padding: 0 10px;
   overflow: hidden;
 }
 
 .grid {
   display: grid;
   grid-template-columns: minmax(300px, 340px) minmax(0, 1fr);
-  gap: 22px;
+  gap: 8px;
   height: 100%;
   min-height: 0;
   align-items: stretch;
@@ -32,12 +37,12 @@
 }
 
 .listPanel {
-  border-right: 1px solid rgba(255, 255, 255, 0.06);
-  padding-right: 18px;
+  border-right: 1px solid var(--stroke-soft);
+  padding-right: 10px;
 }
 
 .right {
-  padding-left: 2px;
+  padding-left: 0;
 }
 
 .rightChat {
@@ -56,11 +61,11 @@
   display: grid;
   align-content: start;
   gap: 10px;
-  padding: 10px 2px 0 0;
+  padding: 10px 0 0;
 }
 
 .placeholderTitle {
-  font-size: 2rem;
+  font-size: var(--text-page);
   line-height: 1.04;
   font-weight: 800;
   letter-spacing: -0.04em;
@@ -80,16 +85,19 @@
 @media (max-width: 1180px) {
   .grid {
     grid-template-columns: minmax(280px, 320px) minmax(0, 1fr);
-    gap: 18px;
+    gap: 6px;
   }
 
   .listPanel {
-    padding-right: 14px;
+    padding-right: 10px;
   }
 }
 
 @media (max-width: 960px) {
   .page {
+    width: 100%;
+    margin: 0;
+    padding: 0 6px;
     height: calc(100dvh - var(--mobile-header-height) - var(--mobile-nav-height) - env(safe-area-inset-bottom, 0px) - 8px);
     min-height: calc(100dvh - var(--mobile-header-height) - var(--mobile-nav-height) - env(safe-area-inset-bottom, 0px) - 8px);
     overflow: hidden;

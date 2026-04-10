@@ -1,28 +1,40 @@
+/* ═══════════════════════════════════════════════════════════
+   PulseShareCard — Premium Pulse Widget Card
+   ═══════════════════════════════════════════════════════════ */
+
 .card {
   width: 100%;
   display: grid;
   gap: 10px;
-  padding: 12px 14px;
+  padding: 14px 16px;
   border-radius: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.06);
   background:
-    radial-gradient(circle at top right, rgba(255, 122, 26, 0.12), transparent 42%),
-    rgba(255, 255, 255, 0.03);
+    radial-gradient(ellipse at top right, rgba(255, 122, 26, 0.06), transparent 50%),
+    rgba(255, 255, 255, 0.025);
   color: var(--text-soft);
+  overflow: hidden;
 }
 
 .interactive {
-  transition: border-color 140ms ease, background 140ms ease, transform 140ms ease;
+  cursor: pointer;
+  transition: border-color 180ms ease, background 180ms ease, transform 180ms ease, box-shadow 180ms ease;
 }
 
 .interactive:hover {
-  border-color: rgba(255, 122, 26, 0.24);
+  border-color: rgba(255, 122, 26, 0.2);
   background:
-    radial-gradient(circle at top right, rgba(255, 122, 26, 0.16), transparent 46%),
-    rgba(255, 255, 255, 0.045);
+    radial-gradient(ellipse at top right, rgba(255, 122, 26, 0.1), transparent 50%),
+    rgba(255, 255, 255, 0.04);
   transform: translateY(-1px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
 }
 
+.interactive:active {
+  transform: scale(0.99);
+}
+
+/* ── Header ── */
 .top {
   display: flex;
   align-items: flex-start;
@@ -42,7 +54,8 @@
   line-height: 1;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.56);
+  color: rgba(255, 255, 255, 0.42);
+  font-weight: 600;
 }
 
 .mode,
@@ -52,85 +65,96 @@
   border-radius: 999px;
   display: inline-flex;
   align-items: center;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 700;
+  letter-spacing: 0.02em;
 }
 
 .mode {
   background: rgba(255, 255, 255, 0.06);
-  color: rgba(255, 255, 255, 0.78);
+  color: rgba(255, 255, 255, 0.68);
 }
 
 .statusBadge {
-  background: rgba(255, 178, 109, 0.16);
-  color: #ffcb97;
+  background: rgba(255, 122, 26, 0.1);
+  border: 1px solid rgba(255, 122, 26, 0.16);
+  color: #ffbf85;
 }
 
+/* ── Title & Description ── */
 .title {
   font-size: 15px;
   font-weight: 800;
   color: var(--text);
+  line-height: 1.25;
 }
 
 .description {
   font-size: 13px;
   line-height: 1.5;
-  color: var(--text-soft);
+  color: rgba(255, 255, 255, 0.58);
   white-space: pre-wrap;
   word-break: break-word;
 }
 
+/* ── Stats Grid ── */
 .stats {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
+  gap: 6px;
 }
 
 .stat {
   display: grid;
-  gap: 3px;
+  gap: 4px;
   min-height: 52px;
   padding: 10px 12px;
-  border-radius: 14px;
-  background: rgba(0, 0, 0, 0.16);
-  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.03);
 }
 
 .statLabel {
-  font-size: 11px;
-  color: rgba(255, 255, 255, 0.56);
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.42);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 600;
 }
 
 .statValue {
-  font-size: 14px;
-  font-weight: 700;
+  font-size: 15px;
+  font-weight: 800;
   color: var(--text);
+  font-variant-numeric: tabular-nums;
 }
 
+/* ── Subtasks ── */
 .subtasksPreview {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 6px;
 }
 
 .subtaskChip {
-  min-height: 28px;
+  min-height: 26px;
   padding: 0 10px;
   border-radius: 999px;
   display: inline-flex;
   align-items: center;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  color: rgba(255, 255, 255, 0.76);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.68);
   font-size: 12px;
+  transition: background 120ms ease;
 }
 
 .subtaskSection {
   display: grid;
-  gap: 10px;
+  gap: 8px;
   padding: 12px;
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.03);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.025);
   border: 1px solid rgba(255, 255, 255, 0.04);
 }
 
@@ -140,7 +164,7 @@
   justify-content: space-between;
   gap: 10px;
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.72);
+  color: rgba(255, 255, 255, 0.58);
 }
 
 .subtaskSectionHeader strong {
@@ -149,16 +173,21 @@
 
 .subtaskList {
   display: grid;
-  gap: 8px;
+  gap: 6px;
 }
 
 .subtaskRow {
   display: grid;
-  gap: 8px;
+  gap: 6px;
   padding: 10px 12px;
-  border-radius: 14px;
-  background: rgba(0, 0, 0, 0.16);
-  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.03);
+  transition: background 120ms ease;
+}
+
+.subtaskRow:hover {
+  background: rgba(0, 0, 0, 0.18);
 }
 
 .subtaskTop {
@@ -170,7 +199,7 @@
 
 .subtaskText {
   display: grid;
-  gap: 4px;
+  gap: 3px;
   min-width: 0;
 }
 
@@ -182,7 +211,7 @@
 .subtaskText span {
   font-size: 12px;
   line-height: 1.45;
-  color: rgba(255, 255, 255, 0.68);
+  color: rgba(255, 255, 255, 0.52);
   white-space: pre-wrap;
 }
 
@@ -199,71 +228,111 @@
   border-radius: 999px;
   display: inline-flex;
   align-items: center;
-  background: rgba(255, 255, 255, 0.06);
-  color: rgba(255, 255, 255, 0.78);
-  font-size: 11px;
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.68);
+  font-size: 10px;
   font-weight: 700;
 }
 
 .subtaskMeta {
   display: grid;
-  gap: 4px;
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.7);
+  gap: 3px;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.52);
 }
 
 .subtaskProgress {
   display: grid;
 }
 
+/* ── Summary & Activity ── */
 .summaryRow {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.66);
+  color: rgba(255, 255, 255, 0.52);
 }
 
 .activityLine {
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.72);
+  color: rgba(255, 255, 255, 0.58);
 }
 
 .activityStack {
   display: grid;
-  gap: 6px;
+  gap: 4px;
 }
 
 .activityItem {
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.66);
+  color: rgba(255, 255, 255, 0.5);
 }
 
+/* ── Actions ── */
 .actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 6px;
 }
 
+.actionButton {
+  min-height: 34px;
+}
+
+.actionLink {
+  min-height: 34px;
+  padding: 0 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.04);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  text-decoration: none;
+  transition: background 120ms ease, border-color 120ms ease;
+}
+
+.actionLink:hover {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.actionPrimary {
+  background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+  color: #fff;
+  border-color: transparent;
+  box-shadow: 0 4px 12px rgba(255, 122, 26, 0.2);
+}
+
+.actionPrimary:hover {
+  box-shadow: 0 6px 16px rgba(255, 122, 26, 0.28);
+}
+
+/* ── Inline Form (for actions inside card) ── */
 .inlineForm {
   display: grid;
   gap: 10px;
   padding: 12px;
-  border-radius: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.03);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.025);
 }
 
 .inlineField {
   display: grid;
-  gap: 6px;
+  gap: 5px;
 }
 
 .inlineField span {
-  font-size: 11px;
-  letter-spacing: 0.04em;
+  font-size: 10px;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.56);
+  color: rgba(255, 255, 255, 0.42);
+  font-weight: 600;
 }
 
 .inlineField input,
@@ -271,10 +340,18 @@
   min-height: 38px;
   width: 100%;
   padding: 0 12px;
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
   background: rgba(0, 0, 0, 0.18);
   color: var(--text);
+  font-size: 14px;
+  transition: border-color 120ms ease;
+}
+
+.inlineField input:focus,
+.inlineField select:focus {
+  border-color: rgba(255, 255, 255, 0.14);
+  outline: none;
 }
 
 .inlineActions {
@@ -283,6 +360,7 @@
   gap: 8px;
 }
 
+/* ── Settlement ── */
 .settlementHintRow {
   display: flex;
   flex-wrap: wrap;
@@ -290,27 +368,34 @@
   justify-content: space-between;
   gap: 10px;
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.72);
+  color: rgba(255, 255, 255, 0.58);
 }
 
 .settlementShortcut {
   min-height: 30px;
   padding: 0 12px;
   border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.03);
   color: var(--text);
   font-size: 12px;
   font-weight: 700;
+  cursor: pointer;
+  transition: background 120ms ease;
 }
 
+.settlementShortcut:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+/* ── Progress Section ── */
 .progressSection {
   display: grid;
   gap: 8px;
   padding: 10px 12px;
-  border-radius: 14px;
-  background: rgba(0, 0, 0, 0.14);
-  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.03);
 }
 
 .progressHeader {
@@ -319,7 +404,7 @@
   justify-content: space-between;
   gap: 10px;
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.72);
+  color: rgba(255, 255, 255, 0.58);
 }
 
 .progressHeader strong {
@@ -328,46 +413,53 @@
 
 .progressBar {
   position: relative;
-  height: 8px;
+  height: 6px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.06);
   overflow: hidden;
 }
 
 .progressBarCompact {
-  height: 6px;
+  height: 4px;
 }
 
 .progressFill {
   position: absolute;
   inset: 0 auto 0 0;
   border-radius: inherit;
-  background: linear-gradient(90deg, rgba(255, 178, 109, 0.92), rgba(255, 140, 42, 0.96));
+  background: linear-gradient(90deg, var(--accent), var(--accent-strong));
+  transition: width 300ms ease;
 }
 
+/* ── Participants ── */
 .participantsList {
   display: grid;
-  gap: 8px;
+  gap: 6px;
 }
 
 .participantsSummary {
   display: grid;
-  gap: 4px;
+  gap: 3px;
   padding: 10px 12px;
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.03);
-  color: rgba(255, 255, 255, 0.74);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.025);
+  color: rgba(255, 255, 255, 0.58);
   font-size: 12px;
   line-height: 1.45;
 }
 
 .participantRow {
   display: grid;
-  gap: 8px;
+  gap: 6px;
   padding: 10px 12px;
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.035);
-  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid rgba(255, 255, 255, 0.03);
+  transition: background 120ms ease;
+}
+
+.participantRow:hover {
+  background: rgba(255, 255, 255, 0.04);
 }
 
 .participantHead {
@@ -392,15 +484,15 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: rgba(255, 255, 255, 0.1);
+  background: linear-gradient(135deg, rgba(255, 122, 26, 0.18), rgba(255, 122, 26, 0.08));
   color: var(--text);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 800;
 }
 
 .participantMeta {
   display: grid;
-  gap: 3px;
+  gap: 2px;
   min-width: 0;
 }
 
@@ -410,8 +502,8 @@
 }
 
 .participantMeta span {
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.68);
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.5);
   line-height: 1.4;
 }
 
@@ -422,9 +514,9 @@
   display: inline-flex;
   align-items: center;
   white-space: nowrap;
-  background: rgba(255, 255, 255, 0.06);
-  color: rgba(255, 255, 255, 0.78);
-  font-size: 11px;
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.68);
+  font-size: 10px;
   font-weight: 700;
 }
 
@@ -434,7 +526,7 @@
   justify-content: space-between;
   gap: 8px;
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.72);
+  color: rgba(255, 255, 255, 0.58);
 }
 
 .participantActions {
@@ -446,37 +538,13 @@
   min-height: 30px;
 }
 
-.actionButton {
-  min-height: 34px;
-}
-
-.actionLink {
-  min-height: 34px;
-  padding: 0 12px;
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.04);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--text);
-  text-decoration: none;
-}
-
-.actionPrimary {
-  background: linear-gradient(180deg, rgba(255, 178, 109, 0.95), rgba(255, 140, 42, 0.92));
-  color: #261506;
-  border-color: transparent;
-}
-
+/* ── Error & Loading ── */
 .error {
-  padding: 10px 12px;
+  padding: 10px 14px;
   border-radius: 12px;
-  border: 1px solid rgba(255, 99, 132, 0.24);
-  background: rgba(255, 99, 132, 0.1);
-  color: #ffd2da;
+  border: 1px solid rgba(239, 68, 68, 0.18);
+  background: rgba(239, 68, 68, 0.06);
+  color: #ffc4c4;
   font-size: 12px;
 }
 
@@ -484,10 +552,11 @@
   min-height: 84px;
   display: grid;
   place-items: center;
-  color: rgba(255, 255, 255, 0.62);
+  color: rgba(255, 255, 255, 0.48);
   font-size: 13px;
 }
 
+/* ── Compact Mode (in chat) ── */
 .compact {
   padding: 10px 12px;
   border-radius: 14px;
@@ -500,23 +569,133 @@
 
 .compact .description {
   font-size: 12px;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .compact .stat {
-  min-height: 48px;
+  min-height: 44px;
+  padding: 8px 10px;
 }
 
 .compact .participantRow {
-  padding: 9px 10px;
+  padding: 8px 10px;
 }
 
 .compact .participantAvatar {
   width: 24px;
   height: 24px;
+  font-size: 10px;
 }
 
+.descriptionCollapsed {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.snapshotSummary {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+}
+
+.snapshotSummaryItem {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.015)),
+    rgba(8, 8, 10, 0.14);
+}
+
+.snapshotSummaryLabel {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.42);
+}
+
+.snapshotSummaryItem strong {
+  min-width: 0;
+  color: var(--text);
+  font-size: 12px;
+  line-height: 1.45;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.participantsSummaryCollapsed {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.02)),
+    rgba(255, 255, 255, 0.02);
+}
+
+.participantsSummaryCollapsed span:nth-child(n + 3) {
+  display: none;
+}
+
+.participantsSummaryExpanded {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.card {
+  border-radius: 18px;
+  border-color: rgba(255, 255, 255, 0.07);
+  background:
+    radial-gradient(circle at top right, rgba(255, 122, 26, 0.08), transparent 34%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.015)),
+    #161618;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+.interactive:hover {
+  border-color: rgba(255, 122, 26, 0.24);
+  background:
+    radial-gradient(circle at top right, rgba(255, 122, 26, 0.12), transparent 34%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.02)),
+    #18181b;
+  box-shadow: 0 18px 38px rgba(0, 0, 0, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.stat,
+.progressSection,
+.participantsSummary,
+.participantRow,
+.subtaskSection,
+.subtaskRow,
+.inlineForm {
+  border-radius: 14px;
+  border-color: rgba(255, 255, 255, 0.05);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.028), rgba(255, 255, 255, 0.014)),
+    rgba(0, 0, 0, 0.16);
+}
+
+.actions {
+  gap: 8px;
+}
+
+.actionButton {
+  min-height: 36px;
+  border-radius: 12px;
+}
+
+/* ── Responsive ── */
 @media (max-width: 640px) {
   .stats {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .snapshotSummary {
     grid-template-columns: minmax(0, 1fr);
   }
 
@@ -529,4 +708,42 @@
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+}
+
+.card,
+.interactive:hover,
+.compact,
+.stat,
+.progressSection,
+.participantsSummary,
+.participantRow,
+.subtaskSection,
+.subtaskRow,
+.inlineForm,
+.snapshotSummaryItem {
+  background: #181819;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: none;
+}
+
+.interactive:hover,
+.interactive:active {
+  transform: none;
+}
+
+.subtaskChip,
+.participantStatus,
+.mode,
+.statusBadge {
+  background: #232326;
+  border: 0;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.progressBar {
+  background: #242428;
+}
+
+.progressFill {
+  background: rgba(255, 255, 255, 0.9);
 }

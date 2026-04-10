@@ -223,13 +223,14 @@ export const postsApi = createApi({
       },
     ),
 
-    updatePost: build.mutation<PostResponse, { postId: string; text?: string; images?: File[]; keepImageIds?: string[] }>(
+    updatePost: build.mutation<PostResponse, { postId: string; text?: string; images?: File[]; keepImageIds?: string[]; widgetsJson?: any | null }>(
       {
-        query: ({ postId, text, images, keepImageIds }) => {
+        query: ({ postId, text, images, keepImageIds, widgetsJson }) => {
           const fd = new FormData();
           if (text != null) fd.set('text', text);
           for (const id of keepImageIds ?? []) fd.append('keepImageIds', id);
           for (const f of images ?? []) fd.append('images', f);
+          if (widgetsJson !== undefined) fd.set('widgetsJson', JSON.stringify(widgetsJson));
           return { url: `/backend/posts/${encodeURIComponent(postId)}`, method: 'PUT', body: fd };
         },
         invalidatesTags: (_r, _e, arg) => [

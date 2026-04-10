@@ -2,36 +2,76 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  padding: 10px 0;
+  gap: 14px;
+  width: 100%;
+  min-width: 0;
 }
-.label { color: var(--text); font-weight: 600; font-size: 14px; }
-.muted { color: var(--muted); font-size: 12px; margin-top: 3px; }
-.wrap { display: inline-flex; align-items: center; }
+
+.copy {
+  display: grid;
+  gap: 3px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.label {
+  color: var(--text);
+  font-weight: 600;
+  font-size: var(--text-body);
+}
+
+.muted {
+  color: var(--muted);
+  font-size: var(--text-meta);
+  margin-top: 3px;
+  line-height: 1.45;
+}
+
+.wrap {
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
 .input { display: none; }
+
 .track {
-  width: 40px;
+  width: 42px;
   height: 24px;
   border-radius: 999px;
-  border: 1px solid rgba(255,255,255,0.1);
-  background: rgba(255,255,255,0.05);
+  border: 1px solid var(--stroke);
+  background: var(--surface-1);
   position: relative;
-  transition: background 120ms ease, border-color 120ms ease;
+  transition: background 150ms ease, border-color 150ms ease;
 }
+
 .thumb {
   width: 18px;
   height: 18px;
   border-radius: 999px;
-  background: var(--text);
+  background: var(--muted);
   position: absolute;
   top: 2px;
   left: 2px;
-  transition: transform 120ms ease;
+  transition: transform 150ms ease, background 150ms ease;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.3);
 }
+
+/* ── Checked state ── */
 .input:checked + .track {
-  background: rgba(255,122,26,0.24);
-  border-color: rgba(255,122,26,0.38);
+  background: var(--accent);
+  border-color: rgba(255, 122, 26, 0.5);
 }
+
 .input:checked + .track .thumb {
-  transform: translateX(16px);
+  transform: translateX(18px);
+  background: #fff;
+}
+
+/* Focus ring via wrapping label */
+.wrap:focus-within .track {
+  outline: 2px solid var(--stroke-accent);
+  outline-offset: 2px;
 }

@@ -53,7 +53,7 @@ export function StoriesRail() {
               style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}
             >
               {item.author.username}
-              <AdminBadge role={item.author.role} />
+              <AdminBadge role={item.author.role} username={item.author.username} />
             </span>
           </div>
         ))}

@@ -21,8 +21,9 @@ import { useGetBlacklistQuery, useUnblockUserMutation } from '@/shared/api/frien
 import { Icon } from '@/shared/ui/Icon/Icon';
 import type { ContactPrivacy, ProfileVisibility } from '@/shared/types/models';
 import { useAppExperience } from '@/app/providers/AppExperienceProvider';
+import { PulseProContent } from '../pro/PulseProContent';
 
-type SettingsTab = 'privacy' | 'security' | 'blacklist' | 'app';
+type SettingsTab = 'privacy' | 'security' | 'pro' | 'blacklist' | 'app';
 
 const profileOptions: { value: ProfileVisibility; label: string; hint: string }[] = [
   { value: 'everyone', label: 'Открытый', hint: 'Профиль и список публикаций видны всем.' },
@@ -37,7 +38,7 @@ const contactOptions: { value: ContactPrivacy; label: string; hint: string }[] =
 ];
 
 function normalizeSettingsTab(value: string | null): SettingsTab {
-  if (value === 'security' || value === 'blacklist' || value === 'app') return value;
+  if (value === 'security' || value === 'pro' || value === 'blacklist' || value === 'app') return value;
   return 'privacy';
 }
 
@@ -47,6 +48,7 @@ function SettingsSegment({ value, onChange }: { value: SettingsTab; onChange: (t
     { value: 'security', label: 'Безопасность' },
     { value: 'blacklist', label: 'Чёрный список' },
     { value: 'app', label: 'Скачать приложение' },
+    { value: 'pro', label: 'Пульс Про' },
   ];
 
   return (
@@ -532,7 +534,7 @@ export default function SettingsPage() {
               <div className={styles.accountMeta}>
                 <div className={styles.accountName} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   @{me?.username}
-                  <AdminBadge role={me?.role} />
+                  <AdminBadge role={me?.role} username={me?.username} />
                 </div>
                 <div className={styles.accountHint}>{me?.followersCount ?? 0} подписчиков • {me?.followingCount ?? 0} подписок</div>
               </div>
@@ -558,7 +560,7 @@ export default function SettingsPage() {
                     <div className={styles.userInfo}>
                       <div className={styles.userName} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                         {user.username}
-                        <AdminBadge role={user.role} />
+                        <AdminBadge role={user.role} username={user.username} />
                       </div>
                       <div className={styles.userHint}>{user.bio || 'Пользователь скрыт из общения и рекомендаций.'}</div>
                     </div>
@@ -571,6 +573,8 @@ export default function SettingsPage() {
           </div>
         </Card>
       ) : null}
+
+      {tab === 'pro' ? <PulseProContent embedded /> : null}
 
       {tab === 'app' ? <AppSettingsTab /> : null}
     </div>

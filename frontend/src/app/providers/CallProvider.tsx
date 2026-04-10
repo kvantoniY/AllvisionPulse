@@ -12,12 +12,18 @@ import { CallScreen } from '@/features/call/CallScreen';
 type CallStage = 'idle' | 'incoming' | 'outgoing' | 'connecting' | 'in_call' | 'reconnecting' | 'ending' | 'ended' | 'failed';
 type CallKind = 'direct' | 'group';
 type ParticipantState = 'joined' | 'reconnecting';
+type ParticipantMediaState = {
+  micOn: boolean;
+  camOn: boolean;
+  screenOn: boolean;
+};
 
 type RuntimeParticipant = {
   userId: string;
   joinedAt: string | null;
   state: ParticipantState;
   leftAt: string | null;
+  media: ParticipantMediaState;
 };
 
 type ActiveCallState = {
@@ -112,6 +118,11 @@ function normalizeCallState(payload: any): ActiveCallState | null {
           joinedAt: participant?.joinedAt ? String(participant.joinedAt) : null,
           state: participant?.state === 'reconnecting' ? 'reconnecting' : 'joined',
           leftAt: participant?.leftAt ? String(participant.leftAt) : null,
+          media: {
+            micOn: typeof participant?.media?.micOn === 'boolean' ? participant.media.micOn : true,
+            camOn: typeof participant?.media?.camOn === 'boolean' ? participant.media.camOn : false,
+            screenOn: typeof participant?.media?.screenOn === 'boolean' ? participant.media.screenOn : false,
+          },
         }))
       : [],
   };
@@ -419,8 +430,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       error: '',
     });
     persistSession({ chatId: targetChatId, callId });
-    socket?.emit('call:join', { callId });
-  }, [armAutoResume, clearIncomingIntent, persistSession, resetRuntimeFlags, socket, updateCallUiMinimized]);
+  }, [armAutoResume, clearIncomingIntent, persistSession, resetRuntimeFlags, updateCallUiMinimized]);
 
   const startCall = useCallback((targetChatId: string) => {
     if (!socket) return;
@@ -590,8 +600,28 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       const payloadChatId = String(payload?.chatId ?? '');
       if (currentSession.callId && payloadCallId && payloadCallId !== currentSession.callId) return;
       if (currentSession.chatId && payloadChatId && payloadChatId !== currentSession.chatId) return;
+      const code = String(payload?.code ?? '');
       const message = String(payload?.message ?? 'Call action failed');
+      // Hard-fail codes: the server no longer knows about this call for us,
+      // so there's no point in sitting in reconnecting. Close cleanly.
+      if (code === 'CALL_NOT_FOUND' || code === 'CALL_JOIN_FORBIDDEN' || code === 'CALL_PARTICIPANT_REQUIRED') {
+        disarmAutoResume();
+        clearIncomingIntent(currentSession.callId);
+        closeAll();
+        return;
+      }
       setSession((prev) => (prev.stage === 'idle' ? prev : { ...prev, error: message }));
+    };
+
+    const onTakenOver = (payload: any) => {
+      const currentSession = sessionRef.current;
+      if (String(payload?.callId ?? '') !== currentSession.callId) return;
+      // Another tab/device of the same account has taken over signaling for
+      // this call. Close the call in this tab without ending the call server-
+      // side.
+      disarmAutoResume();
+      clearIncomingIntent(currentSession.callId);
+      closeAll();
     };
 
     socket.on('call:invite', onInvite);
@@ -602,6 +632,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     socket.on('call:already_active', onAlreadyActive);
     socket.on('call:room_full', onRoomFull);
     socket.on('call:error', onCallError);
+    socket.on('call:taken_over', onTakenOver);
     return () => {
       socket.off('call:invite', onInvite);
       socket.off('call:accept', onAccept);
@@ -611,6 +642,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       socket.off('call:already_active', onAlreadyActive);
       socket.off('call:room_full', onRoomFull);
       socket.off('call:error', onCallError);
+      socket.off('call:taken_over', onTakenOver);
     };
   }, [socket, captureIncomingIntent, clearIncomingIntent, closeAll, disarmAutoResume, openExistingCall, postEndRecord, postSystem, resetRuntimeFlags, updateCallUiMinimized]);
 

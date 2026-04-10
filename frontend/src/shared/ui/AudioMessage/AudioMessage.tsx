@@ -1,18 +1,26 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useIntersection } from '@/shared/lib/hooks/useIntersection';
+import { useMediaController } from '@/shared/lib/mediaCore/useMediaController';
 import styles from './AudioMessage.module.css';
 
 export interface AudioMessageProps {
-  url: string;
+  url?: string;
   duration?: number;
   title?: string;
   className?: string;
+  mediaId?: string;
+  sending?: boolean;
+  tone?: 'incoming' | 'outgoing' | 'neutral';
+  eager?: boolean;
+  rootMargin?: string;
 }
 
 const BAR_COUNT = 48;
+const PLAYBACK_RATES = [1, 1.5, 2] as const;
 
-function hashString(input: string): number {
+function hashString(input: string) {
   let hash = 0;
   for (let i = 0; i < input.length; i += 1) {
     hash = (hash << 5) - hash + input.charCodeAt(i);
@@ -21,13 +29,13 @@ function hashString(input: string): number {
   return Math.abs(hash);
 }
 
-function buildWaveform(url: string) {
-  const seed = hashString(url) || 1;
-  return Array.from({ length: BAR_COUNT }, (_, index) => {
-    const sine = Math.sin((seed + index * 13) * 0.11);
-    const cosine = Math.cos((seed + index * 7) * 0.08);
-    const value = Math.abs(sine * 0.56 + cosine * 0.44);
-    return 0.22 + value * 0.78;
+function buildWaveform(seedSource: string) {
+  const seed = hashString(seedSource) || 1;
+  return Array.from({ length: BAR_COUNT }, (_, i) => {
+    const a = Math.sin((seed + i * 13) * 0.19);
+    const b = Math.cos((seed + i * 7) * 0.11);
+    const c = Math.sin((seed + i * 23) * 0.07);
+    return 0.12 + Math.abs(a * 0.42 + b * 0.34 + c * 0.24) * 0.88;
   });
 }
 
@@ -38,217 +46,192 @@ function formatTime(seconds: number) {
   return `${mins}:${secs.toString().padStart(2, '0')}`;
 }
 
-export function AudioMessage({ url, duration = 0, title = 'Голосовое сообщение', className }: AudioMessageProps) {
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const trackRef = useRef<HTMLDivElement | null>(null);
-  const dragCleanupRef = useRef<(() => void) | null>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [isReady, setIsReady] = useState(false);
-  const [currentTime, setCurrentTime] = useState(0);
-  const [resolvedDuration, setResolvedDuration] = useState(duration);
-  const waveform = useMemo(() => buildWaveform(url), [url]);
+export function AudioMessage({
+  url,
+  duration = 0,
+  title = 'Голосовое сообщение',
+  className,
+  mediaId,
+  sending = false,
+  tone = 'neutral',
+  eager = false,
+  rootMargin = '320px 0px',
+}: AudioMessageProps) {
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const [playbackRate, setPlaybackRate] = useState(1);
 
+  const intersectionOptions = useMemo<IntersectionObserverInit>(() => ({
+    rootMargin,
+    threshold: 0.01,
+  }), [rootMargin]);
+  const isNearViewport = useIntersection(containerRef, intersectionOptions);
+
+  const controller = useMediaController({
+    mediaId: mediaId ?? url ?? title,
+    kind: 'audio',
+    src: url,
+    durationHint: duration,
+    activate: isNearViewport,
+    eager,
+  });
+
+  const phase = sending ? 'sending' : controller.phase;
+  const progress = phase === 'ended' ? 0 : controller.progress;
+  const waveform = useMemo(() => buildWaveform(mediaId ?? url ?? title), [mediaId, title, url]);
+  const isActive = phase === 'playing' || phase === 'paused' || phase === 'buffering';
+  const displayedDuration = controller.duration || duration;
+
+  /* sync playback rate to <audio> element */
   useEffect(() => {
-    setResolvedDuration(duration);
-  }, [duration]);
+    const media = controller.mediaRef.current;
+    if (media) media.playbackRate = playbackRate;
+  }, [playbackRate, controller.shouldMountMedia]);
 
-  useEffect(() => {
-    setIsReady(false);
-    setCurrentTime(0);
-    setIsPlaying(false);
-  }, [url]);
+  const cycleSpeed = () => {
+    const idx = PLAYBACK_RATES.indexOf(playbackRate as (typeof PLAYBACK_RATES)[number]);
+    const next = PLAYBACK_RATES[(idx + 1) % PLAYBACK_RATES.length];
+    setPlaybackRate(next);
+    const media = controller.mediaRef.current;
+    if (media) media.playbackRate = next;
+  };
 
-  useEffect(() => () => {
-    dragCleanupRef.current?.();
-    dragCleanupRef.current = null;
-  }, []);
-
-  useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
-
-    const syncDuration = () => {
-      if (Number.isFinite(audio.duration) && audio.duration > 0) {
-        setResolvedDuration(audio.duration);
-      }
-    };
-
-    const syncCurrentTime = () => setCurrentTime(audio.currentTime || 0);
-    const markReady = () => {
-      syncDuration();
-      setIsReady(true);
-    };
-
-    const handlePlay = () => setIsPlaying(true);
-    const handlePause = () => setIsPlaying(false);
-    const handleWaiting = () => setIsReady(false);
-    const handleEnded = () => {
-      setIsPlaying(false);
-      setCurrentTime(0);
-    };
-
-    audio.addEventListener('play', handlePlay);
-    audio.addEventListener('pause', handlePause);
-    audio.addEventListener('waiting', handleWaiting);
-    audio.addEventListener('loadedmetadata', markReady);
-    audio.addEventListener('loadeddata', markReady);
-    audio.addEventListener('durationchange', syncDuration);
-    audio.addEventListener('canplay', markReady);
-    audio.addEventListener('canplaythrough', markReady);
-    audio.addEventListener('progress', syncDuration);
-    audio.addEventListener('timeupdate', syncCurrentTime);
-    audio.addEventListener('seeked', syncCurrentTime);
-    audio.addEventListener('ended', handleEnded);
-
-    if (audio.readyState >= 1) {
-      markReady();
-      syncCurrentTime();
-    }
-
-    return () => {
-      audio.removeEventListener('play', handlePlay);
-      audio.removeEventListener('pause', handlePause);
-      audio.removeEventListener('waiting', handleWaiting);
-      audio.removeEventListener('loadedmetadata', markReady);
-      audio.removeEventListener('loadeddata', markReady);
-      audio.removeEventListener('durationchange', syncDuration);
-      audio.removeEventListener('canplay', markReady);
-      audio.removeEventListener('canplaythrough', markReady);
-      audio.removeEventListener('progress', syncDuration);
-      audio.removeEventListener('timeupdate', syncCurrentTime);
-      audio.removeEventListener('seeked', syncCurrentTime);
-      audio.removeEventListener('ended', handleEnded);
-    };
-  }, [url]);
-
-  const playbackProgress = resolvedDuration > 0 ? Math.min(1, currentTime / resolvedDuration) : 0;
-
-  const togglePlayPause = async () => {
-    const audio = audioRef.current;
-    if (!audio) return;
-
-    if (!isReady) {
-      try {
-        audio.load();
-      } catch {
-        // ignore
-      }
-    }
-
-    if (isPlaying) {
-      audio.pause();
+  const handlePrimaryAction = async () => {
+    if (sending) return;
+    if (phase === 'error') {
+      controller.retry();
       return;
     }
-
-    try {
-      await audio.play();
-    } catch {
-      // ignore browser gesture restrictions
-    }
+    await controller.togglePlayback();
   };
 
-  const commitSeek = (ratio: number) => {
-    const audio = audioRef.current;
-    if (!audio || !resolvedDuration) return;
-    const nextTime = resolvedDuration * Math.max(0, Math.min(1, ratio));
-    audio.currentTime = nextTime;
-    setCurrentTime(nextTime);
-  };
-
-  const ratioFromClientX = (clientX: number) => {
-    const track = trackRef.current;
-    if (!track) return null;
-    const rect = track.getBoundingClientRect();
-    if (rect.width <= 0) return null;
-    return Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
-  };
-
-  const handleTrackPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
-    const audio = audioRef.current;
-    if (!audio || !resolvedDuration || !isReady) return;
-    const target = event.target as HTMLElement | null;
-    if (target?.closest(`.${styles.playButton}`)) return;
-
-    const apply = (clientX: number) => {
-      const ratio = ratioFromClientX(clientX);
-      if (ratio == null) return;
-      commitSeek(ratio);
-    };
-
-    event.preventDefault();
-    apply(event.clientX);
-
-    const handleMove = (moveEvent: PointerEvent) => apply(moveEvent.clientX);
-    const handleUp = (upEvent: PointerEvent) => {
-      apply(upEvent.clientX);
-      dragCleanupRef.current?.();
-      dragCleanupRef.current = null;
-    };
-
-    window.addEventListener('pointermove', handleMove);
-    window.addEventListener('pointerup', handleUp, { once: true });
-    dragCleanupRef.current = () => {
-      window.removeEventListener('pointermove', handleMove);
-      window.removeEventListener('pointerup', handleUp);
-    };
-  };
+  const speedLabel = playbackRate === 1 ? '1×' : playbackRate === 1.5 ? '1.5×' : '2×';
 
   return (
-    <div className={[styles.audioMessage, !isReady ? styles.audioMessageLoading : '', className].filter(Boolean).join(' ')}>
+    <div
+      ref={containerRef}
+      className={[styles.audio, className].filter(Boolean).join(' ')}
+      data-phase={phase}
+      data-tone={tone}
+      aria-busy={sending || phase === 'loading-metadata' || phase === 'loading-media' || phase === 'buffering'}
+    >
+      {/* ── play / pause button ── */}
       <button
         type="button"
-        className={styles.playButton}
-        onClick={togglePlayPause}
-        aria-label={isPlaying ? 'Пауза' : 'Воспроизвести'}
+        className={styles.playBtn}
+        onClick={() => void handlePrimaryAction()}
+        disabled={sending}
+        aria-label={
+          sending
+            ? 'Отправка голосового сообщения'
+            : phase === 'error'
+              ? 'Повторить загрузку'
+              : controller.isPlaying
+                ? 'Пауза'
+                : 'Воспроизвести'
+        }
         data-message-interactive="true"
       >
-        {isReady ? (isPlaying ? <PauseIcon /> : <PlayIcon />) : <LoadingSpinner />}
+        {sending ? (
+          <Spinner />
+        ) : phase === 'error' ? (
+          <RetryIcon />
+        ) : controller.isPlaying ? (
+          <PauseIcon />
+        ) : phase === 'loading-metadata' || phase === 'loading-media' || phase === 'buffering' ? (
+          <Spinner />
+        ) : (
+          <PlayIcon />
+        )}
       </button>
 
-      <div className={styles.content}>
-        <div ref={trackRef} className={styles.waveformTrack} role="group" aria-label="Голосовое сообщение" data-message-interactive="true" onPointerDown={handleTrackPointerDown}>
-          <div className={styles.waveProgress} style={{ width: `${playbackProgress * 100}%` }} aria-hidden="true" />
-          <div className={styles.waveformBars} aria-hidden="true">
+      {/* ── body: waveform + meta ── */}
+      <div className={styles.body}>
+        <div className={styles.wavetrack} data-message-interactive="true">
+          {/* bars */}
+          <div className={styles.bars} aria-hidden="true">
             {waveform.map((value, index) => {
-              const active = index / (waveform.length - 1 || 1) <= playbackProgress;
+              const fraction = index / Math.max(1, waveform.length - 1);
+              const active = fraction <= progress;
               return (
                 <span
-                  key={`${url}-${index}`}
-                  className={[styles.waveBar, active ? styles.waveBarActive : ''].filter(Boolean).join(' ')}
-                  style={{ height: `${Math.round(10 + value * 18)}px` }}
+                  key={index}
+                  className={active ? styles.barActive : styles.bar}
+                  style={{ height: `${Math.round(4 + value * 24)}px` }}
                 />
               );
             })}
           </div>
-          <input
-            className={styles.scrubber}
-            type="range"
-            min={0}
-            max={1000}
-            step={1}
-            value={Math.round(playbackProgress * 1000)}
-            onChange={(event) => commitSeek(Number(event.currentTarget.value) / 1000)}
-            aria-label="Прокрутка голосового сообщения"
-            data-message-interactive="true"
+
+          {/* thumb indicator */}
+          <span
+            className={styles.thumb}
+            style={{ left: `${progress * 100}%` }}
+            aria-hidden="true"
           />
-          <div className={styles.progressThumb} style={{ left: `${playbackProgress * 100}%` }} aria-hidden="true" />
-          {!isReady ? <div className={styles.trackLoadingOverlay}><LoadingSpinner compact /></div> : null}
+
+          {/* hidden range scrubber */}
+          {!sending && controller.canSeek ? (
+            <input
+              className={styles.scrubber}
+              type="range"
+              min={0}
+              max={1000}
+              step={1}
+              value={Math.round(progress * 1000)}
+              onChange={(e) => controller.seek(Number(e.currentTarget.value) / 1000)}
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={(e) => e.stopPropagation()}
+              aria-label="Позиция воспроизведения"
+              data-message-interactive="true"
+            />
+          ) : null}
         </div>
 
-        <div className={styles.metaRow}>
-          <span className={styles.primaryMeta}>{formatTime(currentTime)}</span>
-          <span className={styles.secondaryMeta}>{title}</span>
-          <span className={styles.totalMeta}>{formatTime(resolvedDuration)}</span>
+        {/* meta row: time + speed */}
+        <div className={styles.meta}>
+          <span className={styles.time}>
+            {isActive ? formatTime(controller.currentTime) : formatTime(displayedDuration)}
+          </span>
+          {isActive || phase === 'ended' ? (
+            <button
+              type="button"
+              className={styles.speedBtn}
+              onClick={(e) => { e.stopPropagation(); cycleSpeed(); }}
+              aria-label={`Скорость воспроизведения ${speedLabel}`}
+              data-message-interactive="true"
+            >
+              {speedLabel}
+            </button>
+          ) : null}
         </div>
       </div>
 
-      <audio ref={audioRef} src={url} preload="metadata" playsInline />
+      {/* hidden <audio> */}
+      {controller.shouldMountMedia ? (
+        <audio
+          ref={(node) => {
+            controller.mediaRef.current = node;
+            if (node) node.playbackRate = playbackRate;
+          }}
+          src={url}
+          preload={controller.preload}
+          playsInline
+          className={styles.hidden}
+        />
+      ) : null}
     </div>
   );
 }
 
-function LoadingSpinner({ compact = false }: { compact?: boolean }) {
-  return <span className={[styles.spinner, compact ? styles.spinnerCompact : ''].filter(Boolean).join(' ')} aria-hidden="true" />;
+/* ── icons ── */
+
+function Spinner({ compact = false }: { compact?: boolean }) {
+  return (
+    <span
+      className={[styles.spinner, compact ? styles.spinnerSm : ''].filter(Boolean).join(' ')}
+      aria-hidden="true"
+    />
+  );
 }
 
 function PlayIcon() {
@@ -263,6 +246,15 @@ function PauseIcon() {
   return (
     <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
       <path d="M7 5h4v14H7V5Zm6 0h4v14h-4V5Z" />
+    </svg>
+  );
+}
+
+function RetryIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M20 12a8 8 0 1 1-2.34-5.66" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M20 4v5h-5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }

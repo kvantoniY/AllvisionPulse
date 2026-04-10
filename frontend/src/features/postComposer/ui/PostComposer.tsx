@@ -3,14 +3,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import styles from './PostComposer.module.css';
 import { Card } from '@/shared/ui/Card/Card';
-import { Button } from '@/shared/ui/Button/Button';
 import { Avatar } from '@/shared/ui/Avatar/Avatar';
 import { useGetMeQuery } from '@/shared/api/usersApi';
 import { useCreatePostMutation } from '@/shared/api/postsApi';
-import { useGetTodayQuery, useGetStatsQuery } from '@/shared/api/healthApi';
-import { Modal } from '@/shared/ui/Modal/Modal';
 import { Icon } from '@/shared/ui/Icon/Icon';
-import { Skeleton, SkeletonText } from '@/shared/ui/Skeleton/Skeleton';
+import { Skeleton } from '@/shared/ui/Skeleton/Skeleton';
 import { useIsMobile } from '@/shared/lib/hooks/useIsMobile';
 import { MobilePostComposerModal } from './MobilePostComposerModal';
 import { PulseSharePicker } from '@/shared/ui/PulseSharePicker/PulseSharePicker';
@@ -20,30 +17,21 @@ import { EmojiPicker } from '@/shared/ui/EmojiPicker';
 import { EmojiInputHandler } from '@/shared/lib/emojiInputHandler';
 
 const MAX_TEXT = 5000;
-
+const MAX_IMAGES = 8;
 function useAutosizeTextArea(ref: React.RefObject<HTMLTextAreaElement>, value: string, expanded: boolean) {
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
     el.style.height = '0px';
-    const baseHeight = expanded ? Math.min(el.scrollHeight, 240) : 46;
+    const baseHeight = expanded ? Math.min(el.scrollHeight, 240) : 22;
     el.style.height = `${baseHeight}px`;
   }, [ref, value, expanded]);
 }
 
-type HealthWidget = {
-  type: 'health';
-  date: string | null;
-  todayScore: number | null;
-  pulse7Score: number | null;
-};
-
-type ComposerWidget = HealthWidget | PulseShareWidgetPayload;
+type ComposerWidget = PulseShareWidgetPayload;
 
 function widgetLabel(widget: ComposerWidget | null) {
   if (!widget) return '';
-  if (widget.type === 'health') return `Сводка дня: ${widget.todayScore ?? '-'}% / ${widget.pulse7Score ?? '-'}%`;
-
   const snapshot = widget.artifact.snapshotJson ?? {};
   const snapshotTitle = typeof snapshot.title === 'string' ? snapshot.title : '';
   return `Виджет Pulse: ${snapshotTitle || widget.artifact.title || 'Артефакт'}`;
@@ -62,7 +50,6 @@ export function PostComposer({ context = 'feed', hideMobileTrigger = false, surf
   useEffect(() => () => previews.forEach((p) => URL.revokeObjectURL(p.url)), [previews]);
 
   const [widget, setWidget] = useState<ComposerWidget | null>(null);
-  const [widgetOpen, setWidgetOpen] = useState(false);
   const [sharePickerOpen, setSharePickerOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [attachMenuOpen, setAttachMenuOpen] = useState(false);
@@ -71,15 +58,16 @@ export function PostComposer({ context = 'feed', hideMobileTrigger = false, surf
   const attachMenuRef = useRef<HTMLDivElement | null>(null);
   const emojiTriggerRef = useRef<HTMLButtonElement | null>(null);
 
-  const expanded = !!text.trim() || images.length > 0 || !!widget;
-  useAutosizeTextArea(textRef, text, expanded);
+  const hasContent = !!text.trim() || images.length > 0 || !!widget;
+  const hasSupplemental = images.length > 0 || !!widget;
+  const textExpanded = text.trim().length > 0;
+  useAutosizeTextArea(textRef, text, textExpanded);
 
-  const { data: today, isFetching: widgetLoading } = useGetTodayQuery(undefined, { skip: !widgetOpen });
-  const { data: stats7, isFetching: statsLoading } = useGetStatsQuery(7, { skip: !widgetOpen });
   const [createPost, { isLoading }] = useCreatePostMutation();
 
   const remaining = MAX_TEXT - text.length;
-  const canSubmit = (!!text.trim() || images.length > 0 || !!widget) && remaining >= 0 && !isLoading;
+  const canSubmit = hasContent && remaining >= 0 && !isLoading;
+  const showCounter = text.length > 0 || remaining < 300;
 
   useEffect(() => {
     if (!isMobile) return;
@@ -103,8 +91,8 @@ export function PostComposer({ context = 'feed', hideMobileTrigger = false, surf
 
   const onPickImages = (files: FileList | null) => {
     if (!files) return;
-    const arr = Array.from(files);
-    setImages((prev) => [...prev, ...arr].slice(0, 10));
+    const arr = Array.from(files).filter((file) => file.type.startsWith('image/'));
+    setImages((prev) => [...prev, ...arr].slice(0, MAX_IMAGES));
     if (fileInputRef.current) fileInputRef.current.value = '';
     setAttachMenuOpen(false);
   };
@@ -124,19 +112,6 @@ export function PostComposer({ context = 'feed', hideMobileTrigger = false, surf
     reset();
     window.dispatchEvent(new Event('av:post-created'));
     setMobileOpen(false);
-  };
-
-  const pickTodayWidget = () => {
-    const day = today?.day as any;
-    const rows = stats7?.rows ?? [];
-    const last = rows.length ? rows[rows.length - 1] : null;
-    setWidget({
-      type: 'health',
-      date: day?.date ?? null,
-      todayScore: typeof day?.todayScore === 'number' ? day.todayScore : typeof last?.todayScore === 'number' ? last.todayScore : null,
-      pulse7Score: typeof day?.pulse7Score === 'number' ? day.pulse7Score : typeof last?.pulse7Score === 'number' ? last.pulse7Score : null,
-    });
-    setWidgetOpen(false);
   };
 
   const pickShareArtifact = (artifact: ShareArtifact) => {
@@ -186,13 +161,8 @@ export function PostComposer({ context = 'feed', hideMobileTrigger = false, surf
     return (
       <Card className={[styles.card, surface === 'flat' ? styles.cardFlat : ''].filter(Boolean).join(' ')}>
         <div className={styles.row}>
-          <Skeleton circle style={{ width: 44, height: 44 }} />
           <div className={styles.inputWrap}>
-            <Skeleton style={{ width: '100%', height: 46, borderRadius: 16 }} />
-            <div className={styles.compactTools}>
-              <Skeleton style={{ width: 34, height: 34 }} />
-              <Skeleton style={{ width: 34, height: 34 }} />
-            </div>
+            <Skeleton style={{ width: '100%', height: 44, borderRadius: 22 }} />
           </div>
         </div>
       </Card>
@@ -211,18 +181,6 @@ export function PostComposer({ context = 'feed', hideMobileTrigger = false, surf
           </button>
         ) : null}
 
-        <Modal open={widgetOpen} onClose={() => setWidgetOpen(false)} title="Прикрепить виджет">
-          <div style={{ display: 'grid', gap: 12 }}>
-            <div style={{ color: 'var(--muted)', fontSize: 14, lineHeight: 1.5 }}>
-              Добавьте компактную сводку дня из Pulse.
-            </div>
-            {widgetLoading || statsLoading ? <SkeletonText lines={3} /> : null}
-            <Button variant="primary" onClick={pickTodayWidget} loading={widgetLoading || statsLoading}>
-              Прикрепить сводку
-            </Button>
-          </div>
-        </Modal>
-
         <PulseSharePicker open={sharePickerOpen} onClose={() => setSharePickerOpen(false)} onPick={pickShareArtifact} />
 
         <MobilePostComposerModal
@@ -231,13 +189,13 @@ export function PostComposer({ context = 'feed', hideMobileTrigger = false, surf
           me={{ avatarUrl: me.avatarUrl, username: me.username }}
           text={text}
           onTextChange={setText}
+          onInsertEmoji={insertEmojiAtCursor}
           images={images}
           previews={previews.map((item) => ({ url: item.url }))}
           onPickImages={onPickImages}
           onRemoveImage={(index) => setImages((arr) => arr.filter((_, i) => i !== index))}
           widget={widget}
           widgetLabel={widgetLabel(widget)}
-          onOpenWidget={() => setWidgetOpen(true)}
           onOpenSharePicker={() => setSharePickerOpen(true)}
           onRemoveWidget={() => setWidget(null)}
           onSubmit={onSubmit}
@@ -248,54 +206,55 @@ export function PostComposer({ context = 'feed', hideMobileTrigger = false, surf
   }
 
   return (
-    <Card className={[styles.card, expanded ? styles.cardExpanded : '', surface === 'flat' ? styles.cardFlat : ''].filter(Boolean).join(' ')}>
-      <Modal open={widgetOpen} onClose={() => setWidgetOpen(false)} title="Прикрепить виджет">
-        <div style={{ display: 'grid', gap: 12 }}>
-          <div style={{ color: 'var(--muted)', fontSize: 14, lineHeight: 1.5 }}>
-            Добавьте компактную сводку дня из Pulse.
-          </div>
-          {widgetLoading || statsLoading ? <SkeletonText lines={3} /> : null}
-          <Button variant="primary" onClick={pickTodayWidget} loading={widgetLoading || statsLoading}>
-            Прикрепить сводку
-          </Button>
-          {widget ? <div style={{ color: 'var(--text-soft)', fontSize: 13 }}>Выбрано: {widgetLabel(widget)}</div> : null}
-        </div>
-      </Modal>
-
+    <Card className={[styles.card, hasContent ? styles.cardExpanded : '', surface === 'flat' ? styles.cardFlat : ''].filter(Boolean).join(' ')}>
       <PulseSharePicker open={sharePickerOpen} onClose={() => setSharePickerOpen(false)} onPick={pickShareArtifact} />
-      <input ref={fileInputRef} type="file" accept="image/*" multiple hidden onChange={(event) => onPickImages(event.target.files)} />
 
       <div className={styles.row}>
-        <Avatar url={me.avatarUrl} name={me.username} size={44} />
-
         <div className={styles.inputWrap}>
           <div className={styles.composerStage}>
             {showEmojiPicker ? (
               <EmojiPicker
                 className={styles.inlineEmojiPicker}
                 triggerRef={emojiTriggerRef}
-                autoFocusSearch={false}
-                onSelect={insertEmojiAtCursor}
+                onSelect={(emoji) => {
+                  insertEmojiAtCursor(emoji);
+                  setShowEmojiPicker(false);
+                }}
                 onClose={() => setShowEmojiPicker(false)}
               />
             ) : null}
 
-            <div className={styles.composerShell}>
-              <div className={styles.leadingActions}>
-                <button
-                  ref={emojiTriggerRef}
-                  className={[styles.actionBtn, showEmojiPicker ? styles.actionBtnActive : ''].filter(Boolean).join(' ')}
-                  type="button"
-                  onClick={() => {
-                    setAttachMenuOpen(false);
-                    setShowEmojiPicker((value) => !value);
-                  }}
-                  aria-label="Открыть эмодзи"
-                  title="Эмодзи"
-                >
-                  <Icon name="smile" size={18} />
-                </button>
+            <div className={[styles.composerShell, hasSupplemental ? styles.composerShellWithExtras : '', textExpanded ? styles.composerShellExpanded : styles.composerShellCompact].filter(Boolean).join(' ')}>
+              {previews.length || widget ? (
+                <div className={styles.composerExtras}>
+                  {previews.length ? (
+                    <div className={styles.previews}>
+                      {previews.map((p, idx) => (
+                        <div className={styles.preview} key={`extra-${p.url}`}>
+                          <img src={p.url} alt="" />
+                          <button className={styles.remove} type="button" onClick={() => setImages((arr) => arr.filter((_, i) => i !== idx))} aria-label="РЈРґР°Р»РёС‚СЊ РёР·РѕР±СЂР°Р¶РµРЅРёРµ">
+                            <Icon name="close" size={14} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
 
+                  {widget ? (
+                    <div className={styles.widgetRow}>
+                      <span className={styles.widgetTag}>
+                        <Icon name="sparkles" size={14} />
+                        {widgetLabel(widget)}
+                        <button className={styles.widgetRemove} onClick={() => setWidget(null)} type="button" aria-label="РЈРґР°Р»РёС‚СЊ РІРёРґР¶РµС‚">
+                          <Icon name="close" size={14} />
+                        </button>
+                      </span>
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
+
+              <div className={styles.leadingActions}>
                 <div className={styles.attachWrap} ref={attachMenuRef}>
                   <button
                     className={[styles.actionBtn, attachMenuOpen ? styles.actionBtnActive : ''].filter(Boolean).join(' ')}
@@ -304,8 +263,8 @@ export function PostComposer({ context = 'feed', hideMobileTrigger = false, surf
                       setShowEmojiPicker(false);
                       setAttachMenuOpen((value) => !value);
                     }}
-                    aria-label="Открыть вложения"
-                    title="Вложения"
+                    aria-label="Прикрепить"
+                    title="Прикрепить"
                   >
                     <Icon name="paperclip" size={18} />
                   </button>
@@ -316,8 +275,10 @@ export function PostComposer({ context = 'feed', hideMobileTrigger = false, surf
                         className={styles.attachMenuItem}
                         type="button"
                         onClick={() => {
-                          setAttachMenuOpen(false);
-                          fileInputRef.current?.click();
+                          const input = fileInputRef.current;
+                          if (!input) return;
+                          input.value = '';
+                          input.click();
                         }}
                       >
                         <Icon name="image" size={16} />
@@ -329,33 +290,37 @@ export function PostComposer({ context = 'feed', hideMobileTrigger = false, surf
                         onClick={() => {
                           setAttachMenuOpen(false);
                           setShowEmojiPicker(false);
-                          setWidgetOpen(true);
-                        }}
-                      >
-                        <Icon name="sparkles" size={16} />
-                        <span>Сводка дня</span>
-                      </button>
-                      <button
-                        className={styles.attachMenuItem}
-                        type="button"
-                        onClick={() => {
-                          setAttachMenuOpen(false);
-                          setShowEmojiPicker(false);
                           setSharePickerOpen(true);
                         }}
                       >
-                        <Icon name="paperclip" size={16} />
+                        <Icon name="sparkles" size={16} />
                         <span>Виджет Pulse</span>
                       </button>
                     </div>
                   ) : null}
+
+                  <input ref={fileInputRef} type="file" accept="image/*" multiple hidden onChange={(e) => onPickImages(e.target.files)} />
                 </div>
+
+                <button
+                  ref={emojiTriggerRef}
+                  className={[styles.actionBtn, showEmojiPicker ? styles.actionBtnActive : ''].filter(Boolean).join(' ')}
+                  type="button"
+                  onClick={() => {
+                    setAttachMenuOpen(false);
+                    setShowEmojiPicker((value) => !value);
+                  }}
+                  aria-label="Эмодзи"
+                  title="Эмодзи"
+                >
+                  <Icon name="smile" size={18} />
+                </button>
               </div>
 
-              <div className={styles.textColumn}>
+              <div className={[styles.textColumn, textExpanded ? styles.textColumnExpanded : styles.textColumnCompact, hasSupplemental ? styles.textColumnWithExtras : ''].filter(Boolean).join(' ')}>
                 <textarea
                   ref={textRef}
-                  className={[styles.textarea, expanded ? styles.textareaExpanded : styles.textareaCollapsed].join(' ')}
+                  className={[styles.textarea, textExpanded ? styles.textareaExpanded : styles.textareaCollapsed].join(' ')}
                   placeholder={context === 'profile' ? 'Поделитесь новостью...' : 'Что нового сегодня?'}
                   value={text}
                   rows={1}
@@ -389,13 +354,13 @@ export function PostComposer({ context = 'feed', hideMobileTrigger = false, surf
                     </span>
                   </div>
                 ) : null}
-
-                {text.length > 0 || remaining < 300 ? (
-                  <div className={styles.meta}>
-                    <span className={remaining < 0 ? styles.counterBad : ''}>{remaining}</span>
-                  </div>
-                ) : null}
               </div>
+
+              {showCounter ? (
+                <div className={styles.meta}>
+                  <span className={remaining < 0 ? styles.counterBad : ''}>{remaining}</span>
+                </div>
+              ) : null}
 
               <button
                 className={[styles.actionBtn, styles.actionBtnPrimary].join(' ')}
@@ -414,4 +379,3 @@ export function PostComposer({ context = 'feed', hideMobileTrigger = false, surf
     </Card>
   );
 }
-

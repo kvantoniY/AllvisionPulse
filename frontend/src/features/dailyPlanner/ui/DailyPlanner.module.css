@@ -773,13 +773,68 @@
   color: #ffffff;
 }
 
-/* --- planner event readability polish --- */
-.eventCardTiny {
-  gap: 3px;
-  padding-top: 7px;
-  padding-bottom: 7px;
+/* ── Final polish pass: unified tokens ── */
+.surface,
+.surfaceCompact {
+  border-radius: var(--radius-xl);
+  border-color: var(--stroke-soft);
+  background: linear-gradient(180deg, rgba(9, 13, 22, 0.9), rgba(6, 9, 16, 0.96));
 }
 
-.eventCardTiny .eventTitle {
-  line-height: 1.15;
+.header {
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--stroke-soft);
+}
+
+.countPill {
+  border-color: var(--stroke);
+  background: var(--surface-0);
+  color: var(--text-soft);
+}
+
+.columnHeader {
+  border-color: var(--stroke-soft);
+  background: var(--surface-0);
+}
+
+.columnHeaderActive {
+  border-color: var(--stroke-accent);
+  background: linear-gradient(180deg, var(--accent-soft), var(--accent-softer));
+}
+
+/* Event cards: keep vibrant blue — readable against dark planner */
+.eventCard {
+  border-radius: 16px;
+  border-left: 3px solid #5ea4ff;
+  background: linear-gradient(180deg, rgba(45, 100, 200, 0.9), rgba(34, 78, 160, 0.92));
+  box-shadow: 0 8px 20px rgba(10, 40, 100, 0.22);
+}
+
+.eventCard:hover,
+.eventCard:focus-visible {
+  filter: brightness(1.06);
+  transform: translateY(-1px);
+  outline: none;
+}
+
+.eventCardDone {
+  border-left-color: #34d399;
+  background: linear-gradient(180deg, rgba(23, 120, 85, 0.9), rgba(15, 90, 62, 0.92));
+  box-shadow: 0 8px 20px rgba(7, 60, 42, 0.22);
+}
+
+@media (max-width: 720px) {
+  .surface,
+  .surfaceCompact {
+    border-radius: var(--radius-lg);
+  }
+
+  .countPill {
+    min-height: 30px;
+    font-size: var(--text-meta);
+  }
+
+  .eventCard {
+    border-radius: 14px;
+  }
 }

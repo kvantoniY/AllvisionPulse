@@ -425,7 +425,7 @@ export function StoryViewer({
             <div className={styles.viewerMeta}>
               <StoryRingAvatar userId={current.author.id} url={current.author.avatarUrl} name={current.author.username} size={38} disableStoryClick />
               <div className={styles.viewerMetaText}>
-                <div className={styles.viewerName} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>{current.author.username}<AdminBadge role={current.author.role} /></div>
+                <div className={styles.viewerName} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>{current.author.username}<AdminBadge role={current.author.role} username={current.author.username} /></div>
                 <div className={styles.viewerTime}>{formatStoryTime(current.createdAt)}</div>
               </div>
               {isOwn ? (

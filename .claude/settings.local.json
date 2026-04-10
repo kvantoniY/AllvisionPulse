@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(sort -u grep -oE '^\\\\.[a-zA-Z][a-zA-Z0-9_-]*' \"c:/Allvision-Pulse/frontend/src/app/\\(protected\\)/health/Health.module.css\")",
+      "Read(//tmp/**)"
+    ]
+  }
+}

@@ -53,7 +53,6 @@ export function BottomNav() {
   const unreadMsgs = useAppSelector((s) => s.chatUi.unreadTotal);
   const [menuOpen, setMenuOpen] = useState(false);
 
-
   const hideNav = /^\/messages\/[^/]+/.test(pathname) || pathname.startsWith('/call') || pathname.startsWith('/game');
 
   if (hideNav) return null;

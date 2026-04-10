@@ -1,8 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { useMemo, useState } from 'react';
-import { usePathname } from 'next/navigation';
+import { useEffect, useMemo, useState } from 'react';
+import { usePathname, useSearchParams } from 'next/navigation';
 import styles from './Header.module.css';
 import { APP_NAME, ROUTES } from '@/shared/config/app';
 import { useGetMeQuery } from '@/shared/api/usersApi';
@@ -13,10 +13,21 @@ import { AdminBadge } from '@/shared/ui/AdminBadge/AdminBadge';
 import { useIsMobile } from '@/shared/lib/hooks/useIsMobile';
 import { Avatar } from '@/shared/ui/Avatar/Avatar';
 
-function getMobileTitle(pathname: string) {
+function getPulseMobileTitle(tab: string | null) {
+  if (tab === 'health') return 'Здоровье';
+  if (tab === 'tasks') return 'Задачи';
+  if (tab === 'finance') return 'Финансы';
+  if (tab === 'programs') return 'Программы';
+  if (tab === 'analytics') return 'Аналитика';
+  if (tab === 'config') return 'Настройки';
+  return 'Обзор';
+}
+
+function getMobileTitle(pathname: string, pulseTab: string | null) {
   if (pathname === '/' || pathname.startsWith('/feed')) return 'Лента';
   if (pathname.startsWith('/messages')) return 'Сообщения';
-  if (pathname.startsWith('/health')) return 'Пульс';
+  if (pathname.startsWith('/health')) return getPulseMobileTitle(pulseTab);
+  if (pathname === '/pro' || pathname.startsWith('/pro/')) return 'Пульс Про';
   if (pathname.startsWith('/friends')) return 'Подписки';
   if (pathname.startsWith('/support')) return 'Поддержка';
   if (pathname.startsWith('/settings')) return 'Настройки';
@@ -29,12 +40,33 @@ export function Header() {
   const { data } = useGetMeQuery();
   const me = data?.user;
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const isMobile = useIsMobile();
+  const [pulseTab, setPulseTab] = useState<string | null>(searchParams.get('tab'));
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
 
-  const mobileTitle = useMemo(() => getMobileTitle(pathname), [pathname]);
+  useEffect(() => {
+    setPulseTab(searchParams.get('tab'));
+  }, [pathname, searchParams]);
+
+  useEffect(() => {
+    const syncPulseTab = () => {
+      if (typeof window === 'undefined') return;
+      setPulseTab(new URLSearchParams(window.location.search).get('tab'));
+    };
+
+    syncPulseTab();
+    window.addEventListener('popstate', syncPulseTab);
+    window.addEventListener('av:pulse-tab-change', syncPulseTab as EventListener);
+    return () => {
+      window.removeEventListener('popstate', syncPulseTab);
+      window.removeEventListener('av:pulse-tab-change', syncPulseTab as EventListener);
+    };
+  }, []);
+
+  const mobileTitle = useMemo(() => getMobileTitle(pathname, pulseTab), [pathname, pulseTab]);
   const canOpenComposer = pathname === '/' || pathname.startsWith('/feed');
   const hideMobileHeader = /^\/messages\/[^/]+$/.test(pathname);
-  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
 
   if (isMobile) {
     if (hideMobileHeader) {
@@ -120,7 +152,10 @@ export function Header() {
             <Link href={ROUTES.app.profile(me.username)} className={styles.me}>
               <Avatar url={me.avatarUrl} name={me.username} size={34} />
               <div className={styles.meText}>
-                <div className={styles.meName} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>{me.username}<AdminBadge role={me.role} /></div>
+                <div className={styles.meName} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  {me.username}
+                  <AdminBadge role={me.role} username={me.username} />
+                </div>
                 <div className={styles.meHandle}>@{me.username}</div>
               </div>
             </Link>

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { ComponentProps, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Area,
@@ -20,6 +20,7 @@ import styles from "./Admin.module.css";
 import { Card, CardHeader, CardMuted } from "@/shared/ui/Card/Card";
 import { Button } from "@/shared/ui/Button/Button";
 import { AdminBadge } from "@/shared/ui/AdminBadge/AdminBadge";
+import { Icon } from "@/shared/ui/Icon/Icon";
 import { useGetMeQuery } from "@/shared/api/usersApi";
 import { useGetAdminAnalyticsQuery } from "@/shared/api/adminApi";
 import {
@@ -33,6 +34,8 @@ import type { TopActionMetric, TopPageMetric, TopTabMetric } from "@/shared/type
 import type { SupportQuestion, SupportQuestionStatus, SupportTicket, SupportTicketStatus } from "@/shared/types/support";
 
 type AdminView = "overview" | "tickets" | "questions";
+type QuestionFilter = "ALL" | SupportQuestionStatus;
+type IconName = ComponentProps<typeof Icon>["name"];
 
 const ticketStatusLabel: Record<SupportTicketStatus, string> = {
   OPEN: "Ожидается",
@@ -79,6 +82,13 @@ function formatDuration(seconds?: number | null) {
   return restMinutes ? `${hours} ч ${restMinutes} мин` : `${hours} ч`;
 }
 
+function excerpt(value?: string | null, maxLength = 140) {
+  const normalized = value?.trim() ?? "";
+  if (!normalized) return "";
+  if (normalized.length <= maxLength) return normalized;
+  return `${normalized.slice(0, maxLength).trimEnd()}…`;
+}
+
 function statusClass(status: SupportTicketStatus | SupportQuestionStatus) {
   if (status === "OPEN") return `${styles.status} ${styles.statusOpen}`;
   if (status === "IN_REVIEW" || status === "ANSWERED") return `${styles.status} ${styles.statusReview}`;
@@ -89,6 +99,77 @@ function statusClass(status: SupportTicketStatus | SupportQuestionStatus) {
 function getApiErrorMessage(error: unknown, fallback: string) {
   const maybeData = (error as { data?: { message?: string; error?: string } })?.data;
   return maybeData?.message || maybeData?.error || fallback;
+}
+
+function EmptyState({ icon, title, text }: { icon: IconName; title: string; text: string }) {
+  return (
+    <div className={styles.emptyState}>
+      <div className={styles.emptyStateIcon}>
+        <Icon name={icon} size={18} />
+      </div>
+      <div className={styles.emptyStateTitle}>{title}</div>
+      <div className={styles.emptyStateText}>{text}</div>
+    </div>
+  );
+}
+
+function QuickCard({
+  icon,
+  title,
+  value,
+  meta,
+}: {
+  icon: IconName;
+  title: string;
+  value: string | number;
+  meta: string;
+}) {
+  return (
+    <div className={styles.quickCard}>
+      <div className={styles.quickIcon}>
+        <Icon name={icon} size={18} />
+      </div>
+      <div className={styles.quickValue}>{value}</div>
+      <div className={styles.quickTitle}>{title}</div>
+      <div className={styles.quickMeta}>{meta}</div>
+    </div>
+  );
+}
+
+function ViewCard({
+  active,
+  icon,
+  title,
+  text,
+  count,
+  onClick,
+}: {
+  active: boolean;
+  icon: IconName;
+  title: string;
+  text: string;
+  count: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      className={[styles.viewCard, active ? styles.viewCardActive : ""].filter(Boolean).join(" ")}
+      onClick={onClick}
+      aria-pressed={active}
+    >
+      <span className={styles.viewIcon}>
+        <Icon name={icon} size={18} />
+      </span>
+      <div className={styles.viewContent}>
+        <div className={styles.viewTitleRow}>
+          <span className={styles.viewTitle}>{title}</span>
+          <span className={styles.viewCount}>{count}</span>
+        </div>
+        <span className={styles.viewText}>{text}</span>
+      </div>
+    </button>
+  );
 }
 
 function MetricCard({ title, value, hint }: { title: string; value: string | number; hint: string }) {
@@ -103,6 +184,7 @@ function MetricCard({ title, value, hint }: { title: string; value: string | num
 
 function ChartTooltip({ active, payload, label }: any) {
   if (!active || !payload?.length) return null;
+
   return (
     <div className={styles.chartTooltip}>
       <div className={styles.chartTooltipLabel}>{label}</div>
@@ -120,34 +202,61 @@ function ChartTooltip({ active, payload, label }: any) {
 
 function QueueTicketItem({ ticket, active, onClick }: { ticket: SupportTicket; active: boolean; onClick: () => void }) {
   return (
-    <button type="button" className={[styles.queueItem, active ? styles.queueItemActive : ""].filter(Boolean).join(" ")} onClick={onClick}>
+    <button
+      type="button"
+      className={[styles.queueItem, active ? styles.queueItemActive : ""].filter(Boolean).join(" ")}
+      onClick={onClick}
+    >
       <div className={styles.queueTopRow}>
         <div className={styles.queueTitle}>{ticket.subject}</div>
         <span className={statusClass(ticket.status)}>{ticketStatusLabel[ticket.status]}</span>
       </div>
       <div className={styles.queueMeta}>@{ticket.author.username}</div>
-      <div className={styles.queueSubtle}>{ticket.category || (ticket.kind === "PROBLEM" ? "Проблема" : "Идея")}</div>
+      <div className={styles.inlineChips}>
+        <span className={styles.chip}>{ticket.kind === "PROBLEM" ? "Проблема" : "Идея"}</span>
+        {ticket.category ? <span className={styles.chip}>{ticket.category}</span> : null}
+      </div>
+      <div className={styles.queuePreview}>{excerpt(ticket.description, 132) || "Без описания"}</div>
       <div className={styles.queueMeta}>Обновлён: {formatDate(ticket.updatedAt)}</div>
     </button>
   );
 }
 
-function QueueQuestionItem({ question, active, onClick }: { question: SupportQuestion; active: boolean; onClick: () => void }) {
+function QueueQuestionItem({
+  question,
+  active,
+  onClick,
+}: {
+  question: SupportQuestion;
+  active: boolean;
+  onClick: () => void;
+}) {
   return (
-    <button type="button" className={[styles.queueItem, active ? styles.queueItemActive : ""].filter(Boolean).join(" ")} onClick={onClick}>
+    <button
+      type="button"
+      className={[styles.queueItem, active ? styles.queueItemActive : ""].filter(Boolean).join(" ")}
+      onClick={onClick}
+    >
       <div className={styles.queueTopRow}>
         <div className={styles.queueTitle}>{question.title}</div>
         <span className={statusClass(question.status)}>{questionStatusLabel[question.status]}</span>
       </div>
       <div className={styles.queueMeta}>@{question.author.username}</div>
-      <div className={styles.queueSubtle}>Лайков: {question.likesCount}</div>
+      <div className={styles.inlineChips}>
+        <span className={styles.chip}>Лайков: {question.likesCount}</span>
+        {question.answerText ? <span className={styles.chip}>Есть ответ</span> : null}
+      </div>
+      <div className={styles.queuePreview}>{excerpt(question.body, 132) || "Пользователь не добавил подробностей."}</div>
       <div className={styles.queueMeta}>Создан: {formatDate(question.createdAt)}</div>
     </button>
   );
 }
 
 function TopPagesList({ items }: { items: TopPageMetric[] }) {
-  if (!items.length) return <div className={styles.empty}>Данных пока мало. Графики начнут наполняться после первых посещений.</div>;
+  if (!items.length) {
+    return <div className={styles.empty}>Данных пока мало. Графики начнут наполняться после первых посещений.</div>;
+  }
+
   return (
     <div className={styles.rankList}>
       {items.map((item, index) => (
@@ -170,7 +279,9 @@ function TopPagesList({ items }: { items: TopPageMetric[] }) {
 
 function TopTabsList({ items }: { items: TopTabMetric[] }) {
   if (!items.length) return <div className={styles.empty}>Статистика вкладок появится после первых переходов.</div>;
+
   const maxViews = Math.max(...items.map((item) => item.views), 1);
+
   return (
     <div className={styles.progressList}>
       {items.map((item) => (
@@ -190,6 +301,7 @@ function TopTabsList({ items }: { items: TopTabMetric[] }) {
 
 function TopActionsList({ items }: { items: TopActionMetric[] }) {
   if (!items.length) return <div className={styles.empty}>Пока не собрано достаточно событий действий.</div>;
+
   return (
     <div className={styles.rankList}>
       {items.map((item, index) => (
@@ -217,6 +329,7 @@ export default function AdminPage() {
   const [ticketSearch, setTicketSearch] = useState("");
   const [ticketStatus, setTicketStatus] = useState<SupportTicketStatus | "ALL">("ALL");
   const [questionSearch, setQuestionSearch] = useState("");
+  const [questionStatusFilter, setQuestionStatusFilter] = useState<QuestionFilter>("ALL");
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
   const [selectedQuestionId, setSelectedQuestionId] = useState<string | null>(null);
   const [ticketReply, setTicketReply] = useState("");
@@ -233,7 +346,9 @@ export default function AdminPage() {
     refetchOnFocus: true,
   });
   const { data: ticketsData, isFetching: ticketsFetching } = useGetAdminSupportTicketsQuery({ q: ticketSearch, status: ticketStatus });
-  const { data: questionsData, isFetching: questionsFetching } = useGetSupportQuestionsQuery(questionSearch.trim() ? { q: questionSearch.trim() } : undefined);
+  const { data: questionsData, isFetching: questionsFetching } = useGetSupportQuestionsQuery(
+    questionSearch.trim() ? { q: questionSearch.trim() } : undefined,
+  );
 
   const [replyToTicket, { isLoading: replyingTicket }] = useReplyToSupportTicketMutation();
   const [updateTicketStatus, { isLoading: updatingTicketStatus }] = useUpdateSupportTicketStatusMutation();
@@ -241,29 +356,53 @@ export default function AdminPage() {
 
   const tickets = ticketsData?.items ?? [];
   const allQuestions = questionsData?.items ?? [];
-  const selectedTicket = tickets.find((ticket) => ticket.id === selectedTicketId) ?? tickets[0] ?? null;
+  const overview = analyticsData?.overview;
+  const charts = analyticsData?.charts;
+
+  const ticketCounts = useMemo(() => {
+    const open = tickets.filter((ticket) => ticket.status === "OPEN").length;
+    const inReview = tickets.filter((ticket) => ticket.status === "IN_REVIEW").length;
+    const closed = tickets.filter((ticket) => ticket.status === "CLOSED").length;
+
+    return {
+      total: tickets.length,
+      open,
+      inReview,
+      closed,
+      active: open + inReview,
+    };
+  }, [tickets]);
 
   const queueQuestions = useMemo(() => {
-    const query = questionSearch.trim().toLowerCase();
     const source = [...allQuestions].sort((a, b) => {
-      if (a.status === b.status) return b.likesCount - a.likesCount || new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      if (a.status === b.status) {
+        return b.likesCount - a.likesCount || new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      }
       if (a.status === "ARCHIVED") return 1;
       if (b.status === "ARCHIVED") return -1;
       return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     });
-    if (!query) return source;
-    return source.filter((question) => {
-      const haystack = [
-        question.title,
-        question.body || "",
-        question.answerText || "",
-        question.author.username,
-        question.answerAuthor?.username || "",
-      ].join(" ").toLowerCase();
-      return haystack.includes(query);
-    });
-  }, [allQuestions, questionSearch]);
 
+    if (questionStatusFilter === "ALL") return source;
+    return source.filter((question) => question.status === questionStatusFilter);
+  }, [allQuestions, questionStatusFilter]);
+
+  const questionCounts = useMemo(() => {
+    const open = allQuestions.filter((question) => question.status === "OPEN").length;
+    const answered = allQuestions.filter((question) => question.status === "ANSWERED").length;
+    const closed = allQuestions.filter((question) => question.status === "CLOSED").length;
+    const archived = allQuestions.filter((question) => question.status === "ARCHIVED").length;
+
+    return {
+      total: allQuestions.length,
+      open,
+      answered,
+      closed,
+      archived,
+    };
+  }, [allQuestions]);
+
+  const selectedTicket = tickets.find((ticket) => ticket.id === selectedTicketId) ?? tickets[0] ?? null;
   const selectedQuestion = queueQuestions.find((question) => question.id === selectedQuestionId) ?? queueQuestions[0] ?? null;
 
   useEffect(() => {
@@ -271,7 +410,9 @@ export default function AdminPage() {
   }, [tickets]);
 
   useEffect(() => {
-    setSelectedQuestionId((prev) => (prev && queueQuestions.some((question) => question.id === prev) ? prev : queueQuestions[0]?.id ?? null));
+    setSelectedQuestionId((prev) =>
+      prev && queueQuestions.some((question) => question.id === prev) ? prev : queueQuestions[0]?.id ?? null,
+    );
   }, [queueQuestions]);
 
   useEffect(() => {
@@ -283,13 +424,10 @@ export default function AdminPage() {
     setTicketMessage("");
   }, [selectedTicket?.id]);
 
-  const overview = analyticsData?.overview;
-  const charts = analyticsData?.charts;
-
   if (isLoading) {
     return (
       <div className="container appPage">
-        <Card className={styles.heroPanel}>
+        <Card>
           <CardHeader title="Админ панель" />
           <CardMuted>Проверяем права доступа…</CardMuted>
         </Card>
@@ -302,6 +440,7 @@ export default function AdminPage() {
   const submitTicketReply = async (status?: SupportTicketStatus) => {
     if (!selectedTicket || !ticketReply.trim()) return;
     setTicketMessage("");
+
     try {
       await replyToTicket({
         ticketId: selectedTicket.id,
@@ -318,6 +457,7 @@ export default function AdminPage() {
   const changeTicketStatus = async (status: SupportTicketStatus) => {
     if (!selectedTicket) return;
     setTicketMessage("");
+
     try {
       await updateTicketStatus({ ticketId: selectedTicket.id, status }).unwrap();
       setTicketMessage(`Статус тикета изменён: ${ticketStatusLabel[status]}.`);
@@ -329,6 +469,7 @@ export default function AdminPage() {
   const saveQuestion = async (status?: SupportQuestionStatus) => {
     if (!selectedQuestion) return;
     setQuestionMessage("");
+
     try {
       await updateQuestion({
         questionId: selectedQuestion.id,
@@ -344,36 +485,92 @@ export default function AdminPage() {
   return (
     <div className="container appPage">
       <div className={styles.page}>
-        <Card>
-          <div className={styles.hero}>
-            <div className={styles.heroCopy}>
-              <div className={styles.heroTitle}>Админ панель</div>
-              <div className={styles.heroText}>
-                Центр управления проектом: живая аналитика сайта, обзор поведения пользователей и обработка всех тикетов и популярных вопросов в одном месте.
-              </div>
-            </div>
-            <div className={styles.heroActions}>
-              <div className={styles.adminIdentity}>
-                <span>{me?.username}</span>
-                <AdminBadge role={me?.role} />
-              </div>
-              <div className={styles.liveBadge}>{overview ? `Онлайн сейчас: ${overview.currentOnline}` : "Собираем аналитику"}</div>
-            </div>
+        <section className={styles.header}>
+          <div className={styles.headerCopy}>
+            <span className={styles.eyebrow}>админ панель</span>
+            <h1 className={styles.title}>Админ панель</h1>
+            <p className={styles.description}>Аналитика проекта, очередь обращений и работа с публичной базой вопросов.</p>
           </div>
 
-          <div className={styles.tabSwitch}>
-            <button type="button" className={[styles.tabButton, view === "overview" ? styles.tabButtonActive : ""].filter(Boolean).join(" ")} onClick={() => setView("overview")}>Аналитика</button>
-            <button type="button" className={[styles.tabButton, view === "tickets" ? styles.tabButtonActive : ""].filter(Boolean).join(" ")} onClick={() => setView("tickets")}>Личные тикеты</button>
-            <button type="button" className={[styles.tabButton, view === "questions" ? styles.tabButtonActive : ""].filter(Boolean).join(" ")} onClick={() => setView("questions")}>Общие вопросы</button>
+          <div className={styles.headerMeta}>
+            <div className={styles.adminIdentity}>
+              <span>{me?.username}</span>
+              <AdminBadge role={me?.role} username={me?.username} />
+            </div>
+            <div className={styles.liveBadge}>
+              {overview ? `Онлайн сейчас: ${overview.currentOnline}` : "Собираем аналитику"}
+            </div>
           </div>
-        </Card>
+        </section>
+
+        <div className={styles.quickGrid}>
+          <QuickCard
+            icon="bell"
+            title="Онлайн сейчас"
+            value={overview?.currentOnline ?? "—"}
+            meta={overview ? `Средний онлайн: ${overview.avgOnline24h}` : "Ждём данные"}
+          />
+          <QuickCard
+            icon="messages"
+            title="Тикеты в работе"
+            value={overview ? overview.ticketsOpen + overview.ticketsInReview : "—"}
+            meta={overview ? `Всего тикетов: ${overview.ticketsTotal}` : "Ждём данные"}
+          />
+          <QuickCard
+            icon="comment"
+            title="Публичные вопросы"
+            value={overview?.questionsOpen ?? "—"}
+            meta={
+              overview ? `С ответом: ${overview.questionsAnswered} · Архив: ${overview.questionsArchived}` : "Ждём данные"
+            }
+          />
+        </div>
+
+        <div className={styles.viewGrid}>
+          <ViewCard
+            active={view === "overview"}
+            icon="pulse"
+            title="Аналитика"
+            text="Метрики, графики и поведение пользователей."
+            count={overview ? String(overview.pageViews24h) : "—"}
+            onClick={() => setView("overview")}
+          />
+          <ViewCard
+            active={view === "tickets"}
+            icon="messages"
+            title="Личные тикеты"
+            text="Очередь приватных обращений и ответы пользователям."
+            count={String(ticketCounts.active)}
+            onClick={() => setView("tickets")}
+          />
+          <ViewCard
+            active={view === "questions"}
+            icon="sparkles"
+            title="Общие вопросы"
+            text="Публичные темы, официальный ответ и архив."
+            count={String(questionCounts.open)}
+            onClick={() => setView("questions")}
+          />
+        </div>
 
         {view === "overview" ? (
-          <div className={styles.analyticsLayout}>
-            <Card className={styles.panel}>
-              <CardHeader title="Ключевые метрики" action={analyticsFetching ? <span className={styles.subtle}>Обновляем…</span> : undefined} />
+          <div className={styles.overviewStack}>
+            <section className={styles.panel}>
+              <div className={styles.sectionHeader}>
+                <span className={styles.sectionEyebrow}>обзор</span>
+                <div className={styles.sectionTitleRow}>
+                  <h2 className={styles.sectionTitle}>Ключевые метрики</h2>
+                  <span className={styles.sectionBadge}>{analyticsFetching ? "Обновляем…" : "Актуально сейчас"}</span>
+                </div>
+                <p className={styles.sectionText}>Спокойный срез по аудитории, активности и обращениям.</p>
+              </div>
+
               {!overview ? (
-                <div className={styles.empty}>Пока собираем данные. После первых посещений пользователей здесь появятся метрики и графики.</div>
+                <EmptyState
+                  icon="clock"
+                  title="Пока собираем данные"
+                  text="После первых посещений пользователей здесь появятся метрики и графики."
+                />
               ) : (
                 <div className={styles.metricsGrid}>
                   <MetricCard title="Всего пользователей" value={overview.totalUsers} hint={`Новых за 7 дней: ${overview.newUsers7d}`} />
@@ -387,11 +584,15 @@ export default function AdminPage() {
                   <MetricCard title="Вопросы сообщества" value={overview.questionsOpen} hint={`С ответом: ${overview.questionsAnswered}, архив: ${overview.questionsArchived}`} />
                 </div>
               )}
-            </Card>
+            </section>
 
             <div className={styles.chartGrid}>
-              <Card className={[styles.panel, styles.chartCard].filter(Boolean).join(" ")}>
-                <CardHeader title="Активные пользователи по дням" />
+              <section className={[styles.panel, styles.chartCard].join(" ")}>
+                <div className={styles.sectionHeader}>
+                  <div className={styles.sectionTitleRow}>
+                    <h3 className={styles.sectionTitle}>Активные пользователи по дням</h3>
+                  </div>
+                </div>
                 {charts?.dailyActiveUsers?.length ? (
                   <div className={styles.chartBox}>
                     <ResponsiveContainer width="100%" height="100%">
@@ -404,11 +605,17 @@ export default function AdminPage() {
                       </LineChart>
                     </ResponsiveContainer>
                   </div>
-                ) : <div className={styles.empty}>Недостаточно данных для построения графика.</div>}
-              </Card>
+                ) : (
+                  <div className={styles.empty}>Недостаточно данных для построения графика.</div>
+                )}
+              </section>
 
-              <Card className={[styles.panel, styles.chartCard].filter(Boolean).join(" ")}>
-                <CardHeader title="Просмотры и уникальные пользователи по часам" />
+              <section className={[styles.panel, styles.chartCard].join(" ")}>
+                <div className={styles.sectionHeader}>
+                  <div className={styles.sectionTitleRow}>
+                    <h3 className={styles.sectionTitle}>Просмотры и уникальные по часам</h3>
+                  </div>
+                </div>
                 {charts?.hourlyActivity?.length ? (
                   <div className={styles.chartBox}>
                     <ResponsiveContainer width="100%" height="100%">
@@ -422,11 +629,17 @@ export default function AdminPage() {
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
-                ) : <div className={styles.empty}>Недостаточно данных для построения графика.</div>}
-              </Card>
+                ) : (
+                  <div className={styles.empty}>Недостаточно данных для построения графика.</div>
+                )}
+              </section>
 
-              <Card className={[styles.panel, styles.chartCard].filter(Boolean).join(" ")}>
-                <CardHeader title="Средний онлайн по 30-минутным интервалам" />
+              <section className={[styles.panel, styles.chartCard].join(" ")}>
+                <div className={styles.sectionHeader}>
+                  <div className={styles.sectionTitleRow}>
+                    <h3 className={styles.sectionTitle}>Средний онлайн по 30-минутным интервалам</h3>
+                  </div>
+                </div>
                 {charts?.onlineTimeline?.length ? (
                   <div className={styles.chartBox}>
                     <ResponsiveContainer width="100%" height="100%">
@@ -439,11 +652,17 @@ export default function AdminPage() {
                       </AreaChart>
                     </ResponsiveContainer>
                   </div>
-                ) : <div className={styles.empty}>Недостаточно данных для построения графика.</div>}
-              </Card>
+                ) : (
+                  <div className={styles.empty}>Недостаточно данных для построения графика.</div>
+                )}
+              </section>
 
-              <Card className={[styles.panel, styles.chartCard].filter(Boolean).join(" ")}>
-                <CardHeader title="Просмотры сайта по дням" />
+              <section className={[styles.panel, styles.chartCard].join(" ")}>
+                <div className={styles.sectionHeader}>
+                  <div className={styles.sectionTitleRow}>
+                    <h3 className={styles.sectionTitle}>Просмотры сайта по дням</h3>
+                  </div>
+                </div>
                 {charts?.pageViewsByDay?.length ? (
                   <div className={styles.chartBox}>
                     <ResponsiveContainer width="100%" height="100%">
@@ -456,157 +675,352 @@ export default function AdminPage() {
                       </AreaChart>
                     </ResponsiveContainer>
                   </div>
-                ) : <div className={styles.empty}>Недостаточно данных для построения графика.</div>}
-              </Card>
+                ) : (
+                  <div className={styles.empty}>Недостаточно данных для построения графика.</div>
+                )}
+              </section>
             </div>
 
             <div className={styles.insightsGrid}>
-              <Card className={styles.panel}>
-                <CardHeader title="Самые посещаемые разделы" />
+              <section className={styles.panel}>
+                <div className={styles.sectionHeader}>
+                  <div className={styles.sectionTitleRow}>
+                    <h3 className={styles.sectionTitle}>Самые посещаемые разделы</h3>
+                  </div>
+                </div>
                 <TopTabsList items={analyticsData?.topTabs ?? []} />
-              </Card>
-              <Card className={styles.panel}>
-                <CardHeader title="Топ страниц" />
+              </section>
+
+              <section className={styles.panel}>
+                <div className={styles.sectionHeader}>
+                  <div className={styles.sectionTitleRow}>
+                    <h3 className={styles.sectionTitle}>Топ страниц</h3>
+                  </div>
+                </div>
                 <TopPagesList items={analyticsData?.topPages ?? []} />
-              </Card>
-              <Card className={styles.panel}>
-                <CardHeader title="Топ действий" />
+              </section>
+
+              <section className={styles.panel}>
+                <div className={styles.sectionHeader}>
+                  <div className={styles.sectionTitleRow}>
+                    <h3 className={styles.sectionTitle}>Топ действий</h3>
+                  </div>
+                </div>
                 <TopActionsList items={analyticsData?.topActions ?? []} />
-              </Card>
+              </section>
             </div>
           </div>
         ) : null}
 
         {view === "tickets" ? (
-          <div className={styles.supportWorkspace}>
-            <Card className={[styles.panel, styles.queueCard].filter(Boolean).join(" ")}>
-              <CardHeader title="Очередь личных тикетов" action={<span className={styles.subtle}>{tickets.length}</span>} />
-              <div className={styles.filterStack}>
-                <input className={styles.input} value={ticketSearch} onChange={(event) => setTicketSearch(event.target.value)} placeholder="Поиск по теме, описанию или юзернейму" />
-                <select className={styles.select} value={ticketStatus} onChange={(event) => setTicketStatus(event.target.value as SupportTicketStatus | "ALL")}> 
-                  <option value="ALL">Все статусы</option>
-                  <option value="OPEN">Ожидается</option>
-                  <option value="IN_REVIEW">На рассмотрении</option>
-                  <option value="CLOSED">Закрыт</option>
-                </select>
+          <div className={styles.reviewStack}>
+            <section className={styles.panel}>
+              <div className={styles.sectionHeader}>
+                <span className={styles.sectionEyebrow}>очередь</span>
+                <div className={styles.sectionTitleRow}>
+                  <h2 className={styles.sectionTitle}>Личные тикеты</h2>
+                  <span className={styles.sectionBadge}>{tickets.length} в очереди</span>
+                </div>
+                <p className={styles.sectionText}>Сначала отберите нужные обращения, затем откройте карточку ниже.</p>
               </div>
-              {ticketsFetching ? <div className={styles.empty}>Загружаем тикеты…</div> : null}
-              {!ticketsFetching && !tickets.length ? <div className={styles.empty}>Подходящих тикетов пока нет.</div> : null}
-              {!!tickets.length ? <div className={styles.queueList}>{tickets.map((ticket) => <QueueTicketItem key={ticket.id} ticket={ticket} active={selectedTicket?.id === ticket.id} onClick={() => setSelectedTicketId(ticket.id)} />)}</div> : null}
-            </Card>
 
-            <Card className={[styles.panel, styles.detailCard].filter(Boolean).join(" ")}>
-              <CardHeader title="Карточка тикета" />
-              {!selectedTicket ? (
-                <CardMuted>Выберите тикет слева, чтобы увидеть детали и ответить пользователю.</CardMuted>
+              <div className={styles.toolbar}>
+                <label className={styles.searchField}>
+                  <Icon name="search" size={18} className={styles.searchIcon} />
+                  <input
+                    className={styles.input}
+                    value={ticketSearch}
+                    onChange={(event) => setTicketSearch(event.target.value)}
+                    placeholder="Поиск по теме, описанию или юзернейму"
+                  />
+                </label>
+
+                <div className={styles.filterBar}>
+                  {[
+                    { value: "ALL" as const, label: `Все · ${ticketCounts.total}` },
+                    { value: "OPEN" as const, label: `Ожидаются · ${ticketCounts.open}` },
+                    { value: "IN_REVIEW" as const, label: `В работе · ${ticketCounts.inReview}` },
+                    { value: "CLOSED" as const, label: `Закрыты · ${ticketCounts.closed}` },
+                  ].map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      className={[styles.filterChip, ticketStatus === option.value ? styles.filterChipActive : ""].filter(Boolean).join(" ")}
+                      onClick={() => setTicketStatus(option.value)}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {ticketsFetching ? (
+                <EmptyState icon="clock" title="Загружаем тикеты" text="Собираем обращения и обновляем очередь." />
+              ) : !tickets.length ? (
+                <EmptyState icon="messages" title="Подходящих тикетов пока нет" text="Попробуйте другой фильтр или поиск." />
               ) : (
-                <div className={styles.detailStack}>
-                  <div className={styles.queueTopRow}>
-                    <div className={styles.detailTitle}>{selectedTicket.subject}</div>
-                    <span className={statusClass(selectedTicket.status)}>{ticketStatusLabel[selectedTicket.status]}</span>
-                  </div>
-                  <div className={styles.inlineMeta}>
-                    <span>@{selectedTicket.author.username}</span>
-                    <span>Создан: {formatDate(selectedTicket.createdAt)}</span>
-                    <span>Обновлён: {formatDate(selectedTicket.updatedAt)}</span>
-                  </div>
-                  <div className={styles.inlineChips}>
-                    <span className={styles.chip}>{selectedTicket.kind === "PROBLEM" ? "Проблема" : "Идея"}</span>
-                    {selectedTicket.category ? <span className={styles.chip}>{selectedTicket.category}</span> : null}
-                    <span className={styles.chip}>Ответов: {selectedTicket.replies.length}</span>
-                  </div>
-                  <div className={styles.detailBody}>{selectedTicket.description}</div>
+                <div className={styles.queueGrid}>
+                  {tickets.map((ticket) => (
+                    <QueueTicketItem
+                      key={ticket.id}
+                      ticket={ticket}
+                      active={selectedTicket?.id === ticket.id}
+                      onClick={() => setSelectedTicketId(ticket.id)}
+                    />
+                  ))}
+                </div>
+              )}
+            </section>
 
-                  <div className={styles.sectionBlock}>
-                    <div className={styles.sectionTitle}>Переписка по тикету</div>
-                    <div className={styles.replyList}>
-                      {selectedTicket.replies.length ? selectedTicket.replies.map((reply) => (
-                        <div key={reply.id} className={styles.replyCard}>
-                          <div className={styles.replyHead}>
-                            <Link href={`/profile/${reply.author.username}`} className={styles.actorLink}>
-                              {reply.author.username}
-                              <AdminBadge role={reply.author.role} />
-                            </Link>
-                            <span className={styles.subtle}>{formatDate(reply.createdAt)}</span>
-                          </div>
-                          <div className={styles.detailBody}>{reply.text}</div>
+            <section className={styles.panel}>
+              <div className={styles.sectionHeader}>
+                <span className={styles.sectionEyebrow}>детали</span>
+                <div className={styles.sectionTitleRow}>
+                  <h2 className={styles.sectionTitle}>Карточка тикета</h2>
+                  {selectedTicket ? <span className={styles.sectionBadge}>{ticketStatusLabel[selectedTicket.status]}</span> : null}
+                </div>
+              </div>
+
+              {!selectedTicket ? (
+                <EmptyState icon="arrowLeft" title="Выберите тикет" text="После выбора здесь появятся детали обращения и инструменты ответа." />
+              ) : (
+                <div className={styles.detailLayout}>
+                  <div className={styles.detailMain}>
+                    <div className={styles.detailIntro}>
+                      <div className={styles.queueTopRow}>
+                        <div className={styles.detailTitle}>{selectedTicket.subject}</div>
+                        <span className={statusClass(selectedTicket.status)}>{ticketStatusLabel[selectedTicket.status]}</span>
+                      </div>
+                      <div className={styles.inlineMeta}>
+                        <span>@{selectedTicket.author.username}</span>
+                        <span>Создан: {formatDate(selectedTicket.createdAt)}</span>
+                        <span>Обновлён: {formatDate(selectedTicket.updatedAt)}</span>
+                      </div>
+                      <div className={styles.inlineChips}>
+                        <span className={styles.chip}>{selectedTicket.kind === "PROBLEM" ? "Проблема" : "Идея"}</span>
+                        {selectedTicket.category ? <span className={styles.chip}>{selectedTicket.category}</span> : null}
+                        <span className={styles.chip}>Ответов: {selectedTicket.replies.length}</span>
+                      </div>
+                      <div className={styles.detailBody}>{selectedTicket.description}</div>
+                    </div>
+
+                    <div className={styles.sectionBlock}>
+                      <div className={styles.blockTitle}>Переписка по тикету</div>
+                      {selectedTicket.replies.length ? (
+                        <div className={styles.replyList}>
+                          {selectedTicket.replies.map((reply) => (
+                            <div key={reply.id} className={styles.replyCard}>
+                              <div className={styles.replyHead}>
+                                <Link href={`/profile/${reply.author.username}`} className={styles.actorLink}>
+                                  {reply.author.username}
+                                  <AdminBadge role={reply.author.role} username={reply.author.username} />
+                                </Link>
+                                <span className={styles.subtle}>{formatDate(reply.createdAt)}</span>
+                              </div>
+                              <div className={styles.detailBody}>{reply.text}</div>
+                            </div>
+                          ))}
                         </div>
-                      )) : <div className={styles.empty}>Ответов пока нет.</div>}
+                      ) : (
+                        <div className={styles.empty}>Ответов пока нет.</div>
+                      )}
                     </div>
                   </div>
 
-                  <div className={styles.sectionBlock}>
-                    <div className={styles.sectionTitle}>Ответ пользователю</div>
-                    <textarea className={styles.textarea} rows={8} value={ticketReply} onChange={(event) => setTicketReply(event.target.value.slice(0, 4000))} placeholder="Ответ будет опубликован пользователю от вашего личного админ-аккаунта" />
-                    {ticketMessage ? <div className={styles.note}>{ticketMessage}</div> : null}
-                    <div className={styles.actionRow}>
-                      <Button variant="primary" onClick={() => submitTicketReply(selectedTicket.status === "OPEN" ? "IN_REVIEW" : undefined)} loading={replyingTicket} disabled={ticketReply.trim().length < 1}>Отправить ответ</Button>
-                      <Button onClick={() => changeTicketStatus("IN_REVIEW")} loading={updatingTicketStatus}>На рассмотрение</Button>
-                      <Button onClick={() => changeTicketStatus("CLOSED")} loading={updatingTicketStatus}>Закрыть тикет</Button>
-                      <Button onClick={() => changeTicketStatus("OPEN")} loading={updatingTicketStatus}>Переоткрыть</Button>
+                  <div className={styles.detailSide}>
+                    <div className={styles.editorCard}>
+                      <div className={styles.blockTitle}>Ответ пользователю</div>
+                      <textarea
+                        className={styles.textarea}
+                        rows={8}
+                        value={ticketReply}
+                        onChange={(event) => setTicketReply(event.target.value.slice(0, 4000))}
+                        placeholder="Ответ будет опубликован пользователю от вашего личного админ-аккаунта"
+                      />
+                      {ticketMessage ? <div className={styles.note}>{ticketMessage}</div> : null}
+                      <div className={styles.actionRow}>
+                        <Button
+                          variant="primary"
+                          onClick={() => submitTicketReply(selectedTicket.status === "OPEN" ? "IN_REVIEW" : undefined)}
+                          loading={replyingTicket}
+                          disabled={ticketReply.trim().length < 1}
+                        >
+                          Отправить ответ
+                        </Button>
+                        <Button onClick={() => changeTicketStatus("IN_REVIEW")} loading={updatingTicketStatus}>
+                          На рассмотрение
+                        </Button>
+                        <Button onClick={() => changeTicketStatus("CLOSED")} loading={updatingTicketStatus}>
+                          Закрыть тикет
+                        </Button>
+                        <Button onClick={() => changeTicketStatus("OPEN")} loading={updatingTicketStatus}>
+                          Переоткрыть
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 </div>
               )}
-            </Card>
+            </section>
           </div>
         ) : null}
 
         {view === "questions" ? (
-          <div className={styles.supportWorkspace}>
-            <Card className={[styles.panel, styles.queueCard].filter(Boolean).join(" ")}>
-              <CardHeader title="Очередь общих вопросов" action={<span className={styles.subtle}>{queueQuestions.length}</span>} />
-              <div className={styles.filterStack}>
-                <input className={styles.input} value={questionSearch} onChange={(event) => setQuestionSearch(event.target.value)} placeholder="Поиск по вопросу, ответу или нику" />
+          <div className={styles.reviewStack}>
+            <section className={styles.panel}>
+              <div className={styles.sectionHeader}>
+                <span className={styles.sectionEyebrow}>очередь</span>
+                <div className={styles.sectionTitleRow}>
+                  <h2 className={styles.sectionTitle}>Общие вопросы</h2>
+                  <span className={styles.sectionBadge}>{queueQuestions.length} в списке</span>
+                </div>
+                <p className={styles.sectionText}>Фильтруйте общие вопросы и выбирайте тот, на который нужен официальный ответ.</p>
               </div>
-              {questionsFetching ? <div className={styles.empty}>Загружаем вопросы…</div> : null}
-              {!questionsFetching && !queueQuestions.length ? <div className={styles.empty}>Подходящих вопросов пока нет.</div> : null}
-              {!!queueQuestions.length ? <div className={styles.queueList}>{queueQuestions.map((question) => <QueueQuestionItem key={question.id} question={question} active={selectedQuestion?.id === question.id} onClick={() => setSelectedQuestionId(question.id)} />)}</div> : null}
-            </Card>
 
-            <Card className={[styles.panel, styles.detailCard].filter(Boolean).join(" ")}>
-              <CardHeader title="Карточка вопроса" action={selectedQuestion ? <Link href={`/support/questions/${selectedQuestion.id}`} className={styles.openLink}>Открыть у пользователей</Link> : undefined} />
-              {!selectedQuestion ? (
-                <CardMuted>Выберите вопрос слева, чтобы дать официальный ответ.</CardMuted>
+              <div className={styles.toolbar}>
+                <label className={styles.searchField}>
+                  <Icon name="search" size={18} className={styles.searchIcon} />
+                  <input
+                    className={styles.input}
+                    value={questionSearch}
+                    onChange={(event) => setQuestionSearch(event.target.value)}
+                    placeholder="Поиск по вопросу, ответу или нику"
+                  />
+                </label>
+
+                <div className={styles.filterBar}>
+                  {[
+                    { value: "ALL" as const, label: `Все · ${questionCounts.total}` },
+                    { value: "OPEN" as const, label: `Открыты · ${questionCounts.open}` },
+                    { value: "ANSWERED" as const, label: `С ответом · ${questionCounts.answered}` },
+                    { value: "CLOSED" as const, label: `Закрыты · ${questionCounts.closed}` },
+                    { value: "ARCHIVED" as const, label: `Архив · ${questionCounts.archived}` },
+                  ].map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      className={[
+                        styles.filterChip,
+                        questionStatusFilter === option.value ? styles.filterChipActive : "",
+                      ]
+                        .filter(Boolean)
+                        .join(" ")}
+                      onClick={() => setQuestionStatusFilter(option.value)}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {questionsFetching ? (
+                <EmptyState icon="clock" title="Загружаем вопросы" text="Обновляем базу и состояние очереди." />
+              ) : !queueQuestions.length ? (
+                <EmptyState icon="comment" title="Подходящих вопросов пока нет" text="Попробуйте другой фильтр или поиск." />
               ) : (
-                <div className={styles.detailStack}>
-                  <div className={styles.queueTopRow}>
-                    <div className={styles.detailTitle}>{selectedQuestion.title}</div>
-                    <span className={statusClass(selectedQuestion.status)}>{questionStatusLabel[selectedQuestion.status]}</span>
-                  </div>
-                  <div className={styles.inlineMeta}>
-                    <span>@{selectedQuestion.author.username}</span>
-                    <span>Создан: {formatDate(selectedQuestion.createdAt)}</span>
-                    <span>Лайков: {selectedQuestion.likesCount}</span>
-                  </div>
-                  <div className={styles.detailBody}>{selectedQuestion.body || "Пользователь не добавил подробностей."}</div>
-                  {selectedQuestion.answerText ? (
-                    <div className={styles.answerPreview}>
-                      <div className={styles.replyHead}>
-                        <Link href={`/profile/${selectedQuestion.answerAuthor?.username ?? selectedQuestion.author.username}`} className={styles.actorLink}>
-                          {selectedQuestion.answerAuthor?.username ?? "Администратор"}
-                          <AdminBadge role={selectedQuestion.answerAuthor?.role ?? "ADMIN"} />
-                        </Link>
-                        <span className={styles.subtle}>{formatDate(selectedQuestion.answeredAt)}</span>
-                      </div>
-                      <div className={styles.detailBody}>{selectedQuestion.answerText}</div>
-                    </div>
-                  ) : null}
+                <div className={styles.queueGrid}>
+                  {queueQuestions.map((question) => (
+                    <QueueQuestionItem
+                      key={question.id}
+                      question={question}
+                      active={selectedQuestion?.id === question.id}
+                      onClick={() => setSelectedQuestionId(question.id)}
+                    />
+                  ))}
+                </div>
+              )}
+            </section>
 
-                  <div className={styles.sectionBlock}>
-                    <div className={styles.sectionTitle}>Официальный ответ</div>
-                    <textarea className={styles.textarea} rows={9} value={questionAnswer} onChange={(event) => setQuestionAnswer(event.target.value.slice(0, 5000))} placeholder="Подготовьте официальный ответ администратора" />
-                    {questionMessage ? <div className={styles.note}>{questionMessage}</div> : null}
-                    <div className={styles.actionRow}>
-                      <Button variant="primary" onClick={() => saveQuestion(selectedQuestion.status === "OPEN" ? "ANSWERED" : undefined)} loading={updatingQuestion} disabled={questionAnswer.trim().length < 1}>Сохранить ответ</Button>
-                      <Button onClick={() => saveQuestion("CLOSED")} loading={updatingQuestion} disabled={questionAnswer.trim().length < 1}>Закрыть вопрос</Button>
-                      <Button onClick={() => saveQuestion("OPEN")} loading={updatingQuestion}>Переоткрыть</Button>
+            <section className={styles.panel}>
+              <div className={styles.sectionHeader}>
+                <span className={styles.sectionEyebrow}>детали</span>
+                <div className={styles.sectionTitleRow}>
+                  <h2 className={styles.sectionTitle}>Карточка вопроса</h2>
+                  {selectedQuestion ? (
+                    <Link href={`/support/questions/${selectedQuestion.id}`} className={styles.openLink}>
+                      Открыть у пользователей
+                    </Link>
+                  ) : null}
+                </div>
+              </div>
+
+              {!selectedQuestion ? (
+                <EmptyState icon="arrowLeft" title="Выберите вопрос" text="После выбора здесь появятся детали и форма официального ответа." />
+              ) : (
+                <div className={styles.detailLayout}>
+                  <div className={styles.detailMain}>
+                    <div className={styles.detailIntro}>
+                      <div className={styles.queueTopRow}>
+                        <div className={styles.detailTitle}>{selectedQuestion.title}</div>
+                        <span className={statusClass(selectedQuestion.status)}>{questionStatusLabel[selectedQuestion.status]}</span>
+                      </div>
+                      <div className={styles.inlineMeta}>
+                        <span>@{selectedQuestion.author.username}</span>
+                        <span>Создан: {formatDate(selectedQuestion.createdAt)}</span>
+                        <span>Лайков: {selectedQuestion.likesCount}</span>
+                      </div>
+                      <div className={styles.detailBody}>{selectedQuestion.body || "Пользователь не добавил подробностей."}</div>
                     </div>
-                    <div className={styles.note}>После закрытия вопрос автоматически перейдёт в архив через 24 часа, но останется в поиске и по прямой ссылке.</div>
+
+                    {selectedQuestion.answerText ? (
+                      <div className={styles.sectionBlock}>
+                        <div className={styles.blockTitle}>Текущий официальный ответ</div>
+                        <div className={styles.answerPreview}>
+                          <div className={styles.replyHead}>
+                            <Link
+                              href={`/profile/${selectedQuestion.answerAuthor?.username ?? selectedQuestion.author.username}`}
+                              className={styles.actorLink}
+                            >
+                              {selectedQuestion.answerAuthor?.username ?? "Администратор"}
+                              <AdminBadge role={selectedQuestion.answerAuthor?.role ?? "ADMIN"} username={selectedQuestion.answerAuthor?.username} />
+                            </Link>
+                            <span className={styles.subtle}>{formatDate(selectedQuestion.answeredAt)}</span>
+                          </div>
+                          <div className={styles.detailBody}>{selectedQuestion.answerText}</div>
+                        </div>
+                      </div>
+                    ) : null}
+                  </div>
+
+                  <div className={styles.detailSide}>
+                    <div className={styles.editorCard}>
+                      <div className={styles.blockTitle}>Официальный ответ</div>
+                      <textarea
+                        className={styles.textarea}
+                        rows={9}
+                        value={questionAnswer}
+                        onChange={(event) => setQuestionAnswer(event.target.value.slice(0, 5000))}
+                        placeholder="Подготовьте официальный ответ администратора"
+                      />
+                      {questionMessage ? <div className={styles.note}>{questionMessage}</div> : null}
+                      <div className={styles.actionRow}>
+                        <Button
+                          variant="primary"
+                          onClick={() => saveQuestion(selectedQuestion.status === "OPEN" ? "ANSWERED" : undefined)}
+                          loading={updatingQuestion}
+                          disabled={questionAnswer.trim().length < 1}
+                        >
+                          Сохранить ответ
+                        </Button>
+                        <Button
+                          onClick={() => saveQuestion("CLOSED")}
+                          loading={updatingQuestion}
+                          disabled={questionAnswer.trim().length < 1}
+                        >
+                          Закрыть вопрос
+                        </Button>
+                        <Button onClick={() => saveQuestion("OPEN")} loading={updatingQuestion}>
+                          Переоткрыть
+                        </Button>
+                      </div>
+                      <div className={styles.note}>
+                        После закрытия вопрос автоматически перейдёт в архив через 24 часа, но останется в поиске и по прямой ссылке.
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}
-            </Card>
+            </section>
           </div>
         ) : null}
       </div>

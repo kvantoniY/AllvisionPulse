@@ -668,34 +668,35 @@ button.countItem:disabled { opacity: 0.64; cursor: not-allowed; }
   }
 }
 
-/* --- profile flatten pass --- */
-
+/* ── Flatten: noticeCard / sectionCard are transparent divider rows ── */
 .noticeCard,
 .sectionCard {
-  border: 0 !important;
-  border-radius: 0 !important;
-  background: transparent !important;
-  box-shadow: none !important;
-  padding: 18px 0 !important;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.07) !important;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  padding: 18px 0;
+  border-bottom: 1px solid var(--stroke-soft);
+  overflow: visible;
 }
 
 .noticeCard::before,
 .noticeCard::after,
 .sectionCard::before,
 .sectionCard::after {
-  display: none !important;
+  display: none;
 }
 
+/* Count items: clean, transparent */
 .countItem {
   background: transparent;
-  border-color: rgba(255, 255, 255, 0.08);
+  border-color: var(--stroke);
   transition: border-color 140ms ease, background 140ms ease, transform 140ms ease;
 }
 
 button.countItem:hover:not(:disabled) {
-  border-color: rgba(255, 122, 26, 0.22);
-  background: rgba(255, 122, 26, 0.04);
+  border-color: var(--stroke-accent);
+  background: var(--accent-softer);
   transform: translateY(-1px);
 }
 

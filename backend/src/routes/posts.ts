@@ -44,6 +44,30 @@ function buildPostInclude(depth = 1): any {
   };
 }
 
+function parseJsonField(value: unknown) {
+  if (typeof value !== "string") return value;
+  const trimmed = value.trim();
+  if (!trimmed) return undefined;
+  try {
+    return JSON.parse(trimmed);
+  } catch {
+    return value;
+  }
+}
+
+function normalizeWidgetsJson(value: unknown) {
+  const parsed = parseJsonField(value);
+  return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : null;
+}
+
+function mapPost<T extends { widgetsJson?: any | null; repostOf?: any | null }>(post: T): T {
+  const widgetsJson = normalizeWidgetsJson(post.widgetsJson);
+  return {
+    ...post,
+    widgetsJson,
+    repostOf: post.repostOf ? mapPost(post.repostOf) : post.repostOf,
+  };
+}
 
 async function resolveOriginalPostId(postId: string) {
   let currentId = postId;
@@ -60,9 +84,11 @@ async function resolveOriginalPostId(postId: string) {
 }
 
 function mapComment<T extends { widgetsJson?: any | null }>(comment: T) {
+  const widgetsJson = normalizeWidgetsJson(comment.widgetsJson);
   return {
     ...comment,
-    replyToUsername: comment.widgetsJson?.replyToUsername ?? null,
+    widgetsJson,
+    replyToUsername: typeof widgetsJson?.replyToUsername === "string" ? widgetsJson.replyToUsername : null,
   };
 }
 
@@ -91,7 +117,7 @@ router.get("/feed", asyncHandler(async (req: AuthedRequest, res) => {
   const items = hasMore ? posts.slice(0, take) : posts;
   const nextCursor = hasMore ? items[items.length - 1].id : null;
 
-  res.json({ items, nextCursor });
+  res.json({ items: items.map(mapPost), nextCursor });
 }));
 
 const CreatePostSchema = z.object({
@@ -103,11 +129,15 @@ const CreatePostSchema = z.object({
 
 const UpdatePostSchema = z.object({
   text: z.string().max(5000).optional().nullable(),
+  widgetsJson: z.any().optional().nullable(),
   keepImageIds: z.union([z.string(), z.array(z.string())]).optional(),
 });
 
 router.post("/", upload.array("images", 10), asyncHandler(async (req: AuthedRequest, res) => {
-  const body = CreatePostSchema.parse(req.body);
+  const body = CreatePostSchema.parse({
+    ...req.body,
+    widgetsJson: parseJsonField(req.body.widgetsJson),
+  });
   const files = (req.files as Express.Multer.File[]) ?? [];
 
   let repostOfId: string | undefined;
@@ -127,13 +157,16 @@ router.post("/", upload.array("images", 10), asyncHandler(async (req: AuthedRequ
     },
     include: buildPostInclude(),
   });
-  res.json({ post: created });
+  res.json({ post: mapPost(created) });
 }));
 
 
 router.put("/:postId", upload.array("images", 10), asyncHandler(async (req: AuthedRequest, res) => {
   const postId = req.params.postId;
-  const body = UpdatePostSchema.parse(req.body);
+  const body = UpdatePostSchema.parse({
+    ...req.body,
+    widgetsJson: parseJsonField(req.body.widgetsJson),
+  });
   const files = (req.files as Express.Multer.File[]) ?? [];
 
   const post = await prisma.post.findUnique({ where: { id: postId }, include: { images: true } });
@@ -166,11 +199,12 @@ router.put("/:postId", upload.array("images", 10), asyncHandler(async (req: Auth
     where: { id: postId },
     data: {
       text: body.text == null ? post.text : (body.text || null),
+      widgetsJson: body.widgetsJson === undefined ? post.widgetsJson : body.widgetsJson,
     },
     include: buildPostInclude(),
   });
 
-  res.json({ post: updated });
+  res.json({ post: mapPost(updated) });
 }));
 
 router.get("/:postId", asyncHandler(async (req: AuthedRequest, res) => {
@@ -180,7 +214,7 @@ router.get("/:postId", asyncHandler(async (req: AuthedRequest, res) => {
     include: buildPostInclude(),
   });
   if (!post) throw new HttpError(404, "Post not found");
-  res.json({ post });
+  res.json({ post: mapPost(post) });
 }));
 
 router.delete("/:postId", asyncHandler(async (req: AuthedRequest, res) => {
@@ -280,7 +314,10 @@ const CreateCommentSchema = z.object({
 
 router.post("/:postId/comments", upload.array("images", 10), asyncHandler(async (req: AuthedRequest, res) => {
   const postId = req.params.postId;
-  const body = CreateCommentSchema.parse(req.body);
+  const body = CreateCommentSchema.parse({
+    ...req.body,
+    widgetsJson: parseJsonField(req.body.widgetsJson),
+  });
   const files = (req.files as Express.Multer.File[]) ?? [];
 
   const post = await ensureVisiblePost(postId);

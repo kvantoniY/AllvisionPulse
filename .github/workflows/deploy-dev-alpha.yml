@@ -10,9 +10,27 @@ concurrency:
   group: deploy-alpha-dev
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: 20.20.1
+  PUBLIC_APP_URL: https://allvision-pulse.ru
+  AUTH_COOKIE_SECURE: "true"
+  AUTH_COOKIE_DOMAIN: .allvision-pulse.ru
+  TURN_HOST: turn.allvision-pulse.ru
+  TURN_PORT: "3478"
+  TURN_MIN_PORT: "49152"
+  TURN_MAX_PORT: "49252"
+  TURN_TTL_SEC: "43200"
+
 jobs:
-  deploy:
+  preflight:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
 
     steps:
       - name: Checkout
@@ -21,40 +39,93 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20.20.1
-          package-manager-cache: false
+          node-version: ${{ env.NODE_VERSION }}
 
       - name: Verify toolchain
-        shell: bash
         run: |
           set -euo pipefail
           node --version
           npm --version
           npm config get registry
+          docker --version
+          docker compose version
 
-      - name: Build frontend on runner
-        shell: bash
+      - name: Validate alpha compose config
+        run: |
+          set -euo pipefail
+          TEMP_ENV="$(mktemp)"
+          cp infra/alpha/.env.example "${TEMP_ENV}"
+          {
+            echo "RELEASE_SHA=${GITHUB_SHA}"
+            echo "AUTH_COOKIE_SECURE=${AUTH_COOKIE_SECURE}"
+            echo "AUTH_COOKIE_DOMAIN=${AUTH_COOKIE_DOMAIN}"
+            echo "PUBLIC_APP_URL=${PUBLIC_APP_URL}"
+            echo "TURN_HOST=${TURN_HOST}"
+            echo "TURN_PORT=${TURN_PORT}"
+            echo "TURN_MIN_PORT=${TURN_MIN_PORT}"
+            echo "TURN_MAX_PORT=${TURN_MAX_PORT}"
+            echo "TURN_TTL_SEC=${TURN_TTL_SEC}"
+          } >> "${TEMP_ENV}"
+          docker compose \
+            --project-name allvision-alpha-ci \
+            --env-file "${TEMP_ENV}" \
+            -f infra/alpha/docker-compose.alpha.yml \
+            config >/dev/null
+
+      - name: Validate backend install and Prisma schema
+        run: |
+          set -euo pipefail
+          cd backend
+          npm ci --no-audit --no-fund
+          npx prisma validate --schema prisma/schema.prisma
+
+      - name: Build frontend release archive
         env:
-          NEXT_PUBLIC_BACKEND_URL: https://allvision-pulse.ru
-          NEXT_PUBLIC_APP_URL: https://allvision-pulse.ru
-          PUBLIC_APP_URL: https://allvision-pulse.ru
-          AUTH_COOKIE_SECURE: "true"
-          AUTH_COOKIE_DOMAIN: .allvision-pulse.ru
+          NEXT_PUBLIC_BACKEND_URL: ${{ env.PUBLIC_APP_URL }}
+          NEXT_PUBLIC_APP_URL: ${{ env.PUBLIC_APP_URL }}
+          PUBLIC_APP_URL: ${{ env.PUBLIC_APP_URL }}
+          AUTH_COOKIE_SECURE: ${{ env.AUTH_COOKIE_SECURE }}
+          AUTH_COOKIE_DOMAIN: ${{ env.AUTH_COOKIE_DOMAIN }}
           ACCESS_TTL_MIN: "15"
           REFRESH_TTL_DAYS: "30"
           NEXT_TELEMETRY_DISABLED: "1"
           NPM_CONFIG_REGISTRY: https://registry.npmjs.org/
         run: |
           set -euo pipefail
-          cd frontend
-          rm -rf node_modules .next
-          npm ci --no-audit --no-fund
-          test -f node_modules/next/dist/bin/next
-          npm run build
-          test -f .next/standalone/server.js
+          bash infra/alpha/scripts/build-release.sh "${GITHUB_SHA}" "/tmp/allvision-alpha-release-${GITHUB_SHA}.tgz"
+
+      - name: Upload release artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: alpha-release-${{ github.sha }}
+          path: /tmp/allvision-alpha-release-${{ github.sha }}.tgz
+          if-no-files-found: error
+          retention-days: 3
+
+  deploy:
+    needs: preflight
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Download release artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: alpha-release-${{ github.sha }}
+          path: /tmp/alpha-release-artifact
 
       - name: Prepare SSH
-        shell: bash
         run: |
           set -euo pipefail
           mkdir -p ~/.ssh
@@ -68,6 +139,7 @@ jobs:
             StrictHostKeyChecking no
             UserKnownHostsFile /dev/null
             IdentitiesOnly yes
+            ConnectTimeout 15
             ServerAliveInterval 30
             ServerAliveCountMax 6
           EOFSSH
@@ -75,7 +147,6 @@ jobs:
           ssh -o BatchMode=yes alpha "echo SSH_OK"
 
       - name: Show deploy target host
-        shell: bash
         run: |
           set -euo pipefail
           echo "ALPHA_HOST=${{ secrets.ALPHA_HOST }}"
@@ -83,444 +154,52 @@ jobs:
           set -euo pipefail
           echo "REMOTE_HOSTNAME=$(hostname)"
           echo "REMOTE_IPV4=$(hostname -I | xargs)"
+          docker --version
+          docker compose version
           EOFREMOTE
 
-      - name: Upload release archive
-        shell: bash
+      - name: Generate fallback VAPID keys
         run: |
           set -euo pipefail
-          RELEASE_DIR=/tmp/allvision-alpha-release
-          ARCHIVE=/tmp/allvision-alpha-release.tgz
-          rm -rf "$RELEASE_DIR"
-          rm -f "$ARCHIVE"
-          mkdir -p "$RELEASE_DIR"
-          git archive --format=tar HEAD | tar -xf - -C "$RELEASE_DIR"
-          mkdir -p "$RELEASE_DIR/frontend"
-          cp -R frontend/.next "$RELEASE_DIR/frontend/.next"
-          tar -czf "$ARCHIVE" -C "$RELEASE_DIR" .
-          scp "$ARCHIVE" alpha:/tmp/allvision-alpha-release.tgz
+          node -e "const { createECDH } = require('crypto'); const curve = createECDH('prime256v1'); curve.generateKeys(); console.log('GENERATED_WEB_PUSH_VAPID_PUBLIC_KEY=' + curve.getPublicKey('base64url', 'uncompressed')); console.log('GENERATED_WEB_PUSH_VAPID_PRIVATE_KEY=' + curve.getPrivateKey('base64url'));" >> "${GITHUB_ENV}"
+
+      - name: Upload release archive
+        run: |
+          set -euo pipefail
+          scp "/tmp/alpha-release-artifact/allvision-alpha-release-${GITHUB_SHA}.tgz" "alpha:/tmp/allvision-alpha-release-${GITHUB_SHA}.tgz"
 
       - name: Deploy on server
-        shell: bash
         run: |
           set -euo pipefail
-          RELEASE_SHA="${GITHUB_SHA}"
-          GENERATED_VAPID_KEYS="$(node -e "const { createECDH } = require('crypto'); const curve = createECDH('prime256v1'); curve.generateKeys(); console.log('WEB_PUSH_VAPID_PUBLIC_KEY=' + curve.getPublicKey('base64url', 'uncompressed')); console.log('WEB_PUSH_VAPID_PRIVATE_KEY=' + curve.getPrivateKey('base64url'));" )"
-          GENERATED_WEB_PUSH_VAPID_PUBLIC_KEY="$(printf '%s\n' "$GENERATED_VAPID_KEYS" | awk -F= '/^WEB_PUSH_VAPID_PUBLIC_KEY=/{print $2}')"
-          GENERATED_WEB_PUSH_VAPID_PRIVATE_KEY="$(printf '%s\n' "$GENERATED_VAPID_KEYS" | awk -F= '/^WEB_PUSH_VAPID_PRIVATE_KEY=/{print $2}')"
-          ssh alpha "RELEASE_SHA='$RELEASE_SHA' GENERATED_WEB_PUSH_VAPID_PUBLIC_KEY='$GENERATED_WEB_PUSH_VAPID_PUBLIC_KEY' GENERATED_WEB_PUSH_VAPID_PRIVATE_KEY='$GENERATED_WEB_PUSH_VAPID_PRIVATE_KEY' bash -s" <<'EOFREMOTE'
+          # shellcheck disable=SC2029
+          ssh alpha "RELEASE_SHA='${GITHUB_SHA}' RELEASE_ARCHIVE='/tmp/allvision-alpha-release-${GITHUB_SHA}.tgz' ALPHA_HOST='${{ secrets.ALPHA_HOST }}' PUBLIC_APP_URL='${PUBLIC_APP_URL}' AUTH_COOKIE_SECURE='${AUTH_COOKIE_SECURE}' AUTH_COOKIE_DOMAIN='${AUTH_COOKIE_DOMAIN}' TURN_HOST='${TURN_HOST}' TURN_PORT='${TURN_PORT}' TURN_MIN_PORT='${TURN_MIN_PORT}' TURN_MAX_PORT='${TURN_MAX_PORT}' TURN_TTL_SEC='${TURN_TTL_SEC}' GENERATED_WEB_PUSH_VAPID_PUBLIC_KEY='${GENERATED_WEB_PUSH_VAPID_PUBLIC_KEY}' GENERATED_WEB_PUSH_VAPID_PRIVATE_KEY='${GENERATED_WEB_PUSH_VAPID_PRIVATE_KEY}' bash -s" <<'EOFREMOTE'
           set -euo pipefail
-
-          APP_ROOT=/opt/allvision-pulse
-          CURRENT_DIR="$APP_ROOT/current"
-          NEXT_DIR="$APP_ROOT/next"
-          PREV_DIR="$APP_ROOT/previous"
-          RELEASE_ARCHIVE=/tmp/allvision-alpha-release.tgz
-          RELEASE_SHA="${RELEASE_SHA:-unknown}"
-
-          mkdir -p "$APP_ROOT"
-          rm -rf "$NEXT_DIR"
-          mkdir -p "$NEXT_DIR"
-          tar -xzf "$RELEASE_ARCHIVE" -C "$NEXT_DIR"
-
-          if [ -f "$CURRENT_DIR/infra/alpha/.env" ]; then
-            mkdir -p "$NEXT_DIR/infra/alpha"
-            cp "$CURRENT_DIR/infra/alpha/.env" "$NEXT_DIR/infra/alpha/.env"
-          fi
-
-          if [ -f "$NEXT_DIR/infra/alpha/.env" ]; then
-            CORS_ORIGIN="http://${{ secrets.ALPHA_HOST }},https://${{ secrets.ALPHA_HOST }},http://allvision-pulse.ru,http://www.allvision-pulse.ru,https://allvision-pulse.ru,https://www.allvision-pulse.ru"
-            PUBLIC_APP_URL="https://allvision-pulse.ru"
-            AUTH_COOKIE_SECURE="true"
-            AUTH_COOKIE_DOMAIN=".allvision-pulse.ru"
-            TURN_HOST="turn.allvision-pulse.ru"
-            TURN_PORT="3478"
-            TURN_MIN_PORT="49152"
-            TURN_MAX_PORT="49252"
-            TURN_TTL_SEC="43200"
-            TURN_EXTERNAL_IP="$({ getent ahostsv4 "$TURN_HOST" 2>/dev/null || true; } | awk 'NR==1 { print $1 }')"
-            if [ -z "$TURN_EXTERNAL_IP" ]; then
-              TURN_EXTERNAL_IP="$({ getent ahostsv4 "${{ secrets.ALPHA_HOST }}" 2>/dev/null || true; } | awk 'NR==1 { print $1 }')"
-            fi
-            if [ -z "$TURN_EXTERNAL_IP" ]; then
-              TURN_EXTERNAL_IP="${{ secrets.ALPHA_HOST }}"
-            fi
-            TURN_SECRET="$(grep -E '^TURN_SECRET=' "$NEXT_DIR/infra/alpha/.env" | sed 's/^TURN_SECRET=//' || true)"
-            if [ -z "$TURN_SECRET" ]; then
-              TURN_SECRET="$(openssl rand -hex 32)"
-            fi
-            WEB_PUSH_VAPID_PUBLIC_KEY="$(grep -E '^WEB_PUSH_VAPID_PUBLIC_KEY=' "$NEXT_DIR/infra/alpha/.env" | sed 's/^WEB_PUSH_VAPID_PUBLIC_KEY=//' || true)"
-            WEB_PUSH_VAPID_PRIVATE_KEY="$(grep -E '^WEB_PUSH_VAPID_PRIVATE_KEY=' "$NEXT_DIR/infra/alpha/.env" | sed 's/^WEB_PUSH_VAPID_PRIVATE_KEY=//' || true)"
-            WEB_PUSH_VAPID_SUBJECT="$(grep -E '^WEB_PUSH_VAPID_SUBJECT=' "$NEXT_DIR/infra/alpha/.env" | sed 's/^WEB_PUSH_VAPID_SUBJECT=//' || true)"
-            if [ -z "$WEB_PUSH_VAPID_PUBLIC_KEY" ] || [ -z "$WEB_PUSH_VAPID_PRIVATE_KEY" ]; then
-              WEB_PUSH_VAPID_PUBLIC_KEY="${GENERATED_WEB_PUSH_VAPID_PUBLIC_KEY:-}"
-              WEB_PUSH_VAPID_PRIVATE_KEY="${GENERATED_WEB_PUSH_VAPID_PRIVATE_KEY:-}"
-            fi
-            if [ -z "$WEB_PUSH_VAPID_SUBJECT" ]; then
-              WEB_PUSH_VAPID_SUBJECT="mailto:notify@allvision-pulse.ru"
-            fi
-            if [ -z "$WEB_PUSH_VAPID_PUBLIC_KEY" ] || [ -z "$WEB_PUSH_VAPID_PRIVATE_KEY" ]; then
-              echo "WEB_PUSH_VAPID keys are empty after generation" >&2
-              exit 1
-            fi
-
-            upsert_env() {
-              local key="$1"
-              local value="$2"
-              if grep -q "^${key}=" "$NEXT_DIR/infra/alpha/.env"; then
-                sed -i "s|^${key}=.*|${key}=${value}|" "$NEXT_DIR/infra/alpha/.env"
-              else
-                printf '%s=%s\n' "$key" "$value" >> "$NEXT_DIR/infra/alpha/.env"
-              fi
-            }
-
-            upsert_env CORS_ORIGIN "$CORS_ORIGIN"
-            upsert_env PUBLIC_APP_URL "$PUBLIC_APP_URL"
-            upsert_env AUTH_COOKIE_SECURE "$AUTH_COOKIE_SECURE"
-            upsert_env AUTH_COOKIE_DOMAIN "$AUTH_COOKIE_DOMAIN"
-            upsert_env RELEASE_SHA "$RELEASE_SHA"
-            upsert_env TURN_HOST "$TURN_HOST"
-            upsert_env TURN_PORT "$TURN_PORT"
-            upsert_env TURN_MIN_PORT "$TURN_MIN_PORT"
-            upsert_env TURN_MAX_PORT "$TURN_MAX_PORT"
-            upsert_env TURN_TTL_SEC "$TURN_TTL_SEC"
-            upsert_env TURN_EXTERNAL_IP "$TURN_EXTERNAL_IP"
-            upsert_env TURN_SECRET "$TURN_SECRET"
-            upsert_env WEB_PUSH_VAPID_PUBLIC_KEY "$WEB_PUSH_VAPID_PUBLIC_KEY"
-            upsert_env WEB_PUSH_VAPID_PRIVATE_KEY "$WEB_PUSH_VAPID_PRIVATE_KEY"
-            upsert_env WEB_PUSH_VAPID_SUBJECT "$WEB_PUSH_VAPID_SUBJECT"
-          fi
-
-          rm -rf "$PREV_DIR"
-          if [ -d "$CURRENT_DIR" ]; then
-            mv "$CURRENT_DIR" "$PREV_DIR"
-          fi
-          mv "$NEXT_DIR" "$CURRENT_DIR"
-          cd "$CURRENT_DIR"
-
-          compose_alpha() {
-            docker compose \
-              --project-name allvision-alpha \
-              --env-file infra/alpha/.env \
-              -f infra/alpha/docker-compose.alpha.yml \
-              "$@"
+          STAGING_DIR="/tmp/allvision-alpha-${RELEASE_SHA}"
+          cleanup() {
+            rm -rf "${STAGING_DIR}"
+            rm -f "${RELEASE_ARCHIVE}"
           }
-
-          failed_release_diagnostics() {
-            echo "=== failed release diagnostics before rollback ==="
-            compose_alpha ps || true
-            echo
-            echo "=== failed backend logs ==="
-            compose_alpha logs backend --tail=300 || true
-            echo
-            echo "=== failed postgres logs ==="
-            compose_alpha logs postgres --tail=120 || true
-            echo
-            echo "=== failed frontend logs ==="
-            compose_alpha logs frontend --tail=120 || true
-            echo
-            echo "=== failed nginx logs ==="
-            compose_alpha logs nginx --tail=120 || true
-            echo
-            echo "=== failed turn logs ==="
-            compose_alpha logs turn --tail=120 || true
-          }
-
-          wait_for_healthy() {
-            local service="$1"
-            local timeout_sec="${2:-180}"
-            local elapsed=0
-            local container_id
-            local status
-
-            container_id="$(compose_alpha ps -q "$service")"
-            if [ -z "$container_id" ]; then
-              echo "Service $service container was not created" >&2
-              return 1
-            fi
-
-            while [ "$elapsed" -lt "$timeout_sec" ]; do
-              status="$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' "$container_id" 2>/dev/null || true)"
-              if [ "$status" = "healthy" ] || [ "$status" = "running" ]; then
-                return 0
-              fi
-              if [ "$status" = "unhealthy" ] || [ "$status" = "exited" ] || [ "$status" = "dead" ]; then
-                echo "Service $service entered bad state: $status" >&2
-                return 1
-              fi
-              sleep 3
-              elapsed=$((elapsed + 3))
-            done
-
-            echo "Timed out waiting for $service to become healthy" >&2
-            return 1
-          }
-
-          verify_release_sha() {
-            local service="$1"
-            local expected_sha="$2"
-            local container_id
-            local actual_sha
-
-            container_id="$(compose_alpha ps -q "$service")"
-            if [ -z "$container_id" ]; then
-              echo "Service $service container is missing during release verification" >&2
-              return 1
-            fi
-
-            actual_sha="$(docker inspect --format '{{ index .Config.Labels "org.allvision.release-sha" }}' "$container_id" 2>/dev/null || true)"
-            if [ "$actual_sha" != "$expected_sha" ]; then
-              echo "Service $service release mismatch: expected $expected_sha, got ${actual_sha:-<empty>}" >&2
-              return 1
-            fi
-
-            echo "Verified $service release SHA: $actual_sha"
-          }
-
-          rollback_previous_release() {
-            if [ -d "$PREV_DIR" ]; then
-              rm -rf "$CURRENT_DIR"
-              mv "$PREV_DIR" "$CURRENT_DIR"
-              cd "$CURRENT_DIR"
-              docker compose \
-                --project-name allvision-alpha \
-                --env-file infra/alpha/.env \
-                -f infra/alpha/docker-compose.alpha.yml \
-                up -d --build --force-recreate --remove-orphans || true
-            fi
-          }
-
-          echo "=== build backend image ==="
-          if ! compose_alpha build --pull backend; then
-            failed_release_diagnostics
-            rollback_previous_release
-            exit 1
-          fi
-
-          echo "=== build frontend image (no cache) ==="
-          if ! compose_alpha build --pull --no-cache frontend; then
-            failed_release_diagnostics
-            rollback_previous_release
-            exit 1
-          fi
-
-          if ! compose_alpha up -d postgres turn; then
-            failed_release_diagnostics
-            rollback_previous_release
-            exit 1
-          fi
-
-          echo "=== prisma migrate deploy ==="
-          if ! compose_alpha run --rm --no-deps backend sh -lc "npx prisma migrate deploy --schema prisma/schema.prisma"; then
-            failed_release_diagnostics
-            rollback_previous_release
-            exit 1
-          fi
-
-          echo "=== remove old runtime containers before recreate ==="
-          compose_alpha rm -sf backend frontend nginx || true
-
-          if ! compose_alpha up -d --force-recreate --remove-orphans backend frontend turn; then
-            failed_release_diagnostics
-            rollback_previous_release
-            exit 1
-          fi
-
-          if ! wait_for_healthy backend 240; then
-            failed_release_diagnostics
-            rollback_previous_release
-            exit 1
-          fi
-
-          if ! wait_for_healthy frontend 240; then
-            failed_release_diagnostics
-            rollback_previous_release
-            exit 1
-          fi
-
-          if ! verify_release_sha backend "$RELEASE_SHA"; then
-            failed_release_diagnostics
-            rollback_previous_release
-            exit 1
-          fi
-
-          if ! verify_release_sha frontend "$RELEASE_SHA"; then
-            failed_release_diagnostics
-            rollback_previous_release
-            exit 1
-          fi
-
-          echo "=== frontend release from inside container ==="
-          if ! compose_alpha exec -T frontend node -e "fetch('http://127.0.0.1:3000/api/release?ts=' + encodeURIComponent(process.env.APP_RELEASE_SHA || 'missing')).then(async (r) => { const text = await r.text(); if (!r.ok) { console.error(text); process.exit(1); } process.stdout.write(text); }).catch((error) => { console.error(error); process.exit(1); });" | tee /tmp/allvision-frontend-release.json; then
-            failed_release_diagnostics
-            rollback_previous_release
-            exit 1
-          fi
-
-          if ! grep -q "$RELEASE_SHA" /tmp/allvision-frontend-release.json; then
-            echo "Frontend container does not serve expected release $RELEASE_SHA" >&2
-            failed_release_diagnostics
-            rollback_previous_release
-            exit 1
-          fi
-
-          echo "=== frontend public asset checks ==="
-          if ! compose_alpha exec -T frontend sh -lc "test -f /app/public/sw.js && test -f /app/public/brand-eye-180.png && test -f /app/public/brand-eye-192.png && test -f /app/public/brand-eye-32.png && test -f /app/public/brand-eye-512.png"; then
-            failed_release_diagnostics
-            rollback_previous_release
-            exit 1
-          fi
-
-          if ! compose_alpha up -d --no-deps --force-recreate nginx; then
-            failed_release_diagnostics
-            rollback_previous_release
-            exit 1
-          fi
-
-          echo "=== deployed release ==="
-          echo "RELEASE_SHA=$RELEASE_SHA"
-
-          echo "=== current public env ==="
-          grep -E '^(RELEASE_SHA|CORS_ORIGIN|PUBLIC_APP_URL|AUTH_COOKIE_SECURE|AUTH_COOKIE_DOMAIN|TURN_HOST|TURN_PORT|TURN_MIN_PORT|TURN_MAX_PORT|TURN_TTL_SEC|TURN_EXTERNAL_IP|WEB_PUSH_VAPID_SUBJECT|WEB_PUSH_VAPID_PUBLIC_KEY)=' infra/alpha/.env || true
-
-          sleep 3
-
-          echo "=== nginx health ==="
-          curl --retry 15 --retry-delay 2 --retry-all-errors -fsS http://127.0.0.1/healthz >/dev/null
-          curl --retry 15 --retry-delay 2 --retry-all-errors -H "Cache-Control: no-cache, no-store" -fsS "http://127.0.0.1/api/release?ts=$RELEASE_SHA" | tee /tmp/allvision-release.json
-          grep -q "$RELEASE_SHA" /tmp/allvision-release.json
-          curl --retry 15 --retry-delay 2 --retry-all-errors -fsS http://127.0.0.1/sw.js >/dev/null
-          curl --retry 15 --retry-delay 2 --retry-all-errors -fsS http://127.0.0.1/brand-eye-180.png >/dev/null
-          curl --retry 15 --retry-delay 2 --retry-all-errors -fsS http://127.0.0.1/brand-eye-192.png >/dev/null
-
-          echo "=== socket.io polling health ==="
-          SOCKET_HEALTH_TOKEN=$(docker compose             --project-name allvision-alpha             --env-file infra/alpha/.env             -f infra/alpha/docker-compose.alpha.yml             exec -T backend node -e "const jwt=require('jsonwebtoken'); process.stdout.write(jwt.sign({ sub: 'healthcheck-socket', role: 'USER' }, process.env.JWT_ACCESS_SECRET, { expiresIn: '2m' }));")
-          curl --retry 15 --retry-delay 2 --retry-all-errors -fsS             -H "Authorization: Bearer $SOCKET_HEALTH_TOKEN"             "http://127.0.0.1/socket.io?EIO=4&transport=polling" | grep -q '"sid"'
-
-          docker image prune -af --filter "until=72h" || true
+          trap cleanup EXIT
+          rm -rf "${STAGING_DIR}"
+          mkdir -p "${STAGING_DIR}"
+          tar -xzf "${RELEASE_ARCHIVE}" -C "${STAGING_DIR}"
+          cd "${STAGING_DIR}"
+          bash infra/alpha/scripts/deploy-release.sh
           EOFREMOTE
 
       - name: Backend diagnostics
         if: always()
-        shell: bash
         run: |
           set +e
-          ssh alpha 'bash -s' <<'EOFREMOTE'
-          set +e
-          APP_ROOT=/opt/allvision-pulse
-          CURRENT_DIR="$APP_ROOT/current"
-          cd "$CURRENT_DIR" || exit 0
-          echo "=== docker compose ps ==="
-          docker compose \
-            --project-name allvision-alpha \
-            --env-file infra/alpha/.env \
-            -f infra/alpha/docker-compose.alpha.yml \
-            ps
-          echo
-          echo "=== backend logs ==="
-          docker compose \
-            --project-name allvision-alpha \
-            --env-file infra/alpha/.env \
-            -f infra/alpha/docker-compose.alpha.yml \
-            logs backend --tail=300
-          echo
-          echo "=== postgres logs ==="
-          docker compose \
-            --project-name allvision-alpha \
-            --env-file infra/alpha/.env \
-            -f infra/alpha/docker-compose.alpha.yml \
-            logs postgres --tail=120
-          echo
-          echo "=== frontend logs ==="
-          docker compose \
-            --project-name allvision-alpha \
-            --env-file infra/alpha/.env \
-            -f infra/alpha/docker-compose.alpha.yml \
-            logs frontend --tail=120
-          echo
-          echo "=== nginx logs ==="
-          docker compose \
-            --project-name allvision-alpha \
-            --env-file infra/alpha/.env \
-            -f infra/alpha/docker-compose.alpha.yml \
-            logs nginx --tail=120
-          echo
-          echo "=== turn logs ==="
-          docker compose \
-            --project-name allvision-alpha \
-            --env-file infra/alpha/.env \
-            -f infra/alpha/docker-compose.alpha.yml \
-            logs turn --tail=120
-          echo
-          echo "=== nginx rendered config ==="
-          NGINX_ID=$(docker compose \
-            --project-name allvision-alpha \
-            --env-file infra/alpha/.env \
-            -f infra/alpha/docker-compose.alpha.yml \
-            ps -q nginx)
-          if [ -n "$NGINX_ID" ]; then
-            docker exec "$NGINX_ID" nginx -T 2>/dev/null | sed -n "1,220p"
-          fi
-          echo
-          echo "=== backend container id ==="
-          BACKEND_ID=$(docker compose \
-            --project-name allvision-alpha \
-            --env-file infra/alpha/.env \
-            -f infra/alpha/docker-compose.alpha.yml \
-            ps -q backend)
-          echo "$BACKEND_ID"
-          echo
-          echo "=== docker inspect health ==="
-          for service in backend frontend nginx; do
-            CID=$(docker compose \
-              --project-name allvision-alpha \
-              --env-file infra/alpha/.env \
-              -f infra/alpha/docker-compose.alpha.yml \
-              ps -q "$service")
-            if [ -n "$CID" ]; then
-              echo "--- $service ---"
-              docker inspect --format '{{json .State.Health}}' "$CID" 2>/dev/null || true
-            fi
-          done
-          EOFREMOTE
+          cat infra/alpha/scripts/collect-runtime-diagnostics.sh | ssh alpha 'bash -s'
 
       - name: Verify public release
-        shell: bash
-        env:
-          EXPECTED_RELEASE_SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
-          TLS_WARNING_EMITTED=0
-          for attempt in $(seq 1 20); do
-            RESPONSE=""
-            CURL_EXIT=0
-            set +e
-            RESPONSE="$(curl --retry 3 --retry-delay 2 --retry-all-errors -H 'Cache-Control: no-cache, no-store' -fsS "https://allvision-pulse.ru/api/release?ts=$EXPECTED_RELEASE_SHA" 2>/tmp/public-release-curl.err)"
-            CURL_EXIT=$?
-            set -e
-            if [ "$CURL_EXIT" = "60" ]; then
-              if [ "$TLS_WARNING_EMITTED" = "0" ]; then
-                echo "::warning::Strict TLS verification for https://allvision-pulse.ru failed on the GitHub runner (curl exit 60). Falling back to an insecure read for release propagation only. The public edge likely serves an incomplete certificate chain."
-                cat /tmp/public-release-curl.err >&2 || true
-                TLS_WARNING_EMITTED=1
-              fi
-              RESPONSE="$(curl --retry 3 --retry-delay 2 --retry-all-errors -k -H 'Cache-Control: no-cache, no-store' -fsS "https://allvision-pulse.ru/api/release?ts=$EXPECTED_RELEASE_SHA" || true)"
-            elif [ "$CURL_EXIT" != "0" ]; then
-              RESPONSE=""
-            fi
-            if printf '%s' "$RESPONSE" | grep -q "$EXPECTED_RELEASE_SHA"; then
-              echo "Public release is up to date: $RESPONSE"
-              exit 0
-            fi
-            echo "Attempt $attempt/20: public domain still serves stale release: ${RESPONSE:-<empty>}"
-            sleep 6
-          done
-          echo "Public domain did not switch to release $EXPECTED_RELEASE_SHA" >&2
-          exit 1
+          bash infra/alpha/scripts/verify-public-release.sh "${GITHUB_SHA}" "${PUBLIC_APP_URL}"
 
       - name: Public release diagnostics
         if: always()
-        shell: bash
         env:
           EXPECTED_RELEASE_SHA: ${{ github.sha }}
         run: |
@@ -529,13 +208,14 @@ jobs:
           getent hosts allvision-pulse.ru || true
           echo
           echo "=== public release headers (strict TLS) ==="
-          curl -svI -H 'Cache-Control: no-cache, no-store' "https://allvision-pulse.ru/api/release?ts=$EXPECTED_RELEASE_SHA" 2>&1 || true
+          curl -svI -H 'Cache-Control: no-cache, no-store' "${PUBLIC_APP_URL}/api/release?ts=${EXPECTED_RELEASE_SHA}" 2>&1 || true
           echo
           echo "=== public release body (insecure fallback for diagnostics only) ==="
-          curl -sk -H 'Cache-Control: no-cache, no-store' "https://allvision-pulse.ru/api/release?ts=$EXPECTED_RELEASE_SHA" || true
+          curl -sk -H 'Cache-Control: no-cache, no-store' "${PUBLIC_APP_URL}/api/release?ts=${EXPECTED_RELEASE_SHA}" || true
           echo
-          echo "=== public sw.js markers (insecure fallback for diagnostics only) ==="
-          curl -sk -H 'Cache-Control: no-cache, no-store' "https://allvision-pulse.ru/sw.js?ts=$EXPECTED_RELEASE_SHA" | grep -E 'normalizeIncomingCallIntent|incoming_call_push|incoming_call_notification_click' || true
+          echo "=== public sw.js headers ==="
+          curl -skI -H 'Cache-Control: no-cache, no-store' "${PUBLIC_APP_URL}/sw.js?ts=${EXPECTED_RELEASE_SHA}" || true
           echo
           echo "=== deployed vm localhost release ==="
-          ssh alpha "curl -fsS 'http://127.0.0.1/api/release?ts=$EXPECTED_RELEASE_SHA' || true"
+          # shellcheck disable=SC2029
+          ssh alpha "curl -fsS 'http://127.0.0.1/api/release?ts=${EXPECTED_RELEASE_SHA}' || true"

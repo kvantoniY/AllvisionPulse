@@ -1,269 +1,388 @@
 'use client';
 
-import type { CSSProperties } from 'react';
+import type { CSSProperties, KeyboardEvent, PointerEvent as ReactPointerEvent } from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useIntersection } from '@/shared/lib/hooks/useIntersection';
+import { useMediaController } from '@/shared/lib/mediaCore/useMediaController';
 import styles from './VideoRing.module.css';
 
 export interface VideoRingProps {
-  videoElement?: HTMLVideoElement | null;
   src?: string;
   duration?: number;
-  currentTime?: number;
-  onSeek?: (time: number) => void;
-  showProgress?: boolean;
   className?: string;
-  size?: 'small' | 'medium' | 'large';
+  size?: 'small' | 'message' | 'medium' | 'large';
   autoPlay?: boolean;
   muted?: boolean;
-  controls?: boolean;
+  showProgress?: boolean;
   showCenterControl?: boolean;
   showTimePill?: boolean;
+  align?: 'start' | 'end';
+  mediaId?: string;
+  sending?: boolean;
+  tone?: 'incoming' | 'outgoing' | 'neutral';
+  eager?: boolean;
+  rootMargin?: string;
 }
 
 const SIZE_MAP = {
-  small: 184,
-  medium: 388,
-  large: 420,
+  small: 168,
+  message: 240,
+  medium: 268,
+  large: 320,
 } as const;
+
+const EXPAND_RATIO = 1.5;
+const RING_STROKE = 3;
+const DOT_R = 5;
+
+function clamp(v: number, lo: number, hi: number) {
+  return Math.max(lo, Math.min(hi, v));
+}
 
 function formatTime(seconds: number) {
   const safe = Number.isFinite(seconds) && seconds > 0 ? seconds : 0;
-  const mins = Math.floor(safe / 60);
-  const secs = Math.floor(safe % 60);
-  return `${mins}:${secs.toString().padStart(2, '0')}`;
+  const m = Math.floor(safe / 60);
+  const s = Math.floor(safe % 60);
+  return `${m}:${s.toString().padStart(2, '0')}`;
 }
 
 export function VideoRing({
-  videoElement,
   src,
   duration = 0,
-  currentTime = 0,
-  onSeek,
-  showProgress = true,
   className,
-  size = 'medium',
+  size = 'message',
   autoPlay = false,
   muted = false,
-  controls = false,
+  showProgress = true,
   showCenterControl = true,
   showTimePill = true,
+  align = 'start',
+  mediaId,
+  sending = false,
+  tone = 'neutral',
+  eager = false,
+  rootMargin = '320px 0px',
 }: VideoRingProps) {
-  const internalVideoRef = useRef<HTMLVideoElement | null>(null);
-  const dragCleanupRef = useRef<(() => void) | null>(null);
-  const resolvedVideo = src ? internalVideoRef.current : videoElement;
-  const [isPlaying, setIsPlaying] = useState(Boolean(autoPlay));
-  const [isReady, setIsReady] = useState(!src);
-  const [localDuration, setLocalDuration] = useState(duration);
-  const [localCurrentTime, setLocalCurrentTime] = useState(currentTime);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const stageRef = useRef<HTMLDivElement | null>(null);
+  const scrubCleanupRef = useRef<(() => void) | null>(null);
+  const resumeAfterScrubRef = useRef(false);
+  const [isHovered, setIsHovered] = useState(false);
+  const [isScrubbing, setIsScrubbing] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+
+  const intersectionOptions = useMemo<IntersectionObserverInit>(
+    () => ({ rootMargin, threshold: 0.01 }),
+    [rootMargin],
+  );
+  const isNearViewport = useIntersection(containerRef, intersectionOptions);
+
+  const controller = useMediaController({
+    mediaId: mediaId ?? src ?? `video-note:${size}`,
+    kind: 'video',
+    src,
+    durationHint: duration,
+    activate: isNearViewport,
+    eager,
+    autoPlay,
+    onDethroned: () => setExpanded(false),
+  });
+
+  const phase = sending ? 'sending' : controller.phase;
+  const progress = phase === 'ended' ? 0 : controller.progress;
+  const bufferedProgress = phase === 'ended' ? 0 : controller.bufferedRatio;
+  const displayedCurrentTime = phase === 'ended' ? 0 : controller.currentTime;
+  const displayedDuration = controller.duration || duration;
+
+  /* ── expanded: playing → expand, ended → collapse, dethroned → collapse ── */
+  useEffect(() => {
+    if (controller.isPlaying) {
+      setExpanded(true);
+    } else if (phase === 'ended') {
+      setExpanded(false);
+    }
+    /* user-pause keeps expanded; onDethroned callback handles external collapse */
+  }, [controller.isPlaying, phase]);
 
   useEffect(() => {
-    setLocalDuration(duration);
-  }, [duration]);
-
-  useEffect(() => {
-    setLocalCurrentTime(currentTime);
-  }, [currentTime]);
-
-  useEffect(() => {
-    setIsReady(!src);
+    setExpanded(false);
   }, [src]);
 
-  useEffect(() => {
-    return () => {
-      dragCleanupRef.current?.();
-      dragCleanupRef.current = null;
-    };
-  }, []);
+  /* ── sizes ── */
+  const baseDiameter = SIZE_MAP[size];
+  const expandedWidth = Math.round(baseDiameter * EXPAND_RATIO);
+  const currentWidth = expanded ? expandedWidth : baseDiameter;
 
-  useEffect(() => {
-    const video = resolvedVideo;
-    if (!video) return;
+  /* ── SVG ring geometry (viewBox is always baseDiameter) ── */
+  const ringR = baseDiameter / 2 - RING_STROKE / 2 - 1;
+  const C = 2 * Math.PI * ringR;
+  const progressOff = C * (1 - progress);
+  const bufferedOff = C * (1 - clamp(bufferedProgress, progress, 1));
 
-    const handlePlay = () => setIsPlaying(true);
-    const handlePause = () => setIsPlaying(false);
-    const handleWaiting = () => setIsReady(false);
-    const handleLoaded = () => setIsReady(true);
-    const handleEnded = () => {
-      setIsPlaying(false);
-      if (src) setLocalCurrentTime(0);
-    };
-    const handleTimeUpdate = () => {
-      if (src) setLocalCurrentTime(video.currentTime || 0);
-    };
-    const handleLoadedMetadata = () => {
-      if (src && Number.isFinite(video.duration) && video.duration > 0) {
-        setLocalDuration(video.duration);
-      }
-      setIsReady(true);
-    };
+  /* ── progress dot (SVG coords, pre CSS rotate -90deg) ── */
+  const dotA = progress * 2 * Math.PI;
+  const dotCx = baseDiameter / 2 + ringR * Math.cos(dotA);
+  const dotCy = baseDiameter / 2 + ringR * Math.sin(dotA);
 
-    video.addEventListener('play', handlePlay);
-    video.addEventListener('pause', handlePause);
-    video.addEventListener('waiting', handleWaiting);
-    video.addEventListener('loadeddata', handleLoaded);
-    video.addEventListener('canplay', handleLoaded);
-    video.addEventListener('loadedmetadata', handleLoadedMetadata);
-    video.addEventListener('ended', handleEnded);
-    video.addEventListener('timeupdate', handleTimeUpdate);
-
-    return () => {
-      video.removeEventListener('play', handlePlay);
-      video.removeEventListener('pause', handlePause);
-      video.removeEventListener('waiting', handleWaiting);
-      video.removeEventListener('loadeddata', handleLoaded);
-      video.removeEventListener('canplay', handleLoaded);
-      video.removeEventListener('loadedmetadata', handleLoadedMetadata);
-      video.removeEventListener('ended', handleEnded);
-      video.removeEventListener('timeupdate', handleTimeUpdate);
-    };
-  }, [resolvedVideo, src]);
-
-  const resolvedDuration = src ? localDuration : duration;
-  const resolvedCurrentTime = src ? localCurrentTime : currentTime;
-  const progress = resolvedDuration > 0 ? Math.max(0, Math.min(1, resolvedCurrentTime / resolvedDuration)) : 0;
-  const displayedTime = resolvedCurrentTime > 0 ? resolvedCurrentTime : resolvedDuration;
-  const diameter = SIZE_MAP[size];
-  const ringRadius = diameter / 2 - 6;
-  const circumference = 2 * Math.PI * ringRadius;
-  const dashOffset = circumference * (1 - progress);
-  const style = useMemo(() => ({ '--video-ring-size': `${diameter}px` } as CSSProperties), [diameter]);
-
-  const applySeekFromPointer = (clientX: number, clientY: number) => {
-    if ((!onSeek && !src) || !resolvedDuration || !isReady) return;
-    const shell = (src ? internalVideoRef.current?.closest(`.${styles.shell}`) : resolvedVideo?.closest?.(`.${styles.shell}`)) as HTMLElement | null;
-    if (!shell) return;
-    const rect = shell.getBoundingClientRect();
-    const centerX = rect.left + rect.width / 2;
-    const centerY = rect.top + rect.height / 2;
-    const angle = Math.atan2(clientY - centerY, clientX - centerX);
-    const normalized = (angle + Math.PI / 2 + Math.PI * 2) % (Math.PI * 2);
-    const ratio = normalized / (Math.PI * 2);
-    const nextTime = resolvedDuration * ratio;
-    if (onSeek) onSeek(nextTime);
-    if (src && resolvedVideo) {
-      resolvedVideo.currentTime = nextTime;
-      setLocalCurrentTime(nextTime);
-    }
+  const style: CSSProperties = {
+    width: currentWidth,
+    maxWidth: 'calc(100vw - 48px)',
   };
 
-  const handleProgressPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
-    const target = event.target as HTMLElement | null;
-    if (target?.closest('[data-video-ring-control="true"]')) return;
-    if ((!onSeek && !src) || !resolvedDuration || !isReady) return;
+  const isLoading =
+    phase === 'loading-metadata' ||
+    phase === 'loading-media' ||
+    phase === 'buffering';
 
+  /* overlay: spinner/error always; play/pause on hover only */
+  const showOverlay =
+    showCenterControl &&
+    (sending || phase === 'error' || isLoading || isHovered);
+
+  /* time text */
+  const displayTime =
+    controller.isPlaying || phase === 'paused' || isScrubbing
+      ? formatTime(displayedCurrentTime)
+      : formatTime(displayedDuration);
+
+  /* cleanup */
+  useEffect(
+    () => () => {
+      scrubCleanupRef.current?.();
+      scrubCleanupRef.current = null;
+    },
+    [],
+  );
+
+  /* ── ring scrub helpers ── */
+  const ratioFromPointer = (clientX: number, clientY: number) => {
+    const stage = stageRef.current;
+    if (!stage) return null;
+    const rect = stage.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    const dx = clientX - cx;
+    const dy = clientY - cy;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    const outer = rect.width / 2;
+    const inner = Math.max(0, outer - 36);
+    if (dist < inner || dist > outer + 16) return null;
+    let n = (Math.atan2(dy, dx) + Math.PI / 2) / (Math.PI * 2);
+    if (n < 0) n += 1;
+    if (n > 1) n -= 1;
+    return n;
+  };
+
+  const finishScrub = async () => {
+    scrubCleanupRef.current?.();
+    scrubCleanupRef.current = null;
+    setIsScrubbing(false);
+    if (resumeAfterScrubRef.current) {
+      resumeAfterScrubRef.current = false;
+      await controller.play();
+    }
+    resumeAfterScrubRef.current = false;
+  };
+
+  const handleRingPointerDown = (
+    event: ReactPointerEvent<SVGCircleElement>,
+  ) => {
+    if (sending || !controller.canSeek) return;
+    const ratio = ratioFromPointer(event.clientX, event.clientY);
+    if (ratio == null) return;
     event.preventDefault();
-    applySeekFromPointer(event.clientX, event.clientY);
+    event.stopPropagation();
+    setIsScrubbing(true);
+    resumeAfterScrubRef.current = controller.isPlaying;
+    if (controller.isPlaying) controller.pause();
+    controller.seek(ratio);
 
-    const handleMove = (moveEvent: PointerEvent) => applySeekFromPointer(moveEvent.clientX, moveEvent.clientY);
-    const handleUp = (upEvent: PointerEvent) => {
-      applySeekFromPointer(upEvent.clientX, upEvent.clientY);
-      window.removeEventListener('pointermove', handleMove);
-      window.removeEventListener('pointerup', handleUp);
-      dragCleanupRef.current = null;
+    const onMove = (e: PointerEvent) => {
+      const r = ratioFromPointer(e.clientX, e.clientY);
+      if (r != null) controller.seek(r);
     };
-
-    window.addEventListener('pointermove', handleMove);
-    window.addEventListener('pointerup', handleUp, { once: true });
-    dragCleanupRef.current = () => {
-      window.removeEventListener('pointermove', handleMove);
-      window.removeEventListener('pointerup', handleUp);
+    const onUp = () => void finishScrub();
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp, { once: true });
+    window.addEventListener('pointercancel', onUp, { once: true });
+    scrubCleanupRef.current = () => {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+      window.removeEventListener('pointercancel', onUp);
     };
   };
 
-  const togglePlayback = async () => {
-    const video = resolvedVideo;
-    if (!video) return;
-
-    if (!isReady && src) {
-      try {
-        video.load();
-      } catch {
-        // ignore
-      }
-    }
-
-    if (video.paused) {
-      try {
-        await video.play();
-      } catch {
-        // ignore autoplay restrictions
-      }
+  /* ── playback toggle ── */
+  const handleToggle = async () => {
+    if (sending) return;
+    if (phase === 'error') {
+      controller.retry();
       return;
     }
-
-    video.pause();
+    await controller.togglePlayback();
   };
 
+  const handleKeyDown = async (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.key !== 'Enter' && event.key !== ' ') return;
+    event.preventDefault();
+    await handleToggle();
+  };
+
+  /* ── render ── */
+  const half = baseDiameter / 2;
+
   return (
-    <div className={[styles.videoRing, !isReady ? styles.videoRingLoading : '', className].filter(Boolean).join(' ')} style={style}>
-      <div className={styles.shell} onPointerDown={handleProgressPointerDown} data-message-interactive="true">
+    <div
+      ref={containerRef}
+      className={[
+        styles.videoRing,
+        align === 'end' ? styles.alignEnd : styles.alignStart,
+        className,
+      ]
+        .filter(Boolean)
+        .join(' ')}
+      style={style}
+      data-phase={phase}
+      data-tone={tone}
+      data-expanded={expanded ? '' : undefined}
+      data-message-interactive="true"
+      onPointerEnter={() => setIsHovered(true)}
+      onPointerLeave={() => setIsHovered(false)}
+    >
+      <div
+        ref={stageRef}
+        className={styles.stage}
+        role="button"
+        tabIndex={0}
+        aria-label={
+          sending
+            ? 'Отправка видеосообщения'
+            : phase === 'error'
+              ? 'Повторить загрузку'
+              : controller.isPlaying
+                ? 'Пауза'
+                : 'Воспроизвести'
+        }
+        onClick={() => void handleToggle()}
+        onKeyDown={(event) => void handleKeyDown(event)}
+      >
+        {/* ── progress ring ── */}
         {showProgress ? (
-          <svg className={styles.progressSvg} viewBox={`0 0 ${diameter} ${diameter}`} aria-hidden="true">
-            <circle className={styles.progressTrack} cx={diameter / 2} cy={diameter / 2} r={ringRadius} />
+          <svg
+            className={styles.ringSvg}
+            viewBox={`0 0 ${baseDiameter} ${baseDiameter}`}
+            aria-hidden="true"
+          >
+            {/* track */}
             <circle
-              className={styles.progressValue}
-              cx={diameter / 2}
-              cy={diameter / 2}
-              r={ringRadius}
-              strokeDasharray={circumference}
-              strokeDashoffset={dashOffset}
+              className={styles.ringTrack}
+              cx={half}
+              cy={half}
+              r={ringR}
+              strokeWidth={RING_STROKE}
+            />
+            {/* buffered */}
+            <circle
+              className={styles.ringBuffered}
+              cx={half}
+              cy={half}
+              r={ringR}
+              strokeWidth={RING_STROKE}
+              strokeDasharray={C}
+              strokeDashoffset={bufferedOff}
+            />
+            {/* progress */}
+            <circle
+              className={styles.ringProgress}
+              cx={half}
+              cy={half}
+              r={ringR}
+              strokeWidth={RING_STROKE}
+              strokeDasharray={C}
+              strokeDashoffset={progressOff}
+            />
+            {/* dot handle at leading edge */}
+            {progress > 0.002 ? (
+              <circle
+                className={styles.ringDot}
+                cx={dotCx}
+                cy={dotCy}
+                r={DOT_R}
+              />
+            ) : null}
+            {/* invisible hit area for scrub */}
+            <circle
+              className={styles.ringHit}
+              cx={half}
+              cy={half}
+              r={ringR}
+              onPointerDown={handleRingPointerDown}
+              onClick={(e) => e.stopPropagation()}
             />
           </svg>
         ) : null}
 
+        {/* ── viewport (video circle, NO gradient overlay) ── */}
         <div className={styles.viewport}>
-          {src ? (
+          {controller.shouldMountMedia ? (
             <video
-              ref={internalVideoRef}
-              className={[styles.video, !isReady ? styles.videoBlurred : ''].filter(Boolean).join(' ')}
+              ref={(node) => {
+                controller.mediaRef.current = node;
+              }}
+              className={styles.video}
               src={src}
-              autoPlay={autoPlay}
               muted={muted}
               playsInline
-              preload="metadata"
-              controls={controls}
+              preload={controller.preload}
+              disablePictureInPicture
+              disableRemotePlayback
             />
-          ) : (
-            <div className={styles.videoHost}>
-              <div className={styles.videoHostInner} ref={(node) => {
-                if (!node || !videoElement || node.firstChild === videoElement) return;
-                node.innerHTML = '';
-                node.appendChild(videoElement);
-                videoElement.classList.add(styles.videoExternal);
-                videoElement.muted = muted;
-                videoElement.playsInline = true;
-              }} />
+          ) : null}
+
+          {!controller.hasVisualFrame ? (
+            <div className={styles.skeleton} aria-hidden="true">
+              <div className={styles.shimmer} />
             </div>
-          )}
+          ) : null}
+
+          {/* center button */}
+          {showOverlay ? (
+            <button
+              type="button"
+              className={styles.centerBtn}
+              onClick={(e) => {
+                e.stopPropagation();
+                void handleToggle();
+              }}
+              disabled={sending}
+              data-message-interactive="true"
+            >
+              {sending || isLoading ? (
+                <Spinner />
+              ) : phase === 'error' ? (
+                <RetryIcon />
+              ) : controller.isPlaying ? (
+                <PauseIcon />
+              ) : (
+                <PlayIcon />
+              )}
+            </button>
+          ) : null}
         </div>
-
-        {showTimePill ? <div className={styles.timePill}>{formatTime(displayedTime)}</div> : null}
-
-        {showCenterControl ? (
-          <button
-            type="button"
-            className={styles.playButton}
-            onClick={togglePlayback}
-            aria-label={isPlaying ? 'Пауза' : 'Воспроизвести'}
-            data-video-ring-control="true"
-            data-message-interactive="true"
-          >
-            {isReady ? (isPlaying ? <PauseIcon /> : <PlayIcon />) : <LoadingSpinner />}
-          </button>
-        ) : null}
-
-        {!isReady ? (
-          <div className={styles.loadingOverlay} aria-hidden="true">
-            <LoadingSpinner compact />
-          </div>
-        ) : null}
       </div>
+
+      {/* ── time OUTSIDE the circle ── */}
+      {showTimePill ? (
+        <span className={styles.timeLabel}>{displayTime}</span>
+      ) : null}
     </div>
   );
 }
 
-function LoadingSpinner({ compact = false }: { compact?: boolean }) {
-  return <span className={[styles.spinner, compact ? styles.spinnerCompact : ''].filter(Boolean).join(' ')} aria-hidden="true" />;
+/* ── icons ── */
+
+function Spinner() {
+  return <span className={styles.spinner} aria-hidden="true" />;
 }
 
 function PlayIcon() {
@@ -278,6 +397,27 @@ function PauseIcon() {
   return (
     <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
       <path d="M7 5h4v14H7V5Zm6 0h4v14h-4V5Z" />
+    </svg>
+  );
+}
+
+function RetryIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M20 12a8 8 0 1 1-2.34-5.66"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M20 4v5h-5"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }

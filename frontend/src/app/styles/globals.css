@@ -1,38 +1,57 @@
 :root {
   color-scheme: dark;
 
-  --bg: #060709;
-  --bg-elevated: #0a0c0f;
-  --bg-canvas: radial-gradient(circle at top, rgba(255, 122, 26, 0.08), transparent 20%), linear-gradient(180deg, #060709 0%, #080a0d 100%);
+  /* ── Backgrounds ── */
+  --bg: #141414;
+  --bg-elevated: #141414;
+  --bg-canvas: #141414;
 
+  /* ── Surface levels (for panels, cards, list items) ── */
+  --surface-0: rgba(255, 255, 255, 0.018); /* subtle rows / list items */
+  --surface-1: rgba(255, 255, 255, 0.032); /* cards, containers */
+  --surface-2: rgba(255, 255, 255, 0.052); /* elevated cards, hover */
+  --surface-3: rgba(255, 255, 255, 0.08);  /* modals, prominent */
+
+  /* ── Legacy panel tokens (kept for compatibility) ── */
   --panel: rgba(14, 16, 20, 0.9);
   --panel-2: rgba(18, 21, 26, 0.92);
   --panel-3: rgba(24, 28, 34, 0.94);
-  --panel-soft: rgba(255, 255, 255, 0.028);
-  --panel-strong: rgba(255, 255, 255, 0.05);
+  --panel-soft: var(--surface-0);
+  --panel-strong: var(--surface-1);
 
+  /* ── Text ── */
   --text: #f6f7f9;
   --text-soft: #dfe4ea;
-  --muted: #95a0af;
-  --muted-2: #6e7785;
+  --muted: #8f9bab;
+  --muted-2: #6a7585;
 
-  --stroke: rgba(255, 255, 255, 0.07);
-  --stroke-strong: rgba(255, 255, 255, 0.12);
-  --stroke-accent: rgba(255, 122, 26, 0.28);
+  /* ── Borders ── */
+  --stroke-soft: rgba(255, 255, 255, 0.05);   /* dividers, subtle */
+  --stroke: rgba(255, 255, 255, 0.08);          /* standard border */
+  --stroke-strong: rgba(255, 255, 255, 0.13);   /* prominent border */
+  --stroke-accent: rgba(255, 122, 26, 0.3);     /* accent border */
 
+  /* ── Brand ── */
   --accent: #ff7a1a;
-  --accent-strong: #ff9b54;
-  --accent-soft: rgba(255, 122, 26, 0.14);
-  --accent-softer: rgba(255, 122, 26, 0.08);
-  --success: #31c48d;
+  --accent-strong: #ff9648;
+  --accent-soft: rgba(255, 122, 26, 0.12);
+  --accent-softer: rgba(255, 122, 26, 0.07);
+
+  /* ── Semantic ── */
+  --success: #34d399;
+  --success-soft: rgba(52, 211, 153, 0.12);
   --danger: #f87171;
-  --warning: #f3b24f;
+  --danger-soft: rgba(248, 113, 113, 0.12);
+  --warning: #f5a623;
+  --warning-soft: rgba(245, 166, 35, 0.12);
 
-  --shadow-xs: 0 8px 20px rgba(0, 0, 0, 0.14);
-  --shadow-sm: 0 16px 34px rgba(0, 0, 0, 0.18);
-  --shadow-md: 0 26px 60px rgba(0, 0, 0, 0.26);
-  --shadow-lg: 0 34px 86px rgba(0, 0, 0, 0.34);
+  /* ── Shadows ── */
+  --shadow-xs: 0 4px 14px rgba(0, 0, 0, 0.18);
+  --shadow-sm: 0 12px 28px rgba(0, 0, 0, 0.22);
+  --shadow-md: 0 22px 52px rgba(0, 0, 0, 0.28);
+  --shadow-lg: 0 32px 80px rgba(0, 0, 0, 0.36);
 
+  /* ── Spacing ── */
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;
@@ -41,19 +60,24 @@
   --space-6: 24px;
   --space-7: 32px;
 
-  --radius-xs: 10px;
-  --radius-sm: 12px;
-  --radius-md: 16px;
-  --radius-lg: 20px;
-  --radius-xl: 24px;
+  /* ── Radius ── */
+  --radius-xs: 8px;   /* chips, badges */
+  --radius-sm: 12px;  /* inputs, small elements */
+  --radius-md: 14px;  /* buttons, list items */
+  --radius-lg: 18px;  /* panels, form containers */
+  --radius-xl: 22px;  /* cards, modals */
+  --radius-2xl: 28px; /* large hero cards */
 
-  --text-page: clamp(1.75rem, 2.6vw, 2.375rem);
-  --text-section: 1.125rem;
-  --text-card: 0.98rem;
-  --text-body: 0.9375rem;
-  --text-small: 0.8125rem;
-  --text-meta: 0.75rem;
+  /* ── Typography ── */
+  --text-page: clamp(1.75rem, 2.6vw, 2.25rem);
+  --text-section: 1.0625rem;  /* 17px */
+  --text-card: 0.9375rem;     /* 15px */
+  --text-body: 0.875rem;      /* 14px */
+  --text-small: 0.8125rem;    /* 13px */
+  --text-meta: 0.75rem;       /* 12px */
+  --text-micro: 0.6875rem;    /* 11px */
 
+  /* ── Layout ── */
   --container-max: 1180px;
   --header-height: 64px;
   --mobile-header-height: 72px;
@@ -77,7 +101,7 @@ body {
   min-height: 100dvh;
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   color: var(--text);
-  background: var(--bg-canvas);
+  background: #141414;
   line-height: 1.5;
   text-rendering: optimizeLegibility;
   overflow-x: hidden;
@@ -87,9 +111,7 @@ body::before {
   position: fixed;
   inset: 0;
   pointer-events: none;
-  background:
-    linear-gradient(to bottom, rgba(255,255,255,0.02), transparent 180px),
-    radial-gradient(circle at 80% 0%, rgba(255, 122, 26, 0.06), transparent 22%);
+  background: transparent;
 }
 body[data-overlay-open='1'] {
   overscroll-behavior: none;
@@ -130,6 +152,11 @@ textarea { resize: vertical; }
 .appPage {
   display: grid;
   gap: var(--space-5);
+  min-width: 0;
+}
+
+.appPage > * {
+  min-width: 0;
 }
 
 .pageIntro {
@@ -185,7 +212,7 @@ textarea { resize: vertical; }
 
 .surfaceSubtle {
   border: 1px solid var(--stroke);
-  background: var(--panel-soft);
+  background: var(--surface-0);
   border-radius: var(--radius-lg);
 }
 
@@ -194,12 +221,12 @@ textarea { resize: vertical; }
 .quietChip {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  min-height: 28px;
+  gap: 6px;
+  min-height: 26px;
   padding: 0 10px;
   border-radius: 999px;
   border: 1px solid var(--stroke);
-  background: rgba(255,255,255,0.03);
+  background: var(--surface-0);
   color: var(--text-soft);
   font-size: var(--text-meta);
   font-weight: 600;
@@ -238,6 +265,13 @@ h1, h2, h3, h4, h5, h6 {
   }
 }
 
+/* Compact sidebar: collapse icon labels */
+@media (max-width: 1180px) and (min-width: 961px) {
+  :root {
+    --sidebar-width: 88px;
+  }
+}
+
 @media (max-width: 960px) {
   :root {
     --container-max: 100%;
@@ -246,7 +280,10 @@ h1, h2, h3, h4, h5, h6 {
   .container {
     width: 100%;
     max-width: none;
-    padding: 0 var(--page-gutter-mobile) calc(var(--mobile-nav-height) + env(safe-area-inset-bottom, 0px) + var(--space-5));
+    padding-top: 0;
+    padding-right: max(calc(var(--page-gutter-mobile) + 6px), calc(env(safe-area-inset-right, 0px) + 18px));
+    padding-bottom: calc(var(--mobile-nav-height) + env(safe-area-inset-bottom, 0px) + var(--space-5));
+    padding-left: max(var(--page-gutter-mobile), calc(env(safe-area-inset-left, 0px) + 12px));
   }
 
   .appPage {
@@ -263,19 +300,20 @@ h1, h2, h3, h4, h5, h6 {
 
 @media (max-width: 640px) {
   :root {
-    --text-page: clamp(1.5rem, 6vw, 2rem);
-    --page-gutter-mobile: 14px;
+    --text-page: clamp(1.5rem, 6vw, 1.875rem);
+    --page-gutter-mobile: 16px;
     --space-7: 28px;
   }
 
   body::before {
     background:
-      linear-gradient(to bottom, rgba(255,255,255,0.02), transparent 120px),
-      radial-gradient(circle at 50% 0%, rgba(255, 122, 26, 0.05), transparent 22%);
+      linear-gradient(to bottom, rgba(255,255,255,0.015), transparent 100px),
+      radial-gradient(circle at 50% 0%, rgba(255, 122, 26, 0.045), transparent 20%);
   }
 
   .container {
-    padding-inline: var(--page-gutter-mobile);
+    padding-left: max(var(--page-gutter-mobile), calc(env(safe-area-inset-left, 0px) + 12px));
+    padding-right: max(calc(var(--page-gutter-mobile) + 6px), calc(env(safe-area-inset-right, 0px) + 18px));
   }
 
   .surfaceSubtle {

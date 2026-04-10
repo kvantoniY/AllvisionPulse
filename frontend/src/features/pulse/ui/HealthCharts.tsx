@@ -1,5 +1,6 @@
-﻿'use client';
+'use client';
 
+import { useId } from 'react';
 import {
   Area,
   AreaChart,
@@ -11,8 +12,29 @@ import {
 } from 'recharts';
 import styles from '../../../app/(protected)/health/Health.module.css';
 
+type ChartRecord = Record<string, number | string | null | undefined>;
+
+type TrendSeries = {
+  key: string;
+  name: string;
+  color: string;
+  fillOpacity?: number;
+  strokeWidth?: number;
+};
+
+type TrendAreaChartProps = {
+  items: ChartRecord[];
+  lines: TrendSeries[];
+  xKey?: string;
+  height?: number;
+  emptyText?: string;
+  valueFormatter?: (value: number) => string;
+  yTickFormatter?: (value: number) => string;
+  labelFormatter?: (value: string) => string;
+};
+
 type TinyLineChartProps = {
-  items: Array<Record<string, number | string | null>>;
+  items: ChartRecord[];
   keyProp: string;
   secondaryKey?: string;
 };
@@ -53,90 +75,125 @@ function formatChartTick(value: string) {
   }).format(parsed);
 }
 
-const EMPTY_TEXT = '\u0414\u0430\u043d\u043d\u044b\u0445 \u043f\u043e\u043a\u0430 \u043d\u0435\u0434\u043e\u0441\u0442\u0430\u0442\u043e\u0447\u043d\u043e \u0434\u043b\u044f \u043f\u043e\u0441\u0442\u0440\u043e\u0435\u043d\u0438\u044f \u0433\u0440\u0430\u0444\u0438\u043a\u0430';
-const PRIMARY_LABEL = '\u0417\u043d\u0430\u0447\u0435\u043d\u0438\u0435';
-const SECONDARY_LABEL = '\u0421\u0440\u0430\u0432\u043d\u0435\u043d\u0438\u0435';
+const EMPTY_TEXT = 'Данных пока недостаточно для построения графика';
+const PRIMARY_LABEL = 'Значение';
+const SECONDARY_LABEL = 'Сравнение';
 
-export function TinyLineChart({ items, keyProp, secondaryKey }: TinyLineChartProps) {
-  if (!items.length) {
-    return <div className={styles.emptyText}>{EMPTY_TEXT}</div>;
+export function TrendAreaChart({
+  items,
+  lines,
+  xKey = 'date',
+  height = 260,
+  emptyText = EMPTY_TEXT,
+  valueFormatter,
+  yTickFormatter,
+  labelFormatter = formatChartTick,
+}: TrendAreaChartProps) {
+  const chartId = useId().replace(/[:]/g, '');
+
+  if (!items.length || !lines.length) {
+    return <div className={styles.emptyText}>{emptyText}</div>;
   }
 
-  const chartData = items.map((item, index) => ({
-    index,
-    label: item.date ? formatChartTick(String(item.date)) : String(item.label ?? index + 1),
-    primary: Number(item[keyProp] ?? 0),
-    secondary: secondaryKey ? Number(item[secondaryKey] ?? 0) : null,
-  }));
+  const hasValues = items.some((item) =>
+    lines.some((line) => {
+      const raw = item[line.key];
+      return raw !== null && raw !== undefined && Number.isFinite(Number(raw));
+    }),
+  );
+
+  if (!hasValues) {
+    return <div className={styles.emptyText}>{emptyText}</div>;
+  }
+
+  const chartData = items.map((item, index) => {
+    const next: Record<string, number | string | null> = {
+      index,
+      label: item[xKey] ? labelFormatter(String(item[xKey])) : String(item.label ?? index + 1),
+    };
+
+    for (const line of lines) {
+      const raw = item[line.key];
+      next[line.key] = raw === null || raw === undefined || raw === '' ? null : Number(raw);
+    }
+
+    return next;
+  });
+
+  const formatValue = valueFormatter ?? ((value: number) => `${Math.round(value)}`);
+  const formatTick = yTickFormatter ?? formatValue;
 
   return (
-    <div className={styles.chartCard}>
-      <div className={styles.rechartsCardShell}>
-        <ResponsiveContainer width="100%" height={236}>
-          <AreaChart data={chartData} margin={{ top: 16, right: 12, left: -12, bottom: 0 }}>
-            <defs>
-              <linearGradient id="pulsePrimaryArea" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#ff9a2f" stopOpacity={0.36} />
-                <stop offset="100%" stopColor="#ff9a2f" stopOpacity={0.02} />
+    <div className={styles.analyticsChartShell}>
+      <ResponsiveContainer width="100%" height={height}>
+        <AreaChart data={chartData} margin={{ top: 16, right: 12, left: -12, bottom: 0 }}>
+          <defs>
+            {lines.map((line, index) => (
+              <linearGradient key={line.key} id={`${chartId}-${line.key}`} x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor={line.color} stopOpacity={line.fillOpacity ?? (index === 0 ? 0.28 : 0.16)} />
+                <stop offset="100%" stopColor={line.color} stopOpacity={0.02} />
               </linearGradient>
-              <linearGradient id="pulseSecondaryArea" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#2fd37b" stopOpacity={0.22} />
-                <stop offset="100%" stopColor="#2fd37b" stopOpacity={0.02} />
-              </linearGradient>
-            </defs>
+            ))}
+          </defs>
 
-            <CartesianGrid vertical={false} stroke="rgba(255,255,255,0.08)" />
-            <XAxis
-              dataKey="label"
-              tickLine={false}
-              axisLine={false}
-              tick={{ fill: 'rgba(255,255,255,0.64)', fontSize: 12 }}
-            />
-            <YAxis
-              tickLine={false}
-              axisLine={false}
-              tick={{ fill: 'rgba(255,255,255,0.54)', fontSize: 12 }}
-              tickFormatter={(value) => `${Math.round(Number(value))}`}
-              width={40}
-            />
-            <RechartsTooltip
-              cursor={{ stroke: 'rgba(255,255,255,0.12)' }}
-              contentStyle={{
-                background: '#0f141c',
-                border: '1px solid rgba(255,255,255,0.08)',
-                borderRadius: 14,
-                color: '#fff',
-              }}
-              formatter={(value: number, name: string) => [Math.round(value).toString(), name]}
-              labelStyle={{ color: 'rgba(255,255,255,0.6)' }}
-            />
+          <CartesianGrid vertical={false} stroke="rgba(255,255,255,0.08)" />
+          <XAxis
+            dataKey="label"
+            tickLine={false}
+            axisLine={false}
+            tick={{ fill: 'rgba(255,255,255,0.56)', fontSize: 12 }}
+          />
+          <YAxis
+            tickLine={false}
+            axisLine={false}
+            tick={{ fill: 'rgba(255,255,255,0.46)', fontSize: 12 }}
+            tickFormatter={(value) => formatTick(Number(value))}
+            width={44}
+            allowDecimals={false}
+          />
+          <RechartsTooltip
+            cursor={{ stroke: 'rgba(255,255,255,0.12)' }}
+            contentStyle={{
+              background: '#181819',
+              border: '1px solid rgba(255,255,255,0.08)',
+              borderRadius: 14,
+              color: '#fff',
+            }}
+            formatter={(value: number | string, name: string) => {
+              const nextValue = typeof value === 'number' ? value : Number(value);
+              return [formatValue(nextValue), name];
+            }}
+            labelStyle={{ color: 'rgba(255,255,255,0.6)' }}
+          />
 
-            {secondaryKey ? (
-              <Area
-                type="monotone"
-                dataKey="secondary"
-                name={SECONDARY_LABEL}
-                stroke="#2fd37b"
-                fill="url(#pulseSecondaryArea)"
-                strokeWidth={2.2}
-                dot={false}
-                activeDot={{ r: 4 }}
-              />
-            ) : null}
-
+          {lines.map((line) => (
             <Area
+              key={line.key}
               type="monotone"
-              dataKey="primary"
-              name={PRIMARY_LABEL}
-              stroke="#ff9a2f"
-              fill="url(#pulsePrimaryArea)"
-              strokeWidth={2.6}
+              dataKey={line.key}
+              name={line.name}
+              stroke={line.color}
+              fill={`url(#${chartId}-${line.key})`}
+              strokeWidth={line.strokeWidth ?? 2.4}
               dot={false}
               activeDot={{ r: 4 }}
+              connectNulls
             />
-          </AreaChart>
-        </ResponsiveContainer>
-      </div>
+          ))}
+        </AreaChart>
+      </ResponsiveContainer>
     </div>
   );
+}
+
+export function TinyLineChart({ items, keyProp, secondaryKey }: TinyLineChartProps) {
+  const lines: TrendSeries[] = [];
+
+  if (secondaryKey) {
+    lines.push({ key: secondaryKey, name: SECONDARY_LABEL, color: '#2fd37b', fillOpacity: 0.14, strokeWidth: 2.1 });
+  }
+
+  lines.push({ key: keyProp, name: PRIMARY_LABEL, color: '#ff9a2f', fillOpacity: 0.28, strokeWidth: 2.5 });
+
+  return <TrendAreaChart items={items} lines={lines} height={236} />;
 }

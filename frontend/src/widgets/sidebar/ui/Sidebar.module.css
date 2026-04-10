@@ -7,53 +7,54 @@
   min-width: var(--sidebar-width);
   max-width: var(--sidebar-width);
   height: calc(100dvh - var(--header-height));
-  padding: 18px 12px 14px;
-  border-right: 1px solid var(--stroke);
-  background: rgba(9, 11, 14, 0.88);
-  backdrop-filter: blur(10px);
+  padding: 16px 10px 14px;
+  border-right: 1px solid var(--stroke-soft);
+  background: #141414;
+  backdrop-filter: blur(12px);
 }
 
 .nav {
   display: grid;
-  gap: 4px;
-  padding: 6px;
+  gap: 2px;
+  padding: 4px 0;
 }
 
 .item {
   display: flex;
   align-items: center;
   gap: 10px;
-  min-height: 44px;
-  padding: 8px 10px;
-  border-radius: 14px;
+  min-height: 42px;
+  padding: 6px 10px;
+  border-radius: var(--radius-md);
   color: var(--muted);
-  transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
+  transition: background 110ms ease, color 110ms ease;
   border: 1px solid transparent;
 }
 
 .iconWrap {
-  width: 34px;
-  height: 34px;
-  border-radius: 11px;
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  border-radius: 10px;
   display: grid;
   place-items: center;
-  background: rgba(255,255,255,0.025);
-  border: 1px solid rgba(255,255,255,0.04);
   color: inherit;
+  transition: background 110ms ease, color 110ms ease;
 }
 
 .label {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  font-size: 14px;
+  font-size: var(--text-body);
   font-weight: 600;
+  line-height: 1;
 }
 
 .badge {
   min-width: 18px;
   height: 18px;
-  padding: 0 6px;
+  padding: 0 5px;
   border-radius: 999px;
   font-size: 11px;
   line-height: 18px;
@@ -63,33 +64,39 @@
 }
 
 .item:hover {
-  background: rgba(255,255,255,0.03);
+  background: var(--surface-1);
   color: var(--text);
+  border-color: var(--stroke-soft);
 }
 
 .item:hover .iconWrap {
-  background: rgba(255,255,255,0.04);
+  color: var(--text-soft);
 }
 
+/* ── Active state ── */
 .active {
-  background: rgba(255,255,255,0.04);
+  background: var(--accent-soft);
   color: var(--text);
-  border-color: rgba(255,255,255,0.04);
+  border-color: var(--stroke-accent);
 }
 
 .active .iconWrap {
-  background: rgba(255,122,26,0.12);
-  border-color: rgba(255,122,26,0.2);
   color: var(--accent-strong);
 }
 
+.active:hover {
+  background: var(--accent-soft);
+  border-color: var(--stroke-accent);
+}
+
+/* ── Footer ── */
 .footer {
   position: absolute;
-  left: 12px;
-  right: 12px;
+  left: 10px;
+  right: 10px;
   bottom: 14px;
-  border-top: 1px solid var(--stroke);
-  padding: 12px 8px 0;
+  border-top: 1px solid var(--stroke-soft);
+  padding: 12px 6px 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -104,7 +111,7 @@
 }
 
 .name {
-  font-size: 13px;
+  font-size: var(--text-small);
   color: var(--text);
   font-weight: 600;
   white-space: nowrap;
@@ -113,7 +120,7 @@
 }
 
 .handle {
-  font-size: 11px;
+  font-size: var(--text-micro);
   color: var(--muted);
   white-space: nowrap;
   overflow: hidden;
@@ -121,27 +128,28 @@
 }
 
 .logout {
-  width: 36px;
-  height: 36px;
+  width: 34px;
+  height: 34px;
   border: 1px solid var(--stroke);
-  background: rgba(255,255,255,0.03);
-  color: var(--text-soft);
-  border-radius: 12px;
+  background: var(--surface-0);
+  color: var(--muted);
+  border-radius: var(--radius-sm);
   display: grid;
   place-items: center;
   cursor: pointer;
-  transition: background 140ms ease, color 140ms ease, border-color 140ms ease;
+  transition: background 130ms ease, color 130ms ease, border-color 130ms ease;
 }
 
 .logout:hover {
-  background: rgba(255,255,255,0.06);
+  background: var(--surface-2);
   color: var(--text);
   border-color: var(--stroke-strong);
 }
 
+/* ── Compact (1180px–961px): icon-only ── */
 @media (max-width: 1180px) and (min-width: 961px) {
   .sidebar {
-    padding-inline: 10px;
+    padding-inline: 8px;
   }
 
   .item {
@@ -171,7 +179,6 @@
   }
 }
 
-
 @media (pointer: coarse), (prefers-reduced-motion: reduce) {
-  .header, .sidebar, .nav { backdrop-filter: none; }
+  .sidebar { backdrop-filter: none; }
 }

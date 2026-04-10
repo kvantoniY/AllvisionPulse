@@ -1,3 +1,7 @@
+/* ═══════════════════════════════════════════════════════════
+   ChatSidebar — Premium Chat List
+   ═══════════════════════════════════════════════════════════ */
+
 .side {
   display: flex;
   flex-direction: column;
@@ -5,6 +9,7 @@
   min-height: 0;
 }
 
+/* ── Header ── */
 .header {
   display: flex;
   align-items: flex-start;
@@ -14,11 +19,12 @@
 }
 
 .eyebrow {
-  color: var(--muted);
-  font-size: 11px;
+  color: rgba(255, 255, 255, 0.38);
+  font-size: 10px;
   text-transform: uppercase;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.14em;
   margin-bottom: 6px;
+  font-weight: 600;
 }
 
 .title {
@@ -37,15 +43,48 @@
   border-radius: 14px;
 }
 
+.actionIconBtn {
+  width: 40px;
+  min-width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 0 !important;
+  border-radius: 999px;
+  background: transparent !important;
+  color: rgba(255, 255, 255, 0.62);
+  transition: background 140ms ease, color 140ms ease, transform 100ms ease;
+}
+
+.actionIconBtn:hover {
+  background: rgba(255, 255, 255, 0.08) !important;
+  color: var(--text);
+}
+
+/* ── Chat List ── */
 .list {
   min-height: 0;
   flex: 1;
   overflow: auto;
-  padding: 8px 0 0;
+  padding: 4px 0 0;
   display: flex;
   flex-direction: column;
+  gap: 2px;
 }
 
+.list::-webkit-scrollbar {
+  width: 4px;
+}
+
+.list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.list::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 999px;
+}
+
+/* ── Chat Item ── */
 .item {
   width: 100%;
   display: flex;
@@ -54,22 +93,26 @@
   color: var(--text);
   background: transparent;
   border: 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 0;
-  padding: 14px 6px 14px 14px;
+  border-radius: 14px;
+  padding: 12px 10px 12px 12px;
   cursor: pointer;
   text-align: left;
-  transition: background 140ms ease, border-color 140ms ease;
+  transition: background 140ms ease;
 }
 
 .item:hover {
-  background: linear-gradient(90deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0));
+  background: rgba(255, 255, 255, 0.035);
 }
 
 .itemActive {
-  background: linear-gradient(90deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0));
+  background: rgba(255, 255, 255, 0.055);
 }
 
+.itemActive:hover {
+  background: rgba(255, 255, 255, 0.065);
+}
+
+/* ── Chat Item Content ── */
 .itemTop {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -90,12 +133,12 @@
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 12px;
   align-items: center;
-  margin-top: 4px;
+  margin-top: 3px;
 }
 
 .preview {
   min-width: 0;
-  color: var(--muted);
+  color: rgba(255, 255, 255, 0.42);
   font-size: 13px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -111,18 +154,20 @@
 }
 
 .unreadBadge {
-  background: rgba(255, 122, 26, 0.14);
-  border: 1px solid rgba(255, 122, 26, 0.18);
+  background: rgba(255, 122, 26, 0.12);
+  border: 1px solid rgba(255, 122, 26, 0.22);
   color: var(--text);
   padding: 2px 8px;
   border-radius: 999px;
   font-size: 11px;
   font-weight: 700;
+  min-width: 20px;
+  text-align: center;
 }
 
 .status,
 .time {
-  color: var(--muted);
+  color: rgba(255, 255, 255, 0.32);
   font-size: 12px;
   white-space: nowrap;
 }
@@ -133,24 +178,25 @@
   font-size: 13px;
 }
 
+/* ── New Chat Modal ── */
 .modalBackdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.7);
+  background: rgba(0, 0, 0, 0.6);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 50;
-  backdrop-filter: blur(10px);
+  backdrop-filter: blur(12px);
 }
 
 .modal {
   width: min(520px, 92vw);
-  border: 1px solid var(--stroke);
-  background: rgba(12,12,13,0.98);
-  border-radius: 18px;
-  padding: 16px;
-  box-shadow: var(--shadow-md);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(12, 12, 14, 0.98);
+  border-radius: 20px;
+  padding: 18px;
+  box-shadow: 0 24px 56px rgba(0, 0, 0, 0.42);
 }
 
 .modalTitle {
@@ -173,19 +219,27 @@
 .input {
   width: 100%;
   border-radius: 12px;
-  min-height: 40px;
-  padding: 0 12px;
-  border: 1px solid var(--stroke);
-  background: rgba(255,255,255,0.03);
+  min-height: 42px;
+  padding: 0 14px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.03);
   color: var(--text);
+  font-size: 14px;
+  outline: none;
+  transition: border-color 140ms ease;
+}
+
+.input:focus {
+  border-color: rgba(255, 255, 255, 0.12);
 }
 
 .friendsCaption {
   margin-top: 14px;
-  color: var(--muted);
-  font-size: 11px;
+  color: rgba(255, 255, 255, 0.38);
+  font-size: 10px;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.1em;
+  font-weight: 600;
 }
 
 .friendList {
@@ -194,19 +248,25 @@
   overflow: auto;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 4px;
 }
 
 .friendRow {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: rgba(255,255,255,0.03);
+  background: rgba(255, 255, 255, 0.025);
   padding: 10px 12px;
   border-radius: 12px;
   cursor: pointer;
+  transition: background 120ms ease;
 }
 
+.friendRow:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* ── Responsive ── */
 @media (max-width: 960px) {
   .header {
     padding: 0 0 14px;
@@ -221,7 +281,8 @@
   }
 
   .item {
-    padding: 14px 2px 14px 8px;
+    padding: 12px 4px 12px 8px;
+    border-radius: 12px;
   }
 
   .itemTitle {

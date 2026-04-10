@@ -25,6 +25,7 @@ import { ProfileAchievementsSection } from '@/features/programs/ui/ProfileAchiev
 import { PostModal } from '@/features/postModal/ui/PostModal';
 import { useIntersection } from '@/shared/lib/hooks/useIntersection';
 import { useAppSelector } from '@/shared/lib/storeHooks';
+import { ROUTES } from '@/shared/config/app';
 import { Icon } from '@/shared/ui/Icon/Icon';
 import { Skeleton, SkeletonText } from '@/shared/ui/Skeleton/Skeleton';
 import { Modal } from '@/shared/ui/Modal/Modal';
@@ -64,7 +65,7 @@ function ConnectionList({
               <div className={styles.connectionMeta}>
                 <div className={styles.connectionName} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   {user.username}
-                  <AdminBadge role={user.role} />
+                  <AdminBadge role={user.role} username={user.username} />
                 </div>
                 <div className={styles.connectionHandle}>{userFullName || `@${user.username}`}</div>
               </div>
@@ -698,7 +699,7 @@ export default function ProfilePage() {
               <div className={styles.identity}>
                 <div className={styles.nameRow}>
                   <div className={styles.name}>{user.username}</div>
-                  <AdminBadge role={user.role} />
+                  <AdminBadge role={user.role} username={user.username} />
                   {isUserSuspended ? <span className={styles.suspendedChip}>{user.suspendedPermanent ? 'Заблокирован бессрочно' : `Заблокирован до ${new Date(user.suspendedUntil as string).toLocaleDateString('ru-RU')}`}</span> : null}
                 </div>
                 <div className={styles.handle}>{profileSubtitle}</div>
@@ -721,10 +722,16 @@ export default function ProfilePage() {
             </div>
             <div className={[styles.actions, isSelf ? styles.selfActions : styles.peerActions].join(' ')}>
               {isSelf ? (
-                <Button variant="primary" onClick={() => { resetProfileDraft(); setProfileEditOpen(true); }}>
+                <>
+                  <Button variant="primary" onClick={() => { resetProfileDraft(); setProfileEditOpen(true); }}>
                   <Icon name="pencil" size={16} />
                   Редактировать
-                </Button>
+                  </Button>
+                  <Button onClick={() => router.push(ROUTES.app.pro)}>
+                    <Icon name="pulse" size={16} />
+                    Пульс Про
+                  </Button>
+                </>
               ) : (
                 <>
                   <Button
@@ -776,3 +783,4 @@ export default function ProfilePage() {
     </div>
   );
 }
+

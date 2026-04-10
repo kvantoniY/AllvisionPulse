@@ -23,6 +23,7 @@ services:
         RELEASE_SHA: ${RELEASE_SHA:-local}
     container_name: allvision-alpha-backend
     restart: unless-stopped
+    init: true
     labels:
       org.allvision.release-sha: ${RELEASE_SHA:-local}
     depends_on:
@@ -91,6 +92,7 @@ services:
         RELEASE_SHA: ${RELEASE_SHA:-local}
     container_name: allvision-alpha-frontend
     restart: unless-stopped
+    init: true
     labels:
       org.allvision.release-sha: ${RELEASE_SHA:-local}
     depends_on:
@@ -123,6 +125,8 @@ services:
     image: nginx:1.27-alpine
     container_name: allvision-alpha-nginx
     restart: unless-stopped
+    labels:
+      org.allvision.release-sha: ${RELEASE_SHA:-local}
     depends_on:
       frontend:
         condition: service_healthy
@@ -133,6 +137,12 @@ services:
     volumes:
       - ./nginx.alpha.conf:/etc/nginx/conf.d/default.conf:ro
       - uploads_data:/var/www/uploads:ro
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1/healthz >/dev/null"]
+      interval: 15s
+      timeout: 5s
+      retries: 20
+      start_period: 15s
 
 volumes:
   postgres_data:

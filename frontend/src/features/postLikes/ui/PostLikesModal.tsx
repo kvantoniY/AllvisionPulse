@@ -36,7 +36,7 @@ export function PostLikesModal({ open, onClose, postId }: { open: boolean; onClo
             <div className={styles.meta}>
               <div className={styles.nameRow}>
                 <span className={styles.name}>@{user.username}</span>
-                <AdminBadge role={(user.role as any) ?? undefined} />
+                <AdminBadge role={(user.role as any) ?? undefined} username={user.username} />
               </div>
               <div className={styles.caption}>Нравится публикация</div>
             </div>

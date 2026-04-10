@@ -45,6 +45,14 @@ export type DeviceProblem = {
   blocking?: boolean;
 };
 
+type RuntimeParticipantState = 'joined' | 'reconnecting';
+
+type CallStateParticipantSnapshot = {
+  userId: string;
+  state: RuntimeParticipantState;
+  media: PeerMediaState;
+};
+
 type PeerPatch = Omit<Partial<PeerInfo>, 'media'> & {
   media?: Partial<PeerMediaState>;
 };
@@ -61,6 +69,8 @@ export type RoomCallbacks = {
   onDeviceProblem?: (problem: DeviceProblem) => void;
   onDevicesChanged?: (inventory: DeviceInventory) => void;
   onLocalMediaChanged?: (media: PeerMediaState) => void;
+  onTakenOver?: () => void;
+  onFatalError?: (code: string, message: string) => void;
 };
 
 type TurnCredentialsResponse = {
@@ -204,6 +214,7 @@ export class WebRTCRoom {
   private settingRemoteAnswerPending = new Map<string, boolean>();
   private pendingIceCandidates = new Map<string, RTCIceCandidateInit[]>();
   private reconnectRetryTimers = new Map<string, number>();
+  private serverParticipantStates = new Map<string, RuntimeParticipantState>();
   private localStream: MediaStream | null = null;
   private localAudioTrack: MediaStreamTrack | null = null;
   private localVideoTrack: MediaStreamTrack | null = null;
@@ -215,6 +226,9 @@ export class WebRTCRoom {
   private rtcConfig: RTCConfiguration = FALLBACK_RTC_CONFIG;
   private rtcConfigReady = false;
   private rtcConfigPromise: Promise<void> | null = null;
+  private hasJoinedCall = false;
+  private joinSyncPromise: Promise<void> | null = null;
+  private lastJoinSyncAt = 0;
   private selectedAudioInputId = '';
   private selectedVideoInputId = '';
   private unsubscribeSocketSubscription: (() => void) | null = null;
@@ -222,6 +236,7 @@ export class WebRTCRoom {
     void this.refreshDevices().catch(() => null);
   };
   private handlers: {
+    callState?: (payload: unknown) => void;
     peers?: (payload: unknown) => void;
     joined?: (payload: unknown) => void;
     left?: (payload: unknown) => void;
@@ -231,6 +246,8 @@ export class WebRTCRoom {
     screenStarted?: (payload: unknown) => void;
     screenStopped?: (payload: unknown) => void;
     screenForceStop?: (payload: unknown) => void;
+    takenOver?: (payload: unknown) => void;
+    callError?: (payload: unknown) => void;
     connect?: () => void;
     disconnect?: () => void;
   } = {};
@@ -254,6 +271,14 @@ export class WebRTCRoom {
     });
   }
 
+  private emitServerMediaState(patch?: Partial<PeerMediaState>) {
+    if (!this.hasJoinedCall || !this.socket?.connected) return;
+    this.socket?.emit('call:media_state', {
+      callId: this.callId,
+      media: patch ? { ...patch } : { ...this.meMedia },
+    });
+  }
+
   private emitCurrentMeta(toUserId?: string) {
     this.emitMeta({ ...this.meMedia }, toUserId);
   }
@@ -271,6 +296,12 @@ export class WebRTCRoom {
 
   private shouldInitiateOffer(remoteUserId: string) {
     return this.meId.localeCompare(remoteUserId) > 0;
+  }
+
+  private isPolite(remoteUserId: string) {
+    // Standard perfect-negotiation: the designated offerer is impolite so
+    // its offer wins collisions; the other side rolls back and accepts.
+    return !this.shouldInitiateOffer(remoteUserId);
   }
 
   private async ensureSocket(timeoutMs = 2500) {
@@ -309,6 +340,7 @@ export class WebRTCRoom {
   }
 
   private bindSocketListeners(socket: Socket) {
+    if (this.handlers.callState) socket.on('call:state', this.handlers.callState);
     if (this.handlers.peers) socket.on('call:peers', this.handlers.peers);
     if (this.handlers.joined) socket.on('call:peer_joined', this.handlers.joined);
     if (this.handlers.left) socket.on('call:peer_left', this.handlers.left);
@@ -318,12 +350,15 @@ export class WebRTCRoom {
     if (this.handlers.screenStarted) socket.on('call:screen_share_started', this.handlers.screenStarted);
     if (this.handlers.screenStopped) socket.on('call:screen_share_stopped', this.handlers.screenStopped);
     if (this.handlers.screenForceStop) socket.on('call:screen_share_force_stop', this.handlers.screenForceStop);
+    if (this.handlers.takenOver) socket.on('call:taken_over', this.handlers.takenOver);
+    if (this.handlers.callError) socket.on('call:error', this.handlers.callError);
     if (this.handlers.connect) socket.on('connect', this.handlers.connect);
     if (this.handlers.disconnect) socket.on('disconnect', this.handlers.disconnect);
   }
 
   private unbindSocketListeners(socket: Socket | null) {
     if (!socket) return;
+    if (this.handlers.callState) socket.off('call:state', this.handlers.callState);
     if (this.handlers.peers) socket.off('call:peers', this.handlers.peers);
     if (this.handlers.joined) socket.off('call:peer_joined', this.handlers.joined);
     if (this.handlers.left) socket.off('call:peer_left', this.handlers.left);
@@ -333,6 +368,8 @@ export class WebRTCRoom {
     if (this.handlers.screenStarted) socket.off('call:screen_share_started', this.handlers.screenStarted);
     if (this.handlers.screenStopped) socket.off('call:screen_share_stopped', this.handlers.screenStopped);
     if (this.handlers.screenForceStop) socket.off('call:screen_share_force_stop', this.handlers.screenForceStop);
+    if (this.handlers.takenOver) socket.off('call:taken_over', this.handlers.takenOver);
+    if (this.handlers.callError) socket.off('call:error', this.handlers.callError);
     if (this.handlers.connect) socket.off('connect', this.handlers.connect);
     if (this.handlers.disconnect) socket.off('disconnect', this.handlers.disconnect);
   }
@@ -350,7 +387,7 @@ export class WebRTCRoom {
       connected: next.connected,
     });
     if (next.connected) {
-      await this.syncJoinState('reconnect');
+      await this.syncJoinStateInternal('reconnect');
     }
   }
 
@@ -373,6 +410,23 @@ export class WebRTCRoom {
     };
     this.peers.set(userId, next);
     this.callbacks.onPeerUpdate(next);
+  }
+
+  private normalizePeerMediaState(input: unknown, fallback?: PeerMediaState): PeerMediaState {
+    const source = input && typeof input === 'object' ? (input as Partial<PeerMediaState>) : {};
+    return {
+      micOn: typeof source.micOn === 'boolean' ? source.micOn : fallback?.micOn ?? true,
+      camOn: typeof source.camOn === 'boolean' ? source.camOn : fallback?.camOn ?? false,
+      screenOn: typeof source.screenOn === 'boolean' ? source.screenOn : fallback?.screenOn ?? false,
+    };
+  }
+
+  private resetPeerSignalingState(userId: string) {
+    this.signalQueues.delete(userId);
+    this.makingOffer.delete(userId);
+    this.ignoreOffer.delete(userId);
+    this.settingRemoteAnswerPending.delete(userId);
+    this.pendingIceCandidates.delete(userId);
   }
 
   private async refreshDevices() {
@@ -401,6 +455,18 @@ export class WebRTCRoom {
 
     this.callbacks.onDevicesChanged?.(this.devices);
     return this.devices;
+  }
+
+  private recreatePc(remoteUserId: string) {
+    const existing = this.pcs.get(remoteUserId);
+    try {
+      existing?.close();
+    } catch {
+      // ignore
+    }
+    this.pcs.delete(remoteUserId);
+    this.resetPeerSignalingState(remoteUserId);
+    return this.createPc(remoteUserId);
   }
 
   private async getTrack(kind: 'audio' | 'video', deviceId?: string) {
@@ -564,18 +630,15 @@ export class WebRTCRoom {
       if (pc.iceConnectionState === 'disconnected') {
         this.setPhase('media_reconnecting');
         this.callbacks.onConnectionHint?.('Связь нестабильна. Восстанавливаем медиапоток…', 'warning');
-        const current = this.reconnectRetryTimers.get(remoteUserId);
-        if (current) window.clearTimeout(current);
-        const timer = window.setTimeout(() => {
-          logRtc('ice-restart-scheduled', { callId: this.callId, remoteUserId, reason: 'disconnected' });
-          void this.restartPeer(remoteUserId, true);
-        }, 1400);
-        this.reconnectRetryTimers.set(remoteUserId, timer);
+        this.scheduleIceRestart(remoteUserId, 1400);
       }
       if (pc.iceConnectionState === 'failed') {
         this.setPhase('media_reconnecting');
         logRtc('ice-restart-immediate', { callId: this.callId, remoteUserId, reason: 'failed' });
         void this.restartPeer(remoteUserId, true);
+        // Schedule a follow-up retry in case the first restart attempt is
+        // lost (for example when signaling is flaky at the same time).
+        this.scheduleIceRestart(remoteUserId, 3000);
       }
     };
 
@@ -588,27 +651,143 @@ export class WebRTCRoom {
     return this.pcs.get(remoteUserId) ?? this.createPc(remoteUserId);
   }
 
-  private async maybeOffer(remoteUserId: string, iceRestart = false) {
+  private lastCallStateSignature = '';
+
+  private handleCallStateSnapshot(payload: any) {
+    if (String(payload?.callId ?? '') !== this.callId) return;
+    if (payload?.active === false) return;
+
+    // Dedupe identical snapshots — avoids re-processing on duplicate deliveries.
+    try {
+      const signature = JSON.stringify({
+        s: String(payload?.screenShareBy ?? ''),
+        p: (payload?.participants ?? []).map((it: any) => ({
+          u: String(it?.userId ?? ''),
+          s: String(it?.state ?? ''),
+          m: it?.media ?? null,
+        })),
+      });
+      if (signature === this.lastCallStateSignature) return;
+      this.lastCallStateSignature = signature;
+    } catch {
+      // ignore serialization issues
+    }
+
+    const activeScreenShareBy = String(payload?.screenShareBy ?? '');
+    const remoteParticipantIds = new Set<string>();
+    const participants = Array.isArray(payload?.participants) ? payload.participants : [];
+
+    for (const participant of participants) {
+      const userId = String(participant?.userId ?? '');
+      if (!userId || userId === this.meId) continue;
+
+      remoteParticipantIds.add(userId);
+      const nextState: RuntimeParticipantState = participant?.state === 'reconnecting' ? 'reconnecting' : 'joined';
+      const previousState = this.serverParticipantStates.get(userId);
+      this.serverParticipantStates.set(userId, nextState);
+
+      const media = this.normalizePeerMediaState(participant?.media, this.peers.get(userId)?.media);
+      if (activeScreenShareBy) {
+        media.screenOn = activeScreenShareBy === userId;
+      }
+
+      const currentPc = this.pcs.get(userId);
+      const hasLivePc = Boolean(currentPc && currentPc.connectionState !== 'closed');
+      const recoveredFromReconnect = previousState === 'reconnecting' && nextState === 'joined';
+
+      // Peer status is driven exclusively by our local RTCPeerConnection
+      // state — the server's "reconnecting" hint must not flip a working
+      // peer to disconnected in the UI. We only set an initial 'connecting'
+      // status for a peer we haven't seen yet.
+      const prevPeer = this.peers.get(userId);
+      if (!prevPeer) {
+        this.upsertPeer(userId, { status: 'connecting', media });
+      } else {
+        this.upsertPeer(userId, { media });
+      }
+
+      if (nextState !== 'joined') continue;
+
+      // Ensure a PC exists. Never close a live PC here — tearing it down while
+      // the other side keeps theirs produces a signaling deadlock.
+      if (!hasLivePc) {
+        this.getOrCreatePc(userId);
+        this.emitCurrentMeta(userId);
+        if (this.shouldInitiateOffer(userId)) {
+          void this.maybeOffer(userId);
+        }
+        continue;
+      }
+
+      // If the server reported a reconnect recovery, nudge media via an ICE
+      // restart from the impolite (initiator) side only. The polite side just
+      // waits for the incoming offer.
+      if (recoveredFromReconnect && this.shouldInitiateOffer(userId)) {
+        this.emitCurrentMeta(userId);
+        void this.maybeOffer(userId, true);
+      }
+    }
+
+    for (const userId of [...this.peers.keys()]) {
+      if (remoteParticipantIds.has(userId)) continue;
+      this.serverParticipantStates.delete(userId);
+      this.removePeer(userId);
+    }
+  }
+
+  private async maybeOffer(remoteUserId: string, iceRestart = false, attempt = 0) {
     const pc = this.getOrCreatePc(remoteUserId);
     if (this.makingOffer.get(remoteUserId)) return;
-    if (pc.signalingState !== 'stable') return;
+    if (pc.signalingState !== 'stable') {
+      if (attempt < 4) {
+        window.setTimeout(() => {
+          void this.maybeOffer(remoteUserId, iceRestart, attempt + 1);
+        }, 180 + attempt * 120);
+      }
+      return;
+    }
 
     this.makingOffer.set(remoteUserId, true);
     try {
-      const offer = await pc.createOffer(iceRestart ? { iceRestart: true } : undefined);
-      if (pc.signalingState !== 'stable') return;
-      await pc.setLocalDescription(offer);
+      // Perfect-negotiation recipe: just call setLocalDescription() without a
+      // pre-created offer. This avoids the window between createOffer() and
+      // setLocalDescription() where signalingState may change and the offer
+      // would silently be dropped.
+      if (iceRestart && 'restartIce' in pc) {
+        try { pc.restartIce(); } catch { /* ignore */ }
+      }
+      await pc.setLocalDescription();
+      if (!pc.localDescription) return;
       logRtc('offer', { callId: this.callId, remoteUserId, iceRestart });
       this.socket?.emit('call:signal', {
         callId: this.callId,
         toUserId: remoteUserId,
-        data: { t: 'offer', sdp: pc.localDescription?.toJSON() ?? offer },
+        data: { t: 'offer', sdp: pc.localDescription.toJSON() },
       });
     } catch {
-      // ignore
+      // If setLocalDescription races, retry once after a short delay.
+      if (attempt < 4) {
+        window.setTimeout(() => {
+          void this.maybeOffer(remoteUserId, iceRestart, attempt + 1);
+        }, 220 + attempt * 150);
+      }
     } finally {
       this.makingOffer.set(remoteUserId, false);
     }
+  }
+
+  private scheduleIceRestart(remoteUserId: string, delayMs: number) {
+    const current = this.reconnectRetryTimers.get(remoteUserId);
+    if (current) window.clearTimeout(current);
+    const timer = window.setTimeout(() => {
+      this.reconnectRetryTimers.delete(remoteUserId);
+      const pc = this.pcs.get(remoteUserId);
+      if (!pc) return;
+      if (pc.iceConnectionState === 'connected' || pc.iceConnectionState === 'completed') return;
+      logRtc('ice-restart-scheduled', { callId: this.callId, remoteUserId });
+      void this.restartPeer(remoteUserId, true);
+    }, delayMs);
+    this.reconnectRetryTimers.set(remoteUserId, timer);
   }
 
   private async restartPeer(remoteUserId: string, iceRestart = false) {
@@ -662,7 +841,7 @@ export class WebRTCRoom {
         return;
       }
 
-      const polite = this.meId.localeCompare(fromUserId) > 0;
+      const polite = this.isPolite(fromUserId);
       const makingOffer = this.makingOffer.get(fromUserId) ?? false;
       const isSettingRemoteAnswerPending = this.settingRemoteAnswerPending.get(fromUserId) ?? false;
       const offerCollision = data.t === 'offer' && (makingOffer || pc.signalingState !== 'stable');
@@ -715,18 +894,39 @@ export class WebRTCRoom {
     });
   }
 
-  private async syncJoinState(reason: 'initial' | 'reconnect') {
+  private async syncJoinStateInternal(reason: 'initial' | 'reconnect') {
     if (!this.socket) return;
-    this.socket.emit('call:join', { callId: this.callId, reason });
-    this.socket.emit('call:who', { callId: this.callId, reason });
-    this.emitCurrentMeta();
-    if (reason === 'reconnect') {
-      this.setPhase('signaling_reconnecting');
-      this.callbacks.onConnectionHint?.('Восстанавливаем соединение звонка…', 'warning');
-      for (const remoteUserId of this.pcs.keys()) {
-        if (this.shouldInitiateOffer(remoteUserId)) void this.restartPeer(remoteUserId, true);
-      }
+    const now = Date.now();
+    if (reason === 'reconnect' && this.joinSyncPromise) {
+      await this.joinSyncPromise;
+      return;
     }
+    if (reason === 'reconnect' && now - this.lastJoinSyncAt < 900) {
+      return;
+    }
+
+    let syncPromise!: Promise<void>;
+    syncPromise = (async () => {
+      this.lastJoinSyncAt = Date.now();
+      this.hasJoinedCall = true;
+      this.socket?.emit('call:join', { callId: this.callId, reason, media: { ...this.meMedia } });
+      this.socket?.emit('call:who', { callId: this.callId, reason });
+      this.emitCurrentMeta();
+      if (reason === 'reconnect') {
+        this.setPhase('signaling_reconnecting');
+        this.callbacks.onConnectionHint?.('Восстанавливаем соединение звонка...', 'warning');
+        for (const remoteUserId of this.pcs.keys()) {
+          if (this.shouldInitiateOffer(remoteUserId)) void this.restartPeer(remoteUserId, true);
+        }
+      }
+    })().finally(() => {
+      if (this.joinSyncPromise === syncPromise) {
+        this.joinSyncPromise = null;
+      }
+    });
+
+    this.joinSyncPromise = syncPromise;
+    await syncPromise;
   }
 
   async initLocal({ micOn, camOn }: { micOn: boolean; camOn: boolean }) {
@@ -836,6 +1036,7 @@ export class WebRTCRoom {
     if (!on) {
       if (this.localAudioTrack) this.localAudioTrack.enabled = false;
       this.emitMeta({ micOn: false });
+      this.emitServerMediaState({ micOn: false });
       this.notifyLocalMedia();
       return;
     }
@@ -849,6 +1050,7 @@ export class WebRTCRoom {
       this.localAudioTrack.enabled = true;
     }
     this.emitMeta({ micOn: true });
+    this.emitServerMediaState({ micOn: true });
     this.notifyLocalMedia();
   }
 
@@ -857,6 +1059,7 @@ export class WebRTCRoom {
     if (!on) {
       if (this.localVideoTrack) this.localVideoTrack.enabled = false;
       this.emitMeta({ camOn: false });
+      this.emitServerMediaState({ camOn: false });
       this.notifyLocalMedia();
       return;
     }
@@ -870,6 +1073,7 @@ export class WebRTCRoom {
       this.localVideoTrack.enabled = true;
     }
     this.emitMeta({ camOn: true });
+    this.emitServerMediaState({ camOn: true });
     this.notifyLocalMedia();
   }
 
@@ -882,6 +1086,9 @@ export class WebRTCRoom {
     this.meMedia.screenOn = true;
     await this.replaceTrackForPeers('video', track);
     this.emitMeta({ screenOn: true });
+    if (this.hasJoinedCall) {
+      this.socket?.emit('call:screen_share', { callId: this.callId, enabled: true });
+    }
     this.notifyLocalMedia();
     track.onended = () => {
       void this.stopScreenShare();
@@ -893,6 +1100,9 @@ export class WebRTCRoom {
     if (!this.meMedia.screenOn) return;
     this.meMedia.screenOn = false;
     this.emitMeta({ screenOn: false });
+    if (this.hasJoinedCall) {
+      this.socket?.emit('call:screen_share', { callId: this.callId, enabled: false });
+    }
     this.notifyLocalMedia();
     try {
       this.screenTrack?.stop();
@@ -912,6 +1122,11 @@ export class WebRTCRoom {
     this.joining = true;
     await this.ensureRtcConfig();
 
+    const onCallState = (payload: any) => {
+      if (String(payload?.callId ?? '') !== this.callId) return;
+      this.handleCallStateSnapshot(payload);
+    };
+
     const onPeers = (payload: any) => {
       if (String(payload?.callId ?? '') !== this.callId) return;
       const list: string[] = Array.isArray(payload?.peers) ? Array.from(new Set(payload.peers.map(String))) : [];
@@ -928,7 +1143,9 @@ export class WebRTCRoom {
       if (String(payload?.callId ?? '') !== this.callId) return;
       const userId = String(payload?.userId ?? '');
       if (!userId || userId === this.meId) return;
-      this.callbacks.onPeerJoined?.(userId);
+      const alreadyKnown = this.peers.has(userId);
+      if (!alreadyKnown) this.callbacks.onPeerJoined?.(userId);
+      this.serverParticipantStates.set(userId, 'joined');
       this.upsertPeer(userId, { status: 'connecting' });
       this.getOrCreatePc(userId);
       this.emitCurrentMeta(userId);
@@ -939,6 +1156,7 @@ export class WebRTCRoom {
       if (String(payload?.callId ?? '') !== this.callId) return;
       const userId = String(payload?.userId ?? '');
       if (!userId) return;
+      this.serverParticipantStates.delete(userId);
       this.callbacks.onPeerLeft?.(userId, typeof payload?.reason === 'string' ? payload.reason : undefined);
       this.removePeer(userId);
     };
@@ -947,6 +1165,7 @@ export class WebRTCRoom {
       if (String(payload?.callId ?? '') !== this.callId) return;
       const userId = String(payload?.userId ?? '');
       if (!userId || userId === this.meId) return;
+      this.serverParticipantStates.set(userId, 'reconnecting');
       this.upsertPeer(userId, { status: 'disconnected' });
       this.setPhase('media_reconnecting');
       this.callbacks.onConnectionHint?.('Участник переподключается…', 'warning');
@@ -956,12 +1175,22 @@ export class WebRTCRoom {
       if (String(payload?.callId ?? '') !== this.callId) return;
       const userId = String(payload?.userId ?? '');
       if (!userId || userId === this.meId) return;
+      this.serverParticipantStates.set(userId, 'joined');
       this.upsertPeer(userId, { status: 'connecting' });
-      this.getOrCreatePc(userId);
+      // Do NOT close the live PC — issue an ICE restart from the initiator
+      // side so existing media tracks stay attached.
+      if (!this.pcs.get(userId)) this.getOrCreatePc(userId);
       this.emitCurrentMeta(userId);
-      if (this.shouldInitiateOffer(userId)) void this.restartPeer(userId, true);
+      if (this.shouldInitiateOffer(userId)) void this.maybeOffer(userId, true);
       this.setPhase('media_reconnecting');
       this.callbacks.onConnectionHint?.('Соединение восстановлено.', 'info');
+    };
+
+    const onTakenOver = (payload: any) => {
+      if (String(payload?.callId ?? '') !== this.callId) return;
+      logRtc('taken-over', { callId: this.callId });
+      this.callbacks.onConnectionHint?.('Звонок переведён в другую вкладку.', 'warning');
+      this.callbacks.onTakenOver?.();
     };
 
     const onSignal = (payload: any) => {
@@ -994,10 +1223,24 @@ export class WebRTCRoom {
       this.callbacks.onConnectionHint?.('Another participant started screen sharing.', 'info');
     };
 
+    const onCallError = (payload: any) => {
+      const code = String(payload?.code ?? '');
+      if (!code) return;
+      const payloadCallId = String(payload?.callId ?? '');
+      if (payloadCallId && payloadCallId !== this.callId) return;
+      const message = String(payload?.message ?? 'Call error');
+      if (code === 'CALL_NOT_FOUND' || code === 'CALL_JOIN_FORBIDDEN' || code === 'CALL_PARTICIPANT_REQUIRED') {
+        logRtc('fatal-error', { callId: this.callId, code });
+        this.callbacks.onFatalError?.(code, message);
+        return;
+      }
+      this.callbacks.onConnectionHint?.(message, 'warning');
+    };
+
     const onSocketConnect = () => {
       logRtc('socket-connect', { callId: this.callId });
       this.setPhase('media_reconnecting');
-      void this.syncJoinState('reconnect');
+      void this.syncJoinStateInternal('reconnect');
     };
 
     const onSocketDisconnect = () => {
@@ -1008,6 +1251,7 @@ export class WebRTCRoom {
     };
 
     this.handlers = {
+      callState: onCallState,
       peers: onPeers,
       joined: onJoined,
       left: onLeft,
@@ -1017,6 +1261,8 @@ export class WebRTCRoom {
       screenStarted: onScreenStarted,
       screenStopped: onScreenStopped,
       screenForceStop: onScreenForceStop,
+      takenOver: onTakenOver,
+      callError: onCallError,
       connect: onSocketConnect,
       disconnect: onSocketDisconnect,
     };
@@ -1026,7 +1272,7 @@ export class WebRTCRoom {
     navigator.mediaDevices?.addEventListener?.('devicechange', this.handleDeviceChange);
 
     try {
-      await this.syncJoinState('initial');
+      await this.syncJoinStateInternal('initial');
     } finally {
       this.joining = false;
     }
@@ -1046,7 +1292,7 @@ export class WebRTCRoom {
 
     await this.ensureRtcConfig(true).catch(() => null);
     logRtc('resume', { callId: this.callId, reason });
-    await this.syncJoinState('reconnect');
+    await this.syncJoinStateInternal('reconnect');
   }
 
   private removePeer(userId: string) {
@@ -1056,6 +1302,7 @@ export class WebRTCRoom {
       this.reconnectRetryTimers.delete(userId);
     }
     const pc = this.pcs.get(userId);
+    this.resetPeerSignalingState(userId);
     try {
       pc?.close();
     } catch {
@@ -1069,6 +1316,7 @@ export class WebRTCRoom {
       this.speakingTimers.delete(userId);
     }
     this.peers.delete(userId);
+    this.serverParticipantStates.delete(userId);
     this.callbacks.onPeerRemove(userId);
   }
 
@@ -1083,8 +1331,12 @@ export class WebRTCRoom {
     this.unsubscribeSocketSubscription = null;
     this.handlers = {};
     this.phase = 'stable';
+    this.hasJoinedCall = false;
+    this.joinSyncPromise = null;
+    this.lastJoinSyncAt = 0;
 
     this.pendingIceCandidates.clear();
+    this.serverParticipantStates.clear();
     for (const userId of [...this.pcs.keys()]) this.removePeer(userId);
     for (const timer of this.reconnectRetryTimers.values()) window.clearTimeout(timer);
     this.reconnectRetryTimers.clear();

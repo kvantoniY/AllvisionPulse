@@ -315,6 +315,7 @@ export function ProgramBuilderPage({ embedded = false }: { embedded?: boolean })
                 {activeStep === 'Превью' ? 'Проверка перед сохранением.' : null}
               </div>
             </div>
+            <div className={styles.builderStepMeta}>Шаг {stepIndex + 1} из {steps.length}</div>
           </div>
 
           {activeStep === 'Основное' ? (
@@ -849,7 +850,7 @@ export function ProgramBuilderPage({ embedded = false }: { embedded?: boolean })
             </div>
           ) : null}
 
-          <div className={styles.inlineActions}>
+          <div className={[styles.inlineActions, styles.builderFooterActions].join(' ')}>
             <Button size="sm" onClick={() => setStepIndex((current) => Math.max(0, current - 1))} disabled={stepIndex === 0}>
               <Icon name="arrowLeft" size={14} />
               Назад

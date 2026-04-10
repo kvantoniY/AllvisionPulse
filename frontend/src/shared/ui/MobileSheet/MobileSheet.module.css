@@ -2,7 +2,7 @@
   position: fixed;
   inset: 0;
   z-index: 220;
-  background: rgba(4, 5, 8, 0.88);
+  background: rgba(20, 20, 20, 0.88);
   display: grid;
   align-items: end;
   overscroll-behavior: contain;
@@ -12,9 +12,9 @@
   width: 100vw;
   height: 100dvh;
   contain: paint;
-  background: #111214;
+  background: #141414;
   border-radius: 0;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  border-top: 1px solid var(--stroke-soft);
   box-shadow: 0 -12px 28px rgba(0, 0, 0, 0.24);
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
@@ -39,8 +39,8 @@
   align-items: center;
   gap: 10px;
   padding: max(12px, env(safe-area-inset-top, 0px)) 16px 10px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-  background: rgba(17, 18, 20, 0.98);
+  border-bottom: 1px solid var(--stroke-soft);
+  background: #141414;
 }
 
 .close {

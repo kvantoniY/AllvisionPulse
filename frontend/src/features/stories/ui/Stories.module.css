@@ -16,8 +16,8 @@
 }
 
 .ringUnviewed {
-  background: linear-gradient(135deg, rgba(255, 122, 26, 0.96), rgba(255, 122, 26, 0.48));
-  box-shadow: 0 10px 24px rgba(255, 122, 26, 0.16);
+  background: linear-gradient(135deg, var(--accent-strong), var(--accent-soft));
+  box-shadow: 0 10px 24px var(--accent-softer);
 }
 
 .ringViewed {
@@ -25,7 +25,7 @@
 }
 
 .ringOwn {
-  background: linear-gradient(135deg, rgba(255, 122, 26, 0.92), rgba(255, 122, 26, 0.22));
+  background: linear-gradient(135deg, var(--accent-strong), var(--accent-softer));
 }
 
 .ringNone {
@@ -373,9 +373,9 @@
 }
 
 .viewerReactionButtonActive {
-  background: rgba(255, 122, 26, 0.18);
-  border-color: rgba(255, 122, 26, 0.35);
-  box-shadow: 0 10px 24px rgba(255, 122, 26, 0.14);
+  background: var(--accent-soft);
+  border-color: var(--stroke-accent);
+  box-shadow: 0 10px 24px var(--accent-softer);
 }
 
 .viewerReplyBar {
@@ -531,8 +531,8 @@
 }
 
 .creatorThumbActive {
-  border-color: rgba(255, 122, 26, 0.28);
-  box-shadow: 0 10px 24px rgba(255, 122, 26, 0.12);
+  border-color: var(--stroke-accent);
+  box-shadow: 0 10px 24px var(--accent-softer);
 }
 
 .creatorThumbButton {
@@ -649,8 +649,8 @@
 }
 
 .creatorItemSelected {
-  outline: 1px solid rgba(255, 122, 26, 0.6);
-  box-shadow: 0 0 0 3px rgba(255, 122, 26, 0.12);
+  outline: 1px solid var(--accent-strong);
+  box-shadow: 0 0 0 3px var(--accent-softer);
 }
 
 .creatorResizeHandle {
@@ -1606,5 +1606,850 @@
 
   .createHighlightGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+
+
+/* ═══════════════════════════════════════════
+   STORY EDITOR v2 — canvas-first layout
+   Canvas max | vertical icon nav | slide panel
+   ═══════════════════════════════════════════ */
+
+/* ── Root & top bar ── */
+.editorRoot {
+  position: fixed;
+  inset: 0;
+  z-index: 145;
+  background: #0b0b0e;
+  display: flex;
+  flex-direction: column;
+  color: #fff;
+  font-family: inherit;
+}
+
+.editorTopBar {
+  flex-shrink: 0;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  gap: 8px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  background: #0f0f13;
+}
+
+.topBarStart {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+}
+
+.topBarCenter {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.topBarEnd {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  justify-content: flex-end;
+}
+
+.topBarLabel {
+  font-size: 13px;
+  font-weight: 500;
+  color: rgba(255,255,255,0.5);
+  letter-spacing: .02em;
+}
+
+/* ── Main area ── */
+.editorMain {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  overflow: hidden;
+}
+
+/* ── Canvas section ── */
+.editorCanvasSection {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px 16px 0;
+  gap: 12px;
+  overflow-y: auto;
+}
+
+.editorCanvasWrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.editorCanvas,
+.editorEmptyCanvas {
+  position: relative;
+  height: min(calc(100vh - 52px - 100px - 88px), 680px);
+  width: calc(min(calc(100vh - 52px - 100px - 88px), 680px) * 9 / 16);
+  border-radius: 24px;
+  border: 1px solid rgba(255,255,255,0.08);
+}
+
+.editorCanvas {
+  overflow: hidden;
+  background: #1a1a22;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.6);
+  cursor: default;
+  user-select: none;
+}
+
+.editorCanvasDrawMode {
+  cursor: crosshair;
+}
+
+.editorCanvasTextMode {
+  cursor: text;
+}
+
+/* Empty canvas state */
+.editorEmptyCanvas {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 28px;
+  border: 1px dashed rgba(255,255,255,0.12);
+  background:
+    radial-gradient(circle at top, rgba(255,122,26,0.12), transparent 46%),
+    linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.02));
+  box-shadow: 0 8px 40px rgba(0,0,0,0.32);
+  text-align: center;
+  cursor: pointer;
+  appearance: none;
+  color: inherit;
+  box-sizing: border-box;
+}
+
+.emptyCanvasIcon {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.06);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255,255,255,0.3);
+}
+
+.emptyCanvasTitle {
+  font-size: 15px;
+  font-weight: 600;
+  color: rgba(255,255,255,0.5);
+}
+
+.emptyCanvasSub {
+  font-size: 12px;
+  color: rgba(255,255,255,0.25);
+  text-align: center;
+  max-width: 180px;
+  line-height: 1.5;
+}
+
+/* Canvas item toolbar (shown above selected item) */
+.canvasItemBar {
+  position: absolute;
+  top: -40px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(15,15,19,0.92);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 10px;
+  padding: 4px;
+}
+
+.canvasItemBarBtn {
+  width: 30px;
+  height: 30px;
+  border-radius: 7px;
+  border: none;
+  background: transparent;
+  color: rgba(255,255,255,0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 140ms, color 140ms;
+}
+.canvasItemBarBtn:hover {
+  background: rgba(255,255,255,0.1);
+  color: #fff;
+}
+
+/* ── Trim bar ── */
+.editorTrimBar {
+  width: 100%;
+  max-width: calc(min(calc(100vh - 52px - 100px - 88px), 680px) * 9 / 16);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 0 4px;
+}
+
+/* ── Frame strip (bottom thumbnail rail) ── */
+.editorFrameStrip {
+  width: 100%;
+  max-width: calc(min(calc(100vh - 52px - 100px - 88px), 680px) * 9 / 16 + 80px);
+  flex-shrink: 0;
+  height: 88px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 0 4px 8px;
+  scrollbar-width: none;
+}
+.editorFrameStrip::-webkit-scrollbar { display: none; }
+
+.frameThumb {
+  position: relative;
+  flex-shrink: 0;
+  width: 52px;
+  height: 72px;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #1e1e27;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: border-color 140ms;
+}
+
+.frameThumbActive {
+  border-color: var(--accent, #ff7a1a);
+}
+
+.frameThumbMedia {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.frameThumbBtn {
+  position: absolute;
+  inset: 0;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+.frameThumbNum {
+  position: absolute;
+  bottom: 3px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 9px;
+  color: rgba(255,255,255,0.6);
+}
+
+.frameThumbDel {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: rgba(0,0,0,0.6);
+  border: none;
+  color: #fff;
+  font-size: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 140ms;
+}
+.frameThumb:hover .frameThumbDel { opacity: 1; }
+
+.frameAddBtn {
+  flex-shrink: 0;
+  width: 52px;
+  height: 72px;
+  border-radius: 10px;
+  border: 2px dashed rgba(255,255,255,0.15);
+  background: transparent;
+  color: rgba(255,255,255,0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: border-color 140ms, color 140ms;
+}
+.frameAddBtn:hover {
+  border-color: var(--accent, #ff7a1a);
+  color: var(--accent, #ff7a1a);
+}
+
+/* ── Right sidebar ── */
+.editorSidebar {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: row;
+  border-left: 1px solid rgba(255,255,255,0.06);
+}
+
+/* Vertical icon nav */
+.editorToolNav {
+  width: 52px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 12px 0;
+  gap: 4px;
+  background: #0f0f13;
+}
+
+.toolNavBtn {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  border: none;
+  background: transparent;
+  color: rgba(255,255,255,0.45);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  cursor: pointer;
+  font-size: 9px;
+  letter-spacing: .02em;
+  transition: background 140ms, color 140ms;
+}
+.toolNavBtn:hover {
+  background: rgba(255,255,255,0.07);
+  color: rgba(255,255,255,0.8);
+}
+
+.toolNavBtnActive {
+  background: rgba(255,122,26,0.14);
+  color: var(--accent, #ff7a1a);
+}
+
+/* Slide-in tool panel */
+.editorToolPanel {
+  width: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background: #13131a;
+  border-left: 1px solid rgba(255,255,255,0.06);
+  transition: width 200ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.editorToolPanelOpen {
+  width: 280px;
+}
+
+.toolPanelHeader {
+  flex-shrink: 0;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  gap: 8px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+
+.toolPanelTitle {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+  white-space: nowrap;
+}
+
+.toolPanelBack {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  border: none;
+  background: rgba(255,255,255,0.06);
+  color: rgba(255,255,255,0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.toolPanelBack:hover {
+  background: rgba(255,255,255,0.1);
+  color: #fff;
+}
+
+.toolPanelScroll {
+  flex: 1;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.1) transparent;
+}
+.toolPanelScroll::-webkit-scrollbar { width: 4px; }
+.toolPanelScroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+
+.toolPanelFooter {
+  flex-shrink: 0;
+  padding: 12px;
+  border-top: 1px solid rgba(255,255,255,0.06);
+}
+
+/* ── Panel content building blocks ── */
+.panelContent {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.panelGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.panelGroupHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.panelGroupTitle {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.35);
+}
+
+.panelDeleteBtn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  border: none;
+  background: rgba(255,60,60,0.1);
+  color: #ff4d4d;
+  font-size: 11px;
+  cursor: pointer;
+  transition: background 140ms;
+}
+.panelDeleteBtn:hover { background: rgba(255,60,60,0.2); }
+
+.panelTextarea {
+  width: 100%;
+  min-height: 80px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 14px;
+  color: #fff;
+  resize: vertical;
+  outline: none;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+.panelTextarea:focus { border-color: var(--accent, #ff7a1a); }
+
+.panelField {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.panelColorInput {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 2px solid rgba(255,255,255,0.12);
+  padding: 0;
+  cursor: pointer;
+  background: none;
+  flex-shrink: 0;
+}
+
+.panelLabel {
+  font-size: 12px;
+  color: rgba(255,255,255,0.5);
+  flex: 1;
+}
+
+.panelHint {
+  font-size: 11px;
+  color: rgba(255,255,255,0.3);
+  line-height: 1.5;
+}
+
+.panelActionBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.1);
+  background: rgba(255,255,255,0.04);
+  color: rgba(255,255,255,0.7);
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 140ms, border-color 140ms, color 140ms;
+  width: 100%;
+  text-align: center;
+}
+.panelActionBtn:hover {
+  background: rgba(255,255,255,0.08);
+  color: #fff;
+}
+
+.panelActionBtnActive {
+  border-color: var(--accent, #ff7a1a);
+  background: rgba(255,122,26,0.1);
+  color: var(--accent, #ff7a1a);
+}
+
+.panelUploadBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px;
+  border-radius: 12px;
+  border: 2px dashed rgba(255,255,255,0.15);
+  background: transparent;
+  color: rgba(255,255,255,0.5);
+  font-size: 13px;
+  cursor: pointer;
+  transition: border-color 140ms, color 140ms;
+  width: 100%;
+  box-sizing: border-box;
+}
+.panelUploadBtn:hover {
+  border-color: var(--accent, #ff7a1a);
+  color: var(--accent, #ff7a1a);
+}
+
+/* Widget grid */
+.panelWidgetGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.panelWidgetCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 14px 8px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.04);
+  cursor: pointer;
+  transition: border-color 140ms, background 140ms;
+}
+.panelWidgetCard:hover {
+  border-color: var(--accent, #ff7a1a);
+  background: rgba(255,122,26,0.06);
+}
+
+.panelWidgetName {
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(255,255,255,0.7);
+  text-align: center;
+}
+
+.panelWidgetVal {
+  font-size: 10px;
+  color: rgba(255,255,255,0.35);
+  text-align: center;
+}
+
+/* Color swatches */
+.panelColorGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.panelColorSwatch {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: transform 100ms, border-color 100ms;
+  flex-shrink: 0;
+}
+.panelColorSwatch:hover { transform: scale(1.15); }
+
+.panelColorSwatchActive {
+  border-color: #fff;
+  transform: scale(1.15);
+}
+
+/* Toggle row */
+.panelToggleRow {
+  display: flex;
+  gap: 4px;
+  background: rgba(255,255,255,0.05);
+  border-radius: 10px;
+  padding: 3px;
+}
+
+.panelToggleBtn {
+  flex: 1;
+  padding: 7px 4px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: rgba(255,255,255,0.45);
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 140ms, color 140ms;
+}
+.panelToggleBtnActive {
+  background: rgba(255,255,255,0.1);
+  color: #fff;
+}
+
+.panelInput {
+  width: 100%;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 13px;
+  color: #fff;
+  outline: none;
+  box-sizing: border-box;
+  font-family: inherit;
+}
+.panelInput:focus { border-color: var(--accent, #ff7a1a); }
+
+.panelSelect {
+  width: 100%;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 13px;
+  color: #fff;
+  outline: none;
+  box-sizing: border-box;
+  font-family: inherit;
+  cursor: pointer;
+  appearance: none;
+}
+.panelSelect:focus { border-color: var(--accent, #ff7a1a); }
+
+/* ── Mobile ── */
+.editorMobileNav {
+  display: none;
+  align-items: center;
+  height: 56px;
+  padding: 0 8px;
+  gap: 4px;
+  background: #0f0f13;
+  border-top: 1px solid rgba(255,255,255,0.08);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.editorMobileNav::-webkit-scrollbar { display: none; }
+
+.mobileNavClose {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255,255,255,0.08);
+  color: rgba(255,255,255,0.7);
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.mobileNavTool {
+  flex: 1;
+  min-width: 52px;
+  height: 40px;
+  border-radius: 10px;
+  border: none;
+  background: transparent;
+  color: rgba(255,255,255,0.5);
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 140ms, color 140ms;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+}
+
+.mobileNavTool span {
+  white-space: nowrap;
+  line-height: 1;
+}
+
+.mobileNavToolActive {
+  color: var(--accent, #ff7a1a);
+  background: rgba(255,122,26,0.1);
+}
+
+.mobileNavAction {
+  flex-shrink: 0;
+  min-width: 74px;
+}
+
+.editorMobileSheet {
+  display: none;
+  position: fixed;
+  bottom: 56px;
+  left: 0;
+  right: 0;
+  z-index: 10;
+  background: #13131a;
+  border-top: 1px solid rgba(255,255,255,0.1);
+  border-radius: 18px 18px 0 0;
+  max-height: 55vh;
+  overflow-y: auto;
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+.mobileSheetHandle {
+  width: 36px;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(255,255,255,0.2);
+  margin: 10px auto 6px;
+  flex-shrink: 0;
+}
+
+.mobileSheetInner {
+  padding: 12px 16px 20px;
+}
+
+.mobileSheetHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.mobileSheetTitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.mobileSheetClose {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.04);
+  color: rgba(255,255,255,0.72);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  .editorSidebar {
+    display: none;
+  }
+
+  .editorMobileNav {
+    display: flex;
+    align-items: flex-end;
+    min-height: 64px;
+    padding: 6px 8px calc(env(safe-area-inset-bottom, 0) + 6px);
+  }
+
+  .mobileNavClose {
+    display: none;
+  }
+
+  .editorMobileSheet {
+    display: block;
+  }
+
+  .editorCanvasSection {
+    padding: 8px 8px 0;
+    gap: 8px;
+  }
+
+  .editorCanvasWrap {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+  }
+
+  .editorCanvas,
+  .editorEmptyCanvas {
+    width: min(calc(100vw - 16px), calc((100dvh - 52px - 64px - 88px - 40px) * 9 / 16));
+    height: auto;
+    max-height: calc(100dvh - 52px - 64px - 88px - 40px);
+    aspect-ratio: 9 / 16;
+    border-radius: 16px;
+  }
+
+  .editorFrameStrip {
+    max-width: 100%;
+  }
+
+  .mobileNavTool {
+    min-width: 48px;
+    height: 44px;
+    font-size: 10px;
+    padding: 0 2px;
+  }
+
+  .mobileNavAction {
+    min-width: 68px;
+    padding-inline: 10px;
+  }
+
+  .editorTopBar {
+    padding: 0 8px;
+  }
+
+  .topBarCenter {
+    position: static;
+    transform: none;
   }
 }

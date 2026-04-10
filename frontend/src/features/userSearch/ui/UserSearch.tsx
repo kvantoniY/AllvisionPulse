@@ -114,7 +114,7 @@ export function UserSearch({
             <button key={u.id} className={styles.item} onClick={() => onPick(u.username)}>
               <StoryRingAvatar userId={u.id} url={u.avatarUrl} name={u.username} size={32} />
               <div className={styles.meta}>
-                <div className={styles.name} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>{u.username}<AdminBadge role={u.role} /></div>
+                <div className={styles.name} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>{u.username}<AdminBadge role={u.role} username={u.username} /></div>
                 <div className={styles.handle}>@{u.username}</div>
               </div>
             </button>

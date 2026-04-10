@@ -21,6 +21,7 @@ import { useIsMobile } from '@/shared/lib/hooks/useIsMobile';
 import { PostCommentsMobileModal } from '@/features/postComments/ui/PostCommentsMobileModal';
 import { EditPostModal } from '@/features/postEdit/ui/EditPostModal';
 import { PulseShareCard } from '@/shared/ui/PulseShareCard/PulseShareCard';
+import { getLegacyHealthWidgetPayload, getPulseShareWidgetPayload } from '@/shared/lib/socialWidgets';
 
 function getOriginalPost(post: Post): Post {
   let current = post;
@@ -46,7 +47,7 @@ function QuoteCard({ post, onOpenOriginal, mobile }: { post: Post; onOpenOrigina
         <div className={styles.quoteMeta}>
           <div className={styles.quoteNameRow}>
             <span className={styles.quoteName}>{post.author.username}</span>
-            <AdminBadge role={post.author.role} />
+            <AdminBadge role={post.author.role} username={post.author.username} />
           </div>
           <div className={styles.quoteTime}>{formatRelative(post.createdAt)}</div>
         </div>
@@ -144,6 +145,8 @@ function PostCardComponent({
   const originalPost = useMemo(() => (post.repostOf ? getOriginalPost(post.repostOf) : null), [post.repostOf]);
   const images = post.repostOf ? [] : post.images ?? [];
   const singleImage = images.length === 1 ? images[0] : null;
+  const healthWidget = useMemo(() => getLegacyHealthWidgetPayload(post.widgetsJson), [post.widgetsJson]);
+  const pulseShareWidget = useMemo(() => getPulseShareWidgetPayload(post.widgetsJson), [post.widgetsJson]);
 
   const openCurrent = () => {
     if (isMobile) return;
@@ -185,14 +188,14 @@ function PostCardComponent({
 
   return (
     <>
-      <Card className={[styles.card, compact ? styles.cardCompact : '', isMobile ? styles.cardMobile : '', surface === 'flat' && !isMobile ? styles.cardFlat : ''].filter(Boolean).join(' ')}>
+      <Card className={[styles.card, compact ? styles.cardCompact : '', isMobile ? styles.cardMobile : '', surface === 'flat' && !isMobile ? styles.cardFlat : '', menuOpen || pulseShareWidget ? styles.cardUncontained : ''].filter(Boolean).join(' ')}>
         <div className={styles.header}>
           <div className={styles.author}>
             <Avatar url={post.author.avatarUrl} name={post.author.username} size={isMobile ? 42 : 44} />
             <Link href={ROUTES.app.profile(post.author.username)} className={styles.authorLink}>
               <div className={styles.nameRow}>
                 <span className={styles.name}>{post.author.username}</span>
-                <AdminBadge role={post.author.role} />
+                <AdminBadge role={post.author.role} username={post.author.username} />
               </div>
               <div className={styles.handle}>@{post.author.username}</div>
               {post.repostOf ? <div className={styles.repostMeta}>репостнул публикацию</div> : null}
@@ -241,27 +244,26 @@ function PostCardComponent({
           </>
         ) : null}
 
-        {(post.widgetsJson as any)?.type === 'health' ? (
+        {healthWidget ? (
           <button type="button" className={styles.widget} onClick={!isMobile ? openCurrent : undefined}>
             <div>
               <div className={styles.widgetTitle}>Сводка дня</div>
               <div className={styles.widgetHint}>Оценка дня и недельный пульс</div>
             </div>
             <div className={styles.widgetNums}>
-              <span>{(post.widgetsJson as any).todayScore ?? '—'}%</span>
-              <span>{(post.widgetsJson as any).pulse7Score ?? '—'}%</span>
+              <span>{healthWidget.todayScore ?? '—'}%</span>
+              <span>{healthWidget.pulse7Score ?? '—'}%</span>
             </div>
           </button>
         ) : null}
 
-        {(post.widgetsJson as any)?.type === 'pulse_share' ? (
-          <div className={styles.widget}>
-            <PulseShareCard
-              artifactId={String((post.widgetsJson as any)?.artifactId ?? '')}
-              artifact={(post.widgetsJson as any)?.artifact ?? null}
-              compact={isMobile}
-            />
-          </div>
+        {pulseShareWidget ? (
+          <PulseShareCard
+            artifactId={String(pulseShareWidget.artifactId ?? '')}
+            artifact={pulseShareWidget.artifact ?? null}
+            compact={compact || isMobile}
+            className={styles.pulseWidgetCard}
+          />
         ) : null}
 
         {originalPost ? (
@@ -292,7 +294,11 @@ function PostCardComponent({
           <div className={styles.actions}>
             <button className={[styles.actionStat, optimisticLiked ? styles.actionStatActive : ''].filter(Boolean).join(' ')} onClick={onToggleLike} disabled={liking || unliking || !me} aria-label="Нравится">
               <Icon name="heart" size={18} />
-              <span className={styles.actionCount} onClick={(event) => { event.stopPropagation(); setLikesOpen(true); }}>{optimisticLikesCount}</span>
+              {isMobile ? (
+                <span className={styles.actionCount}>{optimisticLikesCount}</span>
+              ) : (
+                <span className={styles.actionCount} onClick={(event) => { event.stopPropagation(); setLikesOpen(true); }}>{optimisticLikesCount}</span>
+              )}
             </button>
             <button className={styles.actionStat} onClick={isMobile ? () => setCommentsOpen(true) : openCurrent} aria-label="Комментарии">
               <Icon name="comment" size={18} />
@@ -320,7 +326,7 @@ function PostCardComponent({
       ) : null}
 
       {shareOpen ? <RepostModal open={shareOpen} onClose={() => setShareOpen(false)} post={post} /> : null}
-      {likesOpen ? <PostLikesModal open={likesOpen} onClose={() => setLikesOpen(false)} postId={post.id} /> : null}
+      {!isMobile && likesOpen ? <PostLikesModal open={likesOpen} onClose={() => setLikesOpen(false)} postId={post.id} /> : null}
       {commentsOpen ? <PostCommentsMobileModal open={commentsOpen} onClose={() => setCommentsOpen(false)} postId={post.id} /> : null}
       {editOpen ? <EditPostModal open={editOpen} onClose={() => setEditOpen(false)} post={post} /> : null}
     </>

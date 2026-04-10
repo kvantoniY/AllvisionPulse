@@ -430,8 +430,23 @@ export function ProgramsPulseTab() {
       {errorMessage ? <div className={styles.dangerState}>{errorMessage}</div> : null}
 
       <div className={styles.programsHeader}>
-        <div>
-          <div className={styles.sectionTitle}>Программы</div>
+        <div className={styles.programsIntro}>
+          <span className={styles.programsKicker}>Сценарии и библиотека</span>
+          <div className={styles.sectionHint}>Здесь собраны личные, совместные и сохранённые программы без лишних повторяющихся блоков.</div>
+        </div>
+      </div>
+
+      <div className={styles.programsToolbar}>
+        <div className={styles.subtabBar}>
+          <button type="button" className={[styles.subtabButton, view === 'today' ? styles.subtabButtonActive : ''].filter(Boolean).join(' ')} onClick={() => setView('today')}>
+            Сегодня
+          </button>
+          <button type="button" className={[styles.subtabButton, view === 'active' ? styles.subtabButtonActive : ''].filter(Boolean).join(' ')} onClick={() => setView('active')}>
+            Активные
+          </button>
+          <button type="button" className={[styles.subtabButton, view === 'all' ? styles.subtabButtonActive : ''].filter(Boolean).join(' ')} onClick={() => setView('all')}>
+            Все программы
+          </button>
         </div>
         <div className={styles.inlineActions}>
           <Link href={buildHealthProgramsHref({ screen: 'builder' })} className={styles.linkButton}>
@@ -449,23 +464,11 @@ export function ProgramsPulseTab() {
         </div>
       </div>
 
-      <div className={styles.subtabBar}>
-        <button type="button" className={[styles.subtabButton, view === 'today' ? styles.subtabButtonActive : ''].filter(Boolean).join(' ')} onClick={() => setView('today')}>
-          Сегодня
-        </button>
-        <button type="button" className={[styles.subtabButton, view === 'active' ? styles.subtabButtonActive : ''].filter(Boolean).join(' ')} onClick={() => setView('active')}>
-          Активные
-        </button>
-        <button type="button" className={[styles.subtabButton, view === 'all' ? styles.subtabButtonActive : ''].filter(Boolean).join(' ')} onClick={() => setView('all')}>
-          Все программы
-        </button>
-      </div>
-
       {view === 'today' ? (
         <div className={styles.stack}>
           <div className={styles.flatSection}>
             <div className={styles.flatSectionHead}>
-              <div className={styles.sectionTitle}>На сегодня</div>
+              <div className={styles.sectionTitle}>Сегодня в работе</div>
               <span className={styles.pill}>{activeTodayPrograms.length}</span>
             </div>
             {activeLoading ? <div className={styles.emptyState}>Загружаю сегодняшние программы...</div> : null}
@@ -483,7 +486,7 @@ export function ProgramsPulseTab() {
 
           <div className={styles.flatSection}>
             <div className={styles.flatSectionHead}>
-              <div className={styles.sectionTitle}>Вас пригласили</div>
+              <div className={styles.sectionTitle}>Совместные приглашения</div>
               <span className={styles.pill}>{inboxItems.length}</span>
             </div>
             {inboxLoading ? <div className={styles.emptyState}>Проверяю входящие приглашения...</div> : null}

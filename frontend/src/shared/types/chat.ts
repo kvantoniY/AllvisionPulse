@@ -52,6 +52,13 @@ export type MessageMeta = {
   storyCreatedAt?: string;
   artifactId?: string;
   artifact?: PulseShareEmbedArtifact;
+  media?: {
+    kind?: 'audio' | 'video_note';
+    durationSec?: number | null;
+    width?: number | null;
+    height?: number | null;
+    source?: 'recorded' | 'upload';
+  };
 };
 
 export type MessageRead = {

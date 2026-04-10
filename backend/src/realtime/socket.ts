@@ -8,13 +8,24 @@ import { sendWebPushToUsers } from "../utils/webPush";
 type OnlineMap = Map<string, { sockets: Set<string>; lastSeenAt: Date }>;
 type PresenceRuntimeState = "online" | "reconnecting" | "disconnected";
 type ParticipantRuntimeState = "joined" | "reconnecting";
+type ParticipantMediaState = {
+  micOn: boolean;
+  camOn: boolean;
+  screenOn: boolean;
+};
+type AuthenticatedSocketUser = {
+  id: string;
+  role: string;
+};
 
 type ActiveCallParticipant = {
   userId: string;
   joinedAt: string;
   state: ParticipantRuntimeState;
   sockets: Set<string>;
+  activeSocketId: string | null;
   leftAt: string | null;
+  media: ParticipantMediaState;
 };
 
 type ActiveCall = {
@@ -35,8 +46,13 @@ type PendingDisconnect = {
 
 const env = getEnv();
 const MAX_CALL_PARTICIPANTS = Math.max(2, env.CALL_MAX_PARTICIPANTS);
-const RECONNECT_GRACE_MS = Math.max(5000, env.CALL_RECONNECT_GRACE_MS);
+const RECONNECT_GRACE_MS = Math.max(15000, env.CALL_RECONNECT_GRACE_MS);
 const PRESENCE_RECONNECT_GRACE_MS = RECONNECT_GRACE_MS;
+const DEFAULT_PARTICIPANT_MEDIA: ParticipantMediaState = {
+  micOn: true,
+  camOn: false,
+  screenOn: false,
+};
 
 function logCall(scope: string, payload: Record<string, unknown>) {
   try {
@@ -116,6 +132,11 @@ export function createSocket(io: Server) {
             joinedAt: participant.joinedAt,
             state: participant.state,
             leftAt: participant.leftAt,
+            media: {
+              micOn: participant.media.micOn,
+              camOn: participant.media.camOn,
+              screenOn: participant.media.screenOn,
+            },
           }))
         : [],
     };
@@ -124,12 +145,60 @@ export function createSocket(io: Server) {
   async function emitCallState(chatId: string, callId: string | null) {
     const call = callId ? activeCalls.get(callId) ?? null : null;
     const payload = serializeCall(call, chatId);
-    io.to(`chat:${chatId}`).emit("call:state", payload);
+    // Emit to all chat members (including those not currently in the chat room)
+    // via user rooms only — this avoids double-delivery to sockets that are in both
+    // `chat:<id>` and `user:<id>`.
     await emitToChatMembers(chatId, "call:state", payload);
   }
 
   function getRuntimeParticipant(call: ActiveCall, userId: string) {
     return call.participants.get(userId) ?? null;
+  }
+
+  function cloneParticipantMediaState(state?: ParticipantMediaState): ParticipantMediaState {
+    return {
+      micOn: state?.micOn ?? DEFAULT_PARTICIPANT_MEDIA.micOn,
+      camOn: state?.camOn ?? DEFAULT_PARTICIPANT_MEDIA.camOn,
+      screenOn: state?.screenOn ?? DEFAULT_PARTICIPANT_MEDIA.screenOn,
+    };
+  }
+
+  function normalizeParticipantMedia(input: any, fallback?: ParticipantMediaState): ParticipantMediaState | null {
+    const next = cloneParticipantMediaState(fallback);
+    let changed = false;
+    if (typeof input?.micOn === "boolean") {
+      next.micOn = input.micOn;
+      changed = true;
+    }
+    if (typeof input?.camOn === "boolean") {
+      next.camOn = input.camOn;
+      changed = true;
+    }
+    if (typeof input?.screenOn === "boolean") {
+      next.screenOn = input.screenOn;
+      changed = true;
+    }
+    return changed ? next : null;
+  }
+
+  function getSocketUser(socket: any): AuthenticatedSocketUser | null {
+    const authUser = socket?.data?.authUser;
+    if (authUser?.id) {
+      return {
+        id: String(authUser.id),
+        role: String(authUser.role ?? ""),
+      };
+    }
+
+    const legacyUser = (socket as any)?.user;
+    if (legacyUser?.id) {
+      return {
+        id: String(legacyUser.id),
+        role: String(legacyUser.role ?? ""),
+      };
+    }
+
+    return null;
   }
 
   function presenceStateForUser(userId: string): PresenceRuntimeState {
@@ -212,7 +281,7 @@ export function createSocket(io: Server) {
     for (const sid of room) {
       if (excludeSocketId && sid === excludeSocketId) continue;
       const s = io.sockets.sockets.get(sid);
-      const uid = (s as any)?.user?.id;
+      const uid = getSocketUser(s)?.id;
       if (uid === userId) return true;
     }
     return false;
@@ -222,9 +291,31 @@ export function createSocket(io: Server) {
     const now = new Date().toISOString();
     const existing = getRuntimeParticipant(call, userId);
     if (existing) {
+      const previousActiveSocketId = existing.activeSocketId;
       existing.sockets.add(socketId);
       existing.state = "joined";
       existing.leftAt = null;
+      existing.activeSocketId = socketId;
+      // If another socket was previously the active signaling socket for this
+      // user, kick it out of the call so it doesn't receive duplicate signals.
+      if (previousActiveSocketId && previousActiveSocketId !== socketId) {
+        const previousSocket = io.sockets.sockets.get(previousActiveSocketId);
+        if (previousSocket) {
+          previousSocket.emit("call:taken_over", {
+            callId: call.callId,
+            chatId: call.chatId,
+            at: now,
+          });
+          previousSocket.leave(`call:${call.callId}`);
+        }
+        existing.sockets.delete(previousActiveSocketId);
+        logCall("active-socket-switch", {
+          callId: call.callId,
+          userId,
+          from: previousActiveSocketId,
+          to: socketId,
+        });
+      }
       return existing;
     }
 
@@ -233,7 +324,9 @@ export function createSocket(io: Server) {
       joinedAt: now,
       state: "joined",
       sockets: new Set([socketId]),
+      activeSocketId: socketId,
       leftAt: null,
+      media: cloneParticipantMediaState(),
     };
     call.participants.set(userId, participant);
     return participant;
@@ -245,6 +338,93 @@ export function createSocket(io: Server) {
     const participant = getRuntimeParticipant(call, userId);
     if (!participant) return;
     participant.sockets.delete(socketId);
+    if (participant.activeSocketId === socketId) {
+      // Try to promote another live socket of the same user that is still in
+      // the call room. If none — clear activeSocketId; reconnect grace handles
+      // the rest.
+      const room = io.sockets.adapter.rooms.get(`call:${callId}`);
+      let promoted: string | null = null;
+      if (room) {
+        for (const sid of room) {
+          if (sid === socketId) continue;
+          const s = io.sockets.sockets.get(sid);
+          if (getSocketUser(s)?.id === userId) {
+            promoted = sid;
+            break;
+          }
+        }
+      }
+      participant.activeSocketId = promoted;
+      if (promoted) {
+        participant.sockets.add(promoted);
+        logCall("active-socket-promoted", { callId, userId, to: promoted });
+      }
+    }
+  }
+
+  function applyParticipantMediaState(
+    call: ActiveCall,
+    userId: string,
+    payload: any,
+    options?: { screenStopReason?: string },
+  ) {
+    const participant = getRuntimeParticipant(call, userId);
+    if (!participant) return false;
+
+    const nextMedia = normalizeParticipantMedia(payload?.media ?? payload, participant.media);
+    if (!nextMedia) return false;
+
+    const previousMedia = participant.media;
+    const previousScreenSharer = call.screenShareBy;
+    const at = new Date().toISOString();
+    let changed =
+      previousMedia.micOn !== nextMedia.micOn ||
+      previousMedia.camOn !== nextMedia.camOn ||
+      previousMedia.screenOn !== nextMedia.screenOn;
+
+    participant.media = nextMedia;
+
+    if (nextMedia.screenOn) {
+      if (previousScreenSharer && previousScreenSharer !== userId) {
+        const replacedParticipant = getRuntimeParticipant(call, previousScreenSharer);
+        if (replacedParticipant?.media.screenOn) {
+          replacedParticipant.media = { ...replacedParticipant.media, screenOn: false };
+          changed = true;
+        }
+        io.to(`user:${previousScreenSharer}`).emit("call:screen_share_force_stop", {
+          callId: call.callId,
+          byUserId: userId,
+          at,
+        });
+        io.to(`call:${call.callId}`).emit("call:screen_share_stopped", {
+          callId: call.callId,
+          userId: previousScreenSharer,
+          at,
+          reason: "replaced",
+        });
+      }
+
+      call.screenShareBy = userId;
+      if (!previousMedia.screenOn || previousScreenSharer !== userId) {
+        io.to(`call:${call.callId}`).emit("call:screen_share_started", { callId: call.callId, userId, at });
+      }
+      return true;
+    }
+
+    if (previousScreenSharer === userId) {
+      call.screenShareBy = null;
+      changed = true;
+      if (previousMedia.screenOn) {
+        io.to(`call:${call.callId}`).emit("call:screen_share_stopped", {
+          callId: call.callId,
+          userId,
+          at,
+          reason: options?.screenStopReason ?? "manual",
+        });
+      }
+    }
+
+    return changed;
   }
 
   async function removeParticipantFromCall(callId: string, userId: string, reason: "left" | "disconnect") {
@@ -388,7 +568,9 @@ export function createSocket(io: Server) {
     if (!token) return next(new Error("UNAUTHORIZED"));
     try {
       const payload = verifyAccessToken(token);
-      (socket as any).user = { id: payload.sub, role: payload.role };
+      const authUser = { id: payload.sub, role: payload.role };
+      socket.data.authUser = authUser;
+      (socket as any).user = authUser;
       return next();
     } catch {
       return next(new Error("UNAUTHORIZED"));
@@ -396,7 +578,12 @@ export function createSocket(io: Server) {
   });
 
   io.on("connection", async (socket) => {
-    const user = (socket as any).user as { id: string; role: string };
+    const user = getSocketUser(socket);
+    if (!user?.id) {
+      socket.disconnect(true);
+      return;
+    }
+    socket.data.authUser = user;
     const userId = user.id;
 
     socket.join(`user:${userId}`);
@@ -522,6 +709,7 @@ export function createSocket(io: Server) {
       const existed = !!getRuntimeParticipant(call, userId);
       const wasPendingReconnect = cancelPendingDisconnect(callId, userId);
       bindSocketToParticipant(call, userId, socket.id);
+      applyParticipantMediaState(call, userId, p?.media);
       socket.join(`call:${callId}`);
       logCall("accept", { chatId, callId, userId, existed, wasPendingReconnect });
 
@@ -560,6 +748,7 @@ export function createSocket(io: Server) {
       const existed = !!getRuntimeParticipant(call, userId);
       const wasPendingReconnect = cancelPendingDisconnect(callId, userId);
       bindSocketToParticipant(call, userId, socket.id);
+      applyParticipantMediaState(call, userId, p?.media);
       socket.join(`call:${callId}`);
       logCall("join", { callId, chatId: call.chatId, userId, existed, wasPendingReconnect, reason: String(p?.reason ?? "join") });
 
@@ -576,8 +765,10 @@ export function createSocket(io: Server) {
       if (!callId) return;
       const call = await ensureParticipantCall(socket, userId, callId, "who");
       if (!call) return;
+      // Include reconnecting participants so the asking client pre-creates
+      // peer connections and is ready when they come back.
       const peers = Array.from(call.participants.values())
-        .filter((participant) => participant.state !== "reconnecting")
+        .filter((participant) => participant.userId !== userId)
         .map((participant) => participant.userId);
       socket.emit("call:peers", { callId, peers, at: new Date().toISOString() });
     });
@@ -604,17 +795,44 @@ export function createSocket(io: Server) {
       if (!callId) return;
       const call = await ensureParticipantCall(socket, userId, callId, "signal");
       if (!call) return;
+      // Only the currently active socket for this user may send call signals.
+      // Dropping signals from stale sockets prevents duplicate offers/answers
+      // when the same user has multiple tabs open.
+      const selfParticipant = getRuntimeParticipant(call, userId);
+      if (!selfParticipant || selfParticipant.activeSocketId !== socket.id) return;
+
       const toUserId = p?.toUserId ? String(p.toUserId) : null;
       const data = p?.data;
       if (toUserId) {
-        if (!call.participants.has(toUserId)) {
+        const target = getRuntimeParticipant(call, toUserId);
+        if (!target) {
           emitCallError(socket, "CALL_SIGNAL_FORBIDDEN", "Signal target is not part of this call.", { callId, toUserId });
           return;
         }
-        io.to(`user:${toUserId}`).emit("call:signal", { callId, fromUserId: userId, data });
+        // Deliver only to the active socket of the target user — no fan-out
+        // to other tabs.
+        if (target.activeSocketId) {
+          io.to(target.activeSocketId).emit("call:signal", { callId, fromUserId: userId, data });
+        }
       } else {
-        socket.to(`call:${callId}`).emit("call:signal", { callId, fromUserId: userId, data });
+        // Broadcast to every other active participant socket in this call.
+        for (const participant of call.participants.values()) {
+          if (participant.userId === userId) continue;
+          if (!participant.activeSocketId) continue;
+          io.to(participant.activeSocketId).emit("call:signal", { callId, fromUserId: userId, data });
+        }
       }
+    });
+
+    socket.on("call:media_state", async (p: any) => {
+      const callId = String(p?.callId ?? "");
+      if (!callId) return;
+      const call = await ensureParticipantCall(socket, userId, callId, "media_state");
+      if (!call) return;
+      const self = getRuntimeParticipant(call, userId);
+      if (!self || self.activeSocketId !== socket.id) return;
+      if (!applyParticipantMediaState(call, userId, p, { screenStopReason: "manual" })) return;
+      await emitCallState(call.chatId, callId);
     });
 
     socket.on("call:screen_share", async (p: any) => {
@@ -623,20 +841,9 @@ export function createSocket(io: Server) {
       if (!callId) return;
       const call = await ensureParticipantCall(socket, userId, callId, "screen_share");
       if (!call) return;
-      if (enabled) {
-        if (call.screenShareBy && call.screenShareBy !== userId) {
-          io.to(`user:${call.screenShareBy}`).emit("call:screen_share_force_stop", {
-            callId,
-            byUserId: userId,
-            at: new Date().toISOString(),
-          });
-        }
-        call.screenShareBy = userId;
-        io.to(`call:${callId}`).emit("call:screen_share_started", { callId, userId, at: new Date().toISOString() });
-      } else if (call.screenShareBy === userId) {
-        call.screenShareBy = null;
-        io.to(`call:${callId}`).emit("call:screen_share_stopped", { callId, userId, at: new Date().toISOString(), reason: "manual" });
-      }
+      const self = getRuntimeParticipant(call, userId);
+      if (!self || self.activeSocketId !== socket.id) return;
+      if (!applyParticipantMediaState(call, userId, { screenOn: enabled }, { screenStopReason: "manual" })) return;
       await emitCallState(call.chatId, callId);
     });
 

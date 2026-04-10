@@ -3,6 +3,7 @@
 import { ReactNode, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { useParams, useRouter } from 'next/navigation';
+import { AnimatePresence, motion } from 'framer-motion';
 import styles from './Chat.module.css';
 import gridStyles from '../Messages.module.css';
 import { ChatSidebar } from '@/features/messages';
@@ -33,6 +34,7 @@ import { CallContext } from '@/app/providers/CallProvider';
 import { AudioMessage } from '@/shared/ui/AudioMessage';
 import { EmojiPicker } from '@/shared/ui/EmojiPicker';
 import { VideoRing } from '@/shared/ui/VideoRing';
+import { MessageMediaRenderer } from '@/features/messages/messageMedia/MessageMediaRenderer';
 import { EmojiInputHandler } from '@/shared/lib/emojiInputHandler';
 import { Modal } from '@/shared/ui/Modal/Modal';
 import { Button } from '@/shared/ui/Button/Button';
@@ -46,6 +48,7 @@ import { PulseShareCard } from '@/shared/ui/PulseShareCard/PulseShareCard';
 import { PulseSharePicker } from '@/shared/ui/PulseSharePicker/PulseSharePicker';
 import type { ShareArtifact } from '@/shared/types/programs';
 import { toPulseShareMessageMeta, type PulseShareMessageMeta } from '@/shared/lib/pulseShare';
+import { createMessageMediaMeta } from '@/shared/lib/mediaCore/messageMediaMeta';
 
 const LazyGameSessionPanel = dynamic(
   () => import('@/features/games').then((mod) => mod.GameSessionPanel),
@@ -163,7 +166,7 @@ function RecordingVideoPreviewModal({
 }) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const progress = Math.max(0, Math.min(1, duration / VIDEO_NOTE_MAX_DURATION));
-  const size = 320;
+  const size = 300;
   const ringRadius = size / 2 - 7;
   const circumference = 2 * Math.PI * ringRadius;
   const dashOffset = circumference * (1 - progress);
@@ -237,8 +240,79 @@ function getOtherUser(chat: any, meId: string | undefined) {
   return (chat.members ?? []).find((member: any) => member.userId !== meId)?.user ?? null;
 }
 
-function isCallRecord(text?: string | null) {
-  return /\bcall\b/i.test(text ?? '');
+type ParsedCallSystemMessage = {
+  kind: 'started' | 'joined' | 'missed' | 'ended' | 'room_full' | 'generic';
+  title: string;
+  detail?: string;
+  duration?: string;
+  tone: 'accent' | 'danger' | 'muted';
+};
+
+function parseCallSystemMessage(text?: string | null): ParsedCallSystemMessage | null {
+  const value = String(text ?? '').trim();
+  if (!value || !/\bcall\b/i.test(value)) return null;
+
+  if (/^Started a group call$/i.test(value)) {
+    return {
+      kind: 'started',
+      title: 'Групповой звонок начат',
+      detail: 'Участники могут подключиться прямо из чата.',
+      tone: 'accent',
+    };
+  }
+
+  if (/^Started a call$/i.test(value)) {
+    return {
+      kind: 'started',
+      title: 'Звонок начат',
+      detail: 'Можно сразу вернуться в активный звонок.',
+      tone: 'accent',
+    };
+  }
+
+  if (/^Joined the call$/i.test(value)) {
+    return {
+      kind: 'joined',
+      title: 'К звонку подключились',
+      detail: 'Сеанс уже идет и доступен для возврата.',
+      tone: 'accent',
+    };
+  }
+
+  if (/^Missed call$/i.test(value)) {
+    return {
+      kind: 'missed',
+      title: 'Пропущенный звонок',
+      detail: 'Можно быстро перезвонить прямо из переписки.',
+      tone: 'danger',
+    };
+  }
+
+  if (/^Call room is full$/i.test(value)) {
+    return {
+      kind: 'room_full',
+      title: 'Комната звонка заполнена',
+      detail: 'Сейчас подключиться нельзя.',
+      tone: 'muted',
+    };
+  }
+
+  const ended = value.match(/^Call ended(?::\s*(.+?))?(?:\s*\(duration:\s*([^)]+)\))?$/i);
+  if (ended) {
+    return {
+      kind: 'ended',
+      title: 'Звонок завершен',
+      detail: ended[1] ? ended[1].trim() : 'Сеанс завершился.',
+      duration: ended[2] ? ended[2].trim() : undefined,
+      tone: 'muted',
+    };
+  }
+
+  return {
+    kind: 'generic',
+    title: value,
+    tone: 'muted',
+  };
 }
 
 function isSameDay(a: string, b: string) {
@@ -320,6 +394,7 @@ type PendingVoice = {
 type PendingVideo = {
   file: File;
   url: string;
+  duration: number;
 };
 
 type RecordingKind = 'audio' | 'video';
@@ -442,7 +517,7 @@ export default function ChatPage() {
   const [artifactComposerOpen, setArtifactComposerOpen] = useState(false);
   const [forwardOpen, setForwardOpen] = useState(false);
   const [forwardTargetIds, setForwardTargetIds] = useState<Record<string, boolean>>({});
-  const [openActionsMessageId, setOpenActionsMessageId] = useState<string | null>(null);
+  const [messageRenderKeys, setMessageRenderKeys] = useState<Record<string, string>>({});
   const [pendingMessages, setPendingMessages] = useState<any[]>([]);
   const [pendingVoice, setPendingVoice] = useState<PendingVoice | null>(null);
   const [pendingVideo, setPendingVideo] = useState<PendingVideo | null>(null);
@@ -450,14 +525,18 @@ export default function ChatPage() {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [isNearBottom, setIsNearBottom] = useState(true);
   const [forwarding, setForwarding] = useState(false);
+  const [composerSubmitting, setComposerSubmitting] = useState(false);
   const [mediaAccessHint, setMediaAccessHint] = useState<string | null>(null);
   const [attachMenuOpen, setAttachMenuOpen] = useState(false);
   const [mobileHeaderMenuOpen, setMobileHeaderMenuOpen] = useState(false);
   const [contextMenu, setContextMenu] = useState<MessageContextMenuState | null>(null);
   const [mobileActionMessage, setMobileActionMessage] = useState<Message | null>(null);
-
   const isRecordingAudio = recordingState?.kind === 'audio';
   const isRecordingVideoNote = recordingState?.kind === 'video';
+
+  useEffect(() => {
+    setMessageRenderKeys({});
+  }, [chatId]);
 
   const { data: gameSessionsData } = useGetGameSessionsQuery({ chatId }, { skip: !chatId });
   const activeGamesCount = useMemo(
@@ -545,7 +624,7 @@ export default function ChatPage() {
   const { data: friendsData, isFetching: friendsLoading } = useGetFriendsQuery();
   const friends = friendsData?.friends ?? [];
 
-  const isSending = sendRes.isLoading || updateRes.isLoading;
+  const isSending = sendRes.isLoading || updateRes.isLoading || composerSubmitting;
   const hasComposerPreview = Boolean(pendingVoice || pendingVideo || pendingPulseShare || files.length);
   const selectedMessages = useMemo(() => messages.filter((message) => selectedIds.includes(message.id)), [messages, selectedIds]);
   const deletableSelected = useMemo(
@@ -763,29 +842,35 @@ export default function ChatPage() {
     const extension = blob.type.includes('ogg') ? 'ogg' : blob.type.includes('mp4') ? 'm4a' : 'webm';
     const file = new File([blob], `voice-${Date.now()}.${extension}`, { type: blob.type || 'audio/webm' });
     const url = URL.createObjectURL(blob);
-    const pendingId = createPendingMessage({ type: 'AUDIO', attachments: [{ id: file.name, url, mime: file.type }] });
-    const result = await sendMessage({ chatId, type: 'AUDIO', files: [file], replyToId: replyTo?.id ?? null }).unwrap().catch(() => null);
-    removePendingMessage(pendingId);
-    URL.revokeObjectURL(url);
+    const mediaMeta = createMessageMediaMeta('audio', duration);
+    const pendingId = createPendingMessage({ type: 'AUDIO', attachments: [{ id: file.name, url, mime: file.type }], metaJson: mediaMeta });
+    const result = await sendMessage({ chatId, type: 'AUDIO', files: [file], replyToId: replyTo?.id ?? null, metaJson: mediaMeta }).unwrap().catch(() => null);
     if (result?.message) {
-      updateCachesWithMessage(result.message);
+      resolvePendingMessage(pendingId, result.message);
+      URL.revokeObjectURL(url);
       setReplyTo(null);
       bottomRef.current?.scrollIntoView({ block: 'end' });
+    } else {
+      removePendingMessage(pendingId);
+      URL.revokeObjectURL(url);
     }
   };
 
-  const sendRecordedVideo = async (blob: Blob) => {
+  const sendRecordedVideo = async (blob: Blob, duration: number) => {
     if (blob.size < 2000) return;
     const file = new File([blob], `video-note-${Date.now()}.webm`, { type: blob.type || 'video/webm' });
     const url = URL.createObjectURL(blob);
-    const pendingId = createPendingMessage({ type: 'VIDEO_NOTE', attachments: [{ id: file.name, url, mime: file.type }] });
-    const result = await sendMessage({ chatId, type: 'VIDEO_NOTE', files: [file], replyToId: replyTo?.id ?? null }).unwrap().catch(() => null);
-    removePendingMessage(pendingId);
-    URL.revokeObjectURL(url);
+    const mediaMeta = createMessageMediaMeta('video_note', duration);
+    const pendingId = createPendingMessage({ type: 'VIDEO_NOTE', attachments: [{ id: file.name, url, mime: file.type }], metaJson: mediaMeta });
+    const result = await sendMessage({ chatId, type: 'VIDEO_NOTE', files: [file], replyToId: replyTo?.id ?? null, metaJson: mediaMeta }).unwrap().catch(() => null);
     if (result?.message) {
-      updateCachesWithMessage(result.message);
+      resolvePendingMessage(pendingId, result.message);
+      URL.revokeObjectURL(url);
       setReplyTo(null);
       bottomRef.current?.scrollIntoView({ block: 'end' });
+    } else {
+      removePendingMessage(pendingId);
+      URL.revokeObjectURL(url);
     }
   };
 
@@ -825,7 +910,7 @@ export default function ChatPage() {
         return;
       }
 
-      await sendRecordedVideo(blob);
+      await sendRecordedVideo(blob, elapsedSeconds);
     } finally {
       recordingFinalizingRef.current = false;
     }
@@ -942,6 +1027,7 @@ export default function ChatPage() {
     const pendingId = `local-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
     const pendingMessage = {
       id: pendingId,
+      __renderKey: pendingId,
       chatId,
       senderId: meId,
       createdAt: new Date().toISOString(),
@@ -963,6 +1049,12 @@ export default function ChatPage() {
     setPendingMessages((prev) => prev.filter((item) => item.id !== pendingId));
   }, []);
 
+  const resolvePendingMessage = useCallback((pendingId: string, message: any) => {
+    setMessageRenderKeys((prev) => ({ ...prev, [message.id]: prev[message.id] ?? pendingId }));
+    updateCachesWithMessage(message);
+    setPendingMessages((prev) => prev.filter((item) => item.id !== pendingId));
+  }, [updateCachesWithMessage]);
+
   const resetComposerState = useCallback(() => {
     setText('');
     setFiles([]);
@@ -975,68 +1067,79 @@ export default function ChatPage() {
   }, [resizeTextarea]);
 
   const onSend = async () => {
-    if (isSending || recordingState || !canWriteInChat) return;
+    if (composerSubmitting || sendRes.isLoading || updateRes.isLoading || recordingState || !canWriteInChat) return;
 
-    if (editingMessage) {
+    setComposerSubmitting(true);
+    try {
+      if (editingMessage) {
+        const value = text.trim();
+        if (!value) return;
+        await updateMessage({ chatId, messageId: editingMessage.id, text: value }).unwrap().catch(() => null);
+        resetComposerState();
+        return;
+      }
+
+      if (pendingVoice) {
+        const mediaMeta = createMessageMediaMeta('audio', pendingVoice.duration);
+        const pendingId = createPendingMessage({ type: 'AUDIO', attachments: [{ id: pendingVoice.file.name, url: pendingVoice.url, mime: pendingVoice.file.type }], metaJson: mediaMeta });
+        const result = await sendMessage({ chatId, type: 'AUDIO', files: [pendingVoice.file], replyToId: replyTo?.id ?? null, metaJson: mediaMeta }).unwrap().catch(() => null);
+        if (result?.message) {
+          resolvePendingMessage(pendingId, result.message);
+          URL.revokeObjectURL(pendingVoice.url);
+          setPendingVoice(null);
+          setReplyTo(null);
+          bottomRef.current?.scrollIntoView({ block: 'end' });
+        } else {
+          removePendingMessage(pendingId);
+        }
+        return;
+      }
+
+      if (pendingVideo) {
+        const mediaMeta = createMessageMediaMeta('video_note', pendingVideo.duration);
+        const pendingId = createPendingMessage({ type: 'VIDEO_NOTE', attachments: [{ id: pendingVideo.file.name, url: pendingVideo.url, mime: pendingVideo.file.type }], metaJson: mediaMeta });
+        const result = await sendMessage({ chatId, type: 'VIDEO_NOTE', files: [pendingVideo.file], replyToId: replyTo?.id ?? null, metaJson: mediaMeta }).unwrap().catch(() => null);
+        if (result?.message) {
+          resolvePendingMessage(pendingId, result.message);
+          URL.revokeObjectURL(pendingVideo.url);
+          setPendingVideo(null);
+          setReplyTo(null);
+          bottomRef.current?.scrollIntoView({ block: 'end' });
+        } else {
+          removePendingMessage(pendingId);
+        }
+        return;
+      }
+
       const value = text.trim();
-      if (!value) return;
-      await updateMessage({ chatId, messageId: editingMessage.id, text: value }).unwrap().catch(() => null);
-      resetComposerState();
-      return;
-    }
+      if ((!value && !files.length && !pendingPulseShare) || recordingState) return;
 
-    if (pendingVoice) {
-      const pendingId = createPendingMessage({ type: 'AUDIO', attachments: [{ id: pendingVoice.file.name, url: pendingVoice.url, mime: pendingVoice.file.type }] });
-      const result = await sendMessage({ chatId, type: 'AUDIO', files: [pendingVoice.file], replyToId: replyTo?.id ?? null }).unwrap().catch(() => null);
-      removePendingMessage(pendingId);
+      const pendingAttachments = files.map((file, index) => ({ id: `pending-${index}`, url: filePreviews[index]?.url, mime: file.type, name: file.name }));
+      const pendingId = createPendingMessage({
+        type: files.length && !value ? 'IMAGE' : 'TEXT',
+        text: value || undefined,
+        attachments: pendingAttachments,
+        metaJson: pendingPulseShare ?? undefined,
+        replyTo,
+      });
+
+      const result = await sendMessage({
+        chatId,
+        text: value || undefined,
+        files: files.length ? files : undefined,
+        replyToId: replyTo?.id ?? null,
+        metaJson: pendingPulseShare ?? undefined,
+      }).unwrap().catch(() => null);
+
       if (result?.message) {
-        updateCachesWithMessage(result.message);
-        URL.revokeObjectURL(pendingVoice.url);
-        setPendingVoice(null);
-        setReplyTo(null);
+        resolvePendingMessage(pendingId, result.message);
+        resetComposerState();
         bottomRef.current?.scrollIntoView({ block: 'end' });
+      } else {
+        removePendingMessage(pendingId);
       }
-      return;
-    }
-
-    if (pendingVideo) {
-      const pendingId = createPendingMessage({ type: 'VIDEO_NOTE', attachments: [{ id: pendingVideo.file.name, url: pendingVideo.url, mime: pendingVideo.file.type }] });
-      const result = await sendMessage({ chatId, type: 'VIDEO_NOTE', files: [pendingVideo.file], replyToId: replyTo?.id ?? null }).unwrap().catch(() => null);
-      removePendingMessage(pendingId);
-      if (result?.message) {
-        updateCachesWithMessage(result.message);
-        URL.revokeObjectURL(pendingVideo.url);
-        setPendingVideo(null);
-        setReplyTo(null);
-        bottomRef.current?.scrollIntoView({ block: 'end' });
-      }
-      return;
-    }
-
-    const value = text.trim();
-    if ((!value && !files.length && !pendingPulseShare) || recordingState) return;
-
-    const pendingAttachments = files.map((file, index) => ({ id: `pending-${index}`, url: filePreviews[index]?.url, mime: file.type, name: file.name }));
-    const pendingId = createPendingMessage({
-      type: files.length && !value ? 'IMAGE' : 'TEXT',
-      text: value || undefined,
-      attachments: pendingAttachments,
-      metaJson: pendingPulseShare ?? undefined,
-      replyTo,
-    });
-
-    const result = await sendMessage({
-      chatId,
-      text: value || undefined,
-      files: files.length ? files : undefined,
-      replyToId: replyTo?.id ?? null,
-      metaJson: pendingPulseShare ?? undefined,
-    }).unwrap().catch(() => null);
-    removePendingMessage(pendingId);
-    if (result?.message) {
-      updateCachesWithMessage(result.message);
-      resetComposerState();
-      bottomRef.current?.scrollIntoView({ block: 'end' });
+    } finally {
+      setComposerSubmitting(false);
     }
   };
 
@@ -1232,7 +1335,6 @@ export default function ChatPage() {
   const openMessageContextMenu = useCallback((event: React.MouseEvent, message: Message) => {
     if (isMobile || selectionMode) return;
     event.preventDefault();
-    setOpenActionsMessageId(null);
     setContextMenu({ message, x: event.clientX, y: event.clientY });
   }, [isMobile, selectionMode]);
 
@@ -1316,14 +1418,15 @@ export default function ChatPage() {
     let prevDate: string | null = null;
     for (const message of messages) {
       const label = formatDateSeparator(message.createdAt);
+      const renderKey = String(messageRenderKeys[message.id] ?? (message as any)?.__renderKey ?? message.id);
       if (!prevDate || !isSameDay(prevDate, message.createdAt)) {
         items.push({ type: 'date', key: `date-${message.id}`, label });
       }
-      items.push({ type: 'message', key: message.id, message });
+      items.push({ type: 'message', key: renderKey, message });
       prevDate = message.createdAt;
     }
     return items;
-  }, [messages]);
+  }, [messageRenderKeys, messages]);
 
   const contextMenuStyle = useMemo(() => {
     if (!contextMenu || typeof window === 'undefined') return undefined;
@@ -1570,19 +1673,24 @@ export default function ChatPage() {
                   </div>
                 ) : null}
 
+                <AnimatePresence initial={false}>
                 {renderedItems.map((item) => {
                   if (item.type === 'date') {
                     return (
-                      <div key={item.key} className={styles.dateRow}>
+                      <motion.div
+                        key={item.key}
+                        className={styles.dateRow}
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ duration: 0.2 }}
+                      >
                         <div className={styles.dateBadge}>{item.label}</div>
-                      </div>
+                      </motion.div>
                     );
                   }
 
                   const message = item.message;
                   const mine = message.senderId === meId;
-                  const readByMe = (message.reads ?? []).some((read: any) => read.userId === meId);
-                  const unreadForMe = !mine && !readByMe;
                   const attachments = message.attachments ?? [];
                   const messageType = String(message.type ?? 'TEXT');
                   const primaryAttachment = attachments[0];
@@ -1613,78 +1721,162 @@ export default function ChatPage() {
                   const storyMeta = (message.metaJson as any)?.kind === 'storyReply' ? (message.metaJson as any) : null;
                   const pulseShareMeta = (message.metaJson as any)?.kind === 'pulse_share' ? (message.metaJson as any) : null;
                   const isSelected = selectedIds.includes(message.id);
-                  const canDelete = message.senderId === meId && message.type !== 'SYSTEM';
-                  const canReply = message.type !== 'SYSTEM';
-                  const canForward = message.type !== 'SYSTEM';
-                  const canEdit = canEditMessage(message, meId);
+                  const hasText = Boolean(textValue.trim());
+                  const isBareWidgetMessage = Boolean(
+                    pulseShareMeta && !hasText && !imageAttachments.length && !otherAttachments.length,
+                  );
+                  const msgMotion = {
+                    initial: { opacity: 0, y: 8, scale: 0.98 },
+                    animate: { opacity: 1, y: 0, scale: 1 },
+                    exit: { opacity: 0, scale: 0.96, transition: { duration: 0.15 } },
+                    transition: { duration: 0.22, ease: [0.22, 0.61, 0.36, 1] as const },
+                  };
 
                   if (messageType === 'SYSTEM') {
-                    const clickable = isCallRecord(message.text);
                     const gameEvent = parseGameSystemMessage(message.text);
+                    const callEvent = parseCallSystemMessage(message.text);
                     if (gameEvent) {
                       return (
-                        <div key={message.id} className={styles.systemRow} id={`message-${message.id}`}>
-                          <button type="button" className={[styles.systemCard, styles.systemCardInteractive].join(' ')} onClick={() => setGamesOpen(true)}>
-                            <div className={styles.systemText}>🎮 {gameLabel(gameEvent.gameKey)} · {gameEvent.title}</div>
-                            <div className={styles.systemMeta}>
+                        <motion.div key={item.key} className={styles.systemRow} id={`message-${message.id}`} {...msgMotion} layout="position">
+                          <button
+                            type="button"
+                            className={[styles.systemCard, styles.systemCardInteractive, styles.systemCardRich, styles.systemCardGame].join(' ')}
+                            onClick={() => setGamesOpen(true)}
+                          >
+                            <div className={styles.systemCardTop}>
+                              <span className={[styles.systemEventBadge, styles.systemEventBadgeGame].join(' ')}>Игра</span>
+                              <span className={styles.systemTimestamp}>{formatMessageTime(message.createdAt)}</span>
+                            </div>
+                            <div className={styles.systemCardBody}>
+                              <span className={[styles.systemIconWrap, styles.systemIconWrapGame].join(' ')}>
+                                <Icon name="game" size={16} />
+                              </span>
+                              <div className={styles.systemBody}>
+                                <div className={styles.systemText}>{gameLabel(gameEvent.gameKey)}</div>
+                                <div className={styles.systemDetails}>{gameEvent.title}</div>
+                              </div>
+                              <span className={styles.systemAction}>Открыть</span>
+                            </div>
+                            <div className={styles.systemFooter}>
                               <span>{gameStatusLabel(gameEvent.status)}</span>
-                              <span>{formatMessageTime(message.createdAt)}</span>
-                              <span className={styles.systemAction}>Открыть сессию</span>
+                              <span>Игровая сессия в этом диалоге</span>
                             </div>
                           </button>
-                        </div>
+                        </motion.div>
                       );
                     }
-                    return (
-                      <div key={message.id} className={styles.systemRow} id={`message-${message.id}`}>
-                        <div className={[styles.systemCard, clickable ? styles.systemCardWithAction : ''].filter(Boolean).join(' ')}>
-                          <div className={styles.systemText}>{message.text ?? 'Системное событие'}</div>
-                          <div className={styles.systemMeta}>
-                            <span>{formatMessageTime(message.createdAt)}</span>
-                            {clickable ? (
-                              <button
-                                type="button"
-                                className={styles.systemActionButton}
-                                onClick={() => void (hasLiveCall ? handleJoinCall() : handleStartCall())}
-                                disabled={!canCallInChat}
+                    if (callEvent) {
+                      const canCallAction = callEvent.kind !== 'room_full' && canCallInChat;
+                      const callActionLabel = hasLiveCall ? 'Вернуться в звонок' : callEvent.kind === 'missed' ? 'Перезвонить' : 'Открыть звонок';
+                      const callToneClass =
+                        callEvent.tone === 'danger'
+                          ? styles.systemCardToneDanger
+                          : callEvent.tone === 'accent'
+                            ? styles.systemCardToneAccent
+                            : styles.systemCardToneMuted;
+                      const callIconName = callEvent.tone === 'danger' || callEvent.kind === 'ended' || callEvent.kind === 'room_full' ? 'phoneOff' : 'phone';
+
+                      return (
+                        <motion.div key={item.key} className={styles.systemRow} id={`message-${message.id}`} {...msgMotion} layout="position">
+                          <div className={[styles.systemCard, styles.systemCardRich, styles.systemCardWithAction, callToneClass].join(' ')}>
+                            <div className={styles.systemCardTop}>
+                              <span
+                                className={[
+                                  styles.systemEventBadge,
+                                  callEvent.tone === 'danger' ? styles.systemEventBadgeDanger : '',
+                                ].filter(Boolean).join(' ')}
                               >
-                                {hasLiveCall ? 'Вернуться в звонок' : 'Перезвонить'}
-                              </button>
-                            ) : null}
+                                Звонок
+                              </span>
+                              <span className={styles.systemTimestamp}>{formatMessageTime(message.createdAt)}</span>
+                            </div>
+                            <div className={styles.systemCardBody}>
+                              <span
+                                className={[
+                                  styles.systemIconWrap,
+                                  callEvent.tone === 'danger' ? styles.systemIconWrapDanger : '',
+                                ].filter(Boolean).join(' ')}
+                              >
+                                <Icon name={callIconName} size={16} />
+                              </span>
+                              <div className={styles.systemBody}>
+                                <div className={styles.systemText}>{callEvent.title}</div>
+                                {callEvent.detail ? <div className={styles.systemDetails}>{callEvent.detail}</div> : null}
+                              </div>
+                              {canCallAction ? (
+                                <button
+                                  type="button"
+                                  className={styles.systemActionButton}
+                                  onClick={() => void (hasLiveCall ? handleJoinCall() : handleStartCall())}
+                                  disabled={!canCallInChat}
+                                >
+                                  {callActionLabel}
+                                </button>
+                              ) : null}
+                            </div>
+                            <div className={styles.systemFooter}>
+                              <span>{callEvent.kind === 'missed' ? 'Нужно ваше внимание' : 'История звонков'}</span>
+                              {callEvent.duration ? <span>Длительность: {callEvent.duration}</span> : null}
+                            </div>
+                          </div>
+                        </motion.div>
+                      );
+                    }
+
+                    return (
+                      <motion.div key={item.key} className={styles.systemRow} id={`message-${message.id}`} {...msgMotion} layout="position">
+                        <div className={[styles.systemCard, styles.systemCardRich, styles.systemCardToneMuted].join(' ')}>
+                          <div className={styles.systemCardTop}>
+                            <span className={styles.systemEventBadge}>Система</span>
+                            <span className={styles.systemTimestamp}>{formatMessageTime(message.createdAt)}</span>
+                          </div>
+                          <div className={styles.systemCardBody}>
+                            <span className={styles.systemIconWrap}>
+                              <Icon name="clock" size={16} />
+                            </span>
+                            <div className={styles.systemBody}>
+                              <div className={styles.systemText}>{message.text ?? 'Системное событие'}</div>
+                            </div>
                           </div>
                         </div>
-                      </div>
+                      </motion.div>
                     );
                   }
 
                   return (
-                    <div key={message.id} id={`message-${message.id}`} className={[styles.msgRow, mine ? styles.mine : styles.their, highlightedMessageId === message.id ? styles.msgRowHighlighted : ''].filter(Boolean).join(' ')}>
+                    <motion.div key={item.key} id={`message-${message.id}`} className={[styles.msgRow, mine ? styles.mine : styles.their, highlightedMessageId === message.id ? styles.msgRowHighlighted : ''].filter(Boolean).join(' ')} {...msgMotion} layout="position">
                       {!mine ? <StoryRingAvatar userId={message.sender?.id} url={message.sender?.avatarUrl} name={message.sender?.username ?? 'U'} size={28} /> : null}
 
                       <div
                         className={[
-                          styles.messageShell,
-                          messageType === 'AUDIO' ? styles.messageShellAudio : '',
-                          messageType === 'VIDEO_NOTE' ? styles.messageShellVideo : '',
-                          selectionMode ? styles.messageShellSelectable : '',
-                        ].filter(Boolean).join(' ')}
-                        onContextMenu={(event) => openMessageContextMenu(event, message)}
-                        onClick={(event) => handleMessageShellTap(event, message)}
-                        onClickCapture={(event) => {
-                          if (!selectionMode) return;
-                          event.preventDefault();
-                          event.stopPropagation();
-                          toggleSelectedMessage(message.id);
-                        }}
+                          styles.messageCluster,
+                          mine ? styles.messageClusterMine : styles.messageClusterTheirs,
+                        ].join(' ')}
                       >
-                        <div className={[styles.bubble, imageAttachments.length ? styles.bubbleMedia : '', messageType === 'AUDIO' ? styles.bubbleAudio : '', messageType === 'AUDIO' ? styles.bubbleAudioBare : '', messageType === 'VIDEO_NOTE' ? styles.bubbleVideo : '', messageType === 'VIDEO_NOTE' ? styles.bubbleVideoBare : '', mine ? styles.bubbleMine : styles.bubbleTheirs, selectionMode ? styles.bubbleSelectable : ''].filter(Boolean).join(' ')}>
+                        <div
+                          className={[
+                            styles.messageShell,
+                            messageType === 'AUDIO' ? styles.messageShellAudio : '',
+                            messageType === 'VIDEO_NOTE' ? styles.messageShellVideo : '',
+                            selectionMode ? styles.messageShellSelectable : '',
+                          ].filter(Boolean).join(' ')}
+                          onContextMenu={(event) => openMessageContextMenu(event, message)}
+                          onClick={(event) => handleMessageShellTap(event, message)}
+                          onClickCapture={(event) => {
+                            if (!selectionMode) return;
+                            event.preventDefault();
+                            event.stopPropagation();
+                            toggleSelectedMessage(message.id);
+                          }}
+                        >
+                        <div className={[styles.bubble, imageAttachments.length ? styles.bubbleMedia : '', messageType === 'AUDIO' ? styles.bubbleAudio : '', messageType === 'AUDIO' ? styles.bubbleAudioBare : '', messageType === 'VIDEO_NOTE' ? styles.bubbleVideo : '', messageType === 'VIDEO_NOTE' ? styles.bubbleVideoBare : '', isBareWidgetMessage ? styles.bubbleWidgetBare : '', mine ? styles.bubbleMine : styles.bubbleTheirs, selectionMode ? styles.bubbleSelectable : ''].filter(Boolean).join(' ')}>
                           {selectionMode ? <div className={[styles.selectMarker, isSelected ? styles.selectMarkerActive : ''].filter(Boolean).join(' ')}>{isSelected ? <Icon name="check" size={12} /> : null}</div> : null}
-                          {!mine ? <div className={styles.sender} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>{message.sender?.username}<AdminBadge role={message.sender?.role} /></div> : null}
+                          {!mine ? <div className={styles.sender} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>{message.sender?.username}<AdminBadge role={message.sender?.role} username={message.sender?.username} /></div> : null}
 
                           {forwardPreview ? (
                             <div className={styles.forwardedBlock}>
                               <Icon name="forward" size={12} />
-                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>Переслано от {forwardPreview.sender?.username ?? message.sender?.username}<AdminBadge role={forwardPreview.sender?.role ?? message.sender?.role} /></span>
+                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>Переслано от {forwardPreview.sender?.username ?? message.sender?.username}<AdminBadge role={forwardPreview.sender?.role ?? message.sender?.role} username={forwardPreview.sender?.username ?? message.sender?.username} /></span>
                             </div>
                           ) : null}
 
@@ -1718,17 +1910,19 @@ export default function ChatPage() {
 
                           {replyPreview ? (
                             <button type="button" className={styles.replyBlock} onClick={() => void scrollToMessage(replyPreview.id)}>
-                              <span className={styles.replyAuthor} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>{replyPreview.sender?.username ?? 'Сообщение'}<AdminBadge role={replyPreview.sender?.role} /></span>
+                              <span className={styles.replyAuthor} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>{replyPreview.sender?.username ?? 'Сообщение'}<AdminBadge role={replyPreview.sender?.role} username={replyPreview.sender?.username} /></span>
                               <span className={styles.replyText}>{formatPreviewText(replyPreview)}</span>
                             </button>
                           ) : null}
 
-                          {messageType === 'AUDIO' && primaryAttachment?.url ? (
-                            <AudioMessage url={primaryAttachment.url} duration={Number((primaryAttachment as any)?.durationSec ?? 0) || undefined} className={styles.audioBubble} />
-                          ) : messageType === 'VIDEO_NOTE' && primaryAttachment?.url ? (
-                            <div className={styles.videoBubbleWrap}>
-                              <VideoRing src={primaryAttachment.url} size="large" showProgress className={styles.videoBubble} />
-                            </div>
+                          {messageType === 'AUDIO' || messageType === 'VIDEO_NOTE' ? (
+                            <MessageMediaRenderer
+                              message={message}
+                              mine={mine}
+                              audioClassName={styles.audioBubble}
+                              videoClassName={styles.videoBubble}
+                              videoWrapClassName={styles.videoBubbleWrap}
+                            />
                           ) : (
                             <div className={[styles.msgText, emojiOnly ? styles.msgTextEmojiOnly : ''].filter(Boolean).join(' ')}>{highlightText(textValue, highlightedMessageId === message.id ? searchQuery : '')}</div>
                           )}
@@ -1766,8 +1960,10 @@ export default function ChatPage() {
                         </div>
                       </div>
                     </div>
+                    </motion.div>
                   );
                 })}
+                </AnimatePresence>
 
                 {!isNearBottom ? (
                   <button type="button" className={styles.scrollDown} onClick={() => bottomRef.current?.scrollIntoView({ block: 'end', behavior: 'smooth' })} aria-label="Вниз к последним сообщениям" title="Вниз к последним сообщениям">
@@ -1916,7 +2112,7 @@ export default function ChatPage() {
                       <Icon name="close" size={14} />
                     </button>
                   </div>
-                  <AudioMessage url={pendingVoice.url} duration={pendingVoice.duration} />
+                  <AudioMessage url={pendingVoice.url} duration={pendingVoice.duration} eager mediaId={`composer:audio:${pendingVoice.file.name}`} />
                 </div>
               ) : null}
 
@@ -1929,7 +2125,7 @@ export default function ChatPage() {
                     </button>
                   </div>
                   <div className={styles.videoPreviewWrap}>
-                    <VideoRing src={pendingVideo.url} size="large" showProgress />
+                    <VideoRing src={pendingVideo.url} duration={pendingVideo.duration} size="medium" showProgress showTimePill showCenterControl eager mediaId={`composer:video:${pendingVideo.file.name}`} />
                   </div>
                 </div>
               ) : null}
@@ -2088,10 +2284,27 @@ export default function ChatPage() {
         onSend={sendActiveRecording}
       />
 
+      <AnimatePresence>
       {mobileActionMessage ? (
         <>
-          <div className={styles.mobileMessageActionBackdrop} onClick={() => setMobileActionMessage(null)} />
-          <div className={styles.mobileMessageActionMenu} role="menu" aria-label="Действия с сообщением" onPointerDown={(event) => event.stopPropagation()}>
+          <motion.div
+            className={styles.mobileMessageActionBackdrop}
+            onClick={() => setMobileActionMessage(null)}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
+          />
+          <motion.div
+            className={styles.mobileMessageActionMenu}
+            role="menu"
+            aria-label="Действия с сообщением"
+            onPointerDown={(event) => event.stopPropagation()}
+            initial={{ opacity: 0, y: 40, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 40, scale: 0.96 }}
+            transition={{ duration: 0.2, ease: [0.22, 0.61, 0.36, 1] }}
+          >
             {String(mobileActionMessage.text ?? '').trim() ? (
               <button type="button" className={styles.mobileMessageActionsItem} onClick={() => void handleCopyMessageText(mobileActionMessage)}>
                 <Icon name="messages" size={16} />
@@ -2126,14 +2339,32 @@ export default function ChatPage() {
                 <span>Удалить</span>
               </button>
             ) : null}
-          </div>
+          </motion.div>
         </>
       ) : null}
+      </AnimatePresence>
 
+      <AnimatePresence>
       {contextMenu ? (
         <>
-          <div className={styles.messageContextMenuBackdrop} onMouseDown={() => setContextMenu(null)} />
-          <div className={styles.messageContextMenu} style={contextMenuStyle} onMouseDown={(event) => event.stopPropagation()} onClick={(event) => event.stopPropagation()}>
+          <motion.div
+            className={styles.messageContextMenuBackdrop}
+            onMouseDown={() => setContextMenu(null)}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.1 }}
+          />
+          <motion.div
+            className={styles.messageContextMenu}
+            style={contextMenuStyle}
+            onMouseDown={(event) => event.stopPropagation()}
+            onClick={(event) => event.stopPropagation()}
+            initial={{ opacity: 0, scale: 0.92, y: -4 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.92 }}
+            transition={{ duration: 0.15, ease: [0.22, 0.61, 0.36, 1] }}
+          >
           {String(contextMenu.message.text ?? '').trim() ? (
             <button type="button" className={styles.messageContextMenuItem} onClick={() => void handleCopyMessageText(contextMenu.message)}>
               <Icon name="messages" size={16} />
@@ -2168,9 +2399,10 @@ export default function ChatPage() {
               <span>Удалить</span>
             </button>
           ) : null}
-          </div>
+          </motion.div>
         </>
       ) : null}
+      </AnimatePresence>
 
       <Modal open={forwardOpen} onClose={() => setForwardOpen(false)} title="Переслать сообщения">
         <div className={styles.forwardModal}>
@@ -2189,7 +2421,7 @@ export default function ChatPage() {
                   <div className={styles.forwardUserInfo}>
                     <StoryRingAvatar userId={user.id} url={user.avatarUrl} name={user.username} size={36} />
                     <div>
-                      <div className={styles.forwardName} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>{user.username}<AdminBadge role={user.role} /></div>
+                      <div className={styles.forwardName} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>{user.username}<AdminBadge role={user.role} username={user.username} /></div>
                       <div className={styles.forwardSub}>Личный чат</div>
                     </div>
                   </div>

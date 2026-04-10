@@ -66,11 +66,15 @@ function pickNumber(value: unknown) {
   return typeof value === 'number' && Number.isFinite(value) ? value : null;
 }
 
-function kindLabel(value?: string | null, actionType?: string | null) {
+function kindLabel(value?: string | null, actionType?: string | null, sourceType?: string | null) {
   if (actionType === 'TASK_REQUEST' || actionType === 'TASK_SUGGESTION' || actionType === 'SOCIAL_EVENT' || actionType === 'REMINDER_CARD') return 'Событие';
   if (actionType === 'FINANCE_SPLIT') return 'Общий счёт';
   if (actionType === 'DEBT_SHARE') return 'Долг';
   if (actionType === 'SAVINGS_SHARE') return 'Накопление';
+  if (sourceType === 'MENTAL_DAY') return 'Пульс дня';
+  if (sourceType === 'TASK_DAY') return 'Задачи дня';
+  if (sourceType === 'NUTRITION_DAY') return 'Питание';
+  if (sourceType === 'FINANCE_OVERVIEW') return 'Финансы дня';
   if (value === 'PROGRAM') return 'Программа';
   if (value === 'PROGRAM_PROGRESS') return 'Прогресс';
   if (value === 'SESSION_INVITE') return 'Приглашение';
@@ -80,6 +84,7 @@ function kindLabel(value?: string | null, actionType?: string | null) {
   if (value === 'FINANCE') return 'Финансы';
   if (value === 'DEBT') return 'Долг';
   if (value === 'SAVINGS') return 'Накопление';
+  if (value === 'WIDGET' || value === 'METRIC') return 'Виджет Pulse';
   return value ? String(value) : 'Артефакт';
 }
 
@@ -260,6 +265,9 @@ export function PulseShareCard({ artifactId, artifact, compact = false, interact
   const activeParticipants = useMemo(() => snapshot.participants.filter((item) => item.status !== 'DECLINED'), [snapshot.participants]);
   const pendingParticipants = useMemo(() => snapshot.participants.filter((item) => item.status !== 'COMPLETED' && item.status !== 'DECLINED'), [snapshot.participants]);
   const visibleParticipants = detailsOpen ? snapshot.participants : snapshot.participants.slice(0, compact ? 3 : 6);
+  const previewParticipants = useMemo(() => activeParticipants.slice(0, compact ? 3 : 4), [activeParticipants, compact]);
+  const detailsButtonLabel = detailsOpen ? 'Скрыть детали' : 'Подробнее';
+  const descriptionCollapsed = compact || !detailsOpen;
   const settlementTarget = useMemo(
     () => settlementTargets.find((participant) => participant.userId === (settlementTargetUserId || viewerUserId)) ?? settlementTargets[0] ?? null,
     [settlementTargetUserId, settlementTargets, viewerUserId],
@@ -367,7 +375,7 @@ export function PulseShareCard({ artifactId, artifact, compact = false, interact
           onClick={() => setDetailsOpen((value) => !value)}
           data-message-interactive="true"
         >
-          {label ?? (detailsOpen ? 'Свернуть' : 'Развернуть')}
+          {label ?? detailsButtonLabel}
         </Button>
       );
     }
@@ -409,7 +417,7 @@ export function PulseShareCard({ artifactId, artifact, compact = false, interact
     secondaryActions.push({ action: 'FOLLOW', label: 'Следить' });
   }
   if (primaryAction?.key !== 'OPEN' && allowedActions.includes('OPEN')) {
-    secondaryActions.push({ action: 'OPEN', label: detailsOpen ? 'Свернуть' : 'Развернуть' });
+    secondaryActions.push({ action: 'OPEN', label: detailsButtonLabel });
   }
 
   return (
@@ -426,7 +434,11 @@ export function PulseShareCard({ artifactId, artifact, compact = false, interact
         </div>
       </div>
 
-      {snapshot.description ? <div className={styles.description}>{snapshot.description}</div> : null}
+      {snapshot.description ? (
+        <div className={[styles.description, descriptionCollapsed ? styles.descriptionCollapsed : ''].filter(Boolean).join(' ')}>
+          {snapshot.description}
+        </div>
+      ) : null}
 
       {(snapshot.primary || snapshot.secondary) ? (
         <div className={styles.stats}>
@@ -440,6 +452,32 @@ export function PulseShareCard({ artifactId, artifact, compact = false, interact
             <div className={styles.stat}>
               <div className={styles.statLabel}>Контекст</div>
               <div className={styles.statValue}>{snapshot.secondary}</div>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
+      {(previewParticipants.length || snapshot.subtasksPreview.length || snapshot.progressLabel) ? (
+        <div className={styles.snapshotSummary}>
+          {previewParticipants.length ? (
+            <div className={styles.snapshotSummaryItem}>
+              <span className={styles.snapshotSummaryLabel}>Участники</span>
+              <strong>
+                {previewParticipants.map((item) => `@${item.username}`).join(', ')}
+                {activeParticipants.length > previewParticipants.length ? ` +${activeParticipants.length - previewParticipants.length}` : ''}
+              </strong>
+            </div>
+          ) : null}
+          {snapshot.subtasksPreview.length ? (
+            <div className={styles.snapshotSummaryItem}>
+              <span className={styles.snapshotSummaryLabel}>Фокус</span>
+              <strong>{snapshot.subtasksPreview.slice(0, compact ? 2 : 3).join(' • ')}</strong>
+            </div>
+          ) : null}
+          {snapshot.progressLabel ? (
+            <div className={styles.snapshotSummaryItem}>
+              <span className={styles.snapshotSummaryLabel}>{snapshot.progressCaption || 'Прогресс'}</span>
+              <strong>{snapshot.progressLabel}</strong>
             </div>
           ) : null}
         </div>
@@ -465,45 +503,47 @@ export function PulseShareCard({ artifactId, artifact, compact = false, interact
 
       {snapshot.participants.length ? (
         <div className={styles.participantsList}>
-          <div className={styles.participantsSummary}>
+          <div className={[styles.participantsSummary, detailsOpen ? styles.participantsSummaryExpanded : styles.participantsSummaryCollapsed].filter(Boolean).join(' ')}>
             <span>Участвуют: {activeParticipants.map((item) => `@${item.username}`).join(', ') || 'пока никто'}</span>
             {completedParticipants.length ? <span>Выполнили: {completedParticipants.map((item) => `@${item.username}`).join(', ')}</span> : null}
             {pendingParticipants.length ? <span>Ещё не завершили: {pendingParticipants.map((item) => `@${item.username}`).join(', ')}</span> : null}
           </div>
-          {visibleParticipants.map((participant) => (
-            <div key={participant.userId} className={styles.participantRow}>
-              <div className={styles.participantHead}>
-                <div className={styles.participantIdentity}>
-                  <span className={styles.participantAvatar}>{initials(participant.username)}</span>
-                  <div className={styles.participantMeta}>
-                    <strong>@{participant.username}</strong>
-                    {participant.summary ? <span>{participant.summary}</span> : null}
+          {detailsOpen ? (
+            visibleParticipants.map((participant) => (
+              <div key={participant.userId} className={styles.participantRow}>
+                <div className={styles.participantHead}>
+                  <div className={styles.participantIdentity}>
+                    <span className={styles.participantAvatar}>{initials(participant.username)}</span>
+                    <div className={styles.participantMeta}>
+                      <strong>@{participant.username}</strong>
+                      {participant.summary ? <span>{participant.summary}</span> : null}
+                    </div>
                   </div>
+                  {participant.statusLabel ? <span className={styles.participantStatus}>{participant.statusLabel}</span> : null}
                 </div>
-                {participant.statusLabel ? <span className={styles.participantStatus}>{participant.statusLabel}</span> : null}
+                {(participant.currentLabel || participant.totalLabel) ? (
+                  <div className={styles.participantAmounts}>
+                    <span>{participant.currentLabel || '0'}</span>
+                    <span>из {participant.totalLabel || '0'}</span>
+                  </div>
+                ) : null}
+                {renderProgressBar(participant.progressPercent ?? null, true)}
+                {canSettle && participant.totalAmount != null && participant.currentAmount != null && participant.totalAmount > participant.currentAmount ? (
+                  <div className={styles.participantActions}>
+                    <Button
+                      size="sm"
+                      className={styles.participantActionButton}
+                      onClick={() => handleSettleFull(participant)}
+                      disabled={busy}
+                      data-message-interactive="true"
+                    >
+                      Погасить полностью
+                    </Button>
+                  </div>
+                ) : null}
               </div>
-              {(participant.currentLabel || participant.totalLabel) ? (
-                <div className={styles.participantAmounts}>
-                  <span>{participant.currentLabel || '0'}</span>
-                  <span>из {participant.totalLabel || '0'}</span>
-                </div>
-              ) : null}
-              {renderProgressBar(participant.progressPercent ?? null, true)}
-              {canSettle && detailsOpen && participant.totalAmount != null && participant.currentAmount != null && participant.totalAmount > participant.currentAmount ? (
-                <div className={styles.participantActions}>
-                  <Button
-                    size="sm"
-                    className={styles.participantActionButton}
-                    onClick={() => handleSettleFull(participant)}
-                    disabled={busy}
-                    data-message-interactive="true"
-                  >
-                    Погасить полностью
-                  </Button>
-                </div>
-              ) : null}
-            </div>
-          ))}
+            ))
+          ) : null}
         </div>
       ) : null}
 
@@ -558,14 +598,14 @@ export function PulseShareCard({ artifactId, artifact, compact = false, interact
 
       {participantSummary && participantSummary.total > 0 ? (
         <div className={styles.summaryRow}>
-          <span>{kindLabel(String(resolvedArtifact.kind ?? 'PROGRAM'), actionType || null)}</span>
+          <span>{kindLabel(String(resolvedArtifact.kind ?? 'PROGRAM'), actionType || null, sourceType || null)}</span>
           <span>{participantSummary.accepted} приняли</span>
           <span>{participantSummary.added} добавили себе</span>
           <span>{participantSummary.completed} завершили</span>
         </div>
       ) : (
         <div className={styles.summaryRow}>
-          <span>{kindLabel(String(resolvedArtifact.kind ?? 'PROGRAM'), actionType || null)}</span>
+          <span>{kindLabel(String(resolvedArtifact.kind ?? 'PROGRAM'), actionType || null, sourceType || null)}</span>
         </div>
       )}
 
@@ -625,7 +665,9 @@ export function PulseShareCard({ artifactId, artifact, compact = false, interact
 
       {interactive ? (
         <div className={styles.actions}>
-          {primaryAction ? renderActionButton(primaryAction.key, primaryAction.label, true) : renderActionButton('OPEN', detailsOpen ? 'Свернуть' : 'Развернуть', true)}
+          {primaryAction
+            ? renderActionButton(primaryAction.key, primaryAction.key === 'OPEN' ? detailsButtonLabel : primaryAction.label, true)
+            : renderActionButton('OPEN', detailsButtonLabel, true)}
           {canSettle ? (
             <Button size="sm" className={styles.actionButton} onClick={() => setSettlementOpen((value) => !value)} disabled={busy} data-message-interactive="true">
               {settlementActionLabel(actionType || null, sourceType || null)}

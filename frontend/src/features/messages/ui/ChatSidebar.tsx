@@ -119,7 +119,7 @@ export function ChatSidebar({ activeChatId }: { activeChatId?: string | null }) 
           </div>
         </div>
         <div className={styles.actions}>
-          <Button className={styles.actionBtn} iconOnly type="button" onClick={() => setGroupOpen(true)} aria-label="Новая группа" title="Новая группа">
+          <Button className={styles.actionIconBtn} iconOnly type="button" onClick={() => setGroupOpen(true)} aria-label="Новая группа" title="Новая группа">
             <Icon name="plus" size={16} />
           </Button>
         </div>
@@ -164,7 +164,7 @@ export function ChatSidebar({ activeChatId }: { activeChatId?: string | null }) 
                   <label key={u.id} className={styles.friendRow}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                       <StoryRingAvatar userId={u.id} url={u.avatarUrl} name={u.username} size={30} />
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>{u.username}<AdminBadge role={u.role} /></div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>{u.username}<AdminBadge role={u.role} username={u.username} /></div>
                     </div>
                     <input type="checkbox" checked={checked} onChange={(e) => setSelected((p) => ({ ...p, [u.id]: e.target.checked }))} />
                   </label>

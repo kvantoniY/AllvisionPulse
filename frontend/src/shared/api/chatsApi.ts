@@ -60,7 +60,6 @@ export const chatsApi = baseApi.injectEndpoints({
         }
         return { url: `/backend/chats/${chatId}/messages`, method: 'POST', body: form };
       },
-      invalidatesTags: (_r, _e, a) => [{ type: 'Message', id: `LIST:${a.chatId}` }, { type: 'Chat', id: 'LIST' }],
     }),
 
     sendArtifactMessage: build.mutation<

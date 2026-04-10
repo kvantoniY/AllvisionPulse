@@ -4,11 +4,15 @@ import { useEffect, useRef } from 'react';
 import {
   Activity,
   ArrowRight,
+  BedSingle,
+  BookOpen,
   Brain,
   CalendarDays,
+  Cigarette,
   CircleCheckBig,
   Coffee,
   CreditCard,
+  Ellipsis,
   Flame,
   Footprints,
   Heart,
@@ -22,6 +26,7 @@ import {
   Settings2,
   Sparkles,
   Target,
+  LayoutGrid,
   X,
   TrendingUp,
   TriangleAlert,
@@ -33,7 +38,9 @@ import {
 import type { PulseFinanceEntry, PulseFinanceShareMeta } from '@/shared/types/pulse';
 import styles from '../../../app/(protected)/health/Health.module.css';
 
-type PulseIconName =
+export type PulseIconName =
+  | 'grid'
+  | 'book'
   | 'pulse'
   | 'ruler'
   | 'scale'
@@ -57,12 +64,15 @@ type PulseIconName =
   | 'wine'
   | 'info'
   | 'plus'
+  | 'menu'
   | 'trash'
   | 'utensils'
   | 'gear'
   | 'arrow'
   | 'activity'
-  | 'pencil';
+  | 'pencil'
+  | 'bed'
+  | 'cigarette';
 
 function parseDate(value?: string | Date | null) {
   if (!value) return null;
@@ -204,7 +214,11 @@ export function Segmented({ options, value, onChange }: { options: Array<{ value
 
 function LegacyPulseIcon({ name, className = '' }: { name: PulseIconName; className?: string }) {
   switch (name) {
+    case 'grid': return <LayoutGrid className={className} strokeWidth={1.9} />;
+    case 'book': return <BookOpen className={className} strokeWidth={1.9} />;
     case 'pulse': return <HeartPulse className={className} strokeWidth={1.9} />;
+    case 'bed': return <BedSingle className={className} strokeWidth={1.9} />;
+    case 'cigarette': return <Cigarette className={className} strokeWidth={1.9} />;
     case 'ruler': return <Ruler className={className} strokeWidth={1.9} />;
     case 'scale': return <Scale className={className} strokeWidth={1.9} />;
     case 'calendar': return <CalendarDays className={className} strokeWidth={1.9} />;
@@ -227,6 +241,7 @@ function LegacyPulseIcon({ name, className = '' }: { name: PulseIconName; classN
     case 'wine': return <Wine className={className} strokeWidth={1.9} />;
     case 'info': return <Info className={className} strokeWidth={1.9} />;
     case 'plus': return <Plus className={className} strokeWidth={1.9} />;
+    case 'menu': return <Ellipsis className={className} strokeWidth={1.9} />;
     case 'trash': return <X className={className} strokeWidth={2.2} />;
     case 'utensils': return <UtensilsCrossed className={className} strokeWidth={1.9} />;
     case 'gear': return <Settings2 className={className} strokeWidth={1.9} />;
@@ -255,7 +270,7 @@ export function HealthSlider({ icon, label, value, onChange, min, max, step = 1,
 
 export function FinanceEntryCompactRow({ entry, onEdit, onDelete }: { entry: PulseFinanceEntry; onEdit: (entry: PulseFinanceEntry) => void; onDelete: (id: string) => void }) {
   const meta = getFinanceCategoryMeta(entry.categoryName ?? entry.title); const recurrenceLabel = getRecurrenceLabel(entry.recurrenceJson); const amountClass = entry.type === 'INCOME' ? styles.financeAmountIncome : styles.financeAmountExpense; const amountLabel = formatMoney(entry.type === 'INCOME' ? entry.amount : -entry.amount); const timeLabel = formatTimeLabel(entry.createdAt); const timestampLabel = timeLabel === 'Без времени' ? formatShortDate(entry.date) : `${formatShortDate(entry.date)} · ${timeLabel}`;
-  return <article className={styles.financeOperationRow}><div className={styles.financeOperationMain}><span className={[styles.financeEntryIconWrap, styles.financeOperationIconWrap, styles[`financeTone${meta.tone[0].toUpperCase() + meta.tone.slice(1)}` as keyof typeof styles] as string].filter(Boolean).join(' ')}><PulseIcon name={meta.icon} className={styles.financeEntryIcon} /></span><div className={styles.financeOperationCopy}><div className={styles.financeOperationTitleRow}><strong title={entry.title}>{entry.title}</strong>{recurrenceLabel ? <em className={styles.financeRecurringPill}>{recurrenceLabel}</em> : null}</div><span title={entry.categoryName ?? 'Без категории'}>{entry.categoryName ?? 'Без категории'}</span></div></div><div className={styles.financeOperationMeta}><strong className={amountClass}>{amountLabel}</strong><span>{timestampLabel}</span></div><div className={styles.financeEntryActions}><button type="button" className={styles.financeEntryActionIcon} onClick={() => onEdit(entry)} aria-label={entry.type === 'INCOME' ? 'Редактировать доход' : 'Редактировать расход'}><PulseIcon name="pencil" className={styles.financeEntryActionSvg} /></button><button type="button" className={[styles.financeEntryActionIcon, styles.destructiveIconAction].filter(Boolean).join(' ')} onClick={() => onDelete(entry.id)} aria-label={entry.type === 'INCOME' ? 'Удалить доход' : 'Удалить расход'}><PulseIcon name="trash" className={styles.financeEntryActionSvg} /></button></div></article>;
+  return <article className={styles.financeOperationRow}><div className={styles.financeOperationMain}><span className={[styles.financeEntryIconWrap, styles.financeOperationIconWrap, styles[`financeTone${meta.tone[0].toUpperCase() + meta.tone.slice(1)}` as keyof typeof styles] as string].filter(Boolean).join(' ')}><PulseIcon name={meta.icon} className={styles.financeEntryIcon} /></span><div className={styles.financeOperationCopy}><div className={styles.financeOperationTitleRow}><strong title={entry.title}>{entry.title}</strong>{recurrenceLabel ? <em className={styles.financeRecurringPill}>{recurrenceLabel}</em> : null}</div><span title={entry.categoryName ?? 'Без категории'}>{entry.categoryName ?? 'Без категории'}</span></div></div><div className={styles.financeOperationMeta}><strong className={amountClass}>{amountLabel}</strong><span>{timestampLabel}</span></div><details className={styles.financeEntryMenu}><summary className={styles.financeEntryMenuButton} aria-label={entry.type === 'INCOME' ? 'Действия с доходом' : 'Действия с расходом'}><PulseIcon name="menu" className={styles.financeEntryActionSvg} /></summary><div className={styles.financeEntryMenuBody}><button type="button" className={styles.financeEntryMenuAction} onClick={() => onEdit(entry)}><PulseIcon name="pencil" className={styles.financeEntryActionSvg} />Редактировать</button><button type="button" className={[styles.financeEntryMenuAction, styles.financeEntryMenuActionDanger].filter(Boolean).join(' ')} onClick={() => onDelete(entry.id)}><PulseIcon name="trash" className={styles.financeEntryActionSvg} />Удалить</button></div></details></article>;
 }
 
 export function FinanceShareParticipants({ shareMeta, title }: { shareMeta?: PulseFinanceShareMeta | null; title: string }) {
@@ -306,4 +321,3 @@ export function FinanceComparisonMetricCard({ label, current, previous, positive
   const delta = current - previous; const deltaClass = getDeltaToneClass(delta, positiveTrend);
   return <article className={[styles.financeComparisonCard, styles.financeComparisonCardDetailed].join(' ')}><span>{label}</span><strong>{formatMoney(current)}</strong><div className={styles.financeComparisonMetaRows}><div><span>Прошлый месяц</span><strong>{formatMoney(previous)}</strong></div><em className={[styles.financeDeltaPill, deltaClass].filter(Boolean).join(' ')}>{formatMoneyDelta(delta)}</em></div></article>;
 }
-

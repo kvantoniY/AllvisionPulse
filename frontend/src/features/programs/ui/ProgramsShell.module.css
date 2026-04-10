@@ -1125,13 +1125,12 @@
 }
 
 .emptyState {
-  padding: 12px 0;
-  border-radius: 0;
-  border: 0;
-  border-top: 1px dashed rgba(255,255,255,0.12);
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,0.06);
   color: var(--muted);
-  background: transparent;
-  line-height: 1.45;
+  background: rgba(255,255,255,0.028);
+  line-height: 1.5;
 }
 
 .sharePreview {
@@ -2038,7 +2037,7 @@
   padding: 10px 12px !important;
   border-radius: 14px !important;
   border: 1px solid rgba(255, 255, 255, 0.06) !important;
-  background: rgba(11, 14, 20, 0.72) !important;
+  background: #1d1d1e !important;
 }
 
 .pulseActionRow:first-child {
@@ -2094,13 +2093,13 @@
   justify-content: center;
   border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.03);
+  background: #1d1d1e;
   color: rgba(255, 255, 255, 0.64);
   transition: background 140ms ease, border-color 140ms ease, color 140ms ease, transform 140ms ease;
 }
 
 .pulseActionChevron:hover {
-  background: rgba(255, 255, 255, 0.06);
+  background: #1d1d1e;
   border-color: rgba(255, 255, 255, 0.12);
   color: rgba(255, 255, 255, 0.9);
   transform: translateX(1px);
@@ -2127,5 +2126,1057 @@
 
   .pulseActionCopy span {
     font-size: 11px !important;
+  }
+}
+
+/* === pulse programs reference pass === */
+.tabs {
+  display: inline-flex;
+  gap: 6px;
+  padding: 6px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.055);
+}
+
+.tab {
+  min-height: 46px;
+  border: 1px solid transparent;
+  border-radius: 16px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.56);
+  padding: 0 20px;
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.tabActive {
+  color: #fff;
+  border-color: rgba(255,255,255,0.06);
+  background: rgba(8, 10, 14, 0.86);
+}
+
+.searchBarInline,
+.programCard,
+.programRowStrip,
+.invitePreviewCard,
+.contextBar,
+.hero,
+.compactSection,
+.featuredGrid > *,
+.list > .programRowStrip {
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+.searchBarInline {
+  min-height: 48px;
+  border-radius: 18px;
+  background: rgba(255,255,255,0.03);
+}
+
+.searchBarInline input {
+  color: #fff;
+}
+
+.programRowStrip,
+.programCard,
+.invitePreviewCard {
+  border-radius: 22px;
+  background: linear-gradient(180deg, rgba(13, 15, 20, 0.96), rgba(10, 12, 16, 0.98));
+  box-shadow: none;
+}
+
+.programRowStrip {
+  padding: 16px 18px;
+}
+
+.programRowLink {
+  gap: 12px;
+}
+
+.compactProgramCopy strong {
+  font-size: 16px;
+  letter-spacing: -0.03em;
+}
+
+.compactProgramCopy > span,
+.programRowSummary,
+.programRowMetric,
+.helperItem span:last-child {
+  color: rgba(255, 255, 255, 0.62);
+}
+
+.pill,
+.filterChip {
+  border-radius: 999px;
+  border-color: rgba(255, 255, 255, 0.08);
+  background: rgba(255,255,255,0.04);
+  color: rgba(255,255,255,0.72);
+}
+
+.pillAccent,
+.filterChipActive {
+  background: var(--accent-soft);
+  border-color: var(--stroke-accent);
+  color: #ffbf85;
+}
+
+.favoriteButton {
+  width: 40px;
+  min-width: 40px;
+  height: 40px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255,255,255,0.03);
+}
+
+.favoriteButtonActive {
+  color: var(--accent-strong);
+  border-color: var(--stroke-accent);
+  background: var(--accent-softer);
+}
+
+.progressLine {
+  height: 6px;
+  background: rgba(255,255,255,0.08);
+}
+
+.progressFill {
+  background: linear-gradient(90deg, var(--accent), var(--accent-strong));
+}
+
+@media (max-width: 720px) {
+  .tabs {
+    width: 100%;
+    overflow-x: auto;
+  }
+
+  .searchBarInline {
+    min-height: 46px;
+  }
+
+  .programRowStrip,
+  .programCard,
+  .invitePreviewCard {
+    border-radius: 20px;
+  }
+}
+
+/* --- reference refinement pass v3 --- */
+.programsHeader {
+  display: grid;
+  gap: 8px;
+  padding: 18px 20px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 22px;
+  background:
+    radial-gradient(circle at top right, rgba(255, 122, 26, 0.1), transparent 28%),
+    linear-gradient(180deg, rgba(10, 14, 24, 0.88), rgba(7, 10, 18, 0.96));
+}
+
+.programsIntro {
+  display: grid;
+  gap: 8px;
+  max-width: 720px;
+}
+
+.programsKicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: rgba(255, 170, 89, 0.9);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.programsToolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 14px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.subtabBar {
+  display: flex;
+  gap: 18px;
+  padding-bottom: 0;
+  border-bottom: 0;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.subtabBar::-webkit-scrollbar {
+  display: none;
+}
+
+.subtabButton {
+  min-height: 38px;
+  padding: 0 14px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  background: transparent;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.58);
+  transition: color 120ms ease, background 120ms ease, border-color 120ms ease;
+}
+
+.subtabButton:hover,
+.subtabButton:focus-visible {
+  color: rgba(255, 255, 255, 0.88);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.subtabButtonActive {
+  color: #ff8f32;
+  border-color: rgba(255, 143, 50, 0.28);
+  background: rgba(255, 143, 50, 0.1);
+}
+
+.flatSection {
+  display: grid;
+  gap: 16px;
+  padding: 20px 22px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 22px;
+  background: linear-gradient(180deg, rgba(10, 14, 24, 0.82), rgba(7, 10, 18, 0.94));
+}
+
+.flatSectionHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.flatSectionHead .sectionTitle {
+  font-size: 20px;
+  line-height: 1.12;
+  letter-spacing: -0.03em;
+}
+
+.list {
+  gap: 12px;
+}
+
+.programRowStrip {
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 18px;
+  padding: 18px 20px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 22px;
+  background: linear-gradient(180deg, rgba(10, 14, 24, 0.9), rgba(7, 10, 18, 0.96));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.02);
+}
+
+.list > .programRowStrip:first-child {
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.programRowLink {
+  gap: 12px;
+}
+
+.compactProgramCopy {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.compactProgramCopy strong {
+  font-size: 22px;
+  line-height: 1.08;
+  letter-spacing: -0.03em;
+}
+
+.compactProgramCopy > span {
+  color: rgba(255, 255, 255, 0.64);
+  font-size: 14px;
+}
+
+.programRowSummary {
+  max-width: 64ch;
+  padding-left: 42px;
+  color: rgba(255, 255, 255, 0.54);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.programRowProgress {
+  padding-left: 42px;
+  gap: 12px;
+}
+
+.programRowMetric {
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 12px;
+}
+
+.programRowAside {
+  display: grid;
+  align-self: center;
+  gap: 10px;
+  justify-items: end;
+  align-content: center;
+}
+
+.rowActions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.favoriteButton,
+.actionMenuSummary {
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.favoriteButton:hover,
+.favoriteButton:focus-visible,
+.actionMenuSummary:hover,
+.actionMenuSummary:focus-visible {
+  border-color: rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.inlineProgramActions {
+  gap: 12px;
+  padding-top: 14px;
+}
+
+.inlineProgramActions .sectionHint {
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.hero {
+  padding: 6px 0 18px;
+  background:
+    radial-gradient(circle at top right, rgba(255, 122, 26, 0.1), transparent 26%),
+    linear-gradient(180deg, rgba(8, 10, 13, 0.84), rgba(8, 10, 13, 0));
+}
+
+.wizard {
+  grid-template-columns: minmax(190px, 224px) minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+
+.stepper {
+  top: 96px;
+  gap: 8px;
+  padding-top: 4px;
+}
+
+.stepItem {
+  padding: 12px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-left: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.018);
+}
+
+.stepItemActive {
+  border-color: rgba(255, 143, 50, 0.28);
+  background: linear-gradient(180deg, rgba(255, 143, 50, 0.12), rgba(255, 143, 50, 0.03));
+}
+
+.builderStepMeta {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.025);
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.builderFooterActions {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  padding-top: 12px;
+  padding-bottom: 4px;
+  background: linear-gradient(180deg, rgba(8, 10, 13, 0), rgba(8, 10, 13, 0.96) 26%);
+}
+
+.builderDaySummary,
+.builderActionItem,
+.detailsCard {
+  border-radius: 18px;
+  border-color: rgba(255, 255, 255, 0.06);
+  background: linear-gradient(180deg, rgba(10, 14, 24, 0.84), rgba(8, 11, 18, 0.94));
+}
+
+.builderDaySummaryRow,
+.builderActionSummary {
+  padding: 14px 16px;
+}
+
+.builderDayBody,
+.builderActionBody {
+  padding: 0 16px 16px;
+}
+
+@media (max-width: 1024px) {
+  .programsToolbar {
+    align-items: stretch;
+  }
+
+  .programsToolbar .inlineActions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .wizard {
+    gap: 18px;
+  }
+
+  .stepper {
+    grid-auto-columns: minmax(172px, 1fr);
+  }
+
+  .builderFooterActions {
+    position: static;
+    background: transparent;
+    padding-top: 8px;
+  }
+}
+
+@media (max-width: 720px) {
+  .programsKicker {
+    font-size: 10px;
+  }
+
+  .programsHeader {
+    padding: 16px 18px;
+    border-radius: 20px;
+  }
+
+  .programsToolbar {
+    gap: 12px;
+    padding: 12px;
+    border-radius: 18px;
+  }
+
+  .subtabBar {
+    width: 100%;
+    gap: 14px;
+  }
+
+  .subtabButton {
+    flex: 0 0 auto;
+    font-size: 13px;
+  }
+
+  .programRowStrip {
+    grid-template-columns: 1fr;
+    padding: 16px;
+    border-radius: 18px;
+  }
+
+  .flatSection {
+    padding: 18px 16px;
+    border-radius: 20px;
+  }
+
+  .compactProgramCopy strong {
+    font-size: 18px;
+  }
+
+  .compactProgramCopy > span,
+  .programRowSummary {
+    font-size: 13px;
+  }
+
+  .programRowSummary,
+  .programRowProgress {
+    padding-left: 0;
+  }
+
+  .programRowAside,
+  .rowActions {
+    width: 100%;
+    justify-items: stretch;
+    justify-content: flex-start;
+  }
+
+  .rowActions > .linkButton {
+    flex: 1 1 auto;
+  }
+
+  .rowActions > .linkButton > * {
+    width: 100%;
+  }
+
+  .stepItem {
+    padding: 10px 12px;
+    min-width: 168px;
+  }
+
+  .builderStepMeta {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+
+/* --- session/detail refinement pass v4 --- */
+.hero {
+  gap: 18px;
+}
+
+.heroRow {
+  align-items: flex-start;
+  gap: 18px;
+}
+
+.heroActions {
+  justify-content: flex-end;
+  align-self: flex-start;
+}
+
+.summaryGrid {
+  gap: 12px;
+}
+
+.summaryCard {
+  min-height: 86px;
+  padding: 14px 16px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--stroke);
+  background: var(--surface-0);
+}
+
+.summaryValue {
+  font-size: clamp(24px, 2.6vw, 30px);
+}
+
+.noticeCard {
+  padding: 14px 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 147, 74, 0.14);
+  background: linear-gradient(180deg, rgba(255, 122, 26, 0.08), rgba(255, 122, 26, 0.03));
+}
+
+.sessionOverviewGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.sessionOverviewCard {
+  display: grid;
+  gap: 10px;
+  padding: 18px;
+  border-radius: 20px;
+  border: 1px solid rgba(255,255,255,0.07);
+  background: rgba(255,255,255,0.02);
+}
+
+.sessionOverviewLabel {
+  color: rgba(255,255,255,0.48);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.sessionOverviewTitle {
+  font-size: 18px;
+  line-height: 1.2;
+}
+
+.sessionOverviewText {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.sectionCard {
+  gap: 14px;
+}
+
+.participantRow,
+.actionCompactRow,
+.historyRow,
+.actionRow {
+  padding: 16px 18px;
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 18px;
+  background: rgba(255,255,255,0.018);
+}
+
+.participantRow:first-child,
+.actionCompactRow:first-child,
+.historyRow:first-child,
+.actionRow:first-child {
+  border-top: 1px solid rgba(255,255,255,0.06);
+}
+
+.participantRow,
+.actionCompactRow,
+.historyRow,
+.actionRow,
+.compactListRow {
+  border-bottom: 0;
+}
+
+.participantRow {
+  gap: 14px;
+}
+
+.progressLine {
+  height: 8px;
+  background: rgba(255,255,255,0.05);
+}
+
+.actionCompactList,
+.participantsBlock,
+.list {
+  gap: 12px;
+}
+
+.actionCompactRow {
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.actionCompactLead {
+  align-items: center;
+}
+
+.actionCompactCopy strong {
+  font-size: 15px;
+}
+
+.iconBadge {
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
+}
+
+.participantMetrics .pill,
+.participantTodayMeta .pill,
+.participantTaskList .pill,
+.metaRow .pill {
+  background: rgba(255,255,255,0.03);
+}
+
+.tabs {
+  padding: 6px;
+  border-radius: 20px;
+  background: rgba(255,255,255,0.03);
+  width: max-content;
+  max-width: 100%;
+}
+
+.tab {
+  min-height: 42px;
+  padding: 0 18px;
+  border-radius: 14px;
+}
+
+.tabActive {
+  background: rgba(11,14,19,0.92);
+}
+
+@media (max-width: 920px) {
+  .sessionOverviewGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .summaryGrid {
+    grid-template-columns: repeat(2, minmax(0,1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .heroActions {
+    width: 100%;
+    justify-content: stretch;
+  }
+
+  .heroActions > * {
+    flex: 1 1 100%;
+  }
+
+  .tabs {
+    width: 100%;
+    overflow-x: auto;
+  }
+
+  .participantRow,
+  .actionCompactRow,
+  .historyRow,
+  .actionRow,
+  .sessionOverviewCard,
+  .summaryCard {
+    padding: 14px;
+  }
+
+  .participantHeader,
+  .actionRow,
+  .historyRow,
+  .actionCompactRow {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Final palette normalization — Pulse Programs */
+.page {
+  --surface-0: #1d1d1e;
+  --surface-1: #181819;
+  --surface-2: #1d1d1e;
+  --surface-3: #1d1d1e;
+  --stroke-soft: rgba(255, 255, 255, 0.05);
+  --stroke: rgba(255, 255, 255, 0.08);
+  --accent-soft: rgba(255, 122, 26, 0.12);
+  --accent-softer: rgba(255, 122, 26, 0.08);
+  min-width: 0;
+}
+
+.page > * {
+  min-width: 0;
+}
+
+.page :global(.card) {
+  background: #181819 !important;
+  border: 1px solid rgba(255, 255, 255, 0.06) !important;
+  box-shadow: none !important;
+}
+
+.hero,
+.programsHeader,
+.programsToolbar,
+.flatSection,
+.sectionCard,
+.formCard,
+.programCard,
+.noticeCard {
+  background: #181819 !important;
+  border: 1px solid rgba(255, 255, 255, 0.06) !important;
+  box-shadow: none !important;
+}
+
+.hero {
+  padding: 20px 22px !important;
+  border-radius: 24px !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
+}
+
+.programsHeader,
+.programsToolbar,
+.flatSection,
+.sectionCard,
+.formCard,
+.programCard,
+.noticeCard {
+  border-radius: 22px !important;
+}
+
+.programsHeader {
+  padding: 18px 20px !important;
+}
+
+.programsToolbar {
+  padding: 14px 16px !important;
+}
+
+.flatSection,
+.sectionCard,
+.formCard,
+.programCard {
+  padding: 20px 22px !important;
+}
+
+.summaryCard,
+.sessionOverviewCard,
+.programRowStrip,
+.participantRow,
+.actionCompactRow,
+.historyRow,
+.actionRow,
+.todayActionRow,
+.compactListRow,
+.compactProgramRow,
+.featuredProgramRow,
+.inviteRow,
+.detailsCard,
+.builderDaySummary,
+.builderActionItem,
+.stepItem,
+.optionCard,
+.actionPreset,
+.field input,
+.field textarea,
+.field select,
+.searchBarInline,
+.emptyState,
+.sharePreview,
+.noticeInline,
+.achievementCard,
+.contextBack,
+.contextLink,
+.favoriteButton,
+.actionMenuSummary,
+.actionMenuBody,
+.pulseActionRow,
+.pulseOverflowTrigger,
+.pulseOverflowMenu,
+.pulseActionChevron,
+.storyHintRow {
+  background: #1d1d1e !important;
+  border-color: rgba(255, 255, 255, 0.06) !important;
+  box-shadow: none !important;
+}
+
+.summaryCard,
+.sessionOverviewCard,
+.programRowStrip,
+.participantRow,
+.actionCompactRow,
+.historyRow,
+.actionRow,
+.todayActionRow,
+.compactListRow,
+.compactProgramRow,
+.featuredProgramRow,
+.inviteRow,
+.detailsCard,
+.builderDaySummary,
+.builderActionItem,
+.stepItem,
+.optionCard,
+.actionPreset,
+.emptyState,
+.sharePreview,
+.noticeInline,
+.achievementCard,
+.storyHintRow {
+  border: 1px solid rgba(255, 255, 255, 0.06) !important;
+  border-radius: 18px !important;
+}
+
+.summaryCard {
+  border-left: 1px solid rgba(255, 255, 255, 0.06) !important;
+  min-height: 86px;
+  padding: 14px 16px !important;
+}
+
+.programRowStrip,
+.participantRow,
+.actionCompactRow,
+.historyRow,
+.actionRow,
+.todayActionRow,
+.compactListRow,
+.compactProgramRow,
+.featuredProgramRow,
+.inviteRow {
+  padding: 16px 18px !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
+}
+
+.programRowStrip:first-child,
+.participantRow:first-child,
+.actionCompactRow:first-child,
+.historyRow:first-child,
+.actionRow:first-child,
+.todayActionRow:first-child,
+.compactListRow:first-child,
+.compactProgramRow:first-child,
+.featuredProgramRow:first-child,
+.inviteRow:first-child {
+  border-top: 1px solid rgba(255, 255, 255, 0.06) !important;
+}
+
+.detailsCard {
+  padding: 16px !important;
+}
+
+.builderDaySummary,
+.builderActionItem {
+  padding: 0 !important;
+  overflow: hidden;
+}
+
+.stepItem {
+  border-left: 1px solid rgba(255, 255, 255, 0.06) !important;
+}
+
+.contextBack,
+.contextLink,
+.favoriteButton,
+.actionMenuSummary,
+.pulseOverflowTrigger,
+.pulseActionChevron {
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+.field input,
+.field textarea,
+.field select,
+.searchBarInline {
+  border-radius: 14px !important;
+}
+
+.field input:focus,
+.field textarea:focus,
+.field select:focus,
+.searchBarInline:focus-within {
+  box-shadow: none !important;
+  border-color: rgba(255, 122, 26, 0.22) !important;
+}
+
+.todayActionRowDone {
+  background: #1d1d1e !important;
+  border-color: rgba(20, 207, 134, 0.18) !important;
+}
+
+.todayActionRowMuted {
+  background: #1d1d1e !important;
+  border-color: rgba(255, 173, 31, 0.18) !important;
+}
+
+.todayActionRowDanger {
+  background: #1d1d1e !important;
+  border-color: rgba(242, 111, 123, 0.18) !important;
+}
+
+.noticeCard {
+  padding: 16px 18px !important;
+  background: #181819 !important;
+  border-color: rgba(255, 122, 26, 0.16) !important;
+}
+
+.successState,
+.dangerState {
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: #181819;
+  box-shadow: none;
+}
+
+.successState {
+  border: 1px solid rgba(20, 207, 134, 0.18);
+}
+
+.dangerState {
+  border: 1px solid rgba(242, 111, 123, 0.18);
+}
+
+.pill,
+.filterChip {
+  background: #1d1d1e !important;
+  border-color: rgba(255, 255, 255, 0.06) !important;
+  color: rgba(255, 255, 255, 0.72) !important;
+}
+
+.pillAccent,
+.filterChipActive,
+.favoriteButtonActive,
+.contextLinkActive,
+.optionCardActive,
+.subtabButtonActive,
+.tabActive,
+.stepItemActive {
+  background: rgba(255, 122, 26, 0.12) !important;
+  border-color: rgba(255, 122, 26, 0.24) !important;
+  color: #ffbf85 !important;
+}
+
+.pillSuccess {
+  background: rgba(20, 207, 134, 0.12) !important;
+  border-color: rgba(20, 207, 134, 0.18) !important;
+  color: #a7e7c7 !important;
+}
+
+.subtabButton,
+.tab {
+  box-shadow: none !important;
+}
+
+.actionMenuBody,
+.pulseOverflowMenu {
+  background: #181819 !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  backdrop-filter: none !important;
+}
+
+.heroEyebrow,
+.programsKicker,
+.storyEyebrow,
+.plainButton {
+  color: #ffbf85;
+}
+
+.avatarBadge {
+  background: rgba(255, 122, 26, 0.14) !important;
+  border: 1px solid rgba(255, 122, 26, 0.18);
+  color: #ffbf85;
+}
+
+.iconBadge {
+  background: rgba(255, 122, 26, 0.08) !important;
+  border-color: rgba(255, 122, 26, 0.14) !important;
+  color: #ffbf85;
+}
+
+.sectionDivider {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.builderFooterActions {
+  background: #141414 !important;
+}
+
+@media (max-width: 720px) {
+  .hero,
+  .programsHeader,
+  .programsToolbar,
+  .flatSection,
+  .sectionCard,
+  .formCard,
+  .programCard,
+  .noticeCard {
+    padding: 18px 16px !important;
+    border-radius: 20px !important;
+  }
+
+  .programRowStrip,
+  .participantRow,
+  .actionCompactRow,
+  .historyRow,
+  .actionRow,
+  .todayActionRow,
+  .compactListRow,
+  .compactProgramRow,
+  .featuredProgramRow,
+  .inviteRow,
+  .summaryCard,
+  .sessionOverviewCard,
+  .achievementCard,
+  .detailsCard {
+    padding: 14px 16px !important;
+    border-radius: 16px !important;
   }
 }

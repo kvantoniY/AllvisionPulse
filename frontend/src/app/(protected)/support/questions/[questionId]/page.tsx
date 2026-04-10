@@ -102,7 +102,7 @@ export default function SupportQuestionDetailPage() {
                     <div className={styles.metaRow}>
                       <Link className={styles.actorLink} href={`/profile/${question.answerAuthor?.username ?? question.author.username}`}>
                         {question.answerAuthor?.username ?? "Администратор"}
-                        <AdminBadge role={question.answerAuthor?.role ?? "ADMIN"} />
+                        <AdminBadge role={question.answerAuthor?.role ?? "ADMIN"} username={question.answerAuthor?.username} />
                       </Link>
                       <div className={styles.muted}>{formatDate(question.answeredAt)}</div>
                     </div>

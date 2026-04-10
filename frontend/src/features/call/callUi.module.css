@@ -1897,3 +1897,12 @@
     max-height: 64px;
   }
 }
+
+.videoMirror {
+  transform: scaleX(-1);
+}
+
+.videoContain {
+  object-fit: contain !important;
+  object-position: center;
+}

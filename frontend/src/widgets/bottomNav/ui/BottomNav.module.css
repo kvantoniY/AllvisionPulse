@@ -7,10 +7,9 @@
   width: 100%;
   display: none;
   z-index: 80;
-  background: rgba(10, 12, 15, 0.98);
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(10px);
-  box-shadow: 0 -10px 36px rgba(0, 0, 0, 0.32);
+  background: #141414;
+  border-top: 1px solid var(--stroke-soft);
+  backdrop-filter: blur(12px);
 }
 
 :global(body[data-overlay-open='1']) .nav {
@@ -35,8 +34,10 @@
   gap: 4px;
   color: var(--muted);
   font-size: 10px;
+  font-weight: 600;
   min-height: var(--mobile-nav-height);
   padding: 6px 0 4px;
+  transition: color 120ms ease;
 }
 
 .active {
@@ -49,69 +50,87 @@
   }
 }
 
+/* ── Icon container ── */
 .icon {
-  width: 32px;
-  height: 32px;
+  width: 34px;
+  height: 28px;
   border-radius: 10px;
   display: grid;
   place-items: center;
   position: relative;
+  transition: background 120ms ease;
 }
 
+/* Strong active pill behind icon */
 .active .icon {
-  background: rgba(255,255,255,0.05);
-}
-
-.badgeDot {
-  position: absolute;
-  top: 5px;
-  right: 5px;
-  width: 8px;
-  height: 8px;
-  border-radius: 999px;
-  background: var(--accent-strong);
-  box-shadow: 0 0 0 2px rgba(9, 11, 14, 1);
+  background: var(--accent-soft);
 }
 
 .label {
   line-height: 1;
 }
 
+/* ── Notification badge dot ── */
+.badgeDot {
+  position: absolute;
+  top: 3px;
+  right: 4px;
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--accent);
+  box-shadow: 0 0 0 2px #141414;
+}
+
+/* ── More menu (sheet) ── */
 .menuList {
   padding: 12px 16px 0;
   display: grid;
-  gap: 10px;
+  gap: 8px;
 }
 
 .menuRow {
-  min-height: 54px;
-  border-radius: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  background: rgba(255, 255, 255, 0.02);
+  min-height: 52px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--stroke);
+  background: var(--surface-0);
   color: var(--text-soft);
   padding: 0 14px;
   display: flex;
   align-items: center;
   gap: 12px;
+  transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+}
+
+.menuRow:hover {
+  background: var(--surface-2);
+  color: var(--text);
+  border-color: var(--stroke-strong);
 }
 
 .menuRowActive {
-  border-color: rgba(255, 122, 26, 0.24);
-  background: rgba(255, 122, 26, 0.08);
+  border-color: var(--stroke-accent);
+  background: var(--accent-soft);
   color: var(--text);
 }
 
 .menuRowIcon {
-  width: 34px;
-  height: 34px;
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  background: rgba(255, 255, 255, 0.025);
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--stroke-soft);
+  background: var(--surface-1);
   display: grid;
   place-items: center;
+  flex-shrink: 0;
 }
 
+.menuRowActive .menuRowIcon {
+  background: var(--accent-soft);
+  border-color: var(--stroke-accent);
+  color: var(--accent-strong);
+}
 
 @media (pointer: coarse), (prefers-reduced-motion: reduce) {
-  .header, .sidebar, .nav { backdrop-filter: none; }
+  .nav { backdrop-filter: none; }
 }

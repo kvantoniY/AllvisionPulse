@@ -1,25 +1,43 @@
-.field { display: grid; gap: 6px; }
-.label { color: var(--text-soft); font-size: 12px; font-weight: 600; }
+.field {
+  display: grid;
+  gap: 6px;
+}
+
+.label {
+  color: var(--text-soft);
+  font-size: var(--text-meta);
+  font-weight: 600;
+}
+
 .input {
   width: 100%;
-  min-height: 40px;
+  min-height: 42px;
   padding: 0 12px;
-  border-radius: 12px;
+  border-radius: var(--radius-sm);
   border: 1px solid var(--stroke);
-  background: rgba(255,255,255,0.03);
+  background: var(--surface-0);
   color: var(--text);
   outline: none;
-  transition: border-color 140ms ease, background 140ms ease, box-shadow 140ms ease;
+  transition: border-color 130ms ease, background 130ms ease, box-shadow 130ms ease;
 }
-.input:hover { border-color: var(--stroke-strong); }
+
+.input:hover {
+  border-color: var(--stroke-strong);
+}
+
 .input:focus {
   border-color: var(--stroke-accent);
-  background: rgba(255,255,255,0.04);
-  box-shadow: 0 0 0 4px rgba(255,122,26,0.08);
+  background: var(--surface-1);
+  box-shadow: 0 0 0 4px rgba(255, 122, 26, 0.08);
 }
-.error { color: var(--danger); font-size: 12px; }
+
+.error {
+  color: var(--danger);
+  font-size: var(--text-meta);
+}
+
 @media (max-width: 960px) {
   .input {
-    min-height: 42px;
+    min-height: 44px;
   }
 }

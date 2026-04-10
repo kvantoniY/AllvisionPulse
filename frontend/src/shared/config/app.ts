@@ -16,6 +16,7 @@ export const ROUTES = {
     friends: '/friends',
     health: '/health',
     messages: '/messages',
+    pro: '/settings?tab=pro',
     profile: (username: string) => `/profile/${username}`,
     settings: '/settings',
     admin: '/admin',

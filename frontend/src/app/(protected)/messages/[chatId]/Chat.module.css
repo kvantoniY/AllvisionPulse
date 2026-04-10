@@ -1,56 +1,84 @@
+/* ═══════════════════════════════════════════════════════════
+   Chat — Premium Messaging UI
+   Clean, consolidated design (replaces v1–v8 iterations)
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── Layout Shell ── */
 .wrap {
-  padding: 0;
-  height: calc(100vh - 148px);
-  display: grid;
-  grid-template-rows: auto auto auto 1fr auto;
+  height: 100%;
   min-height: 0;
+  max-height: 100%;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
   overflow: hidden;
 }
 
 .middle {
   position: relative;
   min-height: 0;
+  overflow: hidden;
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-rows: minmax(0, 1fr);
 }
 
-.withMedia {
-  grid-template-columns: 1fr;
+.headerStack {
+  min-width: 0;
+  min-height: 0;
+  display: grid;
 }
 
-.notificationPillRow {
-  padding: 10px 18px 0;
+.pageMobileNoHeader {
+  min-width: 0;
+  padding-bottom: 0 !important;
 }
 
+/* ── Header ── */
 .top {
-  display: flex;
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr) auto;
   align-items: center;
   gap: 12px;
-  padding: 16px 18px;
-  border-bottom: 1px solid var(--stroke);
+  padding: 10px 0 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.back {
+  min-width: 44px;
+  height: 44px;
+  padding: 0;
+  border-radius: 999px;
+  border: 0 !important;
+  background: transparent !important;
+  color: rgba(255, 255, 255, 0.62);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  transition: background 140ms ease, color 140ms ease, transform 100ms ease;
+}
+
+.back:hover {
+  background: rgba(255, 255, 255, 0.08) !important;
+  color: var(--text);
 }
 
 .topInfo {
   min-width: 0;
-}
-
-.back {
-  min-width: 38px;
-  height: 38px;
-  padding: 0;
-  border-radius: 50%;
-  border: 1px solid var(--stroke);
-  background: rgba(255, 255, 255, 0.04);
-  color: var(--text);
+  display: grid;
+  gap: 4px;
 }
 
 .title {
-  font-weight: 900;
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1.08;
+  letter-spacing: -0.03em;
+  color: var(--text);
 }
 
 .sub {
-  color: var(--muted);
+  min-width: 0;
   font-size: 12px;
+  color: var(--muted);
   display: flex;
   align-items: center;
   gap: 8px;
@@ -61,16 +89,27 @@
   height: 8px;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.25);
+  flex-shrink: 0;
 }
 
-.statusDotOnline { background: rgba(77, 223, 124, 0.95); }
-.statusDotOffline { background: rgba(255, 255, 255, 0.25); }
+.statusDotOnline {
+  background: #34d399;
+  box-shadow: 0 0 0 3px rgba(52, 211, 153, 0.18);
+}
+
+.statusDotOffline {
+  background: rgba(255, 255, 255, 0.25);
+}
 
 .headerActions {
-  margin-left: auto;
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-wrap: nowrap;
+}
+
+.headerActions::-webkit-scrollbar {
+  display: none;
 }
 
 .desktopHeaderActions {
@@ -88,7 +127,19 @@
   min-width: 44px;
   height: 44px;
   padding: 0;
-  border-radius: 14px;
+  border-radius: 999px;
+  border: 0 !important;
+  background: transparent !important;
+  color: rgba(255, 255, 255, 0.62);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  transition: background 140ms ease, color 140ms ease, transform 100ms ease;
+}
+
+.mobileHeaderMore:hover {
+  background: rgba(255, 255, 255, 0.08) !important;
+  color: var(--text);
 }
 
 .mobileHeaderMenu {
@@ -98,11 +149,12 @@
   min-width: 220px;
   padding: 8px;
   display: grid;
-  gap: 6px;
-  border-radius: 16px;
+  gap: 4px;
+  border-radius: 18px;
   border: 1px solid rgba(255, 255, 255, 0.1);
   background: rgba(11, 13, 16, 0.98);
-  box-shadow: var(--shadow-md);
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.38);
+  backdrop-filter: blur(20px);
   z-index: 30;
 }
 
@@ -111,13 +163,16 @@
   align-items: center;
   gap: 10px;
   width: 100%;
-  min-height: 42px;
-  padding: 0 12px;
+  min-height: 44px;
+  padding: 0 14px;
   border: 0;
   border-radius: 12px;
   background: transparent;
   color: var(--text);
   text-align: left;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background 120ms ease;
 }
 
 .mobileHeaderMenuItem:hover {
@@ -125,32 +180,82 @@
 }
 
 .mobileHeaderMenuItem:disabled {
-  opacity: 0.45;
+  opacity: 0.4;
+  pointer-events: none;
 }
 
+/* ── Header Action Buttons ── */
 .mediaLink,
 .callAction,
 .callActionJoin {
-  height: 36px;
-  padding: 0 12px;
+  position: relative;
+  width: 44px;
+  min-width: 44px;
+  height: 44px;
+  padding: 0;
   border-radius: 999px;
-  border: 1px solid var(--stroke);
-  background: rgba(255, 255, 255, 0.04);
-  color: var(--text);
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
+  border: 0 !important;
+  background: transparent !important;
+  color: rgba(255, 255, 255, 0.62);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  transition: background 140ms ease, color 140ms ease, transform 100ms ease;
 }
 
-.callAction { border-color: rgba(255,255,255,0.08); }
-.callActionJoin { border-color: rgba(39, 198, 129, 0.24); background: rgba(39, 198, 129, 0.1); }
-.headerActionActive { background: rgba(255,255,255,0.1); }
+.mediaLink:hover,
+.callAction:hover {
+  background: rgba(255, 255, 255, 0.08) !important;
+  color: var(--text);
+}
 
+.callActionJoin {
+  color: #93e8c3;
+}
+
+.callActionJoin:hover {
+  background: rgba(52, 211, 153, 0.14) !important;
+  color: #b6f3d8;
+}
+
+.headerActionActive {
+  background: rgba(255, 255, 255, 0.08) !important;
+  color: var(--text);
+}
+
+.callActionGamesActive {
+  background: rgba(52, 211, 153, 0.12) !important;
+  color: #b6f3d8;
+}
+
+.callActionCount {
+  position: absolute;
+  top: -4px;
+  right: -3px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: #34d399;
+  color: #06130d;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+/* ── Notification pill ── */
+.notificationPillRow {
+  padding: 10px 18px 0;
+}
+
+/* ── Search Bar ── */
 .searchBar {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px 18px;
+  gap: 10px;
+  padding: 12px 0;
   border-bottom: 1px solid var(--stroke);
 }
 
@@ -164,18 +269,26 @@
   left: 12px;
   top: 50%;
   transform: translateY(-50%);
-  color: rgba(255,255,255,0.44);
+  color: rgba(255, 255, 255, 0.36);
+  pointer-events: none;
 }
 
 .searchField {
   width: 100%;
   height: 40px;
   border-radius: 14px;
-  border: none;
-  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.04);
   color: var(--text);
   padding: 0 14px 0 38px;
   outline: none;
+  font-size: 14px;
+  transition: border-color 140ms ease, background 140ms ease;
+}
+
+.searchField:focus {
+  border-color: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.06);
 }
 
 .searchTools {
@@ -189,18 +302,27 @@
   text-align: center;
   color: var(--muted);
   font-size: 12px;
+  font-variant-numeric: tabular-nums;
 }
 
 .searchNavBtn {
   border-radius: 12px;
 }
 
+.searchMark {
+  background: rgba(255, 122, 26, 0.24);
+  color: inherit;
+  border-radius: 4px;
+  padding: 1px 3px;
+}
+
+/* ── Selection Bar ── */
 .selectionBar {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 10px 18px;
+  padding: 10px 0;
   border-bottom: 1px solid var(--stroke);
 }
 
@@ -220,745 +342,250 @@
   border-radius: 12px;
 }
 
+/* ── Messages Container ── */
 .messages {
   min-height: 0;
-  overflow: auto;
-  padding: 16px 14px 18px;
+  height: 100%;
+  max-height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 18px 0 16px;
+  background: transparent;
   display: grid;
-  gap: 10px;
-  background: rgba(255, 255, 255, 0.01);
+  gap: 6px;
+  align-content: start;
 }
 
-.messages::-webkit-scrollbar { width: 10px; }
-.messages::-webkit-scrollbar-track { background: transparent; }
-.messages::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.14); border-radius: 999px; }
+.messages::-webkit-scrollbar {
+  width: 6px;
+}
+
+.messages::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.messages::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+}
+
+.messages::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
 
 .loadingMore {
   color: var(--muted);
   font-size: 12px;
   text-align: center;
+  padding: 8px 0;
 }
 
+/* ── Date Separator ── */
 .dateRow {
   display: flex;
   justify-content: center;
-  padding: 8px 0 4px;
+  padding: 12px 0 8px;
 }
 
 .dateBadge {
-  padding: 6px 10px;
+  padding: 5px 12px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.06);
-  color: rgba(255, 255, 255, 0.56);
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.48);
   font-size: 11px;
-  letter-spacing: 0.01em;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  backdrop-filter: blur(6px);
 }
 
+/* ── Message Row ── */
 .msgRow {
   display: flex;
-  gap: 10px;
+  gap: 8px;
   align-items: flex-end;
-}
-
-.mine { justify-content: flex-end; }
-.their { justify-content: flex-start; }
-.msgRowHighlighted .bubble { box-shadow: 0 0 0 1px rgba(255,255,255,0.1), 0 0 0 6px rgba(255,255,255,0.03); }
-
-.messageShell {
-  display: grid;
-  gap: 6px;
+  width: 100%;
   min-width: 0;
+  padding: 2px 0;
 }
 
-.messageActions {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.16s ease;
-}
-
-.msgRow:hover .messageActions,
-.messageActionsVisible {
-  opacity: 1;
-  pointer-events: auto;
-}
-
-.mine .messageActions {
+.mine {
   justify-content: flex-end;
 }
 
-.their .messageActions {
+.their {
   justify-content: flex-start;
 }
 
-.msgActionBtn {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  border: none;
-  background: rgba(255,255,255,0.06);
-  color: rgba(255,255,255,0.72);
+.msgRowHighlighted .bubble {
+  box-shadow: 0 0 0 1px rgba(255, 122, 26, 0.2), 0 0 0 4px rgba(255, 122, 26, 0.06);
+}
+
+/* ── Message Shell ── */
+.messageShell {
   display: grid;
-  place-items: center;
+  gap: 4px;
+  min-width: 0;
+  width: fit-content;
+  max-width: min(100%, 82%);
+}
+
+.messageShellAudio {
+  width: min(520px, calc(100% - 12px));
+  max-width: min(520px, calc(100% - 12px));
+}
+
+.messageShellVideo {
+  width: fit-content;
+  max-width: min(252px, calc(100% - 12px));
+}
+
+.msgRow.mine .messageShellAudio,
+.msgRow.mine .messageShellVideo {
+  margin-left: auto;
+}
+
+.messageShellSelectable {
   cursor: pointer;
 }
 
-.bubble {
-  position: relative;
-  max-width: min(680px, 82%);
-  min-width: 0;
-  padding: 12px 14px;
-  border-radius: 22px;
-  background: rgba(255,255,255,0.04);
+/* ── Message Actions (hover quick actions) ── */
+.messageActions {
+  display: none;
 }
 
-.bubbleMine { background: rgba(255,255,255,0.09); }
-.bubbleTheirs { background: rgba(255,255,255,0.05); }
-.bubbleMedia { max-width: min(620px, 92%); }
-.bubbleAudio,
-.bubbleVideo { padding: 10px; }
+/* ── Message Bubble ── */
+.bubble {
+  position: relative;
+  max-width: min(680px, 100%);
+  min-width: 0;
+  padding: 10px 14px;
+  border-radius: 18px;
+  transition: box-shadow 200ms ease;
+}
 
+.bubbleMine {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 18px 18px 6px 18px;
+}
+
+.bubbleTheirs {
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 18px 18px 18px 6px;
+}
+
+.bubbleMedia {
+  max-width: min(620px, 92%);
+  padding: 6px;
+  overflow: hidden;
+}
+
+.bubbleMedia .msgText {
+  padding: 4px 8px 0;
+}
+
+.bubbleMedia .meta {
+  padding: 0 8px;
+}
+
+/* Audio & Video bare bubbles */
+.bubbleAudio,
+.bubbleAudioBare,
+.bubbleVideo,
+.bubbleVideoBare {
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+  overflow: visible !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0;
+}
+
+.bubbleSelectable {
+  cursor: pointer;
+}
+
+/* ── Select Marker ── */
 .selectMarker {
   position: absolute;
-  right: -8px;
-  top: -8px;
-  width: 20px;
-  height: 20px;
+  right: -6px;
+  top: -6px;
+  width: 22px;
+  height: 22px;
   border-radius: 50%;
-  border: 1px solid rgba(255,255,255,0.16);
-  background: rgba(18,18,20,0.96);
+  border: 2px solid rgba(255, 255, 255, 0.14);
+  background: rgba(18, 18, 20, 0.96);
   display: grid;
   place-items: center;
   color: white;
+  z-index: 2;
+  transition: background 140ms ease, border-color 140ms ease;
 }
 
 .selectMarkerActive {
-  background: rgba(255,255,255,0.92);
-  color: #0a0a0b;
+  background: var(--accent);
+  border-color: var(--accent);
+  color: white;
 }
 
+/* ── Sender ── */
 .sender {
-  margin-bottom: 6px;
+  margin-bottom: 4px;
   font-size: 12px;
-  color: var(--muted);
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.52);
+  letter-spacing: 0.01em;
 }
 
+/* ── Forwarded Block ── */
 .forwardedBlock {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  margin-bottom: 8px;
-  color: rgba(255,255,255,0.56);
+  margin-bottom: 6px;
+  color: rgba(255, 255, 255, 0.44);
   font-size: 11px;
   font-weight: 600;
+  font-style: italic;
 }
 
+/* ── Reply Block ── */
 .replyBlock {
   width: 100%;
   display: grid;
   gap: 2px;
   margin: 0 0 8px;
-  padding: 8px 10px;
+  padding: 8px 12px;
   border: none;
-  border-radius: 14px;
-  background: rgba(255,255,255,0.06);
+  border-left: 3px solid rgba(255, 122, 26, 0.5);
+  border-radius: 0 12px 12px 0;
+  background: rgba(255, 255, 255, 0.05);
   color: inherit;
   text-align: left;
   cursor: pointer;
+  transition: background 120ms ease;
+}
+
+.replyBlock:hover {
+  background: rgba(255, 255, 255, 0.07);
 }
 
 .replyAuthor {
   font-size: 11px;
   font-weight: 700;
-  color: rgba(255,255,255,0.7);
+  color: rgba(255, 122, 26, 0.7);
 }
 
 .replyText {
   font-size: 12px;
-  color: rgba(255,255,255,0.56);
+  color: rgba(255, 255, 255, 0.5);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.msgText {
-  white-space: pre-wrap;
-  line-height: 1.45;
-  word-break: break-word;
-}
-
-.msgTextEmojiOnly {
-  font-size: 36px;
-  line-height: 1.15;
-}
-
-.audioBubble { width: 100%; }
-
-.videoBubbleWrap {
-  display: flex;
-  justify-content: center;
-  width: 100%;
-  padding: 4px 2px 2px;
-}
-
-.videoBubble { margin: 0 auto; }
-
-.meta {
-  margin-top: 8px;
-  color: var(--muted);
-  font-size: 11px;
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.unreadMark {
-  color: rgba(255,255,255,0.72);
-}
-
-.statusBadge {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  color: rgba(255,255,255,0.58);
-}
-
-.mediaBlock {
-  width: 100%;
-  margin-top: 8px;
-  display: grid;
-  gap: 8px;
-}
-
-.filesList { display: grid; gap: 6px; }
-
-.fileLink {
-  padding: 8px 10px;
-  border-radius: 12px;
-  background: rgba(255,255,255,0.05);
-  color: var(--muted);
-  text-decoration: none;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.fileLink:hover { color: var(--text); }
-
-.mediaPanel {
-  position: absolute;
-  inset: 0;
-  z-index: 10;
-  display: grid;
-  grid-template-rows: auto 1fr;
-  min-height: 0;
-  background: rgba(8, 8, 10, 0.84);
-  backdrop-filter: blur(8px);
-}
-
-.mediaTop {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 14px;
-  border-bottom: 1px solid var(--stroke);
-}
-
-.mediaTitle { font-weight: 900; }
-.mediaActions { display: flex; gap: 8px; }
-.mediaBtn { min-width: 34px; height: 34px; padding: 0; border-radius: 50%; }
-
-.mediaTabs {
-  display: flex;
-  gap: 8px;
-  padding: 10px 12px 0;
-}
-
-.mediaTab {
-  min-height: 34px;
-  padding: 0 12px;
-  border: 1px solid rgba(255,255,255,0.08);
-  border-radius: 999px;
-  background: rgba(255,255,255,0.03);
-  color: rgba(255,255,255,0.7);
-}
-
-.mediaTabActive {
-  background: rgba(255, 178, 109, 0.14);
-  border-color: rgba(255, 178, 109, 0.4);
-  color: var(--text);
-}
-
-.mediaGrid {
-  padding: 12px;
-  overflow: auto;
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
-}
-
-.mediaThumb {
-  padding: 0;
-  overflow: hidden;
-  border-radius: 14px;
-  border: none;
-  background: rgba(255,255,255,0.05);
-  cursor: pointer;
-}
-
-.mediaThumb img {
-  width: 100%;
-  height: 100%;
-  display: block;
-  object-fit: cover;
-  aspect-ratio: 1 / 1;
-}
-
-.mediaEmpty {
-  padding: 14px 12px;
-  color: var(--muted);
-  font-size: 12px;
-}
-
-.pulseMediaFilters {
-  display: grid;
-  gap: 10px;
-  padding: 12px;
-}
-
-.pulseMediaFilterRow {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.pulseMediaChip {
-  min-height: 30px;
-  padding: 0 10px;
-  border-radius: 999px;
-  border: 1px solid rgba(255,255,255,0.08);
-  background: rgba(255,255,255,0.03);
-  color: rgba(255,255,255,0.72);
-  font-size: 12px;
-}
-
-.pulseMediaChipActive {
-  background: rgba(255, 178, 109, 0.14);
-  border-color: rgba(255, 178, 109, 0.4);
-  color: var(--text);
-}
-
-.pulseMediaSearchRow {
-  display: grid;
-  grid-template-columns: minmax(0, 1.4fr) repeat(2, minmax(0, 1fr));
-  gap: 8px;
-}
-
-.pulseMediaSearchRow input {
-  min-height: 38px;
-  width: 100%;
-  padding: 0 12px;
-  border-radius: 12px;
-  border: 1px solid rgba(255,255,255,0.08);
-  background: rgba(255,255,255,0.03);
-  color: var(--text);
-}
-
-.pulseHistoryList {
-  display: grid;
-  gap: 10px;
-  padding: 0 12px 12px;
-  overflow: auto;
-}
-
-.pulseHistoryItem {
-  display: grid;
-  gap: 8px;
-  padding: 10px;
-  border-radius: 16px;
-  border: 1px solid rgba(255,255,255,0.06);
-  background: rgba(255,255,255,0.03);
-}
-
-.pulseHistoryMeta {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  font-size: 12px;
-  color: rgba(255,255,255,0.64);
-}
-
-.pulseHistoryOwner {
-  font-size: 12px;
-  color: rgba(255,255,255,0.56);
-}
-
-.composer {
-  position: relative;
-  padding: 14px 18px 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  border-top: 1px solid var(--stroke);
-}
-
-.composerMetaBar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 10px 12px;
-  border-radius: 16px;
-  background: rgba(255,255,255,0.05);
-}
-
-.composerMetaText {
-  display: grid;
-  gap: 3px;
-  min-width: 0;
-  color: rgba(255,255,255,0.68);
-  font-size: 12px;
-}
-
-.composerMetaLabel {
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: rgba(255,255,255,0.4);
-}
-
-.composerMetaClose {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  border: none;
-  background: rgba(255,255,255,0.06);
-  color: rgba(255,255,255,0.72);
-}
-
-.previewPanel {
-  display: grid;
-  gap: 10px;
-  padding: 12px;
-  border-radius: 18px;
-  background: rgba(255,255,255,0.04);
-}
-
-.previewHead {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  color: rgba(255,255,255,0.68);
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.previewRemove {
-  width: 28px;
-  height: 28px;
-  border: none;
-  border-radius: 50%;
-  background: rgba(255,255,255,0.06);
-  color: rgba(255,255,255,0.7);
-}
-
-.videoPreviewWrap {
-  display: flex;
-  justify-content: center;
-}
-
-.inlineRecorder { margin-bottom: 2px; }
-.composerStage { position: relative; }
-.inlineEmojiPicker { right: 0; bottom: calc(100% + 10px); }
-
-.recordingHud {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  min-height: 42px;
-  margin-bottom: 8px;
-  padding: 0 14px;
-  border-radius: 999px;
-  background: rgba(10, 14, 20, 0.94);
-  color: rgba(255,255,255,0.92);
-  border: 1px solid rgba(255,255,255,0.08);
-}
-
-.recordingHudCancel {
-  background: rgba(75, 16, 18, 0.94);
-  border-color: rgba(239, 68, 68, 0.28);
-}
-
-.recordingHudDot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: #ff5f57;
-  box-shadow: 0 0 0 8px rgba(255,95,87,0.14);
-}
-
-.recordingHudText {
-  font-size: 13px;
-  font-weight: 700;
-}
-
-.recordingHudTimer {
-  font-size: 12px;
-  font-weight: 700;
-  color: rgba(255,255,255,0.72);
-}
-
-.recordingHudHint {
-  margin-left: auto;
-  min-width: 0;
-  font-size: 12px;
-  color: rgba(255,255,255,0.62);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.composerRow {
-  display: grid;
-  grid-template-columns: auto auto auto auto minmax(0, 1fr) auto;
-  gap: 10px;
-  align-items: end;
-}
-
-.input {
-  width: 100%;
-  min-height: 44px;
-  max-height: 160px;
-  resize: none;
-  border-radius: 16px;
-  padding: 12px 14px;
-  border: none;
-  background: rgba(255,255,255,0.05);
-  color: var(--text);
-  outline: none;
-  overflow-y: hidden;
-  scrollbar-width: none;
-}
-
-.input::-webkit-scrollbar { width: 0; height: 0; }
-
-.input:focus {
-  box-shadow: 0 0 0 1px rgba(255,255,255,0.12);
-}
-
-.input:disabled { opacity: 0.7; }
-
-.send,
-.toolBtn {
-  border-radius: 16px;
-  border: none;
-  background: rgba(255,255,255,0.06);
-  color: var(--text);
-  cursor: pointer;
-}
-
-.toolBtn {
-  width: 44px;
-  height: 44px;
-  display: grid;
-  place-items: center;
-}
-
-.toolBtnActive { background: rgba(255,255,255,0.12); }
-.toolBtnDanger { background: rgba(239,68,68,0.16); }
-
-.send {
-  min-width: 72px;
-  height: 44px;
-  padding: 0 16px;
-  background: rgba(255,255,255,0.14);
-  color: white;
-}
-
-.mediaBlock,
-.filesPreview { display: flex; gap: 10px; flex-wrap: wrap; }
-
-.fileThumb {
-  position: relative;
-  width: 72px;
-  height: 72px;
-  overflow: hidden;
-  border-radius: 16px;
-  background: rgba(255,255,255,0.06);
-}
-
-.fileThumb img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-}
-
-.fileRemove {
-  position: absolute;
-  top: 4px;
-  right: 4px;
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  border: none;
-  background: rgba(0,0,0,0.46);
-  color: white;
-  display: grid;
-  place-items: center;
-}
-
-.fileInput { display: none; }
-
-.systemRow {
-  display: flex;
-  justify-content: center;
-}
-
-.systemCard {
-  width: min(460px, 100%);
-  padding: 12px 14px;
-  border-radius: 16px;
-  background: rgba(255,255,255,0.04);
-  text-align: left;
-  color: var(--text);
-  border: none;
-}
-
-.systemCardInteractive { cursor: pointer; }
-.systemCardInteractive:hover { background: rgba(255,255,255,0.06); }
-.systemText { font-size: 13px; font-weight: 600; }
-.systemMeta {
-  margin-top: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  color: var(--muted);
-  font-size: 11px;
-}
-
-.systemAction { color: rgba(255,255,255,0.84); }
-
-.systemCardWithAction {
-  display: grid;
-  gap: 10px;
-}
-
-.systemActionButton {
-  min-height: 34px;
-  padding: 0 12px;
-  border: 0;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.08);
-  color: rgba(255, 255, 255, 0.92);
-  font-size: 12px;
-  font-weight: 700;
-}
-
-.systemActionButton:disabled {
-  opacity: 0.45;
-}
-
-.searchMark { background: rgba(255,255,255,0.18); color: inherit; border-radius: 4px; padding: 0 2px; }
-
-.scrollDown {
-  position: sticky;
-  left: calc(100% - 52px);
-  bottom: 12px;
-  margin-left: auto;
-  width: 38px;
-  height: 38px;
-  border-radius: 50%;
-  border: none;
-  background: rgba(19,19,21,0.94);
-  color: white;
-  display: grid;
-  place-items: center;
-  box-shadow: 0 12px 26px rgba(0,0,0,0.25);
-}
-
-.returnBanner {
-  grid-column: 1 / -1;
-  margin: 10px 16px 0;
-  padding: 12px 14px;
-  border-radius: 16px;
-  background: rgba(39, 198, 129, 0.1);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.returnBannerText { font-size: 13px; font-weight: 600; }
-.returnBannerButton { height: 34px; padding: 0 12px; border-radius: 999px; }
-
-.callActionGamesActive { background: rgba(39, 198, 129, 0.16); }
-.callActionCount {
-  min-width: 18px;
-  height: 18px;
-  padding: 0 5px;
-  border-radius: 999px;
-  background: rgba(39, 198, 129, 0.96);
-  color: #06130d;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 11px;
-  font-weight: 800;
-}
-
-.forwardModal { display: grid; gap: 14px; }
-.forwardHint { color: var(--muted); font-size: 13px; }
-.forwardList { display: grid; gap: 8px; max-height: 360px; overflow: auto; }
-.forwardRow {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 12px 14px;
-  border-radius: 16px;
-  background: rgba(255,255,255,0.04);
-}
-
-.forwardRowChecked { background: rgba(255,255,255,0.08); }
-.forwardUserInfo { display: flex; align-items: center; gap: 12px; }
-.forwardName { font-weight: 700; }
-.forwardSub { color: var(--muted); font-size: 12px; }
-.forwardActions { display: flex; gap: 10px; justify-content: flex-end; }
-
-@media (max-width: 900px) {
-  .headerActions {
-    flex-wrap: wrap;
-    justify-content: flex-end;
-  }
-}
-
-@media (max-width: 640px) {
-  .wrap { height: calc(100vh - 130px); }
-  .top { flex-wrap: wrap; }
-  .topInfo { flex: 1; }
-  .headerActions { width: 100%; margin-left: 0; }
-  .searchBar,
-  .selectionBar,
-  .composer { padding-left: 14px; padding-right: 14px; }
-  .composerRow { grid-template-columns: repeat(4, 42px) minmax(0, 1fr) auto; gap: 8px; }
-  .toolBtn,
-  .send { height: 42px; width: 42px; min-width: 42px; padding: 0; }
-  .send { min-width: 62px; padding: 0 12px; }
-  .bubble { max-width: 88%; }
-  .bubbleMedia { max-width: 96%; }
-  .msgTextEmojiOnly { font-size: 32px; }
-  .mediaGrid { grid-template-columns: repeat(2, 1fr); }
-  .messageActions { opacity: 1; pointer-events: auto; }
-}
-
+/* ── Story Reply Block ── */
 .storyReplyBlock {
   width: 100%;
   display: flex;
@@ -967,19 +594,24 @@
   margin: 0 0 8px;
   padding: 8px;
   border: none;
-  border-radius: 16px;
-  background: rgba(255,255,255,0.06);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.05);
   color: inherit;
   text-align: left;
   cursor: pointer;
+  transition: background 120ms ease;
+}
+
+.storyReplyBlock:hover {
+  background: rgba(255, 255, 255, 0.07);
 }
 
 .storyReplyThumb {
   width: 44px;
   height: 56px;
-  border-radius: 12px;
+  border-radius: 10px;
   overflow: hidden;
-  background: rgba(255,255,255,0.06);
+  background: rgba(255, 255, 255, 0.06);
   flex: 0 0 auto;
 }
 
@@ -997,153 +629,377 @@
   gap: 3px;
 }
 
+/* ── Message Text ── */
+.msgText {
+  white-space: pre-wrap;
+  line-height: 1.5;
+  word-break: break-word;
+  font-size: 14px;
+}
 
+.msgTextEmojiOnly {
+  font-size: 36px;
+  line-height: 1.15;
+}
+
+/* ── Audio Bubble ── */
+.audioBubble {
+  width: 100%;
+  max-width: 100%;
+}
+
+/* ── Video Bubble ── */
+.videoBubble {
+  width: 100%;
+  max-width: 100%;
+  display: block;
+}
+
+/* ── Message Meta ── */
+.meta {
+  margin-top: 6px;
+  color: rgba(255, 255, 255, 0.36);
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  font-variant-numeric: tabular-nums;
+}
+
+.bubbleAudio .meta,
+.bubbleVideo .meta {
+  width: 100%;
+  margin-top: 8px;
+  padding: 0 2px;
+}
+
+.unreadMark {
+  color: rgba(255, 255, 255, 0.72);
+}
+
+/* ── Status Badge ── */
+.statusBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 14px;
+  color: rgba(255, 255, 255, 0.4);
+  transition: color 200ms ease;
+}
+
+.statusBadgeRead {
+  color: #60a5fa;
+}
+
+.statusBadgePending {
+  color: rgba(255, 255, 255, 0.28);
+}
+
+/* ── Media Block (images, files in messages) ── */
+.mediaBlock {
+  width: 100%;
+  margin-top: 6px;
+  display: grid;
+  gap: 6px;
+}
+
+.filesList {
+  display: grid;
+  gap: 4px;
+}
+
+.fileLink {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.62);
+  text-decoration: none;
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: background 120ms ease, color 120ms ease;
+}
+
+.fileLink:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text);
+}
+
+/* ── System Messages ── */
+.systemRow {
+  display: flex;
+  justify-content: center;
+  padding: 4px 0;
+}
+
+.systemCard {
+  width: min(460px, 100%);
+  padding: 12px 16px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  text-align: left;
+  color: var(--text);
+  border: none;
+  transition: background 140ms ease;
+}
+
+.systemCardInteractive {
+  cursor: pointer;
+}
+
+.systemCardInteractive:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.systemCardWithAction {
+  display: grid;
+  gap: 10px;
+}
+
+.systemText {
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.systemMeta {
+  margin-top: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.systemAction {
+  color: rgba(255, 255, 255, 0.72);
+  font-weight: 600;
+}
+
+.systemActionButton {
+  min-height: 32px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 120ms ease;
+}
+
+.systemActionButton:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.systemActionButton:disabled {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+/* ── Scroll Down Button ── */
+.scrollDown {
+  position: sticky;
+  left: calc(100% - 52px);
+  bottom: 12px;
+  margin-left: auto;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(14, 16, 20, 0.96);
+  color: white;
+  display: grid;
+  place-items: center;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.32);
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+  transition: transform 140ms ease, box-shadow 140ms ease;
+}
+
+.scrollDown:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.4);
+}
+
+/* ── Return to Call Banner ── */
+.returnBanner {
+  grid-column: 1 / -1;
+  margin: 10px 16px 0;
+  padding: 12px 16px;
+  border-radius: 16px;
+  background: rgba(52, 211, 153, 0.08);
+  border: 1px solid rgba(52, 211, 153, 0.16);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.returnBannerText {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.returnBannerButton {
+  height: 34px;
+  padding: 0 14px;
+  border-radius: 999px;
+}
+
+/* ── Lock Banner ── */
 .lockBanner {
   margin-bottom: 10px;
-  padding: 10px 12px;
+  padding: 10px 14px;
   border-radius: 14px;
-  border: 1px solid rgba(255, 178, 87, 0.22);
-  background: rgba(255, 178, 87, 0.08);
+  border: 1px solid rgba(255, 178, 87, 0.18);
+  background: rgba(255, 178, 87, 0.06);
   color: #ffcf9c;
   font-size: 13px;
   line-height: 1.45;
 }
 
-
-/* redesign overrides */
-.wrap { height: calc(100vh - 126px); }
-.top { gap: 10px; padding: 12px 14px; }
-.back { min-width: 34px; height: 34px; }
-.title { font-size: 15px; }
-.sub { font-size: 11px; }
-.headerActions { gap: 6px; }
-.mediaLink, .callAction, .callActionJoin { height: 34px; padding: 0 10px; border-radius: 10px; }
-.searchBar { gap: 10px; padding: 10px 14px; }
-.searchField { height: 36px; border-radius: 12px; }
-.selectionBar { padding: 10px 14px; }
-.messages { padding: 12px 12px 14px; gap: 8px; }
-.dateBadge { padding: 5px 9px; font-size: 10px; }
-.msgRow { gap: 8px; }
-.bubble, .bubbleMine, .bubbleSystem { border-radius: 16px !important; }
-.composer, .composerInner, .composerBar { border-radius: 16px !important; }
-.composer { padding: 10px 12px !important; }
-.mediaPanel, .searchResultsPanel, .forwardModal, .returnBanner { border-radius: 16px !important; }
-.mediaBtn, .send, .attachBtn, .emojiBtn, .composerAction, .selectionAction { border-radius: 10px !important; }
-
-/* messages refresh */
-.wrap {
-  height: 100%;
-  min-height: 0;
-  display: grid;
-  grid-template-rows: auto auto auto minmax(0, 1fr) auto;
-}
-
-.middle {
-  position: relative;
-  min-height: 0;
-  overflow: hidden;
-  display: grid;
-  grid-template-rows: minmax(0, 1fr);
-}
-
-.top {
-  display: grid;
-  grid-template-columns: auto auto minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 12px;
-  padding: 6px 0 14px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-}
-
-.back {
-  min-width: 44px;
-  height: 44px;
-  border-radius: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.03);
-}
-
-.topInfo {
-  min-width: 0;
-  display: grid;
-  gap: 4px;
-}
-
-.title {
-  font-size: 16px;
-  font-weight: 800;
-  line-height: 1.08;
-  letter-spacing: -0.03em;
-}
-
-.sub {
-  min-width: 0;
-  font-size: 12px;
-  color: var(--muted);
-}
-
-.headerActions {
-  margin-left: 0;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: nowrap;
-}
-
-.headerActions::-webkit-scrollbar {
-  display: none;
-}
-
-.mediaLink,
-.callAction,
-.callActionJoin {
-  position: relative;
-  width: 44px;
-  min-width: 44px;
-  height: 44px;
-  padding: 0;
-  border-radius: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.03);
-  color: var(--text);
-}
-
-.callActionJoin {
-  border-color: rgba(39, 198, 129, 0.28);
-  background: rgba(39, 198, 129, 0.1);
-}
-
-.callActionCount {
-  position: absolute;
-  top: -4px;
-  right: -3px;
-}
-
-.searchBar,
-.selectionBar {
-  padding: 12px 0;
-}
-
-.messages {
-  min-height: 0;
-  height: 100%;
-  max-height: 100%;
-  overflow: auto;
-  padding: 18px 0 16px;
-  background: transparent;
-  align-content: start;
-}
+/* ════════════════════════════════════════════
+   COMPOSER
+   ════════════════════════════════════════════ */
 
 .composer {
-  padding: 8px 0 0;
+  position: relative;
+  padding: 8px 0 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
   border-top: 0;
   background: transparent;
-  border-radius: 0 !important;
+  bottom: auto;
 }
 
 .composerStage {
   position: relative;
   width: 100%;
+}
+
+.composerInputShell {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  min-height: 56px;
+  width: 100%;
+  padding: 7px 9px;
+  border-radius: 26px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(12, 15, 19, 0.92);
+  box-shadow: 0 -2px 16px rgba(0, 0, 0, 0.12);
+  transition: background 140ms ease, border-color 140ms ease, box-shadow 140ms ease;
+}
+
+.composerInputShell:focus-within {
+  background: rgba(14, 17, 22, 0.98);
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 -2px 20px rgba(0, 0, 0, 0.16);
+}
+
+.composerInputShellRecording {
+  width: 100%;
+  min-height: 58px;
+  border-radius: 26px;
+  padding: 8px 10px;
+}
+
+/* ── Composer Meta Bar (reply/edit indicator) ── */
+.composerMetaBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.04);
+  border-left: 3px solid rgba(255, 122, 26, 0.4);
+}
+
+.composerMetaText {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  color: rgba(255, 255, 255, 0.68);
+  font-size: 12px;
+}
+
+.composerMetaLabel {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(255, 122, 26, 0.6);
+  font-weight: 600;
+}
+
+.composerMetaClose {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.62);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: background 120ms ease;
+}
+
+.composerMetaClose:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* ── Preview Panel (pending media) ── */
+.previewPanel {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.previewHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.previewRemove {
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.62);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+
+.videoPreviewWrap {
+  display: flex;
+  justify-content: center;
+  padding: 4px 0 2px;
+}
+
+.inlineRecorder {
+  margin-bottom: 2px;
 }
 
 .inlineEmojiPicker {
@@ -1152,27 +1008,15 @@
   bottom: calc(100% + 12px);
 }
 
-.composerInputShell {
-  position: relative;
-  display: flex;
-  align-items: flex-end;
-  gap: 6px;
-  min-height: 56px;
-  width: 100%;
-  padding: 7px 9px;
-  border-radius: 24px;
-  border: 0;
-  background: rgba(14, 17, 21, 0.94);
-  box-shadow: none;
-  transition: background 140ms ease, box-shadow 140ms ease, transform 140ms ease;
-}
-
-.composerInputShell:focus-within {
-  background: rgba(16, 19, 24, 0.98);
-  box-shadow: none;
-}
-
+/* ── Composer Actions Layout ── */
 .leadingActions {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  flex: 0 0 auto;
+}
+
+.trailingActions {
   display: inline-flex;
   align-items: center;
   gap: 2px;
@@ -1189,14 +1033,15 @@
   position: absolute;
   left: 0;
   bottom: calc(100% + 10px);
-  min-width: 176px;
+  min-width: 200px;
   padding: 8px;
   display: grid;
-  gap: 6px;
-  border-radius: 16px;
+  gap: 2px;
+  border-radius: 18px;
   border: 1px solid rgba(255, 255, 255, 0.1);
   background: rgba(11, 13, 16, 0.98);
-  box-shadow: var(--shadow-md);
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.38);
+  backdrop-filter: blur(20px);
   z-index: 15;
 }
 
@@ -1205,19 +1050,74 @@
   align-items: center;
   gap: 10px;
   width: 100%;
-  min-height: 40px;
-  padding: 0 12px;
+  min-height: 42px;
+  padding: 0 14px;
   border: 0;
   border-radius: 12px;
   background: transparent;
   color: var(--text);
   text-align: left;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background 120ms ease;
 }
 
 .attachMenuItem:hover {
   background: rgba(255, 255, 255, 0.06);
 }
 
+/* ── Inner Action Buttons ── */
+.innerActionBtn {
+  width: 40px;
+  min-width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.62);
+  display: inline-grid;
+  place-items: center;
+  cursor: pointer;
+  transition: background 140ms ease, color 140ms ease, transform 100ms ease;
+}
+
+.innerActionBtn:hover,
+.innerActionBtnHover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text);
+}
+
+.innerActionBtn:active {
+  transform: scale(0.92);
+}
+
+.innerActionBtnActive {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text);
+}
+
+.innerActionBtnDanger {
+  background: rgba(239, 68, 68, 0.14);
+  color: #ff8a8a;
+}
+
+.innerActionBtnDanger:hover {
+  background: rgba(239, 68, 68, 0.22);
+}
+
+.innerActionBtnPrimary {
+  background: linear-gradient(135deg, rgba(255, 122, 26, 0.28), rgba(255, 122, 26, 0.18));
+  border: 1px solid rgba(255, 122, 26, 0.24);
+  color: #fff;
+}
+
+.innerActionBtnPrimary:hover {
+  background: linear-gradient(135deg, rgba(255, 122, 26, 0.36), rgba(255, 122, 26, 0.24));
+  border-color: rgba(255, 122, 26, 0.36);
+}
+
+/* ── Text Input ── */
 .input {
   flex: 1;
   min-width: 0;
@@ -1227,216 +1127,803 @@
   border: 0;
   border-radius: 0;
   background: transparent;
+  color: var(--text);
   resize: none;
+  font-size: 14px;
+  line-height: 1.45;
+  outline: none;
 }
 
 .input:focus {
   box-shadow: none;
 }
 
-.trailingActions {
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-  flex: 0 0 auto;
+.input::-webkit-scrollbar {
+  width: 0;
+  height: 0;
 }
 
-.innerActionBtn {
-  width: 40px;
-  min-width: 40px;
-  height: 40px;
-  padding: 0;
-  border: 0;
-  border-radius: 999px;
-  background: transparent;
+.input:disabled {
+  opacity: 0.6;
+}
+
+/* ── Legacy composer row (grid layout) ── */
+.composerRow {
+  display: grid;
+  grid-template-columns: auto auto auto auto minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: end;
+}
+
+.send,
+.toolBtn {
+  border-radius: 14px;
+  border: none;
+  background: rgba(255, 255, 255, 0.06);
   color: var(--text);
-  display: inline-grid;
+  cursor: pointer;
+  transition: background 120ms ease;
+}
+
+.toolBtn {
+  width: 44px;
+  height: 44px;
+  display: grid;
   place-items: center;
-  transition: background 140ms ease, color 140ms ease, transform 140ms ease;
 }
 
-.innerActionBtn:hover,
-.innerActionBtnHover {
-  background: rgba(255, 255, 255, 0.08);
-}
-
-.innerActionBtnActive {
+.toolBtn:hover {
   background: rgba(255, 255, 255, 0.1);
 }
 
-.innerActionBtnDanger {
-  background: rgba(239, 68, 68, 0.18);
+.toolBtnActive {
+  background: rgba(255, 255, 255, 0.12);
 }
 
-.innerActionBtnPrimary {
-  background: linear-gradient(180deg, rgba(255, 122, 26, 0.24), rgba(255, 122, 26, 0.16));
-  border: 1px solid rgba(255, 122, 26, 0.28);
-  color: #fff;
+.toolBtnDanger {
+  background: rgba(239, 68, 68, 0.14);
 }
 
-.innerActionBtnPrimary:hover {
-  background: linear-gradient(180deg, rgba(255, 122, 26, 0.3), rgba(255, 122, 26, 0.2));
-  border-color: rgba(255, 122, 26, 0.38);
+.send {
+  min-width: 72px;
+  height: 44px;
+  padding: 0 16px;
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  font-weight: 600;
+}
+
+.send:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+/* ── File Thumbnails (composer) ── */
+.filesPreview {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 .fileThumb {
+  position: relative;
   width: 80px;
   height: 80px;
+  overflow: hidden;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.05);
 }
 
-@media (max-width: 960px) {
-  .wrap {
-    height: 100%;
-    min-height: 0;
-    overflow: hidden;
-  }
-
-  .top {
-    display: grid;
-    grid-template-columns: auto auto minmax(0, 1fr) auto;
-    align-items: center;
-    row-gap: 10px;
-    padding: 0 0 12px;
-    position: relative;
-  }
-
-  .topInfo {
-    min-width: 0;
-  }
-
-  .desktopHeaderActions {
-    display: none;
-  }
-
-  .mobileHeaderMenuWrap {
-    display: flex;
-    justify-content: flex-end;
-  }
-
-  .searchBar,
-  .selectionBar {
-    padding-left: 0;
-    padding-right: 0;
-  }
-
-  .messages {
-    padding: 12px 0 8px;
-  }
-
-  .composer {
-    padding: 8px 0 calc(env(safe-area-inset-bottom, 0px) + 4px);
-    border-top: 0;
-  }
-
-  .composerStage {
-    padding: 0 10px;
-  }
-
-  .lockBanner,
-  .composerMetaBar,
-  .previewPanel,
-  .filesPreview,
-  .inlineRecorder {
-    margin-left: 10px;
-    margin-right: 10px;
-  }
-
-  .messageActions {
-    opacity: 1;
-    pointer-events: auto;
-  }
-
-  .messageActions .msgActionBtn:not(:last-child) {
-    display: none;
-  }
-
-  .messageActionsVisible .msgActionBtn {
-    display: grid;
-  }
+.fileThumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 
-@media (max-width: 640px) {
-  .back,
-  .mediaLink,
-  .callAction,
-  .callActionJoin,
-  .innerActionBtn,
-  .innerActionBtnPrimary,
-  .mobileHeaderMore {
-    width: 42px;
-    min-width: 42px;
-    height: 42px;
-  }
-
-  .top {
-    padding-bottom: 10px;
-  }
-
-  .composer {
-    padding-top: 4px;
-  }
-
-  .composerStage {
-    padding: 0 12px;
-  }
-
-  .composerInputShell {
-    min-height: 54px;
-    padding: 6px 8px;
-    border-radius: 22px;
-  }
-
-  .input {
-    min-height: 38px;
-    padding: 9px 0 7px;
-  }
-
-  .bubble {
-    max-width: 90%;
-  }
-
-  .bubbleMedia {
-    max-width: 96%;
-  }
-
-  .attachMenu {
-    min-width: 164px;
-    bottom: calc(100% + 8px);
-  }
-
-  .mobileHeaderMenu {
-    min-width: 204px;
-  }
-}
-
-
-/* v6 chat polish */
-.pageMobileNoHeader {
-  min-width: 0;
-  padding-bottom: 0 !important;
-}
-
-.headerStack {
-  min-width: 0;
-  min-height: 0;
+.fileRemove {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(0, 0, 0, 0.52);
+  color: white;
   display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: background 120ms ease;
 }
 
-.composer {
-  padding-bottom: 0;
+.fileRemove:hover {
+  background: rgba(0, 0, 0, 0.7);
 }
 
-@media (min-width: 961px) {
-  .composer {
-    padding-bottom: 0;
+.fileInput {
+  display: none;
+}
+
+/* ── Recording HUD ── */
+.recordingHud {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 42px;
+  margin-bottom: 8px;
+  padding: 0 16px;
+  border-radius: 999px;
+  background: rgba(10, 14, 20, 0.94);
+  color: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.recordingHudCancel {
+  background: rgba(75, 16, 18, 0.9);
+  border-color: rgba(239, 68, 68, 0.22);
+}
+
+.recordingHudDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ef4444;
+  box-shadow: 0 0 0 6px rgba(239, 68, 68, 0.14);
+  animation: recordPulse 1.5s ease-in-out infinite;
+}
+
+.recordingHudText {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.recordingHudTimer {
+  font-size: 13px;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.72);
+  font-variant-numeric: tabular-nums;
+}
+
+.recordingHudHint {
+  margin-left: auto;
+  min-width: 0;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.48);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Recording Composer Bar ── */
+.recordingComposerBar {
+  width: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.recordingComposerMeta {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.recordingComposerDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ef4444;
+  box-shadow: 0 0 0 6px rgba(239, 68, 68, 0.14);
+  flex: 0 0 auto;
+  animation: recordPulse 1.5s ease-in-out infinite;
+}
+
+.recordingComposerTitle {
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.recordingComposerTimer {
+  font-size: 14px;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.82);
+  font-variant-numeric: tabular-nums;
+}
+
+.recordingComposerActions {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* ── Video Note Recorder ── */
+.videoNoteRecorder {
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.videoNoteBubbleWrap {
+  position: relative;
+  width: min(220px, 58vw);
+  aspect-ratio: 1;
+}
+
+.videoNoteBubble {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  background: rgba(13, 16, 20, 0.98);
+  box-shadow: 0 20px 44px rgba(0, 0, 0, 0.32);
+}
+
+.videoNoteProgress {
+  position: absolute;
+  inset: -7px;
+  border-radius: 50%;
+  border-top: 4px solid rgba(255, 255, 255, 0.9);
+  border-right: 4px solid transparent;
+  border-bottom: 4px solid rgba(255, 255, 255, 0.14);
+  border-left: 4px solid rgba(255, 255, 255, 0.14);
+  animation: spin 1.2s linear infinite;
+}
+
+.videoNoteRecorderBar {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 0 16px;
+  border-radius: 999px;
+  background: rgba(10, 14, 20, 0.92);
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.videoNoteRecorderDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ef4444;
+  box-shadow: 0 0 0 6px rgba(239, 68, 68, 0.14);
+  animation: recordPulse 1.5s ease-in-out infinite;
+}
+
+.videoNoteRecorderText {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.videoNoteRecorderCancel {
+  border: 0;
+  background: transparent;
+  color: #60a5fa;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+/* ── Video Record Modal ── */
+.videoRecordModal {
+  min-height: min(72dvh, 640px);
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  align-items: center;
+  justify-items: center;
+  padding-top: 18px;
+}
+
+.videoRecordPreviewWrap {
+  position: relative;
+  width: min(300px, calc(100vw - 44px));
+  aspect-ratio: 1;
+}
+
+.videoRecordPreview {
+  position: absolute;
+  inset: 12px;
+  width: calc(100% - 24px);
+  height: calc(100% - 24px);
+  border-radius: 50%;
+  object-fit: cover;
+  background: rgba(10, 14, 20, 0.96);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.36);
+}
+
+.videoRecordPreviewRing {
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  border: 4px solid rgba(255, 255, 255, 0.12);
+}
+
+.videoRecordProgressSvg {
+  position: absolute;
+  inset: 0;
+  transform: rotate(-90deg);
+  overflow: visible;
+}
+
+.videoRecordProgressTrack,
+.videoRecordProgressValue {
+  fill: none;
+  stroke-width: 5;
+}
+
+.videoRecordProgressTrack {
+  stroke: rgba(255, 255, 255, 0.1);
+}
+
+.videoRecordProgressValue {
+  stroke: rgba(255, 255, 255, 0.96);
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.16s ease;
+}
+
+.videoRecordTimerPill {
+  position: absolute;
+  left: 16px;
+  top: 18px;
+  z-index: 2;
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(16, 20, 32, 0.52);
+  color: white;
+  font-size: 13px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  backdrop-filter: blur(10px);
+}
+
+.videoRecordToolbar {
+  width: min(100%, 420px);
+  display: grid;
+  gap: 12px;
+  justify-items: center;
+  padding-bottom: max(8px, env(safe-area-inset-bottom, 0px));
+}
+
+.videoRecordToolbarMeta {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.videoRecordToolbarText {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.videoRecordToolbarTimer {
+  font-size: 14px;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.72);
+  font-variant-numeric: tabular-nums;
+}
+
+.videoRecordToolbarActions {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* ════════════════════════════════════════════
+   CONTEXT MENU (Desktop)
+   ════════════════════════════════════════════ */
+
+.messageContextMenuBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 259;
+  background: transparent;
+}
+
+.messageContextMenu {
+  position: fixed;
+  z-index: 260;
+  min-width: 200px;
+  max-width: 240px;
+  padding: 6px;
+  display: grid;
+  gap: 2px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(11, 13, 16, 0.98);
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.42), 0 0 0 1px rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(24px);
+}
+
+.messageContextMenuItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 40px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  font-size: 14px;
+  pointer-events: auto;
+  transition: background 100ms ease;
+}
+
+.messageContextMenuItem:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.messageContextMenuItem:active {
+  background: rgba(255, 255, 255, 0.09);
+}
+
+.messageContextMenuItemDanger {
+  color: #ff8a8a;
+}
+
+.messageContextMenuItemDanger:hover {
+  background: rgba(239, 68, 68, 0.1);
+}
+
+/* ════════════════════════════════════════════
+   MOBILE ACTION MENU (Bottom Sheet)
+   ════════════════════════════════════════════ */
+
+.mobileMessageActionBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 220;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+}
+
+.mobileMessageActionMenu {
+  position: fixed;
+  left: 8px;
+  right: 8px;
+  bottom: max(8px, calc(env(safe-area-inset-bottom, 0px) + 8px));
+  z-index: 221;
+  display: grid;
+  gap: 4px;
+  padding: 8px;
+  border-radius: 22px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(11, 13, 16, 0.98);
+  box-shadow: 0 24px 52px rgba(0, 0, 0, 0.42);
+  backdrop-filter: blur(24px);
+}
+
+.mobileMessageActionsSheet {
+  display: grid;
+  gap: 2px;
+}
+
+.mobileMessageActionsItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 50px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 500;
+  transition: background 100ms ease;
+}
+
+.mobileMessageActionsItem:active {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.mobileMessageActionsItemDanger {
+  color: #ff8a8a;
+}
+
+/* ════════════════════════════════════════════
+   FORWARD MODAL
+   ════════════════════════════════════════════ */
+
+.forwardModal {
+  display: grid;
+  gap: 14px;
+}
+
+.forwardHint {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.forwardList {
+  display: grid;
+  gap: 6px;
+  max-height: 360px;
+  overflow: auto;
+}
+
+.forwardRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  transition: background 120ms ease, border-color 120ms ease;
+}
+
+.forwardRowChecked {
+  background: rgba(255, 122, 26, 0.06);
+  border-color: rgba(255, 122, 26, 0.16);
+}
+
+.forwardUserInfo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.forwardName {
+  font-weight: 700;
+}
+
+.forwardSub {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.forwardActions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+/* ════════════════════════════════════════════
+   MEDIA PANEL
+   ════════════════════════════════════════════ */
+
+.mediaPanel {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  display: grid;
+  grid-template-rows: auto auto 1fr;
+  min-height: 0;
+  background: rgba(8, 8, 10, 0.88);
+  backdrop-filter: blur(12px);
+}
+
+.mediaTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--stroke);
+}
+
+.mediaTitle {
+  font-weight: 800;
+  font-size: 16px;
+}
+
+.mediaActions {
+  display: flex;
+  gap: 8px;
+}
+
+.mediaBtn {
+  min-width: 34px;
+  height: 34px;
+  padding: 0;
+  border-radius: 50%;
+}
+
+.mediaTabs {
+  display: flex;
+  gap: 6px;
+  padding: 12px 14px;
+}
+
+.mediaTab {
+  min-height: 34px;
+  padding: 0 14px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.02);
+  color: rgba(255, 255, 255, 0.58);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
+}
+
+.mediaTab:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.mediaTabActive {
+  background: rgba(255, 122, 26, 0.1);
+  border-color: rgba(255, 122, 26, 0.24);
+  color: var(--text);
+}
+
+.mediaGrid {
+  padding: 12px;
+  overflow: auto;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.mediaThumb {
+  padding: 0;
+  overflow: hidden;
+  border-radius: 12px;
+  border: none;
+  background: rgba(255, 255, 255, 0.04);
+  cursor: pointer;
+  transition: transform 120ms ease, opacity 120ms ease;
+}
+
+.mediaThumb:hover {
+  transform: scale(1.02);
+}
+
+.mediaThumb:active {
+  transform: scale(0.98);
+}
+
+.mediaThumb img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  aspect-ratio: 1 / 1;
+}
+
+.mediaEmpty {
+  padding: 18px 14px;
+  color: var(--muted);
+  font-size: 13px;
+  text-align: center;
+}
+
+/* ── Pulse Media Filters ── */
+.pulseMediaFilters {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+}
+
+.pulseMediaFilterRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.pulseMediaChip {
+  min-height: 30px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.02);
+  color: rgba(255, 255, 255, 0.58);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+}
+
+.pulseMediaChip:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.pulseMediaChipActive {
+  background: rgba(255, 122, 26, 0.1);
+  border-color: rgba(255, 122, 26, 0.24);
+  color: var(--text);
+}
+
+.pulseMediaSearchRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.pulseMediaSearchRow input {
+  min-height: 38px;
+  width: 100%;
+  padding: 0 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text);
+  font-size: 13px;
+}
+
+.pulseHistoryList {
+  display: grid;
+  gap: 8px;
+  padding: 0 12px 12px;
+  overflow: auto;
+}
+
+.pulseHistoryItem {
+  display: grid;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.025);
+  transition: background 120ms ease, border-color 120ms ease;
+}
+
+.pulseHistoryItem:hover {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.pulseHistoryMeta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.56);
+}
+
+.pulseHistoryOwner {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.48);
+}
+
+/* ════════════════════════════════════════════
+   ANIMATIONS
+   ════════════════════════════════════════════ */
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
   }
+}
 
-  .composerInputShell {
-    border-radius: 24px;
-    border: 0;
-    box-shadow: none;
+@keyframes recordPulse {
+  0%, 100% {
+    opacity: 1;
+    box-shadow: 0 0 0 6px rgba(239, 68, 68, 0.14);
+  }
+  50% {
+    opacity: 0.6;
+    box-shadow: 0 0 0 10px rgba(239, 68, 68, 0.08);
   }
 }
+
+/* ════════════════════════════════════════════
+   RESPONSIVE — Tablet (960px)
+   ════════════════════════════════════════════ */
 
 @media (max-width: 960px) {
   .pageMobileNoHeader {
@@ -1450,7 +1937,15 @@
   .top {
     padding: max(10px, calc(env(safe-area-inset-top, 0px) + 8px)) 12px 10px;
     gap: 10px;
-    background: transparent;
+  }
+
+  .desktopHeaderActions {
+    display: none;
+  }
+
+  .mobileHeaderMenuWrap {
+    display: flex;
+    justify-content: flex-end;
   }
 
   .searchBar,
@@ -1463,10 +1958,23 @@
     padding: 12px 12px 8px;
   }
 
+  .messageShell {
+    max-width: min(100%, calc(100% - 40px));
+  }
+
+  .messageShellAudio {
+    width: min(calc(100vw - 88px), 100%);
+    max-width: min(calc(100vw - 88px), 100%);
+  }
+
+  .messageShellVideo {
+    width: fit-content;
+    max-width: min(calc(100vw - 92px), 252px);
+  }
+
   .composer {
-    position: sticky;
-    bottom: 0;
-    z-index: 8;
+    position: relative !important;
+    bottom: auto !important;
     padding: 0 4px calc(env(safe-area-inset-bottom, 0px) + 2px);
     background: transparent;
     border-top: 0;
@@ -1495,23 +2003,98 @@
     margin-left: 0;
     margin-right: 0;
   }
+
+  .messageContextMenu {
+    display: none;
+  }
+
+  .videoRecordModal {
+    min-height: calc(100dvh - 132px);
+    grid-template-rows: minmax(0, 1fr) auto;
+    align-content: center;
+    padding-top: 28px;
+  }
+
+  .videoRecordPreviewWrap {
+    width: min(300px, calc(100vw - 36px));
+    align-self: center;
+  }
+
+  .videoRecordToolbar {
+    width: 100%;
+  }
+
+  .composerInputShellRecording {
+    min-height: 54px;
+    padding: 6px 10px;
+  }
+
+  .recordingComposerBar {
+    width: 100%;
+    grid-template-columns: minmax(0, 1fr) auto;
+    row-gap: 8px;
+  }
+
+  .recordingComposerActions {
+    grid-column: 1 / -1;
+    justify-self: end;
+  }
 }
+
+/* ════════════════════════════════════════════
+   RESPONSIVE — Mobile (640px)
+   ════════════════════════════════════════════ */
 
 @media (max-width: 640px) {
   .top {
     padding: max(10px, calc(env(safe-area-inset-top, 0px) + 8px)) 12px 10px;
   }
 
+  .back,
+  .mediaLink,
+  .callAction,
+  .callActionJoin,
+  .innerActionBtn,
+  .innerActionBtnPrimary,
+  .mobileHeaderMore {
+    width: 42px;
+    min-width: 42px;
+    height: 42px;
+  }
+
   .messages {
     padding: 10px 12px 2px;
+    gap: 4px;
+  }
+
+  .bubble {
+    max-width: 90%;
+  }
+
+  .bubbleMedia {
+    max-width: 96%;
+  }
+
+  .msgTextEmojiOnly {
+    font-size: 32px;
+  }
+
+  .messageShell {
+    max-width: min(100%, calc(100% - 36px));
+  }
+
+  .messageShellAudio {
+    width: min(calc(100vw - 72px), 100%);
+    max-width: min(calc(100vw - 72px), 100%);
+  }
+
+  .messageShellVideo {
+    width: fit-content;
+    max-width: min(calc(100vw - 76px), 252px);
   }
 
   .composer {
     padding: 0 2px calc(env(safe-area-inset-bottom, 0px) + 1px);
-  }
-
-  .composerStage {
-    padding: 0;
   }
 
   .composerInputShell {
@@ -1528,324 +2111,24 @@
   .input {
     padding-left: 2px;
     padding-right: 2px;
-  }
-}
-
-
-.videoNoteRecorder {
-  display: grid;
-  justify-items: center;
-  gap: 12px;
-  margin-bottom: 10px;
-}
-
-.videoNoteBubbleWrap {
-  position: relative;
-  width: min(220px, 58vw);
-  aspect-ratio: 1;
-}
-
-.videoNoteBubble {
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
-  object-fit: cover;
-  background: rgba(13, 16, 20, 0.98);
-  box-shadow: 0 20px 44px rgba(0, 0, 0, 0.28);
-}
-
-.videoNoteProgress {
-  position: absolute;
-  inset: -7px;
-  border-radius: 50%;
-  border-top: 4px solid rgba(255,255,255,0.9);
-  border-right: 4px solid transparent;
-  border-bottom: 4px solid rgba(255,255,255,0.18);
-  border-left: 4px solid rgba(255,255,255,0.18);
-  animation: spin 1.2s linear infinite;
-}
-
-.videoNoteRecorderBar {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  min-height: 44px;
-  padding: 0 16px;
-  border-radius: 999px;
-  background: rgba(10, 14, 20, 0.92);
-  color: rgba(255,255,255,0.9);
-}
-
-.videoNoteRecorderDot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: #ff5f57;
-  box-shadow: 0 0 0 8px rgba(255,95,87,0.14);
-}
-
-.videoNoteRecorderText {
-  font-size: 13px;
-  font-weight: 700;
-}
-
-.videoNoteRecorderCancel {
-  border: 0;
-  background: transparent;
-  color: #69a8ff;
-  font-size: 13px;
-  font-weight: 800;
-}
-
-@media (max-width: 640px) {
-  .videoNoteBubbleWrap {
-    width: min(250px, 72vw);
+    min-height: 38px;
+    padding-top: 9px;
+    padding-bottom: 7px;
   }
 
-  .videoNoteRecorderBar {
-    width: calc(100% - 20px);
-    justify-content: center;
+  .mediaGrid {
+    grid-template-columns: repeat(2, 1fr);
   }
 
-  .recordingHud {
-    width: 100%;
-    padding: 0 12px;
-    margin-bottom: 6px;
+  .mobileHeaderMenu {
+    min-width: 204px;
   }
 
-  .recordingHudHint {
-    max-width: 42%;
-  }
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-/* v3 message controls + recording */
-@media (min-width: 961px) {
-  .messageActions {
-    display: none !important;
-  }
-}
-
-.messageShellSelectable,
-.bubbleSelectable {
-  cursor: pointer;
-}
-
-.bubbleAudio {
-  max-width: min(360px, 78vw);
-  overflow: hidden;
-}
-
-.bubbleVideo {
-  max-width: min(300px, 74vw);
-  overflow: hidden;
-}
-
-.audioBubble {
-  width: min(100%, 320px);
-  max-width: 100%;
-}
-
-.videoBubbleWrap {
-  width: min(100%, 248px);
-  margin: 0 auto;
-  padding: 0;
-}
-
-.videoBubble {
-  width: 100%;
-  max-width: 100%;
-}
-
-.meta {
-  gap: 6px;
-}
-
-.statusBadge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 14px;
-  color: rgba(255, 255, 255, 0.56);
-}
-
-.statusBadgeRead {
-  color: #59a8ff;
-}
-
-.statusBadgePending {
-  color: rgba(255, 255, 255, 0.42);
-}
-
-.composerInputShellRecording {
-  padding: 8px 10px;
-}
-
-.recordingComposerBar {
-  width: 100%;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
-  align-items: center;
-  gap: 10px;
-}
-
-.recordingComposerMeta {
-  min-width: 0;
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.recordingComposerDot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: #ff5f57;
-  box-shadow: 0 0 0 8px rgba(255, 95, 87, 0.14);
-  flex: 0 0 auto;
-}
-
-.recordingComposerTitle {
-  min-width: 0;
-  font-size: 14px;
-  font-weight: 700;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.recordingComposerTimer {
-  font-size: 14px;
-  font-weight: 800;
-  color: rgba(255, 255, 255, 0.88);
-}
-
-.recordingComposerActions {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.videoRecordModal {
-  display: grid;
-  gap: 18px;
-  justify-items: center;
-}
-
-.videoRecordPreviewWrap {
-  position: relative;
-  width: min(300px, 76vw);
-  aspect-ratio: 1;
-}
-
-.videoRecordPreviewRing {
-  position: absolute;
-  inset: -6px;
-  border-radius: 50%;
-  border: 4px solid rgba(255, 255, 255, 0.16);
-}
-
-.videoRecordPreview {
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
-  object-fit: cover;
-  background: rgba(10, 14, 20, 0.96);
-  box-shadow: 0 20px 42px rgba(0, 0, 0, 0.28);
-}
-
-.videoRecordToolbar {
-  width: min(100%, 420px);
-  display: grid;
-  gap: 12px;
-  justify-items: center;
-}
-
-.videoRecordToolbarMeta {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  min-width: 0;
-  flex-wrap: wrap;
-  justify-content: center;
-}
-
-.videoRecordToolbarText {
-  font-size: 14px;
-  font-weight: 700;
-}
-
-.videoRecordToolbarTimer {
-  font-size: 14px;
-  font-weight: 800;
-  color: rgba(255, 255, 255, 0.72);
-}
-
-.videoRecordToolbarActions {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.messageContextMenu {
-  position: fixed;
-  z-index: 140;
-  min-width: 220px;
-  max-width: 240px;
-  padding: 8px;
-  display: grid;
-  gap: 4px;
-  border-radius: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(11, 13, 16, 0.98);
-  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.34);
-  backdrop-filter: blur(16px);
-}
-
-.messageContextMenuItem {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  width: 100%;
-  min-height: 40px;
-  padding: 0 12px;
-  border: 0;
-  border-radius: 12px;
-  background: transparent;
-  color: var(--text);
-  text-align: left;
-}
-
-.messageContextMenuItem:hover {
-  background: rgba(255, 255, 255, 0.06);
-}
-
-.messageContextMenuItemDanger {
-  color: #ff9a9a;
-}
-
-@media (max-width: 960px) {
-  .bubbleAudio {
-    max-width: min(100%, 320px);
+  .attachMenu {
+    min-width: 176px;
+    bottom: calc(100% + 8px);
   }
 
-  .bubbleVideo {
-    max-width: min(280px, 84vw);
-  }
-
-  .videoBubbleWrap {
-    width: min(100%, 220px);
-  }
-
-  .messageContextMenu {
-    display: none;
-  }
-}
-
-@media (max-width: 640px) {
   .composerInputShellRecording {
     padding: 6px 8px;
   }
@@ -1864,629 +2147,35 @@
     justify-self: end;
   }
 
-  .videoRecordPreviewWrap {
-    width: min(280px, 72vw);
-  }
-}
-
-/* v4 messaging media + mobile actions */
-.bubbleAudio {
-  width: min(100%, 420px);
-  max-width: min(100%, 420px);
-}
-
-.audioBubble {
-  width: 100%;
-  max-width: 100%;
-}
-
-.bubbleVideo {
-  width: min(100%, 292px);
-  max-width: min(100%, 292px);
-  overflow: hidden;
-}
-
-.videoBubbleWrap {
-  width: 100%;
-  display: flex;
-  justify-content: center;
-  padding: 2px 0 0;
-}
-
-.videoBubble {
-  width: 100%;
-  max-width: 100%;
-}
-
-.mobileMessageActionsSheet {
-  display: grid;
-  gap: 8px;
-}
-
-.mobileMessageActionsItem {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  width: 100%;
-  min-height: 46px;
-  padding: 0 14px;
-  border: 0;
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.04);
-  color: var(--text);
-  text-align: left;
-}
-
-.mobileMessageActionsItemDanger {
-  color: #ff9a9a;
-}
-
-.messageShell {
-  max-width: 100%;
-}
-
-.composerInputShellRecording {
-  width: 100%;
-  min-height: 56px;
-}
-
-.videoRecordModal {
-  min-height: min(74vh, 680px);
-  align-content: center;
-}
-
-.videoRecordToolbar {
-  width: min(100%, 420px);
-}
-
-.videoRecordToolbarActions {
-  gap: 10px;
-}
-
-@media (max-width: 960px) {
-  .messageActions {
-    display: none !important;
+  .videoNoteBubbleWrap {
+    width: min(250px, 72vw);
   }
 
-  .bubbleAudio {
-    width: min(100%, calc(100vw - 86px));
-    max-width: min(100%, calc(100vw - 86px));
+  .videoNoteRecorderBar {
+    width: calc(100% - 20px);
+    justify-content: center;
   }
 
-  .bubbleVideo {
-    width: min(220px, calc(100vw - 128px));
-    max-width: min(220px, calc(100vw - 128px));
-  }
-
-  .composerInputShellRecording {
-    min-height: 54px;
-    padding: 6px 10px;
-  }
-
-  .recordingComposerBar {
+  .recordingHud {
     width: 100%;
-    grid-template-columns: minmax(0, 1fr) auto;
-    row-gap: 8px;
+    padding: 0 12px;
+    margin-bottom: 6px;
   }
 
-  .recordingComposerActions {
-    grid-column: 1 / -1;
-    justify-self: end;
-  }
-
-  .videoRecordModal {
-    min-height: calc(100dvh - 140px);
-    grid-template-rows: minmax(0, 1fr) auto;
-    align-content: end;
-    padding-top: 22px;
+  .recordingHudHint {
+    max-width: 42%;
   }
 
   .videoRecordPreviewWrap {
-    width: min(300px, calc(100vw - 48px));
-    align-self: end;
-    margin-top: auto;
-  }
-
-  .videoRecordToolbar {
-    width: 100%;
-    justify-items: center;
-    padding-bottom: env(safe-area-inset-bottom, 0px);
-  }
-}
-
-@media (max-width: 640px) {
-  .bubbleAudio {
-    width: min(100%, calc(100vw - 74px));
-    max-width: min(100%, calc(100vw - 74px));
-  }
-
-  .bubbleVideo {
-    width: min(232px, calc(100vw - 128px));
-    max-width: min(232px, calc(100vw - 128px));
-  }
-
-  .videoRecordPreviewWrap {
-    width: min(320px, calc(100vw - 42px));
-  }
-
-  .mobileMessageActionsItem {
-    min-height: 48px;
-  }
-}
-
-/* v5 messages: audio/video timeline, mobile action popover, cleaner video notes */
-.messageContextMenu {
-  z-index: 260;
-}
-
-.messageContextMenuItem {
-  cursor: pointer;
-}
-
-.messageShell {
-  max-width: 100%;
-}
-
-.bubbleAudio {
-  width: min(100%, 428px);
-  max-width: min(100%, 428px);
-  padding: 12px 14px;
-  overflow: hidden;
-}
-
-.audioBubble {
-  width: 100%;
-  max-width: 100%;
-}
-
-.bubbleVideo {
-  width: min(100%, 344px);
-  max-width: min(100%, 344px);
-  overflow: visible;
-}
-
-.bubbleVideoBare {
-  background: transparent !important;
-  padding: 0 !important;
-  border-radius: 0 !important;
-  box-shadow: none !important;
-}
-
-.videoBubbleWrap {
-  width: 100%;
-  display: flex;
-  justify-content: center;
-  padding: 0;
-}
-
-.videoBubble {
-  width: min(100%, 320px);
-  max-width: 100%;
-}
-
-.bubbleVideo .meta {
-  width: min(100%, 320px);
-  margin: 8px auto 0;
-  padding: 0 4px;
-  justify-content: space-between;
-  gap: 6px;
-}
-
-.composerInputShellRecording {
-  width: 100%;
-  min-height: 58px;
-  border-radius: 24px;
-}
-
-.recordingComposerBar {
-  width: 100%;
-  min-height: 42px;
-}
-
-.videoRecordModal {
-  min-height: min(80dvh, 760px);
-  display: grid;
-  grid-template-rows: minmax(0, 1fr) auto;
-  align-items: end;
-  justify-items: center;
-  padding-top: 18px;
-}
-
-.videoRecordPreviewWrap {
-  position: relative;
-  width: min(360px, calc(100vw - 44px));
-  aspect-ratio: 1;
-  margin-top: auto;
-}
-
-.videoRecordPreview {
-  position: absolute;
-  inset: 12px;
-  width: calc(100% - 24px);
-  height: calc(100% - 24px);
-  border-radius: 50%;
-  object-fit: cover;
-  background: rgba(10, 14, 20, 0.96);
-  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.28);
-}
-
-.videoRecordProgressSvg {
-  position: absolute;
-  inset: 0;
-  transform: rotate(-90deg);
-  overflow: visible;
-}
-
-.videoRecordProgressTrack,
-.videoRecordProgressValue {
-  fill: none;
-  stroke-width: 5;
-}
-
-.videoRecordProgressTrack {
-  stroke: rgba(255, 255, 255, 0.14);
-}
-
-.videoRecordProgressValue {
-  stroke: rgba(255, 255, 255, 0.96);
-  stroke-linecap: round;
-  transition: stroke-dashoffset 0.16s ease;
-}
-
-.videoRecordTimerPill {
-  position: absolute;
-  left: 16px;
-  top: 18px;
-  z-index: 2;
-  min-height: 28px;
-  padding: 0 10px;
-  border-radius: 999px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(16, 20, 32, 0.54);
-  color: white;
-  font-size: 13px;
-  font-weight: 800;
-  font-variant-numeric: tabular-nums;
-  backdrop-filter: blur(10px);
-}
-
-.videoRecordToolbar {
-  width: min(100%, 420px);
-  justify-items: center;
-  padding-bottom: max(8px, env(safe-area-inset-bottom, 0px));
-}
-
-.videoRecordToolbarActions {
-  gap: 10px;
-}
-
-.mobileMessageActionBackdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 220;
-  background: rgba(4, 6, 10, 0.5);
-}
-
-.mobileMessageActionMenu {
-  position: fixed;
-  left: 12px;
-  right: 12px;
-  bottom: max(12px, calc(env(safe-area-inset-bottom, 0px) + 12px));
-  z-index: 221;
-  display: grid;
-  gap: 8px;
-  padding: 10px;
-  border-radius: 24px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(11, 13, 16, 0.98);
-  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.34);
-  backdrop-filter: blur(18px);
-}
-
-.mobileMessageActionsSheet {
-  display: grid;
-  gap: 8px;
-}
-
-.mobileMessageActionsItem {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  width: 100%;
-  min-height: 48px;
-  padding: 0 14px;
-  border: 0;
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.05);
-  color: var(--text);
-  text-align: left;
-  cursor: pointer;
-}
-
-.mobileMessageActionsItemDanger {
-  color: #ff9a9a;
-}
-
-@media (min-width: 961px) {
-  .messageActions {
-    display: none !important;
-  }
-}
-
-@media (max-width: 960px) {
-  .bubbleAudio {
-    width: min(100%, calc(100vw - 84px));
-    max-width: min(100%, calc(100vw - 84px));
-  }
-
-  .bubbleVideo {
-    width: min(100%, calc(100vw - 108px));
-    max-width: min(100%, calc(100vw - 108px));
-  }
-
-  .videoBubble {
-    width: min(100%, calc(100vw - 108px));
-  }
-
-  .bubbleVideo .meta {
-    width: min(100%, calc(100vw - 108px));
-  }
-
-  .videoRecordModal {
-    min-height: calc(100dvh - 132px);
-    padding-top: 28px;
-  }
-
-  .videoRecordPreviewWrap {
-    width: min(360px, calc(100vw - 36px));
-  }
-
-  .videoRecordToolbar {
-    width: 100%;
-  }
-}
-
-@media (max-width: 640px) {
-  .bubbleAudio {
-    width: min(100%, calc(100vw - 72px));
-    max-width: min(100%, calc(100vw - 72px));
-  }
-
-  .bubbleVideo {
-    width: min(100%, calc(100vw - 82px));
-    max-width: min(100%, calc(100vw - 82px));
-  }
-
-  .videoBubble {
-    width: min(100%, calc(100vw - 82px));
-  }
-
-  .bubbleVideo .meta {
-    width: min(100%, calc(100vw - 82px));
-  }
-
-  .videoRecordPreviewWrap {
-    width: min(360px, calc(100vw - 28px));
+    width: min(280px, calc(100vw - 28px));
   }
 
   .videoRecordToolbar {
     margin-top: 10px;
   }
-}
 
-
-/* v6 message media sizing + desktop context menu fixes */
-.messages {
-  overflow-y: auto;
-  overflow-x: hidden;
-}
-
-.msgRow {
-  width: 100%;
-  min-width: 0;
-}
-
-.messageShell {
-  width: fit-content;
-  max-width: min(100%, 82%);
-  min-width: 0;
-}
-
-.bubbleAudio {
-  width: min(100%, 496px);
-  max-width: min(100%, 496px);
-  background: transparent !important;
-  padding: 0 !important;
-  border-radius: 0 !important;
-  box-shadow: none !important;
-  overflow: visible;
-}
-
-.bubbleAudioBare {
-  background: transparent !important;
-  padding: 0 !important;
-  border-radius: 0 !important;
-  box-shadow: none !important;
-}
-
-.audioBubble {
-  width: 100%;
-  max-width: 100%;
-}
-
-.bubbleVideo {
-  width: min(100%, 432px);
-  max-width: min(100%, 432px);
-  overflow: visible;
-}
-
-.videoBubbleWrap {
-  width: min(100%, 404px);
-  max-width: 100%;
-  margin: 0 auto;
-}
-
-.videoBubble {
-  width: 100%;
-  max-width: 100%;
-}
-
-.bubbleVideo .meta,
-.bubbleAudio .meta {
-  width: 100%;
-  margin-top: 8px;
-  padding: 0 4px;
-  justify-content: flex-end;
-}
-
-.messageContextMenuBackdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 259;
-  background: transparent;
-}
-
-.messageContextMenu {
-  z-index: 260;
-}
-
-@media (max-width: 960px) {
-  .messageShell {
-    max-width: min(100%, calc(100% - 40px));
-  }
-
-  .bubbleAudio {
-    width: min(100%, calc(100vw - 80px));
-    max-width: min(100%, calc(100vw - 80px));
-  }
-
-  .bubbleVideo {
-    width: min(100%, calc(100vw - 88px));
-    max-width: min(100%, calc(100vw - 88px));
-  }
-
-  .videoBubbleWrap {
-    width: min(100%, calc(100vw - 104px));
-  }
-}
-
-@media (max-width: 640px) {
-  .messageShell {
-    max-width: min(100%, calc(100% - 36px));
-  }
-
-  .bubbleAudio {
-    width: min(100%, calc(100vw - 72px));
-    max-width: min(100%, calc(100vw - 72px));
-  }
-
-  .bubbleVideo {
-    width: min(100%, calc(100vw - 84px));
-    max-width: min(100%, calc(100vw - 84px));
-  }
-
-  .videoBubbleWrap {
-    width: min(100%, calc(100vw - 96px));
-  }
-}
-
-/* v7 root fix: uploads range support revealed media seek issues; lock media shell widths deterministically */
-.messageShellAudio {
-  width: min(520px, calc(100% - 12px));
-  max-width: min(520px, calc(100% - 12px));
-}
-
-.messageShellVideo {
-  width: min(420px, calc(100% - 12px));
-  max-width: min(420px, calc(100% - 12px));
-}
-
-.bubbleAudio,
-.bubbleVideo {
-  width: 100% !important;
-  max-width: 100% !important;
-  min-width: 0;
-}
-
-.bubbleAudio,
-.bubbleAudioBare,
-.bubbleVideo,
-.bubbleVideoBare {
-  background: transparent !important;
-  box-shadow: none !important;
-}
-
-.bubbleAudio,
-.bubbleAudioBare {
-  padding: 0 !important;
-  border-radius: 0 !important;
-  overflow: visible !important;
-}
-
-.bubbleVideo,
-.bubbleVideoBare {
-  padding: 0 !important;
-  border-radius: 0 !important;
-  overflow: visible !important;
-}
-
-.audioBubble,
-.videoBubbleWrap,
-.videoBubble {
-  width: 100% !important;
-  max-width: 100% !important;
-}
-
-.videoBubbleWrap {
-  display: flex;
-  justify-content: flex-end;
-}
-
-.videoBubble {
-  display: block;
-}
-
-.bubbleAudio .meta,
-.bubbleVideo .meta {
-  width: 100%;
-  margin-top: 8px;
-  padding: 0 2px;
-  justify-content: flex-end;
-}
-
-.msgRow.mine .messageShellAudio,
-.msgRow.mine .messageShellVideo {
-  margin-left: auto;
-}
-
-.messageContextMenuItem {
-  cursor: pointer;
-  pointer-events: auto;
-}
-
-@media (max-width: 960px) {
-  .messageShellAudio {
-    width: min(calc(100vw - 88px), 100%);
-    max-width: min(calc(100vw - 88px), 100%);
-  }
-
-  .messageShellVideo {
-    width: min(calc(100vw - 92px), 100%);
-    max-width: min(calc(100vw - 92px), 100%);
-  }
-}
-
-@media (max-width: 640px) {
-  .messageShellAudio {
-    width: min(calc(100vw - 72px), 100%);
-    max-width: min(calc(100vw - 72px), 100%);
-  }
-
-  .messageShellVideo {
-    width: min(calc(100vw - 76px), 100%);
-    max-width: min(calc(100vw - 76px), 100%);
+  .mobileMessageActionsItem {
+    min-height: 50px;
   }
 
   .pulseMediaSearchRow {
@@ -2494,33 +2183,536 @@
   }
 }
 
-/* v8 message layout fix */
-.wrap {
-  height: 100% !important;
-  min-height: 0;
-  max-height: 100%;
-  display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto !important;
-  overflow: hidden;
+/* ── Message entry animation class (applied via JS) ── */
+.msgEnter {
+  animation: msgSlideIn 280ms cubic-bezier(0.22, 0.61, 0.36, 1) both;
 }
 
-.middle {
-  min-height: 0;
-  overflow: hidden;
-}
-
-.messages {
-  min-height: 0;
-}
-
-.composer {
-  position: relative;
-  bottom: auto;
-}
-
-@media (max-width: 960px) {
-  .composer {
-    position: relative !important;
-    bottom: auto !important;
+@keyframes msgSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.97);
   }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.msgExit {
+  animation: msgFadeOut 200ms ease both;
+}
+
+@keyframes msgFadeOut {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+}
+
+/* Premium messenger refresh */
+.messages {
+  padding: 20px 16px 18px;
+  gap: 10px;
+}
+
+.messageCluster {
+  position: relative;
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  max-width: min(100%, 86%);
+}
+
+.messageClusterMine {
+  justify-items: end;
+}
+
+.messageClusterTheirs {
+  justify-items: start;
+}
+
+.messageQuickActions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  opacity: 0;
+  transform: translateY(4px);
+  pointer-events: none;
+  transition: opacity 160ms ease, transform 160ms ease;
+}
+
+.messageQuickActionsMine {
+  justify-content: flex-end;
+  padding-right: 8px;
+}
+
+.messageQuickActionsTheirs {
+  justify-content: flex-start;
+  padding-left: 8px;
+}
+
+.messageQuickActionsVisible {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.messageQuickAction {
+  width: 30px;
+  height: 30px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  background: rgba(22, 22, 24, 0.92);
+  color: rgba(255, 255, 255, 0.72);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: background 140ms ease, border-color 140ms ease, color 140ms ease, transform 140ms ease;
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.2);
+}
+
+.messageQuickAction:hover {
+  background: rgba(255, 122, 26, 0.12);
+  border-color: rgba(255, 122, 26, 0.24);
+  color: rgba(255, 255, 255, 0.94);
+  transform: translateY(-1px);
+}
+
+.messageQuickActionDanger {
+  color: #ff9b9b;
+}
+
+.messageShell {
+  max-width: 100%;
+}
+
+.messageShellHovered .bubble:not(.bubbleAudioBare):not(.bubbleVideoBare) {
+  box-shadow: 0 18px 38px rgba(0, 0, 0, 0.24);
+}
+
+.bubble {
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(16px);
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.16);
+}
+
+.bubbleMine {
+  background:
+    linear-gradient(180deg, rgba(255, 152, 72, 0.14), rgba(255, 122, 26, 0.06)),
+    rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 164, 92, 0.16);
+}
+
+.bubbleTheirs {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.025)),
+    rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.06);
+}
+
+.forwardedBlock {
+  margin-bottom: 8px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.045);
+  color: rgba(255, 255, 255, 0.58);
+  font-style: normal;
+}
+
+.replyBlock {
+  border-left-width: 2px;
+  border-radius: 14px;
+  background:
+    linear-gradient(90deg, rgba(255, 122, 26, 0.12), transparent 22%),
+    rgba(255, 255, 255, 0.045);
+}
+
+.replyBlock:hover {
+  background:
+    linear-gradient(90deg, rgba(255, 122, 26, 0.16), transparent 22%),
+    rgba(255, 255, 255, 0.06);
+}
+
+.mediaBlock {
+  gap: 8px;
+}
+
+.fileLink {
+  min-height: 46px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.systemCardRich {
+  width: min(560px, 100%);
+  padding: 14px 16px;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.028), rgba(255, 255, 255, 0.012)),
+    #161618;
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.2);
+}
+
+.systemCardGame {
+  background:
+    radial-gradient(circle at top right, rgba(255, 122, 26, 0.14), transparent 38%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.028), rgba(255, 255, 255, 0.012)),
+    #161618;
+}
+
+.systemCardToneAccent {
+  background:
+    radial-gradient(circle at top right, rgba(255, 122, 26, 0.12), transparent 38%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.028), rgba(255, 255, 255, 0.012)),
+    #161618;
+}
+
+.systemCardToneDanger {
+  background:
+    radial-gradient(circle at top right, rgba(239, 68, 68, 0.12), transparent 40%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.028), rgba(255, 255, 255, 0.012)),
+    #161618;
+}
+
+.systemCardToneMuted {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.026), rgba(255, 255, 255, 0.012)),
+    #161618;
+}
+
+.systemCardTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.systemTimestamp {
+  font-size: 11px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.4);
+  font-variant-numeric: tabular-nums;
+}
+
+.systemCardBody {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+}
+
+.systemIconWrap {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.88);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.systemIconWrapGame {
+  background: rgba(255, 122, 26, 0.12);
+  color: #ffb777;
+}
+
+.systemIconWrapDanger {
+  background: rgba(239, 68, 68, 0.12);
+  color: #ff9b9b;
+}
+
+.systemBody {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.systemDetails {
+  font-size: 13px;
+  line-height: 1.45;
+  color: rgba(255, 255, 255, 0.58);
+}
+
+.systemFooter {
+  margin-top: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.systemEventBadge {
+  min-height: 24px;
+  padding: 0 10px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.systemEventBadgeGame {
+  background: rgba(255, 122, 26, 0.12);
+  color: #ffbf85;
+}
+
+.systemEventBadgeDanger {
+  background: rgba(239, 68, 68, 0.14);
+  color: #ffabab;
+}
+
+.systemAction {
+  color: rgba(255, 255, 255, 0.78);
+  font-weight: 700;
+}
+
+.systemActionButton {
+  min-height: 36px;
+  padding: 0 16px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(255, 122, 26, 0.92), rgba(255, 140, 61, 0.82));
+  color: #fff;
+  box-shadow: 0 12px 28px rgba(255, 122, 26, 0.2);
+}
+
+.systemActionButton:hover {
+  background: linear-gradient(135deg, rgba(255, 132, 38, 0.98), rgba(255, 153, 82, 0.88));
+}
+
+.selectionBar,
+.composerInputShell,
+.previewPanel,
+.attachMenu,
+.messageContextMenu,
+.mobileMessageActionMenu {
+  border-color: rgba(255, 255, 255, 0.09);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.015)),
+    #151517;
+}
+
+.messageContextMenu,
+.mobileMessageActionMenu {
+  border-radius: 20px;
+  box-shadow: 0 28px 52px rgba(0, 0, 0, 0.42);
+}
+
+.mobileMessageActionsItem,
+.messageContextMenuItem {
+  border-radius: 12px;
+}
+
+@media (max-width: 640px) {
+  .messages {
+    padding: 12px 12px 6px;
+    gap: 8px;
+  }
+
+  .messageCluster {
+    max-width: 100%;
+  }
+
+  .systemCardRich {
+    width: 100%;
+    padding: 13px 14px;
+    border-radius: 18px;
+  }
+
+  .systemCardBody {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .systemActionButton {
+    grid-column: 1 / -1;
+    width: 100%;
+    justify-content: center;
+    margin-top: 4px;
+  }
+
+  .systemAction {
+    display: none;
+  }
+}
+
+/* Minimal premium refinement */
+.bubbleWidgetBare {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+}
+
+.videoNotePreviewButton {
+  width: 152px;
+  height: 152px;
+  display: block;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.videoBubbleWrap {
+  position: relative;
+  width: min(204px, 100%);
+  max-width: 100%;
+  cursor: default;
+}
+
+.videoNoteCompactOverlay {
+  display: none;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: rgba(17, 17, 19, 0.72);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+
+.messageQuickAction {
+  border: 0;
+  background: #202023;
+  box-shadow: none;
+}
+
+.messageQuickAction:hover {
+  background: #29292d;
+  transform: none;
+}
+
+.messageShellHovered .bubble:not(.bubbleAudioBare):not(.bubbleVideoBare):not(.bubbleWidgetBare) {
+  box-shadow: none;
+}
+
+.bubble {
+  border: 0;
+  backdrop-filter: none;
+  box-shadow: none;
+}
+
+.bubbleMine {
+  background: #232326;
+}
+
+.bubbleTheirs {
+  background: #1d1d20;
+}
+
+.forwardedBlock {
+  background: transparent;
+  padding: 0;
+}
+
+.replyBlock {
+  background: #202023;
+  border-left-color: rgba(255, 255, 255, 0.18);
+}
+
+.replyBlock:hover {
+  background: #252529;
+}
+
+.fileLink {
+  border: 0;
+  background: #202023;
+}
+
+.systemCardRich,
+.systemCardGame,
+.systemCardToneAccent,
+.systemCardToneDanger,
+.systemCardToneMuted,
+.selectionBar,
+.composerInputShell,
+.previewPanel,
+.attachMenu,
+.messageContextMenu,
+.mobileMessageActionMenu {
+  background: #181819;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: none;
+}
+
+.systemIconWrap {
+  background: #222225;
+  box-shadow: none;
+}
+
+.systemIconWrapGame,
+.systemIconWrapDanger {
+  background: #222225;
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.systemEventBadge,
+.systemEventBadgeGame,
+.systemEventBadgeDanger {
+  background: #232326;
+  color: rgba(255, 255, 255, 0.66);
+}
+
+.systemActionButton {
+  background: #2a2a2e;
+  box-shadow: none;
+}
+
+.systemActionButton:hover {
+  background: #323238;
+}
+
+.composerInputShell {
+  outline: none !important;
+  box-shadow: none !important;
+  border-color: rgba(255, 255, 255, 0.06) !important;
+}
+
+.composerInputShell:focus-within {
+  outline: none !important;
+  box-shadow: none !important;
+  border-color: rgba(255, 122, 26, 0.24) !important;
+  background: #1b1a19 !important;
+}
+
+.input,
+.input:focus,
+.input:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+  border: 0 !important;
+  caret-color: var(--accent) !important;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.mobileMessageActionsItem,
+.messageContextMenuItem {
+  background: transparent;
+}
+
+.mobileMessageActionsItem:active,
+.messageContextMenuItem:hover,
+.messageContextMenuItem:active {
+  background: #222225;
 }
