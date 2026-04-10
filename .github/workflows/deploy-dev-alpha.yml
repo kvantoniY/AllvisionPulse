@@ -206,17 +206,18 @@ jobs:
           EXPECTED_RELEASE_SHA: ${{ github.sha }}
         run: |
           set +e
+          CURL_TIMEOUT_ARGS=(--connect-timeout 10 --max-time 20)
           echo "=== dns ==="
           getent hosts allvision-pulse.ru || true
           echo
           echo "=== public release headers (strict TLS) ==="
-          curl -svI -H 'Cache-Control: no-cache, no-store' "${PUBLIC_APP_URL}/api/release?ts=${EXPECTED_RELEASE_SHA}" 2>&1 || true
+          curl "${CURL_TIMEOUT_ARGS[@]}" -svI -H 'Cache-Control: no-cache, no-store' "${PUBLIC_APP_URL}/api/release?ts=${EXPECTED_RELEASE_SHA}" 2>&1 || true
           echo
           echo "=== public release body (insecure fallback for diagnostics only) ==="
-          curl -sk -H 'Cache-Control: no-cache, no-store' "${PUBLIC_APP_URL}/api/release?ts=${EXPECTED_RELEASE_SHA}" || true
+          curl "${CURL_TIMEOUT_ARGS[@]}" -sk -H 'Cache-Control: no-cache, no-store' "${PUBLIC_APP_URL}/api/release?ts=${EXPECTED_RELEASE_SHA}" || true
           echo
           echo "=== public sw.js headers ==="
-          curl -skI -H 'Cache-Control: no-cache, no-store' "${PUBLIC_APP_URL}/sw.js?ts=${EXPECTED_RELEASE_SHA}" || true
+          curl "${CURL_TIMEOUT_ARGS[@]}" -skI -H 'Cache-Control: no-cache, no-store' "${PUBLIC_APP_URL}/sw.js?ts=${EXPECTED_RELEASE_SHA}" || true
           echo
           echo "=== deployed vm localhost release ==="
           # shellcheck disable=SC2029

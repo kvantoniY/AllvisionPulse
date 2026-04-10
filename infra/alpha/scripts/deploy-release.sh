@@ -19,6 +19,8 @@ TURN_MAX_PORT="${TURN_MAX_PORT:-49252}"
 TURN_TTL_SEC="${TURN_TTL_SEC:-43200}"
 GENERATED_WEB_PUSH_VAPID_PUBLIC_KEY="${GENERATED_WEB_PUSH_VAPID_PUBLIC_KEY:-}"
 GENERATED_WEB_PUSH_VAPID_PRIVATE_KEY="${GENERATED_WEB_PUSH_VAPID_PRIVATE_KEY:-}"
+LOCAL_CURL_CONNECT_TIMEOUT_SEC="${LOCAL_CURL_CONNECT_TIMEOUT_SEC:-5}"
+LOCAL_CURL_MAX_TIME_SEC="${LOCAL_CURL_MAX_TIME_SEC:-20}"
 
 if [ -z "${RELEASE_SHA}" ]; then
   echo "RELEASE_SHA is required" >&2
@@ -226,7 +228,7 @@ recreate_service() {
   local service="$2"
   local container_name
 
-  if compose_in_release "${release_dir}" up -d --force-recreate --remove-orphans "${service}"; then
+  if compose_in_release "${release_dir}" up -d --no-deps --force-recreate --remove-orphans "${service}"; then
     return 0
   fi
 
@@ -236,7 +238,7 @@ recreate_service() {
     docker rm -f "${container_name}" || true
   fi
 
-  compose_in_release "${release_dir}" up -d --force-recreate --remove-orphans "${service}"
+  compose_in_release "${release_dir}" up -d --no-deps --force-recreate --remove-orphans "${service}"
 }
 
 frontend_release_check() {
@@ -252,7 +254,7 @@ socket_polling_check() {
   local token
 
   token="$(compose_in_release "${release_dir}" exec -T backend node -e "const jwt=require('jsonwebtoken'); process.stdout.write(jwt.sign({ sub: 'healthcheck-socket', role: 'USER' }, process.env.JWT_ACCESS_SECRET, { expiresIn: '2m' }));")"
-  curl --retry 15 --retry-delay 2 --retry-all-errors -fsS \
+  curl --connect-timeout "${LOCAL_CURL_CONNECT_TIMEOUT_SEC}" --max-time "${LOCAL_CURL_MAX_TIME_SEC}" --retry 5 --retry-delay 2 --retry-all-errors -fsS \
     -H "Authorization: Bearer ${token}" \
     "http://127.0.0.1/socket.io?EIO=4&transport=polling" | grep -q '"sid"'
 }
@@ -479,12 +481,12 @@ wait_for_service "${RELEASE_DIR}" nginx 180 || fail_release "Nginx did not becom
 verify_release_sha "${RELEASE_DIR}" nginx "${RELEASE_SHA}" || fail_release "Nginx release SHA verification failed"
 
 log "Verify localhost release"
-curl --retry 15 --retry-delay 2 --retry-all-errors -fsS http://127.0.0.1/healthz >/dev/null || fail_release "Local nginx health check failed"
-curl --retry 15 --retry-delay 2 --retry-all-errors -H "Cache-Control: no-cache, no-store" -fsS "http://127.0.0.1/api/release?ts=${RELEASE_SHA}" | tee /tmp/allvision-release.json >/dev/null || fail_release "Local release endpoint is unavailable"
+curl --connect-timeout "${LOCAL_CURL_CONNECT_TIMEOUT_SEC}" --max-time "${LOCAL_CURL_MAX_TIME_SEC}" --retry 5 --retry-delay 2 --retry-all-errors -fsS http://127.0.0.1/healthz >/dev/null || fail_release "Local nginx health check failed"
+curl --connect-timeout "${LOCAL_CURL_CONNECT_TIMEOUT_SEC}" --max-time "${LOCAL_CURL_MAX_TIME_SEC}" --retry 5 --retry-delay 2 --retry-all-errors -H "Cache-Control: no-cache, no-store" -fsS "http://127.0.0.1/api/release?ts=${RELEASE_SHA}" | tee /tmp/allvision-release.json >/dev/null || fail_release "Local release endpoint is unavailable"
 grep -q "${RELEASE_SHA}" /tmp/allvision-release.json || fail_release "Local release endpoint serves an unexpected release"
-curl --retry 15 --retry-delay 2 --retry-all-errors -fsS "http://127.0.0.1/sw.js?ts=${RELEASE_SHA}" >/dev/null || fail_release "Local sw.js check failed"
-curl --retry 15 --retry-delay 2 --retry-all-errors -fsS "http://127.0.0.1/brand-eye-180.png?ts=${RELEASE_SHA}" >/dev/null || fail_release "Local brand-eye-180.png check failed"
-curl --retry 15 --retry-delay 2 --retry-all-errors -fsS "http://127.0.0.1/brand-eye-192.png?ts=${RELEASE_SHA}" >/dev/null || fail_release "Local brand-eye-192.png check failed"
+curl --connect-timeout "${LOCAL_CURL_CONNECT_TIMEOUT_SEC}" --max-time "${LOCAL_CURL_MAX_TIME_SEC}" --retry 5 --retry-delay 2 --retry-all-errors -fsS "http://127.0.0.1/sw.js?ts=${RELEASE_SHA}" >/dev/null || fail_release "Local sw.js check failed"
+curl --connect-timeout "${LOCAL_CURL_CONNECT_TIMEOUT_SEC}" --max-time "${LOCAL_CURL_MAX_TIME_SEC}" --retry 5 --retry-delay 2 --retry-all-errors -fsS "http://127.0.0.1/brand-eye-180.png?ts=${RELEASE_SHA}" >/dev/null || fail_release "Local brand-eye-180.png check failed"
+curl --connect-timeout "${LOCAL_CURL_CONNECT_TIMEOUT_SEC}" --max-time "${LOCAL_CURL_MAX_TIME_SEC}" --retry 5 --retry-delay 2 --retry-all-errors -fsS "http://127.0.0.1/brand-eye-192.png?ts=${RELEASE_SHA}" >/dev/null || fail_release "Local brand-eye-192.png check failed"
 socket_polling_check "${RELEASE_DIR}" || fail_release "Socket.io polling check failed"
 
 log "Update release pointers"
