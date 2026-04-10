@@ -29,13 +29,19 @@ assert_file() {
 }
 
 assert_archive_entry() {
-  local archive_path="$1"
+  local manifest_path="$1"
   local entry_path="$2"
 
-  if ! tar -tzf "${archive_path}" | grep -Eq "^(\./)?${entry_path}$"; then
-    echo "Required archive entry is missing: ${entry_path}" >&2
-    exit 1
+  if grep -Fqx -- "${entry_path}" "${manifest_path}" || grep -Fqx -- "./${entry_path}" "${manifest_path}"; then
+    return 0
   fi
+
+  {
+    echo "Required archive entry is missing: ${entry_path}" >&2
+    echo "Archive manifest:" >&2
+    sed -n '1,200p' "${manifest_path}" >&2
+  }
+  exit 1
 }
 
 log "Validate deployment scripts"
@@ -80,9 +86,12 @@ mkdir -p "${PACKAGE_DIR}/frontend"
 cp -R "${FRONTEND_DIR}/.next" "${PACKAGE_DIR}/frontend/.next"
 
 tar -czf "${OUTPUT_ARCHIVE}" -C "${PACKAGE_DIR}" .
-assert_archive_entry "${OUTPUT_ARCHIVE}" 'frontend/.next/standalone/server.js'
-assert_archive_entry "${OUTPUT_ARCHIVE}" 'infra/alpha/docker-compose.alpha.yml'
-assert_archive_entry "${OUTPUT_ARCHIVE}" 'infra/alpha/scripts/deploy-release.sh'
+ARCHIVE_MANIFEST="$(mktemp)"
+tar -tzf "${OUTPUT_ARCHIVE}" > "${ARCHIVE_MANIFEST}"
+assert_archive_entry "${ARCHIVE_MANIFEST}" 'frontend/.next/standalone/server.js'
+assert_archive_entry "${ARCHIVE_MANIFEST}" 'infra/alpha/docker-compose.alpha.yml'
+assert_archive_entry "${ARCHIVE_MANIFEST}" 'infra/alpha/scripts/deploy-release.sh'
+rm -f "${ARCHIVE_MANIFEST}"
 
 log "Release archive ready"
 printf '%s\n' "${OUTPUT_ARCHIVE}"
