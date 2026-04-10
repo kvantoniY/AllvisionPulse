@@ -28,6 +28,16 @@ assert_file() {
   fi
 }
 
+assert_archive_entry() {
+  local archive_path="$1"
+  local entry_path="$2"
+
+  if ! tar -tzf "${archive_path}" | grep -Eq "^(\./)?${entry_path}$"; then
+    echo "Required archive entry is missing: ${entry_path}" >&2
+    exit 1
+  fi
+}
+
 log "Validate deployment scripts"
 bash -n "${ROOT_DIR}/infra/alpha/scripts/build-release.sh"
 bash -n "${ROOT_DIR}/infra/alpha/scripts/deploy-release.sh"
@@ -70,9 +80,9 @@ mkdir -p "${PACKAGE_DIR}/frontend"
 cp -R "${FRONTEND_DIR}/.next" "${PACKAGE_DIR}/frontend/.next"
 
 tar -czf "${OUTPUT_ARCHIVE}" -C "${PACKAGE_DIR}" .
-tar -tzf "${OUTPUT_ARCHIVE}" | grep -q '^frontend/.next/standalone/server.js$'
-tar -tzf "${OUTPUT_ARCHIVE}" | grep -q '^infra/alpha/docker-compose.alpha.yml$'
-tar -tzf "${OUTPUT_ARCHIVE}" | grep -q '^infra/alpha/scripts/deploy-release.sh$'
+assert_archive_entry "${OUTPUT_ARCHIVE}" 'frontend/.next/standalone/server.js'
+assert_archive_entry "${OUTPUT_ARCHIVE}" 'infra/alpha/docker-compose.alpha.yml'
+assert_archive_entry "${OUTPUT_ARCHIVE}" 'infra/alpha/scripts/deploy-release.sh'
 
 log "Release archive ready"
 printf '%s\n' "${OUTPUT_ARCHIVE}"
