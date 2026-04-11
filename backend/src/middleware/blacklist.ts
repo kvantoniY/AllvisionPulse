@@ -3,7 +3,7 @@ import { Response, NextFunction } from "express";
 import { prisma } from "../db/prisma";
 import { AuthedRequest } from "./auth";
 
-// Blockss interactions if either side has blocked the other.
+// Blocks interactions if either side has blocked the other.
 // Use this in endpoints that access another user.
 export async function forbidIfBlockedByTarget(req: AuthedRequest, _res: Response, next: NextFunction) {
   const me = req.user!.id;
