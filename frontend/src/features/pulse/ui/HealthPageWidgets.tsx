@@ -36,6 +36,7 @@ import {
   Zap,
 } from 'lucide-react';
 import type { PulseFinanceEntry, PulseFinanceShareMeta } from '@/shared/types/pulse';
+import { getFinanceCategoryLabel } from '@/shared/lib/pulseArtifactDisplay';
 import styles from '../../../app/(protected)/health/Health.module.css';
 
 export type PulseIconName =
