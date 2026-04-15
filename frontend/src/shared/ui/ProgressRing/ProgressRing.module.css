@@ -5,8 +5,10 @@
   min-width: 0;
 }
 
+.svg { overflow: visible; }
+
 .track { stroke: rgba(255, 255, 255, 0.08); }
-.progress { transition: stroke-dashoffset 260ms ease, filter 260ms ease; }
+.progress { transition: stroke-dashoffset var(--dur) var(--ease), filter var(--dur) var(--ease); }
 .text {
   position: absolute;
   top: 40%;
@@ -14,6 +16,7 @@
   font-weight: 800;
   font-size: 24px;
   letter-spacing: -0.04em;
+  color: var(--text);
 }
 .label {
   position: absolute;
@@ -24,4 +27,11 @@
   font-size: 12px;
   font-weight: 600;
 }
-.caption { margin-top: 10px; color: var(--muted); font-size: 12px; }
+.caption {
+  margin-top: 10px;
+  max-width: 72%;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+  text-align: center;
+}

@@ -33,6 +33,8 @@
   cursor: pointer;
   flex-shrink: 0;
   margin-left: auto;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .input { display: none; }
@@ -44,7 +46,7 @@
   border: 1px solid var(--stroke);
   background: var(--surface-1);
   position: relative;
-  transition: background 150ms ease, border-color 150ms ease;
+  transition: background var(--dur) var(--ease), border-color var(--dur) var(--ease);
 }
 
 .thumb {
@@ -55,7 +57,7 @@
   position: absolute;
   top: 2px;
   left: 2px;
-  transition: transform 150ms ease, background 150ms ease;
+  transition: transform var(--dur) var(--ease), background var(--dur) var(--ease);
   box-shadow: 0 1px 3px rgba(0,0,0,0.3);
 }
 

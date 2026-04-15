@@ -27,6 +27,7 @@ pnpm-debug.log*
 Thumbs.db
 .vscode/
 .idea/
+.claude/worktrees/
 
 # cache
 .cache/

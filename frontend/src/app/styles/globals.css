@@ -30,12 +30,16 @@
   --stroke: rgba(255, 255, 255, 0.08);          /* standard border */
   --stroke-strong: rgba(255, 255, 255, 0.13);   /* prominent border */
   --stroke-accent: rgba(255, 122, 26, 0.3);     /* accent border */
+  --stroke-subtle: var(--stroke-soft);
+  --stroke-focus: var(--stroke-accent);
 
   /* ── Brand ── */
   --accent: #ff7a1a;
   --accent-strong: #ff9648;
   --accent-soft: rgba(255, 122, 26, 0.12);
   --accent-softer: rgba(255, 122, 26, 0.07);
+  --accent-muted: rgba(255, 122, 26, 0.14);
+  --accent-subtle: rgba(255, 122, 26, 0.08);
 
   /* ── Semantic ── */
   --success: #34d399;
@@ -44,6 +48,10 @@
   --danger-soft: rgba(248, 113, 113, 0.12);
   --warning: #f5a623;
   --warning-soft: rgba(245, 166, 35, 0.12);
+  --teal: #34d399;
+  --teal-muted: rgba(52, 211, 153, 0.12);
+  --amber: #f5a623;
+  --amber-muted: rgba(245, 166, 35, 0.12);
 
   /* ── Shadows ── */
   --shadow-xs: 0 4px 14px rgba(0, 0, 0, 0.18);
@@ -59,6 +67,13 @@
   --space-5: 20px;
   --space-6: 24px;
   --space-7: 32px;
+  --sp-1: var(--space-1);
+  --sp-2: var(--space-2);
+  --sp-3: var(--space-3);
+  --sp-4: var(--space-4);
+  --sp-5: var(--space-5);
+  --sp-6: var(--space-6);
+  --sp-8: var(--space-7);
 
   /* ── Radius ── */
   --radius-xs: 8px;   /* chips, badges */
@@ -67,6 +82,8 @@
   --radius-lg: 18px;  /* panels, form containers */
   --radius-xl: 22px;  /* cards, modals */
   --radius-2xl: 28px; /* large hero cards */
+  --radius: var(--radius-lg);
+  --radius-full: 999px;
 
   /* ── Typography ── */
   --text-page: clamp(1.75rem, 2.6vw, 2.25rem);
@@ -76,6 +93,13 @@
   --text-small: 0.8125rem;    /* 13px */
   --text-meta: 0.75rem;       /* 12px */
   --text-micro: 0.6875rem;    /* 11px */
+  --fs-xs: var(--text-micro);
+  --fs-sm: var(--text-small);
+  --fs-base: var(--text-card);
+  --fs-lg: var(--text-section);
+  --fs-xl: 1.25rem;
+  --fs-2xl: 1.625rem;
+  --fs-3xl: 2.125rem;
 
   /* ── Layout ── */
   --container-max: 1180px;
@@ -87,6 +111,8 @@
   --page-gutter-mobile: 16px;
   --page-gutter-tight: 12px;
   --content-bottom-pad-desktop: 80px;
+  --dur: 180ms;
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 * { box-sizing: border-box; }
@@ -100,6 +126,9 @@ body {
   margin: 0;
   min-height: 100dvh;
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   color: var(--text);
   background: #141414;
   line-height: 1.5;

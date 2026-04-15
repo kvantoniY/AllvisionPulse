@@ -13,7 +13,13 @@
   font-weight: 600;
   font-size: var(--text-meta);
   line-height: 1;
-  transition: border-color 130ms ease, background 130ms ease, color 130ms ease, opacity 130ms ease;
+  transition:
+    border-color var(--dur) var(--ease),
+    background var(--dur) var(--ease),
+    color var(--dur) var(--ease),
+    opacity var(--dur) var(--ease),
+    transform 80ms var(--ease);
+  user-select: none;
 }
 
 .content {
@@ -38,11 +44,15 @@
   outline-offset: 2px;
 }
 
-.btn:active { opacity: 0.88; }
+.btn:active {
+  opacity: 0.88;
+  transform: scale(0.985);
+}
 
 .btn:disabled {
   opacity: 0.48;
   cursor: not-allowed;
+  pointer-events: none;
 }
 
 /* ── Primary (brand orange) ── */
