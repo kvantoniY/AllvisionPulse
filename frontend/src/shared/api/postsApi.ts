@@ -2,7 +2,12 @@ import { createApi } from '@reduxjs/toolkit/query/react';
 import { baseQuery } from './baseQuery';
 import type { Comment, CommentsResponse, FeedResponse, PostResponse } from '@/shared/types/social';
 
-type FeedArg = { take?: number; cursor?: string | null } | void;
+export type FeedScope = 'all' | 'following';
+type FeedArg = { take?: number; cursor?: string | null; scope?: FeedScope } | void;
+
+function feedScope(arg: FeedArg): FeedScope {
+  return arg && typeof arg === 'object' && 'scope' in arg && arg.scope === 'all' ? 'all' : 'following';
+}
 
 function updatePostCommentCountEverywhere(
   dispatch: any,
@@ -10,12 +15,15 @@ function updatePostCommentCountEverywhere(
   postId: string,
   updater: (current: number) => number,
 ) {
-  dispatch(
-    postsApi.util.updateQueryData('getFeed', undefined as any, (draft) => {
-      const post = draft.items.find((item) => item.id === postId);
-      if (post?._count) post._count.comments = updater(post._count.comments ?? 0);
-    }),
-  );
+  const cachedFeedArgs = postsApi.util.selectCachedArgsForQuery(getState() as any, 'getFeed') as FeedArg[];
+  for (const arg of cachedFeedArgs) {
+    dispatch(
+      postsApi.util.updateQueryData('getFeed', arg as any, (draft) => {
+        const post = draft.items.find((item) => item.id === postId);
+        if (post?._count) post._count.comments = updater(post._count.comments ?? 0);
+      }),
+    );
+  }
 
   const cachedUserPostsArgs = postsApi.util.selectCachedArgsForQuery(getState() as any, 'getUserPosts') as Array<{
     username: string;
@@ -73,11 +81,14 @@ function updatePostLikeEverywhere(
     post._count.likes = Math.max(0, userId && hasLike ? base - 1 : base);
   };
 
-  dispatch(
-    postsApi.util.updateQueryData('getFeed', undefined as any, (draft) => {
-      applyLikePatch(draft.items.find((item) => item.id === postId) as any);
-    }),
-  );
+  const cachedFeedArgs = postsApi.util.selectCachedArgsForQuery(getState() as any, 'getFeed') as FeedArg[];
+  for (const arg of cachedFeedArgs) {
+    dispatch(
+      postsApi.util.updateQueryData('getFeed', arg as any, (draft) => {
+        applyLikePatch(draft.items.find((item) => item.id === postId) as any);
+      }),
+    );
+  }
 
   const cachedUserPostsArgs = postsApi.util.selectCachedArgsForQuery(getState() as any, 'getUserPosts') as Array<{
     username: string;
@@ -115,13 +126,15 @@ export const postsApi = createApi({
       query: (arg) => {
         const take = arg && typeof arg === 'object' && 'take' in arg && arg.take ? arg.take : 20;
         const cursor = arg && typeof arg === 'object' && 'cursor' in arg ? arg.cursor : null;
+        const scope = feedScope(arg);
         const params = new URLSearchParams();
         params.set('take', String(take));
+        params.set('scope', scope);
         if (cursor) params.set('cursor', cursor);
         return { url: `/backend/posts/feed?${params.toString()}`, method: 'GET' };
       },
-      // keep one cache key for infinite scrolling
-      serializeQueryArgs: ({ endpointName }) => endpointName,
+      // One cache entry per scope for infinite scrolling
+      serializeQueryArgs: ({ endpointName, queryArgs }) => `${endpointName}:${feedScope(queryArgs as FeedArg)}`,
       merge: (currentCache, newItems, { arg }) => {
         // If it's the first page request (no cursor), replace cache.
         const cursor = arg && typeof arg === 'object' && 'cursor' in arg ? arg.cursor : null;
@@ -201,18 +214,21 @@ export const postsApi = createApi({
           for (const f of images ?? []) fd.append('images', f);
           return { url: '/backend/posts', method: 'POST', body: fd };
         },
-        async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+        async onQueryStarted(arg, { dispatch, queryFulfilled, getState }) {
           try {
             const { data } = await queryFulfilled;
-            dispatch(
-              postsApi.util.updateQueryData('getFeed', undefined as any, (draft) => {
-                draft.items.unshift(data.post as any);
-                if (arg.repostOfId) {
-                  const target = draft.items.find((item) => item.id === arg.repostOfId);
-                  if (target?._count) target._count.reposts = (target._count.reposts ?? 0) + 1;
-                }
-              }),
-            );
+            const cachedFeedArgs = postsApi.util.selectCachedArgsForQuery(getState() as any, 'getFeed') as FeedArg[];
+            for (const feedArg of cachedFeedArgs) {
+              dispatch(
+                postsApi.util.updateQueryData('getFeed', feedArg as any, (draft) => {
+                  draft.items.unshift(data.post as any);
+                  if (arg.repostOfId) {
+                    const target = draft.items.find((item) => item.id === arg.repostOfId);
+                    if (target?._count) target._count.reposts = (target._count.reposts ?? 0) + 1;
+                  }
+                }),
+              );
+            }
           } catch {
           }
         },
@@ -243,16 +259,19 @@ export const postsApi = createApi({
 
     deletePost: build.mutation<{ ok: true }, { postId: string }>({
       query: ({ postId }) => ({ url: `/backend/posts/${encodeURIComponent(postId)}`, method: 'DELETE' }),
-      async onQueryStarted({ postId }, { dispatch, queryFulfilled }) {
-        const patch = dispatch(
-          postsApi.util.updateQueryData('getFeed', undefined as any, (draft) => {
-            draft.items = draft.items.filter((p) => p.id !== postId);
-          }),
+      async onQueryStarted({ postId }, { dispatch, queryFulfilled, getState }) {
+        const cachedFeedArgs = postsApi.util.selectCachedArgsForQuery(getState() as any, 'getFeed') as FeedArg[];
+        const patches = cachedFeedArgs.map((feedArg) =>
+          dispatch(
+            postsApi.util.updateQueryData('getFeed', feedArg as any, (draft) => {
+              draft.items = draft.items.filter((p) => p.id !== postId);
+            }),
+          ),
         );
         try {
           await queryFulfilled;
         } catch {
-          patch.undo();
+          patches.forEach((patch) => patch.undo());
         }
       },
       invalidatesTags: (_r, _e, arg) => [{ type: 'Post', id: arg.postId }, { type: 'UserPosts' as const, id: 'LIST' }],

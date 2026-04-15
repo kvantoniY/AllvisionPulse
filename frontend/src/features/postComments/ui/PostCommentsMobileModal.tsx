@@ -1,6 +1,7 @@
 'use client';
 
 import { ChangeEvent, useEffect, useId, useMemo, useRef, useState } from 'react';
+import Link from 'next/link';
 import { MobileSheet } from '@/shared/ui/MobileSheet/MobileSheet';
 import { useCreateCommentMutation, useGetCommentRepliesQuery, useGetCommentsQuery, useGetPostLikesQuery, useLikeCommentMutation, useUnlikeCommentMutation } from '@/shared/api/postsApi';
 import { useGetMeQuery } from '@/shared/api/usersApi';
@@ -17,6 +18,7 @@ import type { ShareArtifact } from '@/shared/types/programs';
 import { toPulseShareWidgetPayload, type PulseShareWidgetPayload } from '@/shared/lib/pulseShare';
 import { EmojiPicker } from '@/shared/ui/EmojiPicker';
 import { getPulseShareWidgetPayload } from '@/shared/lib/socialWidgets';
+import { ROUTES } from '@/shared/config/app';
 
 const MAX_TEXT = 5000;
 type ReplyTarget = { commentId: string; parentId: string; username: string };
@@ -76,9 +78,13 @@ function CommentItem({ comment, postId, parentId, onReply }: { comment: Comment;
       <Avatar url={comment.author.avatarUrl} name={comment.author.username} size={40} />
       <div className={styles.commentBody}>
         <div className={styles.commentAuthorRow}>
-          <span className={styles.commentAuthor}>{comment.author.username}</span>
+          <Link href={ROUTES.app.profile(comment.author.username)} className={styles.commentAuthor} style={{ textDecoration: 'none', color: 'inherit' }}>{comment.author.username}</Link>
           <AdminBadge role={comment.author.role} username={comment.author.username} />
-          {comment.parentId && comment.replyToUsername ? <span className={styles.replyTo}>· {comment.replyToUsername}</span> : null}
+          {comment.parentId && comment.replyToUsername ? (
+            <span className={styles.replyTo}>
+              · <Link href={ROUTES.app.profile(comment.replyToUsername)} style={{ textDecoration: 'none', color: 'inherit' }}>{comment.replyToUsername}</Link>
+            </span>
+          ) : null}
         </div>
         {comment.text ? <div className={styles.commentText}>{comment.text}</div> : null}
         {pulseShareWidget ? (

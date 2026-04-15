@@ -11,6 +11,7 @@ import {
 import { extractApiError } from '@/shared/lib/apiError';
 import type { PulseShareEmbedArtifact } from '@/shared/lib/pulseShare';
 import type { PulseArtifactAction, PulseArtifactResponse, ShareArtifact } from '@/shared/types/programs';
+import { getPulseArtifactKindLabel, replacePulseArtifactTechnicalText, normalizePulseArtifactToken } from '@/shared/lib/pulseArtifactDisplay';
 import { Button } from '@/shared/ui/Button/Button';
 import styles from './PulseShareCard.module.css';
 
@@ -67,25 +68,7 @@ function pickNumber(value: unknown) {
 }
 
 function kindLabel(value?: string | null, actionType?: string | null, sourceType?: string | null) {
-  if (actionType === 'TASK_REQUEST' || actionType === 'TASK_SUGGESTION' || actionType === 'SOCIAL_EVENT' || actionType === 'REMINDER_CARD') return 'Событие';
-  if (actionType === 'FINANCE_SPLIT') return 'Общий счёт';
-  if (actionType === 'DEBT_SHARE') return 'Долг';
-  if (actionType === 'SAVINGS_SHARE') return 'Накопление';
-  if (sourceType === 'MENTAL_DAY') return 'Пульс дня';
-  if (sourceType === 'TASK_DAY') return 'Задачи дня';
-  if (sourceType === 'NUTRITION_DAY') return 'Питание';
-  if (sourceType === 'FINANCE_OVERVIEW') return 'Финансы дня';
-  if (value === 'PROGRAM') return 'Программа';
-  if (value === 'PROGRAM_PROGRESS') return 'Прогресс';
-  if (value === 'SESSION_INVITE') return 'Приглашение';
-  if (value === 'ACHIEVEMENT') return 'Достижение';
-  if (value === 'TODAY_ACTIONS') return 'Сегодня';
-  if (value === 'TASK') return 'Задача';
-  if (value === 'FINANCE') return 'Финансы';
-  if (value === 'DEBT') return 'Долг';
-  if (value === 'SAVINGS') return 'Накопление';
-  if (value === 'WIDGET' || value === 'METRIC') return 'Виджет Pulse';
-  return value ? String(value) : 'Артефакт';
+  return getPulseArtifactKindLabel({ value, actionType, sourceType });
 }
 
 function modeLabel(value?: string | null) {
@@ -183,12 +166,18 @@ function resolveSubtasks(value: unknown): SnapshotSubtask[] {
 }
 
 function resolveSnapshot(resolvedArtifact: Partial<ShareArtifact> | Partial<PulseShareEmbedArtifact> | null) {
+  const actionType = String((resolvedArtifact as Partial<ShareArtifact> | null)?.actionType ?? resolvedArtifact?.actionType ?? '');
+  const sourceType = String((resolvedArtifact as Partial<ShareArtifact> | null)?.sourceType ?? resolvedArtifact?.sourceType ?? '');
   const source = ((resolvedArtifact as Partial<ShareArtifact> | null)?.resolvedSnapshot ?? resolvedArtifact?.snapshotJson) as Record<string, unknown> | undefined;
 
+  const rawLabel = pickSnapshotValue(source?.label) || 'Pulse';
+  const rawTitle = pickSnapshotValue(source?.title) || String(resolvedArtifact?.title ?? 'Pulse артефакт');
+  const rawDescription = pickSnapshotValue(source?.description) || String(resolvedArtifact?.description ?? '');
+
   return {
-    label: pickSnapshotValue(source?.label) || 'Pulse',
-    title: pickSnapshotValue(source?.title) || String(resolvedArtifact?.title ?? 'Pulse артефакт'),
-    description: pickSnapshotValue(source?.description) || String(resolvedArtifact?.description ?? ''),
+    label: kindLabel(rawLabel, actionType || null, sourceType || null),
+    title: replacePulseArtifactTechnicalText(rawTitle),
+    description: replacePulseArtifactTechnicalText(rawDescription),
     primary: pickSnapshotValue(source?.primary),
     secondary: pickSnapshotValue(source?.secondary),
     progressCaption: pickSnapshotValue(source?.progressCaption),
@@ -215,11 +204,15 @@ function renderProgressBar(value: number | null, compact = false) {
 }
 
 function isSettlementArtifact(actionType?: string | null, sourceType?: string | null) {
-  return actionType === 'FINANCE_SPLIT' || actionType === 'DEBT_SHARE' || actionType === 'SAVINGS_SHARE' || sourceType === 'DEBT' || sourceType === 'SAVINGS_GOAL';
+  const normalizedActionType = normalizePulseArtifactToken(actionType);
+  const normalizedSourceType = normalizePulseArtifactToken(sourceType);
+  return ['FINANCE_SPLIT', 'DEBT_SHARE', 'SAVINGS_SHARE', 'SHARED_BILL', 'SHARED_DEBT', 'SHARED_SAVINGS'].includes(normalizedActionType) || ['DEBT', 'SAVINGS_GOAL', 'SHARED_BILL', 'SHARED_DEBT', 'SHARED_SAVINGS'].includes(normalizedSourceType);
 }
 
 function settlementActionLabel(actionType?: string | null, sourceType?: string | null) {
-  if (actionType === 'SAVINGS_SHARE' || sourceType === 'SAVINGS_GOAL') return 'Пополнить вручную';
+  const normalizedActionType = normalizePulseArtifactToken(actionType);
+  const normalizedSourceType = normalizePulseArtifactToken(sourceType);
+  if (['SAVINGS_SHARE', 'SHARED_SAVINGS'].includes(normalizedActionType) || ['SAVINGS_GOAL', 'SHARED_SAVINGS'].includes(normalizedSourceType)) return 'Пополнить вручную';
   return 'Погасить вручную';
 }
 
@@ -256,10 +249,10 @@ export function PulseShareCard({ artifactId, artifact, compact = false, interact
     Boolean(
       viewerState?.debtId ||
         viewerState?.savingsGoalId ||
-        (actionType === 'FINANCE_SPLIT' && settlementTargets.some((item) => item.userId === viewerUserId)),
+        (['FINANCE_SPLIT', 'SHARED_BILL'].includes(normalizePulseArtifactToken(actionType)) && settlementTargets.some((item) => item.userId === viewerUserId)),
     ) &&
     isSettlementArtifact(actionType, sourceType);
-  const canSettleForAnotherUser = actionType === 'FINANCE_SPLIT' && settlementTargets.length > 1;
+  const canSettleForAnotherUser = ['FINANCE_SPLIT', 'SHARED_BILL'].includes(normalizePulseArtifactToken(actionType)) && settlementTargets.length > 1;
   const busy = respondState.isLoading || addState.isLoading || completeState.isLoading || settleState.isLoading;
   const completedParticipants = useMemo(() => snapshot.participants.filter((item) => item.status === 'COMPLETED'), [snapshot.participants]);
   const activeParticipants = useMemo(() => snapshot.participants.filter((item) => item.status !== 'DECLINED'), [snapshot.participants]);

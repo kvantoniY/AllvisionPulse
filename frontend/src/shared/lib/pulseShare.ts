@@ -1,4 +1,5 @@
 import type { ShareArtifact } from '@/shared/types/programs';
+import { isPulseFinanceRouteTarget } from '@/shared/lib/pulseArtifactDisplay';
 
 export type PulseShareEmbedArtifact = Pick<
   ShareArtifact,
@@ -57,6 +58,7 @@ export function getPulseShareRoute(artifactId?: string | null, artifact?: Partia
 
   const reference = artifact?.referenceJson as Record<string, unknown> | undefined;
   const sourceType = String(artifact?.sourceType ?? '');
+  const actionType = String(artifact?.actionType ?? '');
 
   if (typeof reference?.inviteToken === 'string' && reference.inviteToken) {
     if (reference.inviteType === 'PROGRAM') return `/health?tab=programs&programInvite=${reference.inviteToken}`;
@@ -73,7 +75,7 @@ export function getPulseShareRoute(artifactId?: string | null, artifact?: Partia
   if (sourceType === 'ACHIEVEMENT') return '/health/achievements';
   if (sourceType === 'TODAY_ACTIONS') return '/health?tab=programs';
   if (sourceType === 'TASK' || sourceType === 'TASK_DAY') return '/health?tab=tasks';
-  if (sourceType === 'FINANCE_ENTRY' || sourceType === 'FINANCE_OVERVIEW' || sourceType === 'DEBT' || sourceType === 'SAVINGS_GOAL') return '/health?tab=finance';
+  if (isPulseFinanceRouteTarget(sourceType, actionType)) return '/health?tab=finance';
   if (sourceType === 'MENTAL_DAY' || sourceType === 'NUTRITION_DAY') return '/health?tab=health';
   if (artifactId) return `/health/programs?share=${artifactId}`;
   return '/health?tab=programs';

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useMemo } from 'react';
-import { ArrowRight, Check, CheckCheck, Clock3, Ellipsis } from 'lucide-react';
+import { ArrowUpRight, CircleCheckBig, Clock3, Ellipsis, Sparkles } from 'lucide-react';
 import { Card, CardHeader } from '@/shared/ui/Card/Card';
 import { Button } from '@/shared/ui/Button/Button';
 import { Icon } from '@/shared/ui/Icon/Icon';
@@ -69,8 +69,8 @@ export function ProgramTodayWidget({ compact = false, variant = 'default' }: Pro
             return (
               <div key={item.id} className={styles.pulseActionRow}>
                 <Link href={primaryOpenHref} className={[styles.linkButton, styles.pulseActionMain, styles.pulseActionMainLink].join(' ')}>
-                  <span className={styles.iconBadge}>
-                    {item.required ? <CheckCheck size={14} strokeWidth={1.9} aria-hidden="true" /> : <Clock3 size={14} strokeWidth={1.9} aria-hidden="true" />}
+                  <span className={[styles.iconBadge, styles.pulseActionBadge].join(' ')}>
+                    {item.required ? <Sparkles className={styles.pulseActionBadgeIcon} strokeWidth={1.9} aria-hidden="true" /> : <Clock3 className={styles.pulseActionBadgeIcon} strokeWidth={1.9} aria-hidden="true" />}
                   </span>
 
                   <div className={styles.pulseActionCopy}>
@@ -89,12 +89,12 @@ export function ProgramTodayWidget({ compact = false, variant = 'default' }: Pro
                     aria-label="Отметить выполненным"
                     onClick={() => handleAction(() => completeAction({ runId: item.runId, actionId: item.id }).unwrap())}
                   >
-                    <Check size={14} strokeWidth={1.9} aria-hidden="true" />
+                    <CircleCheckBig className={styles.pulseActionControlIcon} strokeWidth={1.9} aria-hidden="true" />
                   </Button>
 
                   <Link href={primaryOpenHref} className={styles.linkButton}>
                     <span className={styles.pulseActionChevron} aria-label="Открыть действие">
-                      <ArrowRight size={14} strokeWidth={1.9} aria-hidden="true" />
+                      <ArrowUpRight className={styles.pulseActionControlIcon} strokeWidth={1.9} aria-hidden="true" />
                     </span>
                   </Link>
                 </div>

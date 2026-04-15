@@ -37,6 +37,7 @@ export type StoryEditorItem =
       widgetType: StoryWidgetType;
       title: string;
       payload: Record<string, unknown>;
+      contentScale?: number;
     }
   | {
       id: string;

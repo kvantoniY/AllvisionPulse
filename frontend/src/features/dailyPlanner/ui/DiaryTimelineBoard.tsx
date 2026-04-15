@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Check, Plus } from 'lucide-react';
 import type { PointerEvent as ReactPointerEvent } from 'react';
 import { extractApiError } from '@/shared/lib/apiError';
+import { useIsMobile } from '@/shared/lib/hooks/useIsMobile';
 import type { PulseTaskItem } from '@/shared/types/pulse';
 import styles from './DiaryTimelineBoard.module.css';
 
@@ -53,6 +54,16 @@ type InteractionState = {
   originX: number;
   trackWidth: number;
   persistEnd: boolean;
+};
+
+type SlotPointerState = {
+  pointerId: number;
+  initialSlotIndex: number;
+  currentSlotIndex: number;
+  startSameArmed: boolean;
+  originX: number;
+  startedAt: number;
+  moved: boolean;
 };
 
 const START_HOUR = 6;
@@ -199,18 +210,29 @@ function buildLayouts(tasks: PulseTaskItem[], drafts: Record<string, DraftWindow
 }
 
 export function DiaryTimelineBoard({ date, tasks, onCreateTaskAtSlot, onOpenTask, onUpdateTask }: Props) {
+  const isMobile = useIsMobile(960);
+  const rootRef = useRef<HTMLElement | null>(null);
+  const frameRef = useRef<HTMLDivElement | null>(null);
   const trackRef = useRef<HTMLDivElement | null>(null);
   const suppressClickRef = useRef<string | null>(null);
+  const suppressSlotClickRef = useRef<number | null>(null);
   const draftsRef = useRef<Record<string, DraftWindow>>({});
+  const slotPointerRef = useRef<SlotPointerState | null>(null);
+  const slotPointerClientXRef = useRef<number | null>(null);
+  const slotAutoScrollRafRef = useRef<number | null>(null);
   const [drafts, setDrafts] = useState<Record<string, DraftWindow>>({});
   const [interaction, setInteraction] = useState<InteractionState | null>(null);
+  const [slotPointer, setSlotPointer] = useState<SlotPointerState | null>(null);
   const [hoveredTaskKey, setHoveredTaskKey] = useState<string | null>(null);
+  const [previewTaskKey, setPreviewTaskKey] = useState<string | null>(null);
   const [hoveredSlotIndex, setHoveredSlotIndex] = useState<number | null>(null);
+  const [armedSlotIndex, setArmedSlotIndex] = useState<number | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [now, setNow] = useState(() => new Date());
 
   const layouts = useMemo(() => buildLayouts(tasks, drafts), [drafts, tasks]);
-  const hoveredLayout = hoveredTaskKey ? layouts.find((item) => item.key === hoveredTaskKey) ?? null : null;
+  const activeTaskPreviewKey = isMobile ? previewTaskKey : hoveredTaskKey;
+  const hoveredLayout = activeTaskPreviewKey ? layouts.find((item) => item.key === activeTaskPreviewKey) ?? null : null;
   const nowOffset = useMemo(() => {
     const rawMinutes = now.getHours() * 60 + now.getMinutes();
     const adjusted = rawMinutes < START_HOUR * 60 ? rawMinutes + 24 * 60 : rawMinutes;
@@ -223,14 +245,193 @@ export function DiaryTimelineBoard({ date, tasks, onCreateTaskAtSlot, onOpenTask
   }, [drafts]);
 
   useEffect(() => {
+    slotPointerRef.current = slotPointer;
+  }, [slotPointer]);
+
+  useEffect(() => {
     const timer = window.setInterval(() => setNow(new Date()), 60_000);
     return () => window.clearInterval(timer);
   }, []);
 
   useEffect(() => {
+    if (!previewTaskKey) return;
+    if (layouts.some((item) => item.key === previewTaskKey)) return;
+    setPreviewTaskKey(null);
+  }, [layouts, previewTaskKey]);
+
+  useEffect(() => {
+    setHoveredTaskKey(null);
+    setHoveredSlotIndex(null);
+    setArmedSlotIndex(null);
+    setPreviewTaskKey(null);
+  }, [date, isMobile]);
+
+  useEffect(() => {
+    if (!isMobile) return;
+    if (armedSlotIndex == null && !previewTaskKey) return;
+
+    const handlePointerDown = (event: PointerEvent) => {
+      const root = rootRef.current;
+      if (!root) return;
+      if (root.contains(event.target as Node)) return;
+      setArmedSlotIndex(null);
+      setPreviewTaskKey(null);
+    };
+
+    document.addEventListener('pointerdown', handlePointerDown);
+    return () => document.removeEventListener('pointerdown', handlePointerDown);
+  }, [armedSlotIndex, isMobile, previewTaskKey]);
+
+  const resolveSlotIndexFromClientX = useCallback((clientX: number) => {
+    const rect = trackRef.current?.getBoundingClientRect();
+    if (!rect) return null;
+    const ratio = clamp((clientX - rect.left) / Math.max(rect.width, 1), 0, 0.999999);
+    return clamp(Math.floor(ratio * SLOT_COUNT), 0, SLOT_COUNT - 1);
+  }, []);
+
+  const stopSlotAutoScroll = useCallback(() => {
+    if (slotAutoScrollRafRef.current != null) {
+      window.cancelAnimationFrame(slotAutoScrollRafRef.current);
+      slotAutoScrollRafRef.current = null;
+    }
+  }, []);
+
+  const completeSlotPointer = useCallback((options?: { finalClientX?: number | null; cancelled?: boolean }) => {
+    const currentPointer = slotPointerRef.current;
+    if (!currentPointer) return;
+
+    const finalSlotIndex = options?.cancelled
+      ? currentPointer.currentSlotIndex
+      : resolveSlotIndexFromClientX(options?.finalClientX ?? currentPointer.originX) ?? currentPointer.currentSlotIndex;
+    const heldLongEnough = Date.now() - currentPointer.startedAt > 180;
+    const shouldSuppressClick = currentPointer.moved
+      || heldLongEnough
+      || !currentPointer.startSameArmed
+      || finalSlotIndex !== currentPointer.initialSlotIndex
+      || Boolean(options?.cancelled);
+
+    stopSlotAutoScroll();
+    slotPointerClientXRef.current = null;
+    setSlotPointer(null);
+    setHoveredSlotIndex(null);
+    setPreviewTaskKey(null);
+    setArmedSlotIndex(finalSlotIndex);
+
+    if (shouldSuppressClick) {
+      suppressSlotClickRef.current = finalSlotIndex;
+      window.setTimeout(() => {
+        if (suppressSlotClickRef.current === finalSlotIndex) suppressSlotClickRef.current = null;
+      }, 0);
+    }
+  }, [resolveSlotIndexFromClientX, stopSlotAutoScroll]);
+
+  useEffect(() => {
+    if (!interaction && !slotPointer) return;
+
+    const { overflow: bodyOverflow, touchAction: bodyTouchAction } = document.body.style;
+    const { overflow: htmlOverflow } = document.documentElement.style;
+    document.body.style.overflow = 'hidden';
+    document.body.style.touchAction = 'none';
+    document.documentElement.style.overflow = 'hidden';
+
+    return () => {
+      document.body.style.overflow = bodyOverflow;
+      document.body.style.touchAction = bodyTouchAction;
+      document.documentElement.style.overflow = htmlOverflow;
+    };
+  }, [interaction, slotPointer]);
+
+  useEffect(() => {
+    if (!isMobile || !slotPointer) return;
+
+    const updateSlotPointerPosition = (clientX: number) => {
+      const nextSlotIndex = resolveSlotIndexFromClientX(clientX);
+      if (nextSlotIndex == null) return null;
+
+      setSlotPointer((current) => {
+        if (!current) return current;
+        return {
+          ...current,
+          currentSlotIndex: nextSlotIndex,
+          moved: current.moved || Math.abs(clientX - current.originX) > 4,
+        };
+      });
+
+      return nextSlotIndex;
+    };
+
+    const runSlotAutoScroll = () => {
+      const frame = frameRef.current;
+      const pointerX = slotPointerClientXRef.current;
+      const currentPointer = slotPointerRef.current;
+      if (!frame || pointerX == null || !currentPointer) {
+        stopSlotAutoScroll();
+        return;
+      }
+
+      const frameRect = frame.getBoundingClientRect();
+      const edgeThreshold = 52;
+      let delta = 0;
+
+      if (pointerX < frameRect.left + edgeThreshold) {
+        delta = -Math.max(2, Math.ceil((frameRect.left + edgeThreshold - pointerX) / 6));
+      } else if (pointerX > frameRect.right - edgeThreshold) {
+        delta = Math.max(2, Math.ceil((pointerX - (frameRect.right - edgeThreshold)) / 6));
+      }
+
+      if (delta !== 0) {
+        const maxScrollLeft = frame.scrollWidth - frame.clientWidth;
+        const nextScrollLeft = clamp(frame.scrollLeft + delta, 0, maxScrollLeft);
+        if (nextScrollLeft !== frame.scrollLeft) {
+          frame.scrollLeft = nextScrollLeft;
+          updateSlotPointerPosition(pointerX);
+        }
+      }
+
+      slotAutoScrollRafRef.current = window.requestAnimationFrame(runSlotAutoScroll);
+    };
+
+    slotPointerClientXRef.current = slotPointer.originX;
+    stopSlotAutoScroll();
+    slotAutoScrollRafRef.current = window.requestAnimationFrame(runSlotAutoScroll);
+
+    const handlePointerMove = (event: PointerEvent) => {
+      if (event.pointerId !== slotPointer.pointerId) return;
+      if (event.cancelable) event.preventDefault();
+
+      slotPointerClientXRef.current = event.clientX;
+      updateSlotPointerPosition(event.clientX);
+    };
+
+    const handlePointerUp = (event: PointerEvent) => {
+      if (event.pointerId !== slotPointer.pointerId) return;
+      if (event.cancelable) event.preventDefault();
+
+      completeSlotPointer({ finalClientX: event.clientX });
+    };
+
+    const handlePointerCancel = (event: PointerEvent) => {
+      if (event.pointerId !== slotPointer.pointerId) return;
+      completeSlotPointer({ cancelled: true });
+    };
+
+    window.addEventListener('pointermove', handlePointerMove, { passive: false });
+    window.addEventListener('pointerup', handlePointerUp);
+    window.addEventListener('pointercancel', handlePointerCancel);
+    return () => {
+      stopSlotAutoScroll();
+      slotPointerClientXRef.current = null;
+      window.removeEventListener('pointermove', handlePointerMove);
+      window.removeEventListener('pointerup', handlePointerUp);
+      window.removeEventListener('pointercancel', handlePointerCancel);
+    };
+  }, [completeSlotPointer, isMobile, resolveSlotIndexFromClientX, slotPointer, stopSlotAutoScroll]);
+
+  useEffect(() => {
     if (!interaction) return;
 
     const handlePointerMove = (event: PointerEvent) => {
+      if (event.cancelable) event.preventDefault();
       const deltaMinutes = roundToStep(((event.clientX - interaction.originX) / Math.max(interaction.trackWidth, 1)) * TOTAL_MINUTES, SLOT_MINUTES);
       const duration = interaction.baseEndOffset - interaction.baseStartOffset;
       let startOffset = interaction.baseStartOffset;
@@ -293,11 +494,13 @@ export function DiaryTimelineBoard({ date, tasks, onCreateTaskAtSlot, onOpenTask
         });
     };
 
-    window.addEventListener('pointermove', handlePointerMove);
+    window.addEventListener('pointermove', handlePointerMove, { passive: false });
     window.addEventListener('pointerup', handlePointerUp, { once: true });
+    window.addEventListener('pointercancel', handlePointerUp, { once: true });
     return () => {
       window.removeEventListener('pointermove', handlePointerMove);
       window.removeEventListener('pointerup', handlePointerUp);
+      window.removeEventListener('pointercancel', handlePointerUp);
     };
   }, [date, interaction, onUpdateTask]);
 
@@ -305,9 +508,11 @@ export function DiaryTimelineBoard({ date, tasks, onCreateTaskAtSlot, onOpenTask
     if (event.button !== 0) return;
     event.preventDefault();
     event.stopPropagation();
+    event.currentTarget.setPointerCapture?.(event.pointerId);
     const rect = trackRef.current?.getBoundingClientRect();
     setErrorMessage(null);
     setHoveredTaskKey(layout.key);
+    setArmedSlotIndex(null);
     suppressClickRef.current = null;
     setInteraction({
       type,
@@ -321,17 +526,62 @@ export function DiaryTimelineBoard({ date, tasks, onCreateTaskAtSlot, onOpenTask
     });
   };
 
+  const startSlotPointer = (slotIndex: number, event: ReactPointerEvent<HTMLButtonElement>) => {
+    if (!isMobile || event.button !== 0) return;
+    event.preventDefault();
+    event.stopPropagation();
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+
+    setErrorMessage(null);
+    setPreviewTaskKey(null);
+    setHoveredTaskKey(null);
+    setHoveredSlotIndex(null);
+    setSlotPointer({
+      pointerId: event.pointerId,
+      initialSlotIndex: slotIndex,
+      currentSlotIndex: slotIndex,
+      startSameArmed: armedSlotIndex === slotIndex,
+      originX: event.clientX,
+      startedAt: Date.now(),
+      moved: false,
+    });
+  };
+
   const handleOpenTask = (layout: LayoutItem) => {
     if (suppressClickRef.current === layout.key) {
       suppressClickRef.current = null;
       return;
     }
+
+    setErrorMessage(null);
+    setArmedSlotIndex(null);
+
+    if (isMobile && previewTaskKey !== layout.key) {
+      setPreviewTaskKey(layout.key);
+      return;
+    }
+
     onOpenTask(layout.task);
   };
 
   const handleCreateAtSlot = (slotIndex: number) => {
+    if (suppressSlotClickRef.current === slotIndex) {
+      suppressSlotClickRef.current = null;
+      return;
+    }
+
     const startOffset = clamp(slotIndex * SLOT_MINUTES, 0, TOTAL_MINUTES - MIN_DURATION_MINUTES);
     const endOffset = Math.min(TOTAL_MINUTES, startOffset + DEFAULT_DURATION_MINUTES);
+
+    setErrorMessage(null);
+    setPreviewTaskKey(null);
+
+    if (isMobile && armedSlotIndex !== slotIndex) {
+      setArmedSlotIndex(slotIndex);
+      return;
+    }
+
+    setArmedSlotIndex(null);
     onCreateTaskAtSlot({
       date,
       time: offsetToTime(startOffset),
@@ -341,10 +591,11 @@ export function DiaryTimelineBoard({ date, tasks, onCreateTaskAtSlot, onOpenTask
 
   const previewBottom = hoveredLayout ? Math.min(146, hoveredLayout.bottom + 42) : 0;
   const previewLeft = hoveredLayout ? clamp(hoveredLayout.centerPercent, 10, 90) : 0;
+  const activeSlotIndex = isMobile ? slotPointer?.currentSlotIndex ?? armedSlotIndex : hoveredSlotIndex;
 
   return (
-    <section className={styles.root}>
-      <div className={styles.frame}>
+    <section ref={rootRef} className={styles.root}>
+      <div ref={frameRef} className={styles.frame}>
         <div className={styles.canvas}>
           <div className={styles.backdrop} aria-hidden="true">
             <div className={[styles.segment, styles.segmentMorning].join(' ')} />
@@ -385,22 +636,27 @@ export function DiaryTimelineBoard({ date, tasks, onCreateTaskAtSlot, onOpenTask
                   key={index}
                   type="button"
                   className={styles.slotButton}
-                  onMouseEnter={() => setHoveredSlotIndex(index)}
-                  onMouseLeave={() => setHoveredSlotIndex((current) => (current === index ? null : current))}
+                  onPointerDown={(event) => startSlotPointer(index, event)}
+                  onMouseEnter={() => { if (!isMobile) setHoveredSlotIndex(index); }}
+                  onMouseLeave={() => { if (!isMobile) setHoveredSlotIndex((current) => (current === index ? null : current)); }}
                   onClick={() => handleCreateAtSlot(index)}
-                  aria-label={`Добавить задачу на ${offsetToTime(index * SLOT_MINUTES)}`}
+                  aria-label={`${isMobile && activeSlotIndex === index ? 'Создать задачу' : 'Выбрать слот'} на ${offsetToTime(index * SLOT_MINUTES)}`}
+                  aria-pressed={isMobile && activeSlotIndex === index}
                 >
                   <span
                     className={[
                       styles.slotIndicator,
                       index % 4 === 0 ? styles.slotIndicatorHour : '',
-                      hoveredSlotIndex === index ? styles.slotIndicatorHover : '',
+                      activeSlotIndex === index ? styles.slotIndicatorHover : '',
                     ].filter(Boolean).join(' ')}
                   />
-                  {hoveredSlotIndex === index ? (
-                    <span className={styles.slotPlus}>
-                      <Plus size={12} strokeWidth={2.6} />
-                    </span>
+                  {activeSlotIndex === index ? (
+                    <>
+                      <span className={styles.slotTime}>{offsetToTime(index * SLOT_MINUTES)}</span>
+                      <span className={[styles.slotPlus, styles.slotPlusVisible].join(' ')}>
+                        <Plus size={12} strokeWidth={2.6} />
+                      </span>
+                    </>
                   ) : null}
                 </button>
               ))}
@@ -421,7 +677,7 @@ export function DiaryTimelineBoard({ date, tasks, onCreateTaskAtSlot, onOpenTask
                   className={[
                     styles.event,
                     layout.task.completedForDate ? styles.eventDone : '',
-                    hoveredTaskKey === layout.key ? styles.eventHover : '',
+                    hoveredLayout?.key === layout.key ? styles.eventSelected : '',
                   ].filter(Boolean).join(' ')}
                   style={{
                     left: `${layout.leftPercent}%`,
@@ -429,8 +685,8 @@ export function DiaryTimelineBoard({ date, tasks, onCreateTaskAtSlot, onOpenTask
                     bottom: `${layout.bottom}px`,
                   }}
                   onPointerDown={(event) => startInteraction('drag', layout, event)}
-                  onMouseEnter={() => setHoveredTaskKey(layout.key)}
-                  onMouseLeave={() => setHoveredTaskKey((current) => (current === layout.key ? null : current))}
+                  onMouseEnter={() => { if (!isMobile) setHoveredTaskKey(layout.key); }}
+                  onMouseLeave={() => { if (!isMobile) setHoveredTaskKey((current) => (current === layout.key ? null : current)); }}
                   onClick={() => handleOpenTask(layout)}
                   aria-label={`${layout.task.title}, ${layout.timeLabel}`}
                 >
@@ -445,12 +701,19 @@ export function DiaryTimelineBoard({ date, tasks, onCreateTaskAtSlot, onOpenTask
             </div>
 
             {hoveredLayout ? (
-              <div
-                className={styles.preview}
+              <button
+                type="button"
+                className={[styles.preview, isMobile ? styles.previewInteractive : ''].filter(Boolean).join(' ')}
                 style={{
                   left: `${previewLeft}%`,
                   bottom: `${previewBottom}px`,
                 }}
+                onClick={() => {
+                  if (!isMobile) return;
+                  onOpenTask(hoveredLayout.task);
+                }}
+                tabIndex={isMobile ? 0 : -1}
+                aria-label={isMobile ? `Открыть задачу ${hoveredLayout.task.title}` : undefined}
               >
                 <span className={styles.previewTitle}>
                   <span className={styles.previewDot} data-tone={hoveredLayout.tone} />
@@ -458,7 +721,7 @@ export function DiaryTimelineBoard({ date, tasks, onCreateTaskAtSlot, onOpenTask
                 </span>
                 {hoveredLayout.excerpt ? <span className={styles.previewText}>{hoveredLayout.excerpt}</span> : null}
                 <span className={styles.previewTime}>{hoveredLayout.timeLabel}</span>
-              </div>
+              </button>
             ) : null}
 
             {showCurrentMarker ? (

@@ -28,7 +28,7 @@ function getMobileTitle(pathname: string, pulseTab: string | null) {
   if (pathname.startsWith('/messages')) return 'Сообщения';
   if (pathname.startsWith('/health')) return getPulseMobileTitle(pulseTab);
   if (pathname === '/pro' || pathname.startsWith('/pro/')) return 'Пульс Про';
-  if (pathname.startsWith('/friends')) return 'Подписки';
+  if (pathname.startsWith('/subscriptions')) return 'Подписки';
   if (pathname.startsWith('/support')) return 'Поддержка';
   if (pathname.startsWith('/settings')) return 'Настройки';
   if (pathname.startsWith('/admin')) return 'Админ';

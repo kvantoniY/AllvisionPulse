@@ -9,8 +9,6 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: 18px;
-  padding-bottom: 18px;
-  border-bottom: 1px solid var(--stroke-soft);
 }
 
 /* Override Card component when used as hero panel (flatten) */
@@ -110,7 +108,6 @@
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 16px 0;
   border-top: 1px solid var(--stroke-soft);
 }
 
@@ -178,14 +175,53 @@
   color: var(--text);
 }
 
+.searchBar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  margin: 8px 0 4px;
+  background: var(--surface-2);
+  border: 1px solid var(--stroke);
+  border-radius: var(--radius-md);
+}
+
+.searchBar:focus-within {
+  border-color: var(--stroke-strong);
+}
+
+.searchIcon {
+  color: var(--muted);
+}
+
+.searchInput {
+  flex: 1;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--text);
+  font-size: 15px;
+}
+
 .sectionLabel {
-  margin: 18px 0 0;
+  margin: 0;
   padding-top: 18px;
   border-top: 1px solid var(--stroke-soft);
   color: var(--muted);
   font-size: var(--text-micro);
   text-transform: uppercase;
   letter-spacing: 0.12em;
+}
+
+.list + .sectionLabel,
+.searchBar + .sectionLabel {
+  margin-top: 18px;
+}
+
+.searchBar + .sectionLabel,
+.emptyStateCard + .sectionLabel {
+  padding-top: 0;
+  border-top: 0;
 }
 
 /* Empty state card (flatten) */

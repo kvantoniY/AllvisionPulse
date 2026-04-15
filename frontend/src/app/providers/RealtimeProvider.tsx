@@ -7,6 +7,7 @@ import { notificationsActions } from '@/entities/notification';
 import { friendsApi } from '@/shared/api/friendsApi';
 import { chatsApi, useGetChatsQuery } from '@/shared/api/chatsApi';
 import { gamesApi } from '@/shared/api/gamesApi';
+import { pulseApi } from '@/shared/api/pulseApi';
 import { baseApi } from '@/shared/api/baseApi';
 import { chatUiActions } from '@/entities/chat';
 import { useGetMeQuery } from '@/shared/api/usersApi';
@@ -429,6 +430,7 @@ export function RealtimeProvider({ children }: PropsWithChildren) {
         const artifactId = String(payload?.artifactId ?? '');
         if (!artifactId) return;
         dispatch(baseApi.util.invalidateTags([{ type: 'ShareArtifact', id: artifactId }, { type: 'ShareArtifact', id: 'LIST' }]));
+        dispatch(pulseApi.util.invalidateTags(['Pulse']));
       });
 
 

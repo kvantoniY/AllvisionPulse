@@ -2046,10 +2046,28 @@
 
 .pulseActionMain {
   gap: 10px !important;
+  align-items: center !important;
 }
 
 .pulseActionMainLink {
   min-width: 0;
+}
+
+.pulseActionBadge {
+  width: 36px;
+  height: 36px;
+  border-radius: 13px;
+  border-color: rgba(255, 161, 92, 0.18);
+  background: linear-gradient(180deg, rgba(255, 122, 26, 0.08), rgba(255, 122, 26, 0.04));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  flex: 0 0 auto;
+}
+
+.pulseActionBadgeIcon,
+.pulseActionControlIcon {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
 }
 
 .pulseActionMainLink:hover .pulseActionCopy strong {
@@ -2080,18 +2098,20 @@
 }
 
 .pulseActionCheckButton {
-  min-width: 34px !important;
-  min-height: 34px !important;
-  border-radius: 12px !important;
+  width: 36px !important;
+  min-width: 36px !important;
+  height: 36px !important;
+  min-height: 36px !important;
+  border-radius: 13px !important;
 }
 
 .pulseActionChevron {
-  width: 34px;
-  height: 34px;
+  width: 36px;
+  height: 36px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 12px;
+  border-radius: 13px;
   border: 1px solid rgba(255, 255, 255, 0.08);
   background: #1d1d1e;
   color: rgba(255, 255, 255, 0.64);
@@ -2120,12 +2140,25 @@
     gap: 10px !important;
   }
 
+  .pulseActionBadge {
+    width: 34px;
+    height: 34px;
+  }
+
   .pulseActionCopy strong {
     font-size: 13px !important;
   }
 
   .pulseActionCopy span {
     font-size: 11px !important;
+  }
+
+  .pulseActionCheckButton,
+  .pulseActionChevron {
+    width: 34px !important;
+    min-width: 34px !important;
+    height: 34px !important;
+    min-height: 34px !important;
   }
 }
 

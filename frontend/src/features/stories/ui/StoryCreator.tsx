@@ -1,6 +1,7 @@
 'use client';
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   useCreateHighlightMutation,
   useCreateStoriesMutation,
@@ -58,6 +59,8 @@ const TOOL_BUTTONS: Array<{ key: ToolKey; label: string; icon: any }> = [
   { key: 'background', label: 'Фон', icon: 'image' },
   { key: 'media', label: 'Медиа', icon: 'settings' },
 ];
+const MOBILE_PRIMARY_KEYS: ToolKey[] = ['text', 'widgets', 'media'];
+const MOBILE_OVERFLOW_KEYS: ToolKey[] = ['stickers', 'brush', 'background'];
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value));
@@ -227,10 +230,18 @@ export function StoryCreator({ open, onClose, onCreated }: { open: boolean; onCl
   const [drawMode, setDrawMode] = useState(false);
   const [drawPoints, setDrawPoints] = useState<DrawingPoint[]>([]);
   const [drawColor, setDrawColor] = useState('#ffffff');
+  const [mobileMoreOpen, setMobileMoreOpen] = useState(false);
+  const [addMenuOpen, setAddMenuOpen] = useState(false);
   const [highlightId, setHighlightId] = useState('');
   const [newHighlightTitle, setNewHighlightTitle] = useState('');
   const [videoFrames, setVideoFrames] = useState<Record<string, string[]>>({});
   const drawActiveRef = useRef(false);
+  const addBtnRef = useRef<HTMLButtonElement | null>(null);
+  const [addMenuRect, setAddMenuRect] = useState<{ left: number; top: number } | null>(null);
+  const moreBtnRef = useRef<HTMLButtonElement | null>(null);
+  const [moreMenuRect, setMoreMenuRect] = useState<{ left: number; bottom: number } | null>(null);
+  const sidebarRef = useRef<HTMLElement | null>(null);
+  const sheetRef = useRef<HTMLDivElement | null>(null);
 
   const [createStories, createState] = useCreateStoriesMutation();
   const [createHighlight] = useCreateHighlightMutation();
@@ -252,18 +263,31 @@ export function StoryCreator({ open, onClose, onCreated }: { open: boolean; onCl
   const shareArtifacts = shareArtifactsData?.items ?? [];
 
   useEffect(() => {
-    const enableBrush = activeTool === 'brush' && toolOpen;
-    setDrawMode(enableBrush);
-    if (!enableBrush) {
+    if (activeTool !== 'brush') {
+      setDrawMode(false);
       drawActiveRef.current = false;
       setDrawPoints([]);
     }
-  }, [activeTool, toolOpen]);
+  }, [activeTool]);
 
   useEffect(() => {
     if (!open) return;
     setToolOpen(!isMobile);
   }, [isMobile, open]);
+
+  useEffect(() => {
+    if (!open || !toolOpen) return;
+    const handler = (event: PointerEvent) => {
+      const target = event.target as Node | null;
+      if (!target) return;
+      if (sidebarRef.current?.contains(target)) return;
+      if (sheetRef.current?.contains(target)) return;
+      if (target instanceof Element && target.closest('[data-keep-panel]')) return;
+      setToolOpen(false);
+    };
+    document.addEventListener('pointerdown', handler);
+    return () => document.removeEventListener('pointerdown', handler);
+  }, [open, toolOpen]);
 
   useEffect(() => {
     if (!open) return;
@@ -399,8 +423,25 @@ export function StoryCreator({ open, onClose, onCreated }: { open: boolean; onCl
     input.click();
   };
 
-  const openToolPanelIfDesktop = () => {
-    if (!isMobile) setToolOpen(true);
+  const createBackgroundDraft = async (color: string) => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 1080;
+    canvas.height = 1920;
+    const ctx = canvas.getContext('2d');
+    if (ctx) {
+      ctx.fillStyle = color;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'));
+    if (!blob) return;
+    const file = new File([blob], `background-${Date.now()}.png`, { type: 'image/png' });
+    const draft = await enrichFile(file);
+    draft.transform = { ...draft.transform, backgroundFill: color, blurFill: false };
+    setDrafts((prev) => [...prev, draft]);
+    setActiveDraftId(draft.id);
+    setSelectedItemId(null);
+    setMediaSelected(true);
+    setAddMenuOpen(false);
   };
 
   const handleStickerInput = async (event: ChangeEvent<HTMLInputElement>) => {
@@ -418,7 +459,7 @@ export function StoryCreator({ open, onClose, onCreated }: { open: boolean; onCl
     updateDraft(activeDraft.id, (draft) => ({ ...draft, items: [...draft.items, { id, type: 'image', x: 20, y: 18, w: 36, h: 22, src, radius: 18 }] }));
     setSelectedItemId(id);
     setActiveTool('stickers');
-    openToolPanelIfDesktop();
+    if (isMobile) setToolOpen(false);
   };
 
   const addText = () => {
@@ -430,7 +471,7 @@ export function StoryCreator({ open, onClose, onCreated }: { open: boolean; onCl
     }));
     setSelectedItemId(id);
     setActiveTool('text');
-    openToolPanelIfDesktop();
+    if (isMobile) setToolOpen(false);
   };
 
   const addTextAt = (x: number, y: number) => {
@@ -442,7 +483,7 @@ export function StoryCreator({ open, onClose, onCreated }: { open: boolean; onCl
     }));
     setSelectedItemId(id);
     setMediaSelected(false);
-    openToolPanelIfDesktop();
+    if (isMobile) setToolOpen(false);
   };
 
   const addWidget = (type: StoryWidgetType) => {
@@ -455,7 +496,7 @@ export function StoryCreator({ open, onClose, onCreated }: { open: boolean; onCl
     }));
     setSelectedItemId(id);
     setActiveTool('widgets');
-    openToolPanelIfDesktop();
+    if (isMobile) setToolOpen(false);
   };
 
   const addShareWidget = (artifact: ShareArtifact) => {
@@ -474,7 +515,7 @@ export function StoryCreator({ open, onClose, onCreated }: { open: boolean; onCl
     }));
     setSelectedItemId(id);
     setActiveTool('widgets');
-    openToolPanelIfDesktop();
+    if (isMobile) setToolOpen(false);
   };
 
   const removeSelected = () => {
@@ -500,39 +541,109 @@ export function StoryCreator({ open, onClose, onCreated }: { open: boolean; onCl
     }
   };
 
-  const beginTransform = (itemId: string, mode: 'move' | 'resize', origin: { clientX: number; clientY: number }) => {
+  const beginTransform = (
+    itemId: string,
+    mode: 'move' | 'resize',
+    origin: { clientX: number; clientY: number; pointerId?: number; target?: Element },
+    handle: 'nw' | 'ne' | 'sw' | 'se' = 'se',
+  ) => {
     if (!activeDraft || !canvasRef.current) return;
     const target = activeDraft.items.find((item) => item.id === itemId);
     if (!target) return;
     rememberDraft(activeDraft.id);
     const rect = canvasRef.current.getBoundingClientRect();
     const start = { x: target.x, y: target.y, w: target.w, h: target.h };
+    const itemEl = canvasRef.current.querySelector(`[data-item-id="${itemId}"]`) as HTMLElement | null;
+    let minWPct = target.type === 'widget' ? 18 : 10;
+    let minHPct = target.type === 'widget' ? 10 : 8;
+    let naturalWPct = minWPct;
+    let naturalHPct = minHPct;
+    if (itemEl && rect.width > 0 && rect.height > 0) {
+      const contentEl = (itemEl.querySelector('[data-item-content]') as HTMLElement) ?? itemEl;
+      const prevTransform = contentEl.style.transform;
+      const prevWidth = contentEl.style.width;
+      const prevHeight = contentEl.style.height;
+      if (prevTransform) {
+        contentEl.style.transform = 'none';
+        contentEl.style.width = '100%';
+        contentEl.style.height = '100%';
+      }
+      const naturalW = contentEl.scrollWidth;
+      const naturalH = contentEl.scrollHeight;
+      if (prevTransform) {
+        contentEl.style.transform = prevTransform;
+        contentEl.style.width = prevWidth;
+        contentEl.style.height = prevHeight;
+      }
+      naturalWPct = (naturalW / rect.width) * 100;
+      naturalHPct = (naturalH / rect.height) * 100;
+      if (target.type !== 'widget') {
+        minWPct = Math.max(minWPct, naturalWPct);
+        minHPct = Math.max(minHPct, naturalHPct);
+      }
+    }
+    if (origin.pointerId !== undefined && origin.target && 'setPointerCapture' in origin.target) {
+      try { (origin.target as Element & { setPointerCapture: (id: number) => void }).setPointerCapture(origin.pointerId); } catch { /* noop */ }
+    }
     const onMove = (event: PointerEvent) => {
-      const dx = ((event.clientX - origin.clientX) / rect.width) * 100;
-      const dy = ((event.clientY - origin.clientY) / rect.height) * 100;
+      event.preventDefault();
+      const dxPct = ((event.clientX - origin.clientX) / rect.width) * 100;
+      const dyPct = ((event.clientY - origin.clientY) / rect.height) * 100;
       setDrafts((prev) => prev.map((draft) => draft.id !== activeDraft.id ? draft : {
         ...draft,
         items: draft.items.map((item) => {
           if (item.id !== itemId) return item;
-          if (mode === 'move') return { ...item, x: clamp(start.x + dx, 0, 100 - start.w), y: clamp(start.y + dy, 0, 100 - start.h) } as StoryEditorItem;
-          return { ...item, w: clamp(start.w + dx, 12, 100 - start.x), h: clamp(start.h + dy, 10, 100 - start.y) } as StoryEditorItem;
+          if (mode === 'move') return { ...item, x: clamp(start.x + dxPct, 0, 100 - start.w), y: clamp(start.y + dyPct, 0, 100 - start.h) } as StoryEditorItem;
+          const east = handle === 'ne' || handle === 'se';
+          const south = handle === 'sw' || handle === 'se';
+          let newX = start.x;
+          let newY = start.y;
+          let newW = start.w;
+          let newH = start.h;
+          if (east) newW = start.w + dxPct;
+          else { newW = start.w - dxPct; newX = start.x + dxPct; }
+          if (south) newH = start.h + dyPct;
+          else { newH = start.h - dyPct; newY = start.y + dyPct; }
+          if (newW < minWPct) {
+            if (!east) newX = start.x + (start.w - minWPct);
+            newW = minWPct;
+          }
+          if (newH < minHPct) {
+            if (!south) newY = start.y + (start.h - minHPct);
+            newH = minHPct;
+          }
+          newX = clamp(newX, 0, 100 - newW);
+          newY = clamp(newY, 0, 100 - newH);
+          newW = Math.min(newW, 100 - newX);
+          newH = Math.min(newH, 100 - newY);
+          if (item.type === 'widget') {
+            const scale = Math.min(1, newW / Math.max(0.1, naturalWPct), newH / Math.max(0.1, naturalHPct));
+            return { ...item, x: newX, y: newY, w: newW, h: newH, contentScale: scale } as StoryEditorItem;
+          }
+          return { ...item, x: newX, y: newY, w: newW, h: newH } as StoryEditorItem;
         }),
       }));
     };
     const onUp = () => {
       window.removeEventListener('pointermove', onMove);
       window.removeEventListener('pointerup', onUp);
+      window.removeEventListener('pointercancel', onUp);
     };
     window.addEventListener('pointermove', onMove);
     window.addEventListener('pointerup', onUp);
+    window.addEventListener('pointercancel', onUp);
   };
 
-  const beginMediaTransform = (mode: 'move' | 'resize', origin: { clientX: number; clientY: number }, handle: MediaHandle = 'se') => {
+  const beginMediaTransform = (mode: 'move' | 'resize', origin: { clientX: number; clientY: number; pointerId?: number; target?: Element }, handle: MediaHandle = 'se') => {
     if (!activeDraft || !canvasRef.current) return;
     rememberDraft(activeDraft.id);
     const rect = canvasRef.current.getBoundingClientRect();
     const start = { offsetX: Number(activeDraft.transform.offsetX ?? 0), offsetY: Number(activeDraft.transform.offsetY ?? 0), scale: Number(activeDraft.transform.scaleX ?? activeDraft.transform.scale ?? 1) };
+    if (origin.pointerId !== undefined && origin.target && 'setPointerCapture' in origin.target) {
+      try { (origin.target as Element & { setPointerCapture: (id: number) => void }).setPointerCapture(origin.pointerId); } catch { /* noop */ }
+    }
     const onMove = (event: PointerEvent) => {
+      event.preventDefault();
       const dxPx = event.clientX - origin.clientX;
       const dyPx = event.clientY - origin.clientY;
       setDrafts((prev) => prev.map((draft) => draft.id !== activeDraft.id ? draft : {
@@ -550,9 +661,11 @@ export function StoryCreator({ open, onClose, onCreated }: { open: boolean; onCl
     const onUp = () => {
       window.removeEventListener('pointermove', onMove);
       window.removeEventListener('pointerup', onUp);
+      window.removeEventListener('pointercancel', onUp);
     };
     window.addEventListener('pointermove', onMove);
     window.addEventListener('pointerup', onUp);
+    window.addEventListener('pointercancel', onUp);
   };
 
   const handleClose = () => {
@@ -671,9 +784,7 @@ export function StoryCreator({ open, onClose, onCreated }: { open: boolean; onCl
     const id = makeId('item');
     const src = makeSvgOverlay(drawPoints, drawColor);
     updateDraft(activeDraft.id, (draft) => ({ ...draft, items: [...draft.items, { id, type: 'image', x: 0, y: 0, w: 100, h: 100, src, radius: 0 }] }));
-    setSelectedItemId(id);
     setDrawPoints([]);
-    setDrawMode(false);
   };
 
   const mediaSelectionRect = getManualMediaRect(activeDraft, canvasMetrics.width, canvasMetrics.height);
@@ -817,7 +928,7 @@ export function StoryCreator({ open, onClose, onCreated }: { open: boolean; onCl
       );
     }
 
-    if (activeTool === 'brush') return <div className={styles.panelContent}><div className={styles.panelGroup}><button type="button" className={[styles.panelActionBtn, drawMode ? styles.panelActionBtnActive : ''].filter(Boolean).join(' ')} onClick={() => { setActiveTool(drawMode ? 'media' : 'brush'); setToolOpen(true); }} disabled={!activeDraft}><Icon name="sparkles" size={16} />{drawMode ? 'Остановить' : 'Рисовать'}</button><p className={styles.panelLabel} style={{ marginTop: 8 }}>Цвет кисти</p><input type="color" className={styles.panelColorInput} value={drawColor} onChange={(e) => setDrawColor(e.target.value)} /></div></div>;
+    if (activeTool === 'brush') return <div className={styles.panelContent}><div className={styles.panelGroup}><p className={styles.panelLabel} style={{ marginTop: 0 }}>Цвет кисти</p><input type="color" className={styles.panelColorInput} value={drawColor} onChange={(e) => setDrawColor(e.target.value)} /><button type="button" className={styles.panelActionBtn} style={{ marginTop: 8 }} onClick={() => { setDrawMode(true); setToolOpen(false); }} disabled={!activeDraft}><Icon name="sparkles" size={16} />Начать рисовать</button><p className={styles.panelHint}>Нажми «Начать» и рисуй пальцем по холсту</p></div></div>;
 
     return <div className={styles.panelContent}><div className={styles.panelGroup}><button type="button" className={styles.panelUploadBtn} onClick={openFilePicker}><Icon name="image" size={22} /><span>Загрузить медиа</span></button><p className={styles.panelHint}>Или перетащи файл на холст</p></div></div>;
   };
@@ -841,15 +952,32 @@ export function StoryCreator({ open, onClose, onCreated }: { open: boolean; onCl
 
       <div className={styles.editorMain}>
         <section className={styles.editorCanvasSection}>
+          <div className={styles.editorFrameStrip}>
+            <div className={styles.frameAddWrap}>
+              <button ref={addBtnRef} type="button" className={styles.frameAddBtn} onClick={() => {
+                const rect = addBtnRef.current?.getBoundingClientRect();
+                if (rect) setAddMenuRect({ left: rect.left, top: rect.bottom + 6 });
+                setAddMenuOpen((value) => !value);
+              }} onDragOver={(e) => e.preventDefault()} onDrop={(e) => { e.preventDefault(); void handleAddFiles(e.dataTransfer.files); }} aria-label="Добавить еще один кадр"><Icon name="plus" size={18} /></button>
+            </div>
+            <div className={styles.frameStripScroller}>
+              {drafts.map((draft, index) => <div key={draft.id} className={[styles.frameThumb, activeDraft?.id === draft.id ? styles.frameThumbActive : ''].filter(Boolean).join(' ')}><button type="button" className={styles.frameThumbBtn} onClick={() => { setActiveDraftId(draft.id); setSelectedItemId(null); setMediaSelected(true); }}>{draft.mediaType.startsWith('video/') ? <video src={draft.url} muted playsInline className={styles.frameThumbMedia} draggable={false} /> : <img src={draft.url} alt={`${index + 1}`} className={styles.frameThumbMedia} draggable={false} />}<span className={styles.frameThumbNum}>{index + 1}</span></button><button type="button" className={styles.frameThumbDel} onClick={() => removeDraft(draft.id)} aria-label="Удалить"><Icon name="close" size={11} /></button></div>)}
+            </div>
+          </div>
+
           <div className={styles.editorCanvasWrap}>
             {!activeDraft ? (
-              <button type="button" className={styles.editorEmptyCanvas} onClick={openFilePicker} onDragOver={(e) => e.preventDefault()} onDrop={(e) => { e.preventDefault(); void handleAddFiles(e.dataTransfer.files); }}>
+              <button type="button" className={styles.editorEmptyCanvas} onClick={(e) => {
+                const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                setAddMenuRect({ left: rect.left + rect.width / 2 - 110, top: rect.top + rect.height / 2 });
+                setAddMenuOpen(true);
+              }} onDragOver={(e) => e.preventDefault()} onDrop={(e) => { e.preventDefault(); void handleAddFiles(e.dataTransfer.files); }}>
                 <span className={styles.emptyCanvasIcon}><Icon name="plus" size={32} /></span>
                 <span className={styles.emptyCanvasTitle}>Создай сторис</span>
                 <span className={styles.emptyCanvasSub}>Загрузи фото или видео, а затем настрой кадр и инструменты</span>
               </button>
             ) : (
-              <div ref={canvasRef} className={[styles.editorCanvas, drawMode ? styles.editorCanvasDrawMode : '', activeTool === 'text' && toolOpen ? styles.editorCanvasTextMode : ''].filter(Boolean).join(' ')} style={{ background: activeDraft.transform.backgroundFill ?? '#111214' }} onPointerDown={(e) => {
+              <div ref={canvasRef} className={[styles.editorCanvas, drawMode ? styles.editorCanvasDrawMode : '', activeTool === 'text' && toolOpen ? styles.editorCanvasTextMode : ''].filter(Boolean).join(' ')} onPointerDown={(e) => {
                 if (drawMode) return startDrawing(e);
                 if (activeTool === 'text' && toolOpen && canvasRef.current) {
                   const rect = canvasRef.current.getBoundingClientRect();
@@ -858,22 +986,44 @@ export function StoryCreator({ open, onClose, onCreated }: { open: boolean; onCl
                 }
                 setSelectedItemId(null);
                 setMediaSelected(activeTool === 'media');
+                setToolOpen(false);
+                setAddMenuOpen(false);
               }} onPointerMove={moveDrawing} onPointerUp={endDrawing} onPointerLeave={() => { if (drawActiveRef.current) endDrawing(); }}>
                 <div className={styles.creatorMediaBackdrop} style={{ background: activeDraft.transform.backgroundFill ?? '#111214' }} />
                 {activeDraft.transform.blurFill !== false && (activeDraft.transform.fitMode ?? 'contain') !== 'cover' && <div className={styles.creatorMediaBlurFrame}>{activeDraft.mediaType.startsWith('video/') ? <video src={activeDraft.url} className={styles.creatorMediaBlurVideo} playsInline muted autoPlay loop style={{ objectFit: 'cover' }} draggable={false} /> : <img src={activeDraft.url} alt="" className={styles.creatorMediaBlur} style={{ objectFit: 'cover' }} draggable={false} />}</div>}
                 <div className={styles.creatorMediaFrame}>{activeDraft.mediaType.startsWith('video/') ? <video src={activeDraft.url} className={styles.creatorMediaVideo} playsInline muted autoPlay loop style={mediaTransformStyle(activeDraft.transform)} draggable={false} /> : <img src={activeDraft.url} alt="Сторис" className={styles.creatorMedia} style={mediaTransformStyle(activeDraft.transform)} draggable={false} />}</div>
-                {(mediaSelected || activeTool === 'media') && activeDraft.transform.fitMode === 'manual' && mediaSelectionRect && <div className={styles.creatorMediaSelection} style={{ left: mediaSelectionRect.left, top: mediaSelectionRect.top, width: mediaSelectionRect.width, height: mediaSelectionRect.height }} onPointerDown={(e) => { e.stopPropagation(); setMediaSelected(true); beginMediaTransform('move', { clientX: e.clientX, clientY: e.clientY }); }}>{(['nw', 'ne', 'sw', 'se'] as MediaHandle[]).map((handle) => <button key={handle} type="button" className={[styles.creatorCornerHandle, handle === 'nw' ? styles.creatorCornerHandleNW : handle === 'ne' ? styles.creatorCornerHandleNE : handle === 'sw' ? styles.creatorCornerHandleSW : styles.creatorCornerHandleSE].filter(Boolean).join(' ')} onPointerDown={(e) => { e.stopPropagation(); setMediaSelected(true); beginMediaTransform('resize', { clientX: e.clientX, clientY: e.clientY }, handle); }} aria-label="Размер" />)}</div>}
+                {(mediaSelected || activeTool === 'media') && activeDraft.transform.fitMode === 'manual' && mediaSelectionRect && <div className={styles.creatorMediaSelection} style={{ left: mediaSelectionRect.left, top: mediaSelectionRect.top, width: mediaSelectionRect.width, height: mediaSelectionRect.height }} onPointerDown={(e) => { e.stopPropagation(); e.preventDefault(); setMediaSelected(true); beginMediaTransform('move', { clientX: e.clientX, clientY: e.clientY, pointerId: e.pointerId, target: e.currentTarget }); }}>{(['nw', 'ne', 'sw', 'se'] as MediaHandle[]).map((handle) => <button key={handle} type="button" className={[styles.creatorCornerHandle, handle === 'nw' ? styles.creatorCornerHandleNW : handle === 'ne' ? styles.creatorCornerHandleNE : handle === 'sw' ? styles.creatorCornerHandleSW : styles.creatorCornerHandleSE].filter(Boolean).join(' ')} onPointerDown={(e) => { e.stopPropagation(); e.preventDefault(); setMediaSelected(true); beginMediaTransform('resize', { clientX: e.clientX, clientY: e.clientY, pointerId: e.pointerId, target: e.currentTarget }, handle); }} aria-label="Размер" />)}</div>}
                 {activeDraft.items.map((item) => {
                   const itemStyle = { left: `${item.x}%`, top: `${item.y}%`, width: `${item.w}%`, height: `${item.h}%` } as const;
                   const selected = item.id === selectedItemId;
                   const isDraw = item.type === 'image' && item.src.startsWith('data:image/svg+xml');
                   return (
-                    <div key={item.id} className={[styles.creatorItem, selected ? styles.creatorItemSelected : '', item.type === 'text' ? styles.creatorTextItem : '', item.type === 'widget' ? styles.creatorWidgetItem : '', item.type === 'image' ? styles.creatorImageItem : '', isDraw ? styles.creatorStrokeItem : ''].filter(Boolean).join(' ')} style={{ ...itemStyle, borderRadius: item.type === 'image' ? `${item.radius ?? 18}px` : undefined }} onPointerDown={(e) => { if (drawMode) return; e.stopPropagation(); setMediaSelected(false); setSelectedItemId(item.id); openToolPanelIfDesktop(); beginTransform(item.id, 'move', { clientX: e.clientX, clientY: e.clientY }); }}>
-                      {item.type === 'text' && <div style={{ color: item.color ?? '#fff', fontSize: item.fontSize ?? 28, textAlign: (item.align ?? 'left') as any }}>{item.text}</div>}
-                      {item.type === 'widget' && <><div className={styles.viewerWidgetTitle}>{item.title}</div><div className={styles.viewerWidgetValue}>{String(item.payload?.primary ?? '—')}</div><div className={styles.viewerWidgetSub}>{String(item.payload?.secondary ?? '')}</div></>}
-                      {item.type === 'image' && <img src={item.src} alt="" draggable={false} />}
-                      {!isDraw && selected && <div className={styles.canvasItemBar}><button type="button" className={styles.canvasItemBarBtn} onClick={(e) => { e.stopPropagation(); removeSelected(); }}><Icon name="trash" size={13} /></button></div>}
-                      {!isDraw && <button type="button" className={styles.creatorResizeHandle} onPointerDown={(e) => { e.stopPropagation(); setSelectedItemId(item.id); beginTransform(item.id, 'resize', { clientX: e.clientX, clientY: e.clientY }); }} aria-label="Размер" />}
+                    <div key={item.id} data-item-id={item.id} className={[styles.creatorItem, selected ? styles.creatorItemSelected : '', item.type === 'text' ? styles.creatorTextItem : '', item.type === 'widget' ? styles.creatorWidgetItem : '', item.type === 'image' ? styles.creatorImageItem : '', isDraw ? styles.creatorStrokeItem : ''].filter(Boolean).join(' ')} style={{ ...itemStyle, borderRadius: item.type === 'image' ? `${item.radius ?? 18}px` : undefined }} onPointerDown={(e) => {
+                      if (drawMode) return;
+                      e.stopPropagation(); e.preventDefault();
+                      setMediaSelected(false); setSelectedItemId(item.id);
+                      const sx = e.clientX; const sy = e.clientY;
+                      let moved = false;
+                      const move = (ev: PointerEvent) => { if (Math.hypot(ev.clientX - sx, ev.clientY - sy) > 5) moved = true; };
+                      const up = () => { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); if (!moved) setToolOpen(true); };
+                      window.addEventListener('pointermove', move); window.addEventListener('pointerup', up);
+                      beginTransform(item.id, 'move', { clientX: e.clientX, clientY: e.clientY, pointerId: e.pointerId, target: e.currentTarget });
+                    }}>
+                      <div data-item-content className={styles.creatorItemContent} style={item.type === 'widget' && item.contentScale && item.contentScale < 1 ? { transform: `scale(${item.contentScale})`, transformOrigin: 'top left', width: `${100 / item.contentScale}%`, height: `${100 / item.contentScale}%` } : undefined}>
+                        {item.type === 'text' && <div style={{ color: item.color ?? '#fff', fontSize: item.fontSize ?? 28, textAlign: (item.align ?? 'left') as any }}>{item.text}</div>}
+                        {item.type === 'widget' && <><div className={styles.viewerWidgetTitle}>{item.title}</div><div className={styles.viewerWidgetValue}>{String(item.payload?.primary ?? '—')}</div><div className={styles.viewerWidgetSub}>{String(item.payload?.secondary ?? '')}</div></>}
+                        {item.type === 'image' && <img src={item.src} alt="" draggable={false} />}
+                      </div>
+                      {!isDraw && selected && <div className={styles.canvasItemBar} onPointerDown={(e) => e.stopPropagation()}><button type="button" data-keep-panel className={styles.canvasItemBarBtn} onPointerDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); removeSelected(); }}><Icon name="trash" size={13} /></button></div>}
+                      {!isDraw && selected && (['nw', 'ne', 'sw', 'se'] as const).map((handle) => (
+                        <button
+                          key={handle}
+                          type="button"
+                          className={[styles.creatorCornerHandle, handle === 'nw' ? styles.creatorCornerHandleNW : handle === 'ne' ? styles.creatorCornerHandleNE : handle === 'sw' ? styles.creatorCornerHandleSW : styles.creatorCornerHandleSE].join(' ')}
+                          onPointerDown={(e) => { e.stopPropagation(); e.preventDefault(); setSelectedItemId(item.id); beginTransform(item.id, 'resize', { clientX: e.clientX, clientY: e.clientY, pointerId: e.pointerId, target: e.currentTarget }, handle); }}
+                          aria-label="Размер"
+                        />
+                      ))}
                     </div>
                   );
                 })}
@@ -884,17 +1034,12 @@ export function StoryCreator({ open, onClose, onCreated }: { open: boolean; onCl
 
           {activeDraft?.mediaType.startsWith('video/') && <div className={styles.editorTrimBar}><div ref={trimTrackRef} className={styles.creatorTrimFrames}>{(currentFrames.length ? currentFrames : Array.from({ length: 10 }).map(() => '')).map((frame, index) => frame ? <img key={`${frame}-${index}`} src={frame} alt="" draggable={false} /> : <div key={`fp-${index}`} className={styles.creatorVideoFramePlaceholder} />)}<div className={styles.creatorVideoSelection} style={{ left: `${(trimStart / Math.max(1, Number(activeDraft.sourceDurationMs ?? 1))) * 100}%`, width: `${(trimLength / Math.max(1, Number(activeDraft.sourceDurationMs ?? 1))) * 100}%` }}><button type="button" className={[styles.creatorTrimHandle, styles.creatorTrimHandleStart].join(' ')} onPointerDown={(e) => { e.preventDefault(); e.stopPropagation(); beginTrimDrag('start', e.clientX); }} aria-label="Начало" /><button type="button" className={[styles.creatorTrimHandle, styles.creatorTrimHandleEnd].join(' ')} onPointerDown={(e) => { e.preventDefault(); e.stopPropagation(); beginTrimDrag('end', e.clientX); }} aria-label="Конец" /></div></div><div className={styles.creatorTrimMeta}>{formatMs(trimStart)} — {formatMs(trimEnd)} · {formatMs(trimLength)} / макс 30с</div>{(activeDraft.sourceDurationMs ?? 0) > 30000 && <Button size="sm" onClick={() => void splitActiveVideo()}>Разбить на кадры</Button>}</div>}
 
-          <div className={styles.editorFrameStrip}>
-            {drafts.map((draft, index) => <div key={draft.id} className={[styles.frameThumb, activeDraft?.id === draft.id ? styles.frameThumbActive : ''].filter(Boolean).join(' ')}><button type="button" className={styles.frameThumbBtn} onClick={() => { setActiveDraftId(draft.id); setSelectedItemId(null); setMediaSelected(true); }}>{draft.mediaType.startsWith('video/') ? <video src={draft.url} muted playsInline className={styles.frameThumbMedia} draggable={false} /> : <img src={draft.url} alt={`${index + 1}`} className={styles.frameThumbMedia} draggable={false} />}<span className={styles.frameThumbNum}>{index + 1}</span></button><button type="button" className={styles.frameThumbDel} onClick={() => removeDraft(draft.id)} aria-label="Удалить"><Icon name="close" size={11} /></button></div>)}
-            <button type="button" className={styles.frameAddBtn} onClick={openFilePicker} onDragOver={(e) => e.preventDefault()} onDrop={(e) => { e.preventDefault(); void handleAddFiles(e.dataTransfer.files); }} aria-label="Добавить еще один кадр"><Icon name="plus" size={18} /></button>
-          </div>
-
           {errorText && <div className={styles.creatorError}>{errorText}</div>}
           <input ref={fileInputRef} type="file" accept="image/*,video/*" multiple hidden onChange={handleFileInput} />
           <input ref={stickerInputRef} type="file" accept="image/*" hidden onChange={handleStickerInput} />
         </section>
 
-        <aside className={styles.editorSidebar}>
+        {drafts.length > 0 && <aside ref={sidebarRef} className={styles.editorSidebar}>
           <nav className={styles.editorToolNav}>
             {TOOL_BUTTONS.map((tool) => <button key={tool.key} type="button" className={[styles.toolNavBtn, activeTool === tool.key ? styles.toolNavBtnActive : ''].filter(Boolean).join(' ')} onClick={() => { if (activeTool === tool.key) setToolOpen((value) => !value); else { setActiveTool(tool.key); setToolOpen(true); setSelectedItemId(null); setMediaSelected(tool.key === 'media'); } }} title={tool.label}><Icon name={tool.icon as any} size={20} /></button>)}
           </nav>
@@ -903,16 +1048,70 @@ export function StoryCreator({ open, onClose, onCreated }: { open: boolean; onCl
             <div className={styles.toolPanelScroll}>{renderToolContent()}{activeDraft && <div className={styles.panelGroup} style={{ borderTop: '1px solid rgba(255,255,255,0.05)', marginTop: 8, paddingTop: 16 }}><p className={styles.panelLabel}>Актуальное</p><select className={styles.panelSelect} value={highlightId} onChange={(e) => setHighlightId(e.target.value)}><option value="">Не добавлять</option>{highlightItems.map((highlight: StoryHighlight) => <option key={highlight.id} value={highlight.id}>{highlight.title}</option>)}</select><input className={styles.panelInput} style={{ marginTop: 6 }} value={newHighlightTitle} onChange={(e) => setNewHighlightTitle(e.target.value)} placeholder="Создать новое актуальное" maxLength={80} /></div>}</div>
             <div className={styles.toolPanelFooter}><Button variant="primary" onClick={publish} loading={createState.isLoading} disabled={!drafts.length}>Опубликовать</Button></div>
           </div>
-        </aside>
+        </aside>}
       </div>
 
       <nav className={styles.editorMobileNav}>
         <button type="button" className={styles.mobileNavClose} onClick={handleClose}><Icon name="close" size={18} /></button>
-        {TOOL_BUTTONS.map((tool) => <button key={tool.key} type="button" className={[styles.mobileNavTool, activeTool === tool.key && toolOpen ? styles.mobileNavToolActive : ''].filter(Boolean).join(' ')} onClick={() => { if (activeTool === tool.key) setToolOpen((value) => !value); else { setActiveTool(tool.key); setToolOpen(true); setSelectedItemId(null); setMediaSelected(tool.key === 'media'); } }}><Icon name={tool.icon as any} size={20} /><span>{tool.label}</span></button>)}
+        {drafts.length > 0 && MOBILE_PRIMARY_KEYS.map((key) => {
+          const tool = TOOL_BUTTONS.find((entry) => entry.key === key);
+          if (!tool) return null;
+          return <button key={tool.key} type="button" data-keep-panel className={[styles.mobileNavTool, activeTool === tool.key && toolOpen ? styles.mobileNavToolActive : ''].filter(Boolean).join(' ')} onClick={() => { setMobileMoreOpen(false); if (activeTool === tool.key) setToolOpen((value) => !value); else { setActiveTool(tool.key); setToolOpen(true); setSelectedItemId(null); setMediaSelected(tool.key === 'media'); } }}><Icon name={tool.icon as any} size={20} /><span>{tool.label}</span></button>;
+        })}
+        {drafts.length > 0 && <div className={styles.mobileNavMoreWrap}>
+          <button ref={moreBtnRef} type="button" data-keep-panel className={[styles.mobileNavTool, mobileMoreOpen || MOBILE_OVERFLOW_KEYS.includes(activeTool) && toolOpen ? styles.mobileNavToolActive : ''].filter(Boolean).join(' ')} onClick={() => {
+            const rect = moreBtnRef.current?.getBoundingClientRect();
+            if (rect) setMoreMenuRect({ left: rect.left + rect.width / 2, bottom: window.innerHeight - rect.top + 8 });
+            setMobileMoreOpen((value) => !value);
+          }} aria-label="Ещё">
+            <Icon name="dots" size={20} />
+            <span>Ещё</span>
+          </button>
+        </div>}
         <Button className={styles.mobileNavAction} variant="primary" onClick={publish} loading={createState.isLoading} disabled={!drafts.length} size="sm">Далее</Button>
       </nav>
 
-      {toolOpen && isMobile && <div className={styles.editorMobileSheet}><div className={styles.mobileSheetHandle} onClick={() => setToolOpen(false)} /><div className={styles.mobileSheetInner}><div className={styles.mobileSheetHeader}><span className={styles.mobileSheetTitle}>{selectedItem ? 'Свойства' : currentToolLabel}</span><button type="button" className={styles.mobileSheetClose} onClick={() => setToolOpen(false)} aria-label="Скрыть настройки"><Icon name="close" size={16} /></button></div>{renderToolContent()}{activeDraft && <div className={styles.panelGroup} style={{ marginTop: 16 }}><select className={styles.panelSelect} value={highlightId} onChange={(e) => setHighlightId(e.target.value)}><option value="">Актуальное: не добавлять</option>{highlightItems.map((highlight: StoryHighlight) => <option key={highlight.id} value={highlight.id}>{highlight.title}</option>)}</select></div>}</div></div>}
+      {mobileMoreOpen && moreMenuRect && typeof document !== 'undefined' && createPortal(
+        <>
+          <div className={styles.frameAddMenuBackdrop} onClick={() => setMobileMoreOpen(false)} />
+          <div className={styles.mobileNavMorePopover} style={{ position: 'fixed', left: moreMenuRect.left, bottom: moreMenuRect.bottom, transform: 'translateX(-50%)', zIndex: 201 }}>
+            {MOBILE_OVERFLOW_KEYS.map((key) => {
+              const tool = TOOL_BUTTONS.find((entry) => entry.key === key);
+              if (!tool) return null;
+              return <button key={tool.key} type="button" className={[styles.mobileNavMoreItem, activeTool === tool.key && toolOpen ? styles.mobileNavMoreItemActive : ''].filter(Boolean).join(' ')} onClick={() => { setActiveTool(tool.key); setToolOpen(true); setSelectedItemId(null); setMediaSelected(false); setMobileMoreOpen(false); }}>
+                <Icon name={tool.icon as any} size={18} />
+                <span>{tool.label}</span>
+              </button>;
+            })}
+          </div>
+        </>,
+        document.body,
+      )}
+
+      {addMenuOpen && addMenuRect && typeof document !== 'undefined' && createPortal(
+        <>
+          <div className={styles.frameAddMenuBackdrop} onClick={() => setAddMenuOpen(false)} />
+          <div className={styles.frameAddMenu} style={{ left: addMenuRect.left, top: addMenuRect.top }}>
+            <button type="button" className={styles.frameAddMenuItem} onClick={() => { setAddMenuOpen(false); openFilePicker(); }}>
+              <Icon name="image" size={16} /><span>Добавить картинку</span>
+            </button>
+            <div className={styles.frameAddMenuLabel}>Выбрать фон</div>
+            <div className={styles.frameAddMenuSwatches}>
+              {BACKGROUND_COLORS.map((color) => (
+                <button key={color} type="button" className={styles.frameAddMenuSwatch} style={{ background: color }} onClick={() => void createBackgroundDraft(color)} aria-label={`Фон ${color}`} />
+              ))}
+            </div>
+          </div>
+        </>,
+        document.body,
+      )}
+
+      {toolOpen && isMobile && <div ref={sheetRef} className={styles.editorMobileSheet}><div className={styles.mobileSheetHandle} onClick={() => setToolOpen(false)} onPointerDown={(e) => {
+  const startY = e.clientY;
+  const move = (ev: PointerEvent) => { if (ev.clientY - startY > 30) { setToolOpen(false); window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); } };
+  const up = () => { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); };
+  window.addEventListener('pointermove', move); window.addEventListener('pointerup', up);
+}} /><div className={styles.mobileSheetInner}><div className={styles.mobileSheetHeader}><span className={styles.mobileSheetTitle}>{selectedItem ? 'Свойства' : currentToolLabel}</span><button type="button" className={styles.mobileSheetClose} onClick={() => setToolOpen(false)} aria-label="Скрыть настройки"><Icon name="close" size={16} /></button></div>{renderToolContent()}{activeDraft && <div className={styles.panelGroup} style={{ marginTop: 16 }}><select className={styles.panelSelect} value={highlightId} onChange={(e) => setHighlightId(e.target.value)}><option value="">Актуальное: не добавлять</option>{highlightItems.map((highlight: StoryHighlight) => <option key={highlight.id} value={highlight.id}>{highlight.title}</option>)}</select></div>}</div></div>}
     </div>
   );
 }

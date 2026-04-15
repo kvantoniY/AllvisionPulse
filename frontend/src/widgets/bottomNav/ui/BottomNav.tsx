@@ -58,7 +58,7 @@ export function BottomNav() {
   if (hideNav) return null;
 
   const menuItems = [
-    { href: ROUTES.app.friends, label: 'Подписки', icon: 'users' as const, active: pathname.startsWith('/friends') },
+    { href: ROUTES.app.subscriptions, label: 'Подписки', icon: 'users' as const, active: pathname.startsWith('/subscriptions') },
     { href: ROUTES.app.support, label: 'Поддержка', icon: 'support' as const, active: pathname.startsWith('/support') },
     { href: ROUTES.app.settings, label: 'Настройки', icon: 'settings' as const, active: pathname.startsWith('/settings') },
     { href: ROUTES.app.game, label: 'Игра', icon: 'game' as const, active: pathname.startsWith('/game') },

@@ -40,10 +40,12 @@
   width: 320px;
   border-radius: 16px;
   border: 1px solid var(--stroke);
-  background: rgba(11, 13, 16, 0.98);
+  background: #1d1d1e;
+  backdrop-filter: none;
+  opacity: 1;
   padding: 12px;
   z-index: 320;
-  box-shadow: var(--shadow-md);
+  box-shadow: none;
   display: grid;
   gap: 10px;
 }
@@ -133,7 +135,7 @@
 
 .itemUnread {
   border-color: var(--stroke-accent);
-  background: var(--accent-softer);
+  background: var(--surface-2);
 }
 
 .itemAvatar {

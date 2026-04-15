@@ -28,7 +28,7 @@ function normalizeTrackedPath(pathname: string) {
 function resolveLabel(pathname: string) {
   if (pathname === '/' || pathname.startsWith('/feed')) return 'Лента';
   if (pathname.startsWith('/health')) return 'Пульс';
-  if (pathname.startsWith('/friends')) return 'Подписки';
+  if (pathname.startsWith('/subscriptions')) return 'Подписки';
   if (pathname.startsWith('/messages')) return 'Сообщения';
   if (pathname.startsWith('/support')) return 'Тех поддержка';
   if (pathname.startsWith('/admin')) return 'Админ панель';

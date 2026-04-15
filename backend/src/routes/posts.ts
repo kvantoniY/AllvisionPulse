@@ -104,9 +104,23 @@ async function ensureVisiblePost(postId: string) {
 router.get("/feed", asyncHandler(async (req: AuthedRequest, res) => {
   const cursor = req.query.cursor?.toString();
   const take = Math.min(Number(req.query.take ?? 20), 50);
+  const scope = req.query.scope === "following" ? "following" : "all";
+
+  const baseWhere = visiblePostWhere();
+  const where = scope === "following"
+    ? {
+        ...baseWhere,
+        author: {
+          is: {
+            ...(baseWhere.author as any)?.is,
+            recvFriend: { some: { senderId: req.user!.id, status: "ACCEPTED" as const } },
+          },
+        },
+      }
+    : baseWhere;
 
   const posts = await prisma.post.findMany({
-    where: visiblePostWhere(),
+    where,
     orderBy: { createdAt: "desc" },
     take: take + 1,
     ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),

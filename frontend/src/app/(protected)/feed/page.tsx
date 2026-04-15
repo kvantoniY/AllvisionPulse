@@ -1,9 +1,11 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import styles from './FeedPage.module.css';
 import { Card, CardMuted } from '@/shared/ui/Card/Card';
+import type { FeedScope } from '@/shared/api/postsApi';
 import { useGetFeedQuery, useLazyGetFeedQuery } from '@/shared/api/postsApi';
 import { PostCard } from '@/entities/post/ui/PostCard';
 import { useIntersection } from '@/shared/lib/hooks/useIntersection';
@@ -33,11 +35,14 @@ function FeedCardSkeleton() {
 }
 
 export default function FeedPage() {
-  const { data, isFetching, isError } = useGetFeedQuery(undefined);
-  const [fetchPage] = useLazyGetFeedQuery();
   const isMobile = useIsMobile();
   const router = useRouter();
   const searchParams = useSearchParams();
+
+  const paramScope = searchParams.get('scope');
+  const scope: FeedScope = paramScope === 'all' ? 'all' : 'following';
+  const { data, isFetching, isError } = useGetFeedQuery({ scope });
+  const [fetchPage] = useLazyGetFeedQuery();
 
   const items = data?.items ?? [];
   const nextCursor = data?.nextCursor ?? null;
@@ -46,6 +51,15 @@ export default function FeedPage() {
   const nearEnd = useIntersection(sentinelRef, { rootMargin: '900px' });
   const [openPostId, setOpenPostId] = useState<string | null>(null);
 
+  const setScope = (nextScope: FeedScope) => {
+    if (nextScope === scope) return;
+    const params = new URLSearchParams(searchParams.toString());
+    if (nextScope === 'following') params.delete('scope');
+    else params.set('scope', nextScope);
+    const qs = params.toString();
+    router.replace(qs ? `/feed?${qs}` : '/feed', { scroll: false });
+  };
+
   useEffect(() => {
     const requestedPostId = searchParams.get('post');
     if (requestedPostId) setOpenPostId(requestedPostId);
@@ -53,8 +67,12 @@ export default function FeedPage() {
 
   useEffect(() => {
     if (!nearEnd || isFetching || !nextCursor) return;
-    fetchPage({ cursor: nextCursor, take: 20 });
-  }, [nearEnd, isFetching, nextCursor, fetchPage]);
+    fetchPage({ cursor: nextCursor, take: 20, scope });
+  }, [nearEnd, isFetching, nextCursor, fetchPage, scope]);
+
+  const emptyFollowingHint = useMemo(() => (
+    scope === 'following' && !isFetching && items.length === 0
+  ), [scope, isFetching, items.length]);
 
   const closePostModal = () => {
     setOpenPostId(null);
@@ -79,6 +97,37 @@ export default function FeedPage() {
         <div className={styles.composerSection}>
           <PostComposer context="feed" hideMobileTrigger={isMobile} surface={isMobile ? 'card' : 'flat'} />
         </div>
+
+        <div className={styles.scopeTabs} role="tablist" aria-label="Лента">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={scope === 'following'}
+            className={[styles.scopeTab, scope === 'following' ? styles.scopeTabActive : ''].filter(Boolean).join(' ')}
+            onClick={() => setScope('following')}
+          >
+            Подписки
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={scope === 'all'}
+            className={[styles.scopeTab, scope === 'all' ? styles.scopeTabActive : ''].filter(Boolean).join(' ')}
+            onClick={() => setScope('all')}
+          >
+            Лента
+          </button>
+        </div>
+
+        {emptyFollowingHint ? (
+          <div className={styles.messageSection}>
+            <Card className={styles.flatCard}>
+              <CardMuted>
+                Пока нет постов от ваших подписок. <Link href="/subscriptions" className={styles.inlineLink}>Найти людей</Link> или переключитесь на «Ленту».
+              </CardMuted>
+            </Card>
+          </div>
+        ) : null}
 
         {isError ? (
           <div className={styles.messageSection}>

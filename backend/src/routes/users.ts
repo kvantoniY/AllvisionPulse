@@ -289,6 +289,72 @@ router.get("/search", requireAuth, asyncHandler(async (req: AuthedRequest, res) 
   res.json({ users });
 }));
 
+router.get("/recommendations", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
+  const meId = req.user!.id;
+  const take = Math.min(Math.max(Number(req.query.take ?? 3), 1), 12);
+  const now = new Date();
+
+  const myFollows = await prisma.friendship.findMany({
+    where: { senderId: meId, status: "ACCEPTED" },
+    select: { receiverId: true },
+  });
+  const myFollowIds = myFollows.map((row) => row.receiverId);
+
+  const blocks = await prisma.blacklist.findMany({
+    where: { OR: [{ blockerId: meId }, { blockedId: meId }] },
+    select: { blockerId: true, blockedId: true },
+  });
+  const blockedIds = new Set<string>();
+  for (const row of blocks) {
+    blockedIds.add(row.blockerId === meId ? row.blockedId : row.blockerId);
+  }
+
+  const excludeIds = new Set<string>([meId, ...myFollowIds, ...blockedIds]);
+
+  let candidates: Array<{ id: string; username: string; firstName: string | null; lastName: string | null; avatarUrl: string | null; bio: string | null; role: any; privacy: any; lastSeenAt: Date | null; mutualFollowsCount: number }> = [];
+
+  if (myFollowIds.length) {
+    const secondDegree = await prisma.friendship.findMany({
+      where: { senderId: { in: myFollowIds }, status: "ACCEPTED", receiverId: { notIn: Array.from(excludeIds) } },
+      select: { receiverId: true },
+    });
+    const mutualCount = new Map<string, number>();
+    for (const row of secondDegree) {
+      mutualCount.set(row.receiverId, (mutualCount.get(row.receiverId) ?? 0) + 1);
+    }
+    if (mutualCount.size) {
+      const priorityIds = Array.from(mutualCount.keys());
+      const priorityUsers = await prisma.user.findMany({
+        where: { AND: [activeUserWhere(now), { id: { in: priorityIds } }] },
+        select: { id: true, username: true, firstName: true, lastName: true, avatarUrl: true, bio: true, role: true, privacy: true, lastSeenAt: true },
+      });
+      for (const user of priorityUsers) {
+        candidates.push({ ...user, mutualFollowsCount: mutualCount.get(user.id) ?? 0 });
+      }
+      candidates.sort((a, b) => b.mutualFollowsCount - a.mutualFollowsCount);
+    }
+  }
+
+  if (candidates.length < take) {
+    const excludeWithCandidates = new Set<string>([...excludeIds, ...candidates.map((c) => c.id)]);
+    const totalActive = await prisma.user.count({ where: { AND: [activeUserWhere(now), { id: { notIn: Array.from(excludeWithCandidates) } }] } });
+    if (totalActive > 0) {
+      const needed = take - candidates.length;
+      const skip = Math.max(0, Math.floor(Math.random() * Math.max(1, totalActive - needed)));
+      const fillers = await prisma.user.findMany({
+        where: { AND: [activeUserWhere(now), { id: { notIn: Array.from(excludeWithCandidates) } }] },
+        select: { id: true, username: true, firstName: true, lastName: true, avatarUrl: true, bio: true, role: true, privacy: true, lastSeenAt: true },
+        take: needed,
+        skip,
+      });
+      for (const user of fillers) candidates.push({ ...user, mutualFollowsCount: 0 });
+    }
+  }
+
+  const users = candidates.slice(0, take);
+  res.json({ users });
+}));
+
 router.get("/:username/connections", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
   const username = req.params.username;
   const tab = req.query.tab === "followers" ? "followers" : "following";

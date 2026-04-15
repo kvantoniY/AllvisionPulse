@@ -2,6 +2,7 @@
 
 import { ReactNode, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
+import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import styles from './Chat.module.css';
@@ -45,10 +46,12 @@ import { parseGameSystemMessage, gameLabel, gameStatusLabel } from '@/shared/lib
 import { useGetGameSessionsQuery } from '@/shared/api/gamesApi';
 import { useIsMobile } from '@/shared/lib/hooks/useIsMobile';
 import { PulseShareCard } from '@/shared/ui/PulseShareCard/PulseShareCard';
+import { getPulseArtifactKindLabel, normalizePulseArtifactToken } from '@/shared/lib/pulseArtifactDisplay';
 import { PulseSharePicker } from '@/shared/ui/PulseSharePicker/PulseSharePicker';
 import type { ShareArtifact } from '@/shared/types/programs';
 import { toPulseShareMessageMeta, type PulseShareMessageMeta } from '@/shared/lib/pulseShare';
 import { createMessageMediaMeta } from '@/shared/lib/mediaCore/messageMediaMeta';
+import { ROUTES } from '@/shared/config/app';
 
 const LazyGameSessionPanel = dynamic(
   () => import('@/features/games').then((mod) => mod.GameSessionPanel),
@@ -423,21 +426,24 @@ function formatRecordingTime(seconds: number) {
 }
 
 function pulseMediaLabel(item: ChatPulseHistoryItem) {
-  if (item.actionType === 'SOCIAL_EVENT' || item.actionType === 'TASK_REQUEST' || item.actionType === 'TASK_SUGGESTION' || item.actionType === 'REMINDER_CARD') return 'Событие';
-  if (item.actionType === 'FINANCE_SPLIT') return 'Общий счёт';
-  if (item.actionType === 'DEBT_SHARE' || item.sourceType === 'DEBT') return 'Долг';
-  if (item.actionType === 'SAVINGS_SHARE' || item.sourceType === 'SAVINGS_GOAL') return 'Накопление';
-  if (item.sourceType === 'PROGRAM' || item.kind === 'PROGRAM') return 'Программа';
-  return 'Pulse';
+  return getPulseArtifactKindLabel({
+    value: item.kind,
+    actionType: item.actionType ?? null,
+    sourceType: item.sourceType ?? null,
+  });
 }
 
 function matchesPulseMediaFilter(item: ChatPulseHistoryItem, filter: PulseMediaFilter) {
+  const actionType = normalizePulseArtifactToken(item.actionType ?? null);
+  const sourceType = normalizePulseArtifactToken(item.sourceType ?? null);
+  const kind = normalizePulseArtifactToken(item.kind ?? null);
+
   if (filter === 'ALL') return true;
-  if (filter === 'EVENTS') return item.actionType === 'SOCIAL_EVENT' || item.actionType === 'TASK_REQUEST' || item.actionType === 'TASK_SUGGESTION' || item.actionType === 'REMINDER_CARD' || item.sourceType === 'TASK';
-  if (filter === 'BILLS') return item.actionType === 'FINANCE_SPLIT';
-  if (filter === 'DEBTS') return item.actionType === 'DEBT_SHARE' || item.sourceType === 'DEBT';
-  if (filter === 'SAVINGS') return item.actionType === 'SAVINGS_SHARE' || item.sourceType === 'SAVINGS_GOAL';
-  if (filter === 'PROGRAMS') return item.sourceType === 'PROGRAM' || item.kind === 'PROGRAM';
+  if (filter === 'EVENTS') return ['SOCIAL_EVENT', 'TASK_REQUEST', 'TASK_SUGGESTION', 'REMINDER_CARD'].includes(actionType) || sourceType === 'TASK';
+  if (filter === 'BILLS') return ['FINANCE_SPLIT', 'SHARED_BILL'].includes(actionType) || sourceType === 'SHARED_BILL';
+  if (filter === 'DEBTS') return ['DEBT_SHARE', 'SHARED_DEBT'].includes(actionType) || ['DEBT', 'SHARED_DEBT'].includes(sourceType);
+  if (filter === 'SAVINGS') return ['SAVINGS_SHARE', 'SHARED_SAVINGS'].includes(actionType) || ['SAVINGS_GOAL', 'SHARED_SAVINGS'].includes(sourceType);
+  if (filter === 'PROGRAMS') return sourceType === 'PROGRAM' || kind === 'PROGRAM';
   return item.actionType == null;
 }
 
@@ -1475,7 +1481,18 @@ export default function ChatPage() {
               </Button>
               <StoryRingAvatar userId={otherUser?.id} url={getChatAvatar(chat, meId)} name={getChatTitle(chat, meId)} size={36} disableStoryClick={chat?.type === 'GROUP'} />
               <div className={styles.topInfo}>
-                <div className={styles.title}>{getChatTitle(chat, meId)}</div>
+                {chat?.type === 'DIRECT' && otherUser?.username ? (
+                  <Link
+                    href={ROUTES.app.profile(otherUser.username)}
+                    className={styles.title}
+                    onClick={(event) => event.stopPropagation()}
+                    style={{ textDecoration: 'none', color: 'inherit' }}
+                  >
+                    {getChatTitle(chat, meId)}
+                  </Link>
+                ) : (
+                  <div className={styles.title}>{getChatTitle(chat, meId)}</div>
+                )}
                 <div className={styles.sub}>
                   {chat?.type === 'GROUP' ? (
                     'Групповой чат'
@@ -1871,12 +1888,34 @@ export default function ChatPage() {
                         >
                         <div className={[styles.bubble, imageAttachments.length ? styles.bubbleMedia : '', messageType === 'AUDIO' ? styles.bubbleAudio : '', messageType === 'AUDIO' ? styles.bubbleAudioBare : '', messageType === 'VIDEO_NOTE' ? styles.bubbleVideo : '', messageType === 'VIDEO_NOTE' ? styles.bubbleVideoBare : '', isBareWidgetMessage ? styles.bubbleWidgetBare : '', mine ? styles.bubbleMine : styles.bubbleTheirs, selectionMode ? styles.bubbleSelectable : ''].filter(Boolean).join(' ')}>
                           {selectionMode ? <div className={[styles.selectMarker, isSelected ? styles.selectMarkerActive : ''].filter(Boolean).join(' ')}>{isSelected ? <Icon name="check" size={12} /> : null}</div> : null}
-                          {!mine ? <div className={styles.sender} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>{message.sender?.username}<AdminBadge role={message.sender?.role} username={message.sender?.username} /></div> : null}
+                          {!mine ? (
+                            <Link
+                              href={message.sender?.username ? ROUTES.app.profile(message.sender.username) : '#'}
+                              className={styles.sender}
+                              onClick={(event) => event.stopPropagation()}
+                              style={{ display: 'flex', alignItems: 'center', gap: 6, textDecoration: 'none', color: 'inherit', pointerEvents: message.sender?.username ? 'auto' : 'none' }}
+                            >
+                              {message.sender?.username}
+                              <AdminBadge role={message.sender?.role} username={message.sender?.username} />
+                            </Link>
+                          ) : null}
 
                           {forwardPreview ? (
                             <div className={styles.forwardedBlock}>
                               <Icon name="forward" size={12} />
-                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>Переслано от {forwardPreview.sender?.username ?? message.sender?.username}<AdminBadge role={forwardPreview.sender?.role ?? message.sender?.role} username={forwardPreview.sender?.username ?? message.sender?.username} /></span>
+                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                                Переслано от{' '}
+                                {forwardPreview.sender?.username ?? message.sender?.username ? (
+                                  <Link
+                                    href={ROUTES.app.profile(forwardPreview.sender?.username ?? message.sender?.username ?? '')}
+                                    onClick={(event) => event.stopPropagation()}
+                                    style={{ display: 'inline-flex', alignItems: 'center', gap: 6, textDecoration: 'none', color: 'inherit' }}
+                                  >
+                                    {forwardPreview.sender?.username ?? message.sender?.username}
+                                    <AdminBadge role={forwardPreview.sender?.role ?? message.sender?.role} username={forwardPreview.sender?.username ?? message.sender?.username} />
+                                  </Link>
+                                ) : null}
+                              </span>
                             </div>
                           ) : null}
 
@@ -1910,7 +1949,22 @@ export default function ChatPage() {
 
                           {replyPreview ? (
                             <button type="button" className={styles.replyBlock} onClick={() => void scrollToMessage(replyPreview.id)}>
-                              <span className={styles.replyAuthor} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>{replyPreview.sender?.username ?? 'Сообщение'}<AdminBadge role={replyPreview.sender?.role} username={replyPreview.sender?.username} /></span>
+                              <span className={styles.replyAuthor} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                                {replyPreview.sender?.username ? (
+                                  <span
+                                    onClick={(event) => {
+                                      event.stopPropagation();
+                                      void router.push(ROUTES.app.profile(replyPreview.sender?.username ?? ''));
+                                    }}
+                                    style={{ display: 'inline-flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}
+                                  >
+                                    {replyPreview.sender.username}
+                                    <AdminBadge role={replyPreview.sender?.role} username={replyPreview.sender?.username} />
+                                  </span>
+                                ) : (
+                                  'Сообщение'
+                                )}
+                              </span>
                               <span className={styles.replyText}>{formatPreviewText(replyPreview)}</span>
                             </button>
                           ) : null}

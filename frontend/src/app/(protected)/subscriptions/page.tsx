@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import styles from './Friends.module.css';
 import { Card } from '@/shared/ui/Card/Card';
@@ -18,10 +19,12 @@ import {
   useSendFriendRequestMutation,
   useUnblockUserMutation,
 } from '@/shared/api/friendsApi';
+import { useGetUserRecommendationsQuery, useLazySearchUsersQuery, useGetMeQuery } from '@/shared/api/usersApi';
 import { useAppSelector } from '@/shared/lib/storeHooks';
 import { Skeleton, SkeletonText } from '@/shared/ui/Skeleton/Skeleton';
 import { Icon } from '@/shared/ui/Icon/Icon';
 import { AdminBadge } from '@/shared/ui/AdminBadge/AdminBadge';
+import { ROUTES } from '@/shared/config/app';
 
 type Tab = 'following' | 'followers' | 'requests' | 'blacklist';
 
@@ -52,12 +55,68 @@ export default function FriendsPage() {
   const [unblockUser, { isLoading: unblockLoading }] = useUnblockUserMutation();
   const presence = useAppSelector((s) => s.presence.byUserId);
 
+  const { data: meData } = useGetMeQuery();
+  const myId = meData?.user?.id ?? null;
+  const [searchQ, setSearchQ] = useState('');
+  const searchQTrim = searchQ.trim();
+  const isSearching = tab === 'following' && searchQTrim.length > 0;
+  const { data: recsData, isFetching: recsLoading } = useGetUserRecommendationsQuery({ take: 3 }, { skip: tab !== 'following' || isSearching });
+  const [triggerSearch, { data: searchData, isFetching: searchLoading }] = useLazySearchUsersQuery();
+
+  useEffect(() => {
+    if (!isSearching) return;
+    const t = setTimeout(() => triggerSearch({ q: searchQTrim }), 250);
+    return () => clearTimeout(t);
+  }, [searchQTrim, isSearching, triggerSearch]);
+
+  useEffect(() => {
+    setSearchQ('');
+  }, [tab]);
+
   const following = followingData?.following ?? [];
   const followers = followersData?.followers ?? [];
   const incoming = requestsData?.incoming ?? [];
   const outgoing = requestsData?.outgoing ?? [];
   const blacklist = blacklistData?.blacklist ?? [];
   const followingIds = useMemo(() => new Set(following.map((item) => item.receiver?.id).filter(Boolean)), [following]);
+  const followerIds = useMemo(() => new Set(followers.map((item) => item.sender?.id).filter(Boolean)), [followers]);
+
+  const recs = recsData?.users ?? [];
+  const searchResults = (searchData?.users ?? []).filter((u) => u.id !== myId);
+
+  const formatMutual = (count: number) => {
+    if (!count || count <= 0) return null;
+    if (count === 1) return '1 общий подписчик';
+    if (count < 5) return `${count} общих подписчика`;
+    return `${count} общих подписчиков`;
+  };
+
+  const renderDiscoverRow = (user: { id: string; username: string; firstName?: string | null; avatarUrl: string | null; role: any; bio?: string | null; mutualFollowsCount?: number }) => {
+    const isFollowing = followingIds.has(user.id);
+    const followsMe = followerIds.has(user.id);
+    const mutualText = formatMutual(user.mutualFollowsCount ?? 0);
+    return (
+      <div key={user.id} className={styles.row}>
+        <Link href={ROUTES.app.profile(user.username)} className={styles.user} style={{ textDecoration: 'none', color: 'inherit' }}>
+          <StoryRingAvatar userId={user.id} url={user.avatarUrl} name={user.username} size={44} status={presence[user.id]?.isOnline ? 'online' : 'offline'} />
+          <div className={styles.meta}>
+            <div className={styles.name} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>{user.firstName || user.username}<AdminBadge role={user.role} username={user.username} /></div>
+            <div className={styles.handle}>@{user.username}</div>
+            <div className={styles.hint}>{mutualText ?? user.bio ?? 'Короткого описания пока нет.'}</div>
+          </div>
+        </Link>
+        <div className={styles.actions}>
+          {isFollowing ? (
+            <Button onClick={() => removeFollow({ userId: user.id }).unwrap().catch(() => null)} loading={removeLoading}>Отписаться</Button>
+          ) : (
+            <Button variant="primary" onClick={() => followAction({ userId: user.id }).unwrap().catch(() => null)} loading={followLoading}>
+              {followsMe ? 'Подписаться в ответ' : 'Подписаться'}
+            </Button>
+          )}
+        </div>
+      </div>
+    );
+  };
 
   useEffect(() => {
     const queryTab = searchParams.get('tab');
@@ -75,14 +134,14 @@ export default function FriendsPage() {
 
   const renderUserRow = (user: any, action: React.ReactNode, side?: React.ReactNode) => (
     <div key={user.id} className={styles.row}>
-      <div className={styles.user}>
+      <Link href={ROUTES.app.profile(user.username)} className={styles.user} style={{ textDecoration: 'none', color: 'inherit' }}>
         <StoryRingAvatar userId={user.id} url={user.avatarUrl} name={user.username} size={44} status={presence[user.id]?.isOnline ? 'online' : 'offline'} />
         <div className={styles.meta}>
           <div className={styles.name} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>{user.username}<AdminBadge role={user.role} username={user.username} /></div>
           <div className={styles.handle}>@{user.username}</div>
           <div className={styles.hint}>{user.bio || 'Короткого описания пока нет.'}</div>
         </div>
-      </div>
+      </Link>
       <div className={styles.actions}>
         {side}
         {action}
@@ -127,21 +186,61 @@ export default function FriendsPage() {
       </div>
 
       {tab === 'following' ? (
-        <div className={styles.list}>
-          {followingLoading ? <><RowSkeleton /><RowSkeleton /></> : null}
-          {!followingLoading && !following.length ? <Card className={styles.emptyStateCard}><div className={styles.muted}>Ты пока ни на кого не подписан.</div></Card> : null}
-          {following.map((record) => {
-            const user = record.receiver;
-            if (!user) return null;
-            return renderUserRow(
-              user,
-              <Button onClick={() => removeFollow({ userId: user.id }).unwrap().catch(() => null)} loading={removeLoading}>Отписаться</Button>,
-              <button type="button" className={styles.iconAction} onClick={() => blockUser({ userId: user.id }).unwrap().catch(() => null)} aria-label="В чёрный список" title="В чёрный список">
-                <Icon name="dots" size={16} />
-              </button>,
-            );
-          })}
-        </div>
+        <>
+          <div className={styles.searchBar}>
+            <Icon name="search" size={16} className={styles.searchIcon} />
+            <input
+              className={styles.searchInput}
+              placeholder="Поиск людей по имени или @username"
+              value={searchQ}
+              onChange={(e) => setSearchQ(e.target.value)}
+            />
+            {searchQ ? (
+              <button type="button" className={styles.iconAction} onClick={() => setSearchQ('')} aria-label="Очистить">
+                <Icon name="close" size={14} />
+              </button>
+            ) : null}
+          </div>
+
+          {isSearching ? (
+            <div className={styles.list}>
+              {searchLoading ? <><RowSkeleton /><RowSkeleton /></> : null}
+              {!searchLoading && searchResults.length === 0 ? (
+                <Card className={styles.emptyStateCard}><div className={styles.muted}>Ничего не найдено по запросу «{searchQTrim}».</div></Card>
+              ) : null}
+              {searchResults.map((user) => renderDiscoverRow(user as any))}
+            </div>
+          ) : (
+            <>
+              {recs.length || recsLoading ? (
+                <>
+                  <div className={styles.sectionLabel}>Рекомендуем подписаться</div>
+                  <div className={styles.list}>
+                    {recsLoading ? <><RowSkeleton /><RowSkeleton /></> : null}
+                    {recs.map((user) => renderDiscoverRow(user))}
+                  </div>
+                </>
+              ) : null}
+
+              <div className={styles.sectionLabel}>Ваши подписки</div>
+              <div className={styles.list}>
+                {followingLoading ? <><RowSkeleton /><RowSkeleton /></> : null}
+                {!followingLoading && !following.length ? <Card className={styles.emptyStateCard}><div className={styles.muted}>Ты пока ни на кого не подписан.</div></Card> : null}
+                {following.map((record) => {
+                  const user = record.receiver;
+                  if (!user) return null;
+                  return renderUserRow(
+                    user,
+                    <Button onClick={() => removeFollow({ userId: user.id }).unwrap().catch(() => null)} loading={removeLoading}>Отписаться</Button>,
+                    <button type="button" className={styles.iconAction} onClick={() => blockUser({ userId: user.id }).unwrap().catch(() => null)} aria-label="В чёрный список" title="В чёрный список">
+                      <Icon name="dots" size={16} />
+                    </button>,
+                  );
+                })}
+              </div>
+            </>
+          )}
+        </>
       ) : null}
 
       {tab === 'followers' ? (

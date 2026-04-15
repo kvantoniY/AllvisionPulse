@@ -1,6 +1,7 @@
 'use client';
 
 import { ChangeEvent, useEffect, useId, useMemo, useRef, useState } from 'react';
+import Link from 'next/link';
 import styles from './PostModal.module.css';
 import { Avatar } from '@/shared/ui/Avatar/Avatar';
 import { Icon } from '@/shared/ui/Icon/Icon';
@@ -33,6 +34,7 @@ import { PulseSharePicker } from '@/shared/ui/PulseSharePicker/PulseSharePicker'
 import type { ShareArtifact } from '@/shared/types/programs';
 import { toPulseShareWidgetPayload, type PulseShareWidgetPayload } from '@/shared/lib/pulseShare';
 import { getPulseShareWidgetPayload } from '@/shared/lib/socialWidgets';
+import { ROUTES } from '@/shared/config/app';
 
 const MAX_TEXT = 5000;
 
@@ -131,9 +133,13 @@ function CommentBubble({
         <div className={styles.commentTop}>
           <div style={{ minWidth: 0 }}>
             <div className={styles.commentAuthorRow}>
-              <span className={styles.commentAuthor}>{comment.author.username}</span>
+              <Link href={ROUTES.app.profile(comment.author.username)} className={styles.commentAuthor} style={{ textDecoration: 'none', color: 'inherit' }}>{comment.author.username}</Link>
               <AdminBadge role={comment.author.role} username={comment.author.username} />
-              {comment.parentId && comment.replyToUsername ? <span className={styles.commentReplyTo}>· {comment.replyToUsername}</span> : null}
+              {comment.parentId && comment.replyToUsername ? (
+                <span className={styles.commentReplyTo}>
+                  · <Link href={ROUTES.app.profile(comment.replyToUsername)} style={{ textDecoration: 'none', color: 'inherit' }}>{comment.replyToUsername}</Link>
+                </span>
+              ) : null}
             </div>
             <div className={styles.commentMeta}>{formatRelative(comment.createdAt)}</div>
           </div>

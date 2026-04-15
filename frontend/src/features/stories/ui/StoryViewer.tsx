@@ -1,6 +1,7 @@
 'use client';
 
 import { CSSProperties, useCallback, useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
   useAddStoryToHighlightMutation,
@@ -21,6 +22,7 @@ import { AdminBadge } from '@/shared/ui/AdminBadge/AdminBadge';
 import { StoryEditorItem, StoryItem } from '@/shared/types/story';
 import { StoryRingAvatar } from './StoryRingAvatar';
 import styles from './Stories.module.css';
+import { ROUTES } from '@/shared/config/app';
 
 const QUICK_REACTIONS = ['❤️', '🔥', '😂', '😮', '👏', '😍'];
 
@@ -425,7 +427,10 @@ export function StoryViewer({
             <div className={styles.viewerMeta}>
               <StoryRingAvatar userId={current.author.id} url={current.author.avatarUrl} name={current.author.username} size={38} disableStoryClick />
               <div className={styles.viewerMetaText}>
-                <div className={styles.viewerName} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>{current.author.username}<AdminBadge role={current.author.role} username={current.author.username} /></div>
+                <Link href={ROUTES.app.profile(current.author.username)} className={styles.viewerName} style={{ display: 'flex', alignItems: 'center', gap: 6, textDecoration: 'none', color: 'inherit' }}>
+                  {current.author.username}
+                  <AdminBadge role={current.author.role} username={current.author.username} />
+                </Link>
                 <div className={styles.viewerTime}>{formatStoryTime(current.createdAt)}</div>
               </div>
               {isOwn ? (
@@ -528,7 +533,7 @@ export function StoryViewer({
                 <div key={item.id} className={styles.viewerViewerRow}>
                   <StoryRingAvatar userId={item.viewer.id} url={item.viewer.avatarUrl} name={item.viewer.username} size={40} disableStoryClick />
                   <div className={styles.viewerViewerMeta}>
-                    <div className={styles.viewerViewerName}>{item.viewer.username}</div>
+                    <Link href={ROUTES.app.profile(item.viewer.username)} className={styles.viewerViewerName} style={{ textDecoration: 'none', color: 'inherit' }}>{item.viewer.username}</Link>
                     <div className={styles.viewerViewerTime}>{formatStoryTime(item.viewedAt)}</div>
                   </div>
                   {item.reaction ? <div className={styles.viewerViewerReaction}>{item.reaction}</div> : null}

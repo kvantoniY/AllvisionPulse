@@ -4,6 +4,7 @@ import type { User, UserPrivacy } from '@/shared/types/models';
 import type { FollowRecord, FollowRelationship } from '@/shared/types/social';
 
 export type UserSearchItem = Pick<User, 'id' | 'username' | 'firstName' | 'lastName' | 'avatarUrl' | 'bio' | 'lastSeenAt' | 'privacy' | 'role'>;
+export type UserRecommendation = UserSearchItem & { mutualFollowsCount: number };
 
 export const usersApi = createApi({
   reducerPath: 'usersApi',
@@ -16,6 +17,12 @@ export const usersApi = createApi({
     }),
     searchUsers: build.query<{ users: UserSearchItem[] }, { q: string }>({
       query: ({ q }) => ({ url: `/backend/users/search?q=${encodeURIComponent(q)}`, method: 'GET' }),
+    }),
+    getUserRecommendations: build.query<{ users: UserRecommendation[] }, { take?: number } | void>({
+      query: (arg) => {
+        const take = arg && typeof arg === 'object' && 'take' in arg && arg.take ? arg.take : 3;
+        return { url: `/backend/users/recommendations?take=${take}`, method: 'GET' };
+      },
     }),
     getUserByUsername: build.query<{ user: User; relationship: FollowRelationship }, string>({
       query: (username) => ({ url: `/backend/users/${encodeURIComponent(username)}`, method: 'GET' }),
@@ -74,6 +81,7 @@ export const {
   useGetMeQuery,
   useSearchUsersQuery,
   useLazySearchUsersQuery,
+  useGetUserRecommendationsQuery,
   useGetUserByUsernameQuery,
   useGetUserConnectionsQuery,
   useUpdateProfileMutation,

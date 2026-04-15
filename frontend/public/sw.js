@@ -1,6 +1,9 @@
 const DEFAULT_TITLE = 'Allvision Pulse';
 const DEFAULT_ICON = '/brand-eye-192.png';
 const DEFAULT_BADGE = '/brand-eye-192.png';
+const PUSH_PUBLIC_KEY_URL = '/api/backend/notifications/push/public-key';
+const PUSH_SUBSCRIBE_URL = '/api/backend/notifications/push/subscribe';
+const VISIBLE_NOTIFICATION_CLOSE_DELAY_MS = 1200;
 
 self.addEventListener('install', (event) => {
   event.waitUntil(self.skipWaiting());
@@ -13,6 +16,55 @@ self.addEventListener('activate', (event) => {
 async function hasVisibleClient() {
   const clients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
   return clients.some((client) => client.visibilityState === 'visible');
+}
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+  const normalized = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = self.atob(normalized);
+  const outputArray = new Uint8Array(rawData.length);
+
+  for (let index = 0; index < rawData.length; index += 1) {
+    outputArray[index] = rawData.charCodeAt(index);
+  }
+
+  return outputArray;
+}
+
+async function fetchPushPublicKey() {
+  const response = await fetch(PUSH_PUBLIC_KEY_URL, {
+    credentials: 'include',
+    cache: 'no-store',
+  });
+
+  if (!response.ok) {
+    return { enabled: false, publicKey: null };
+  }
+
+  const data = await response.json().catch(() => null);
+  return {
+    enabled: Boolean(data?.enabled && typeof data?.publicKey === 'string' && data.publicKey.trim()),
+    publicKey: typeof data?.publicKey === 'string' ? data.publicKey.trim() : null,
+  };
+}
+
+async function saveSubscription(subscription) {
+  const response = await fetch(PUSH_SUBSCRIBE_URL, {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ subscription }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Push subscribe failed with status ${response.status}`);
+  }
+}
+
+async function closeNotificationsByTagAfterDelay(tag, delayMs) {
+  await new Promise((resolve) => setTimeout(resolve, delayMs));
+  const notifications = await self.registration.getNotifications({ tag });
+  notifications.forEach((notification) => notification.close());
 }
 
 function normalizePayload(rawPayload) {
@@ -101,17 +153,17 @@ self.addEventListener('push', (event) => {
         });
       }
 
-      if (await hasVisibleClient()) {
-        return;
-      }
+      const visibleClient = await hasVisibleClient();
+      const notificationTag = visibleClient ? `vis-${Date.now()}` : payload.tag;
 
       await self.registration.showNotification(payload.title, {
         body: payload.message,
         icon: payload.iconUrl,
         badge: DEFAULT_BADGE,
-        tag: payload.tag,
-        renotify: payload.renotify,
-        requireInteraction: payload.requireInteraction,
+        tag: notificationTag,
+        renotify: visibleClient ? false : payload.renotify,
+        requireInteraction: visibleClient ? false : payload.requireInteraction,
+        silent: visibleClient,
         data: {
           href: payload.href,
           kind: payload.kind,
@@ -119,6 +171,36 @@ self.addEventListener('push', (event) => {
         },
         actions: payload.actions,
       });
+
+      if (visibleClient) {
+        await closeNotificationsByTagAfterDelay(notificationTag, VISIBLE_NOTIFICATION_CLOSE_DELAY_MS);
+      }
+    })(),
+  );
+});
+
+self.addEventListener('pushsubscriptionchange', (event) => {
+  event.waitUntil(
+    (async () => {
+      try {
+        const pushKey = await fetchPushPublicKey();
+        if (!pushKey.enabled || !pushKey.publicKey) return;
+
+        let subscription = event.newSubscription ?? null;
+        if (!subscription) {
+          subscription = await self.registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: urlBase64ToUint8Array(pushKey.publicKey),
+          });
+        }
+
+        const serialized = subscription.toJSON();
+        if (!serialized.endpoint || !serialized.keys?.p256dh || !serialized.keys?.auth) return;
+
+        await saveSubscription(serialized);
+      } catch (error) {
+        console.error('[push:subscriptionchange-error]', error);
+      }
     })(),
   );
 });

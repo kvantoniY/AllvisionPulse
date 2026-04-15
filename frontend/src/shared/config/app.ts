@@ -13,7 +13,7 @@ export const ROUTES = {
   app: {
     home: '/',
     feed: '/feed',
-    friends: '/friends',
+    subscriptions: '/subscriptions',
     health: '/health',
     messages: '/messages',
     pro: '/settings?tab=pro',

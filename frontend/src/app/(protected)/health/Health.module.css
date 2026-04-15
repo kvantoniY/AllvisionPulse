@@ -33,7 +33,7 @@
   gap: 24px;
   width: min(1480px, 100%);
   margin: 0 auto;
-  padding-bottom: 40px;
+  padding-bottom: 0;
   min-width: 0;
 }
 
@@ -975,6 +975,32 @@
   letter-spacing: -0.03em;
 }
 
+.overviewHeroEditButton {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: #1d1d1e;
+  color: rgba(255, 255, 255, 0.72);
+  cursor: pointer;
+  transition: background 120ms, border-color 120ms, color 120ms;
+}
+
+.overviewHeroEditButton:hover {
+  background: #1d1d1e;
+  border-color: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+
+.overviewHeroEditIcon {
+  width: 15px;
+  height: 15px;
+}
+
 .overviewHeroAction {
   display: inline-flex;
   align-items: center;
@@ -1269,9 +1295,8 @@
 }
 
 .overviewProgressRow {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 12px;
   padding: 0;
   border: 0;
@@ -1284,29 +1309,31 @@
 .overviewProgressRow:hover .overviewProgressTail strong { color: #ffffff; }
 .overviewProgressRow:hover .overviewProgressChevron { color: rgba(255, 255, 255, 0.46); }
 
-.overviewProgressLead {
-  flex: 1;
-  min-width: 0;
-  display: grid;
-  gap: 10px;
-}
-
 .overviewProgressHead {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 12px;
+  min-width: 0;
 }
 
 .overviewProgressHead span {
   color: #b3b3bc;
   font-size: 14px;
+  min-width: 0;
+}
+
+.overviewProgressHead > span:first-child {
+  flex: 1 1 auto;
 }
 
 .overviewProgressTail {
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   gap: 8px;
   flex: 0 0 auto;
+  min-width: 52px;
 }
 
 .overviewProgressTail strong {
@@ -1316,6 +1343,10 @@
 
 .overviewProgressChevron {
   color: rgba(255, 255, 255, 0.28);
+}
+
+.overviewProgressTrack {
+  width: 100%;
 }
 
 .overviewProgressRow[data-tone='tasks'] .overviewProgressTrack span {
@@ -2086,6 +2117,33 @@
 
 .healthActionGroup { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 
+.healthParametersActions { justify-content: flex-end; }
+
+.healthDisclosureButton {
+  gap: 10px;
+  white-space: nowrap;
+}
+
+.healthDisclosureIcon {
+  width: 16px;
+  height: 16px;
+  transition: transform 160ms ease;
+}
+
+.healthDisclosureButtonOpen .healthDisclosureIcon { transform: rotate(180deg); }
+
+.healthParametersSection .healthActionGroup > :not(.healthDisclosureButton),
+.healthParametersSection .healthSliderGrid,
+.healthParametersSection .healthCommentBlock,
+.healthParametersSection .healthImpactBox {
+  display: none;
+}
+
+.healthParametersSectionOpen .healthActionGroup > :not(.healthDisclosureButton) { display: inline-flex; }
+.healthParametersSectionOpen .healthSliderGrid { display: grid; }
+.healthParametersSectionOpen .healthCommentBlock,
+.healthParametersSectionOpen .healthImpactBox { display: grid; }
+
 .healthGhostButton,
 .healthPrimaryButton,
 .mealIconButton,
@@ -2136,7 +2194,8 @@
   flex-wrap: wrap;
 }
 
-.healthRingMetric { display: flex; align-items: center; gap: 16px; }
+.healthRingMetric { display: flex; align-items: center; gap: 16px; min-width: 0; }
+.healthRingMetric > .miniRing { flex: 0 0 auto; }
 .healthRingMeta { display: grid; gap: 3px; }
 .healthRingMeta strong { font-size: 16px; font-weight: 700; }
 .healthRingMeta span { color: rgba(255,255,255,0.56); font-size: 13px; }
@@ -2325,7 +2384,7 @@
 
 .nutritionHeroCard {
   padding: 0;
-  overflow: hidden;
+  overflow: visible;
   display: grid;
   gap: 0;
   border-radius: 30px;
@@ -2752,8 +2811,15 @@
 .nutritionMealsHeader {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: 14px;
+  flex-wrap: wrap;
+}
+
+.nutritionMealsHeaderGroup {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
   flex-wrap: wrap;
 }
 
@@ -2766,9 +2832,11 @@
 .nutritionAddButton {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  justify-content: center;
+  width: 42px;
+  min-width: 42px;
   min-height: 42px;
-  padding: 0 18px;
+  padding: 0;
   border-radius: 14px;
   border: 1px solid rgba(255,122,24,0.28);
   background: rgba(255,122,24,0.08);
@@ -2791,50 +2859,70 @@
 
 .mealRowCard {
   display: grid;
-  gap: 10px;
-  padding: 14px 16px;
-  border-radius: 18px;
-  border: 1px solid rgba(255,255,255,0.06);
+  position: relative;
+  gap: 12px;
+  padding: 15px 16px;
+  border-radius: 20px;
+  border: 1px solid rgba(255,255,255,0.07);
   background: #1b1b1e;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.03),
+    0 10px 24px rgba(0,0,0,0.12);
+  transition: border-color 160ms ease, box-shadow 160ms ease;
 }
 
 .mealRowCardExpanded {
   border-color: rgba(255,255,255,0.1);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.02);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.03),
+    0 16px 34px rgba(0,0,0,0.18);
 }
 
 .mealRowHead {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
+  align-items: start;
   gap: 12px;
 }
 
 .mealHeaderButton {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  align-items: center;
-  gap: 12px;
+  grid-template-columns: 1fr;
+  align-items: start;
+  gap: 10px;
+  width: 100%;
+  min-width: 0;
   padding: 0;
   border: 0;
   background: transparent;
   color: inherit;
   text-align: left;
   cursor: pointer;
+  transition: opacity 120ms ease;
+}
+
+.mealMetaRow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 .mealTimeBadge {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 34px;
-  padding: 0 12px;
-  border-radius: 10px;
-  background: rgba(255,122,24,0.12);
-  color: var(--accent);
+  min-height: 36px;
+  padding: 0 13px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,122,24,0.16);
+  background: rgba(255,122,24,0.14);
+  color: #ff9a48;
   font-size: 13px;
   font-weight: 800;
+  letter-spacing: 0.01em;
   white-space: nowrap;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.07);
 }
 
 .mealHeadlineBlock {
@@ -2846,11 +2934,13 @@
 .mealTitleRow {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
+  justify-content: flex-start;
+  gap: 6px;
+  max-width: 100%;
 }
 
 .mealTitleRow strong {
+  display: block;
   font-size: 15px;
   font-weight: 800;
   letter-spacing: -0.02em;
@@ -2859,19 +2949,24 @@
 .mealCaloriesBadge {
   display: inline-flex;
   align-items: center;
-  min-height: 26px;
-  padding: 0 10px;
-  border-radius: 999px;
-  background: rgba(255,255,255,0.07);
-  color: rgba(255,255,255,0.58);
+  justify-content: center;
+  min-height: 36px;
+  padding: 0 13px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.05);
+  color: rgba(255,255,255,0.78);
   font-size: 12px;
   font-weight: 700;
+  white-space: nowrap;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
 }
 
 .mealHeaderPreview {
   min-width: 0;
   color: rgba(255,255,255,0.48);
   font-size: 12px;
+  line-height: 1.45;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -2880,6 +2975,7 @@
 .mealChevron {
   width: 16px;
   height: 16px;
+  flex: 0 0 auto;
   color: rgba(255,255,255,0.42);
   transition: transform 160ms ease, color 160ms ease;
 }
@@ -2973,21 +3069,120 @@
 .mealValueCarbs { color: #5a99ff; }
 
 .mealIconButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  min-width: 38px;
   min-height: 36px;
-  padding: 0 10px;
-  border-radius: 12px;
+  padding: 0;
+  border-radius: 13px;
   border: 1px solid rgba(255,255,255,0.08);
-  background: rgba(255,255,255,0.03);
+  background: rgba(255,255,255,0.04);
   font-size: 12px;
+  color: rgba(255,255,255,0.68);
+  transition: background 120ms, border-color 120ms, color 120ms, transform 120ms;
 }
 
-.mealIconButton:hover { background: rgba(255,255,255,0.06); }
+.mealIconButton:hover {
+  background: rgba(255,255,255,0.07);
+  border-color: rgba(255,255,255,0.12);
+  color: #fff;
+}
 
 .mealActions {
+  position: relative;
   display: flex;
-  gap: 8px;
   flex: 0 0 auto;
+  align-self: start;
+  z-index: 12;
+}
+
+.mealOverflow {
+  position: relative;
+}
+
+.mealOverflow summary {
+  list-style: none;
+}
+
+.mealOverflow summary::-webkit-details-marker {
+  display: none;
+}
+
+.mealOverflowTrigger {
+  display: inline-flex;
   align-items: center;
+  justify-content: center;
+  width: 40px;
+  min-width: 40px;
+  min-height: 40px;
+  padding: 0;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.04);
+  color: rgba(255,255,255,0.68);
+  cursor: pointer;
+  transition: background 120ms, border-color 120ms, color 120ms;
+}
+
+.mealOverflow[open] .mealOverflowTrigger,
+.mealOverflowTrigger:hover {
+  background: rgba(255,255,255,0.07);
+  border-color: rgba(255,255,255,0.12);
+  color: #fff;
+}
+
+.mealOverflowMenu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 8;
+  min-width: 176px;
+  display: grid;
+  gap: 6px;
+  padding: 8px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(20,20,24,0.98);
+  box-shadow: 0 18px 34px rgba(0,0,0,0.28);
+}
+
+.mealOverflowItem {
+  width: 100%;
+  min-height: 38px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease;
+}
+
+.mealOverflowItem:hover {
+  background: rgba(255,255,255,0.06);
+}
+
+.mealOverflowItemDanger {
+  color: #ff8f99;
+}
+
+.mealOverflowItemDanger:hover {
+  background: rgba(248,113,113,0.08);
+  color: #ffb1b8;
+}
+
+.mealOverflowItemIcon {
+  width: 15px;
+  height: 15px;
+  flex: 0 0 auto;
 }
 
 @media (max-width: 1180px) {
@@ -3064,25 +3259,134 @@
   .nutritionMacroLabel { font-size: 12px; }
   .nutritionMealsHeader { align-items: stretch; }
   .mealRowCard {
-    padding: 14px;
-    border-radius: 18px;
+    gap: 12px;
+    padding: 16px 14px;
+    border-radius: 20px;
   }
-  .mealRowHead { grid-template-columns: 1fr; }
-  .mealActions { justify-self: end; }
-  .mealHeaderButton { gap: 10px; }
-  .mealTableHead,
-  .mealItemRow {
-    grid-template-columns: minmax(160px, 1fr) repeat(4, 50px);
+  .mealRowHead {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+    gap: 12px;
+  }
+  .mealActions {
+    justify-self: end;
+    align-self: start;
+  }
+  .mealHeaderButton {
+    gap: 10px;
+  }
+  .mealMetaRow {
     gap: 8px;
-    min-width: 376px;
   }
-  .mealTableHead { padding: 0 10px; }
+  .mealTimeBadge,
+  .mealCaloriesBadge {
+    min-height: 38px;
+    padding: 0 12px;
+  }
+  .mealHeadlineBlock { gap: 6px; }
+  .mealTitleRow {
+    gap: 6px;
+    align-items: center;
+  }
+  .mealTitleRow > strong {
+    font-size: 15px;
+    line-height: 1.24;
+  }
+  .mealChevron {
+    width: 18px;
+    height: 18px;
+    align-self: center;
+  }
+  .mealTable {
+    overflow: visible;
+    padding-bottom: 0;
+  }
+  .mealTableHead { display: none; }
+  .mealTableBody {
+    gap: 8px;
+  }
   .mealItemRow {
-    padding: 10px 12px;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 8px;
+    min-width: 0;
+    padding: 12px;
     font-size: 12px;
+    border-radius: 16px;
   }
-  .mealItemName strong { font-size: 13px; }
+  .mealItemName {
+    grid-column: 1 / -1;
+    gap: 4px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+  .mealItemRow > span {
+    justify-self: stretch;
+    width: auto;
+    display: grid;
+    gap: 4px;
+    justify-items: center;
+    text-align: center;
+  }
+  .mealItemRow > span::before {
+    content: attr(data-label);
+    color: rgba(255,255,255,0.38);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .mealItemName strong {
+    font-size: 13px;
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+  }
   .mealItemName span { font-size: 11px; }
+  .mealOverflowTrigger {
+    width: 40px;
+    min-width: 40px;
+    min-height: 40px;
+    border-radius: 14px;
+  }
+}
+
+@media (max-width: 420px) {
+  .mealRowHead {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 10px;
+  }
+  .mealActions {
+    justify-self: end;
+  }
+  .mealMetaRow {
+    gap: 6px;
+  }
+  .mealTimeBadge,
+  .mealCaloriesBadge {
+    min-height: 36px;
+    padding: 0 11px;
+  }
+  .nutritionMealsHeaderGroup {
+    gap: 8px;
+  }
+  .nutritionAddButton {
+    width: 38px;
+    min-width: 38px;
+    min-height: 38px;
+    border-radius: 12px;
+  }
+  .mealItemRow {
+    gap: 6px;
+    padding: 11px 10px;
+  }
+  .mealItemRow > span::before {
+    font-size: 9px;
+    letter-spacing: 0.06em;
+  }
+  .mealOverflowMenu {
+    min-width: 164px;
+    max-width: min(188px, calc(100vw - 44px));
+  }
 }
 
 /* ─── Tasks Tab ───────────────────────────────────────────────────── */
@@ -3185,10 +3489,10 @@
   align-items: center;
   gap: 10px;
   min-height: 38px;
-  padding: 0 14px;
+  padding: 0;
   border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.04);
+  border: 0;
+  background: transparent;
   color: rgba(255, 255, 255, 0.62);
   font-size: 14px;
   cursor: pointer;
@@ -4490,12 +4794,24 @@
   letter-spacing: -0.05em;
 }
 
-.goalSummaryStat span,
-.goalSummaryStatCompact span {
+.goalSummaryStat > span,
+.goalSummaryStatLabel {
   font-size: 12px;
   color: rgba(255, 255, 255, 0.56);
   text-transform: uppercase;
   letter-spacing: 0.08em;
+}
+
+.goalSummaryStatCompactRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+}
+
+.goalSummaryStatCompactRow strong {
+  flex: 0 0 auto;
 }
 
 .goalSummaryStatIcon {
@@ -4744,7 +5060,7 @@
 .financeSurface { padding: 20px 22px; border-radius: 22px; border: 1px solid var(--stroke-soft); background: var(--surface-1); }
 .financeSectionHeaderBar { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 16px; }
 .financeSectionTitle { display: inline-flex; align-items: center; gap: 10px; font-size: 16px; font-weight: 800; letter-spacing: -0.02em; }
-.financeSectionTitleWithAction { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; }
+.financeSectionTitleWithAction { display: inline-flex; align-items: center; justify-content: flex-start; gap: 8px; width: auto; }
 .financeSectionHeading { font-size: 17px; font-weight: 800; letter-spacing: -0.025em; }
 
 .financeToolbarTop { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
@@ -5006,8 +5322,8 @@
 .financePaymentSide { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; }
 
 /* Finance inline */
-.financeInlineAddButton { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 12px; border-radius: 10px; border: 1px solid var(--stroke-soft); background: transparent; color: rgba(255,255,255,0.72); font-size: 13px; font-weight: 600; cursor: pointer; transition: background 120ms; }
-.financeInlineAddButton:hover { background: var(--surface-1); }
+.financeInlineAddButton { display: inline-flex; align-items: center; justify-content: center; gap: 0; width: 36px; min-width: 36px; min-height: 36px; padding: 0; border-radius: 10px; border: 1px solid var(--stroke-soft); background: transparent; color: rgba(255,255,255,0.72); font-size: 13px; font-weight: 600; cursor: pointer; transition: background 120ms, border-color 120ms; flex: 0 0 auto; }
+.financeInlineAddButton:hover { background: var(--surface-1); border-color: var(--stroke); }
 .financeInlineAddIcon { width: 14px; height: 14px; }
 .financeInlinePlusButton { width: 36px; height: 36px; display: grid; place-items: center; border-radius: 12px; border: 1px solid var(--stroke); background: var(--surface-0); color: var(--accent); cursor: pointer; transition: background 120ms, border-color 120ms; }
 .financeInlinePlusButton:hover { background: var(--accent-softer); border-color: var(--stroke-accent); }
@@ -5015,7 +5331,8 @@
 
 /* Finance action buttons */
 .financeActionButton,
-.financeSecondaryAction {
+.financeSecondaryAction,
+.financeActionButtonPrimary {
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -5706,7 +6023,34 @@
   .diaryListItem { min-height: 58px; padding: 12px 14px; border-radius: 16px; }
   .diaryListTitle { font-size: 14px; }
   .diaryHabitStreak { min-height: 28px; min-width: 54px; padding: 0 10px; font-size: 13px; }
-  .goalSummaryStats { grid-template-columns: 1fr; }
+  .goalSummaryStats {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .goalSummaryStatCompact {
+    gap: 10px;
+    padding: 12px 10px;
+    border-radius: 16px;
+  }
+  .goalSummaryStatCompactRow {
+    gap: 10px;
+  }
+  .goalSummaryStatCompact strong {
+    font-size: clamp(22px, 6vw, 26px);
+  }
+  .goalSummaryStatLabel {
+    font-size: 10px;
+    letter-spacing: 0.06em;
+  }
+  .goalSummaryStatIcon {
+    width: 30px;
+    height: 30px;
+    border-radius: 10px;
+  }
+  .goalSummaryStatSvg {
+    width: 15px;
+    height: 15px;
+  }
   .goalSummaryRow { padding: 16px; border-radius: 18px; }
   .goalSummaryRowTop { flex-direction: column; }
   .goalSummaryRowActions { justify-content: flex-start; }
@@ -5719,8 +6063,10 @@
   .overviewProfileCard,
   .overviewProgramsCard { padding: 18px 16px; border-radius: 20px; }
   .overviewTopGrid { gap: 16px; }
-  .overviewHeroHeader,
+  .overviewHeroHeader { align-items: center; flex-direction: row; justify-content: space-between; }
   .overviewProgramsHeader { align-items: flex-start; flex-direction: column; }
+  .overviewHeroEditButton { display: inline-flex; }
+  .overviewProfileActions { display: none; }
   .overviewHeroAction { width: 100%; justify-content: flex-start; }
   .overviewBulletRow { font-size: 15px; }
   .overviewStreakRow { padding: 13px 14px; border-radius: 16px; }
@@ -5739,7 +6085,16 @@
   .pulseProfileSummaryGrid { grid-template-columns: 1fr; }
   .pulseSupportingGrid { grid-template-columns: 1fr; }
   .pulseProfileSummaryStrip { padding: 14px 16px; border-radius: 18px; }
-  .healthRingsRow { gap: 24px; min-height: 160px; }
+  .healthRingsRow {
+    min-height: 0;
+    gap: 18px;
+    justify-content: stretch;
+    align-items: stretch;
+  }
+  .healthRingMetric {
+    width: 100%;
+    justify-content: flex-start;
+  }
   .configHeroCard { padding: 18px 20px; }
   .configSectionCard { padding: 18px 20px; }
   .goalCardHeader,
@@ -5767,7 +6122,7 @@
 }
 
 @media (max-width: 640px) {
-  .page { gap: 14px; width: 100%; padding-bottom: calc(var(--mobile-nav-height) + env(safe-area-inset-bottom, 0px) + 20px); }
+  .page { gap: 14px; width: 100%; padding-bottom: 0; }
 
   .pulseShellHeader { gap: 0; }
   .pulseShellTitleWrap { gap: 0; }
@@ -5814,6 +6169,24 @@
   .pulseDateValueButton { min-height: 38px; padding: 5px 12px; }
 
   .summarySurface { padding: 14px; }
+  .healthRingsRow {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  .healthDisclosureButton {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .healthParametersActions {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .healthParametersActions > .healthDisclosureButton { grid-column: 1 / -1; }
+  .healthParametersActions > :not(.healthDisclosureButton) {
+    width: 100%;
+  }
   .summaryCard,
   .summaryCardPrimary,
   .summaryCardSecondary { min-height: 0; padding: 12px; }
@@ -5829,6 +6202,10 @@
   .overviewScoreRingInner { width: calc(100% - 34px); }
   .overviewScoreRingInner strong { font-size: 38px; }
   .overviewHeroCard { gap: 18px; }
+  .overviewHeroEditButton { width: 34px; height: 34px; border-radius: 11px; }
+  .overviewProgressRow { gap: 10px; }
+  .overviewProgressHead { gap: 10px; }
+  .overviewProgressTail { min-width: 48px; }
   .overviewProfileMetrics { gap: 0; }
   .overviewProfileMetric { padding: 0 10px 2px; }
   .overviewProfileMetric strong { font-size: 18px; }
@@ -5907,6 +6284,19 @@
 @media (max-width: 420px) {
   .diaryHeroBubble { max-width: 204px; }
   .diarySectionTitle { font-size: 17px; }
+  .goalSummaryStatCompact {
+    padding: 11px 8px;
+  }
+  .goalSummaryStatCompact strong {
+    font-size: 20px;
+  }
+  .goalSummaryStatLabel {
+    font-size: 9px;
+  }
+  .goalSummaryStatIcon {
+    width: 28px;
+    height: 28px;
+  }
 
   .overviewStreakRow { flex-wrap: wrap; }
   .overviewStreakValue { margin-left: 54px; }

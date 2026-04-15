@@ -191,6 +191,32 @@ function urlBase64ToUint8Array(base64String: string) {
   return outputArray;
 }
 
+function uint8ArraysEqual(left: Uint8Array | null, right: Uint8Array | null) {
+  if (!left || !right) return !left && !right;
+  if (left.byteLength !== right.byteLength) return false;
+
+  for (let index = 0; index < left.byteLength; index += 1) {
+    if (left[index] !== right[index]) return false;
+  }
+
+  return true;
+}
+
+function getSubscriptionApplicationServerKey(subscription: PushSubscription) {
+  const rawKey = subscription.options?.applicationServerKey;
+  if (!rawKey) return null;
+
+  try {
+    return new Uint8Array(rawKey);
+  } catch {
+    return null;
+  }
+}
+
+function subscriptionApplicationServerKeyMatches(subscription: PushSubscription, expectedKey: Uint8Array) {
+  return uint8ArraysEqual(getSubscriptionApplicationServerKey(subscription), expectedKey);
+}
+
 async function fetchPushPublicKey() {
   const response = await fetch('/api/backend/notifications/push/public-key', {
     credentials: 'include',
@@ -269,6 +295,7 @@ export function AppExperienceProvider({ children }: { children: React.ReactNode 
   const [iosManualInstallAvailable, setIosManualInstallAvailable] = useState(false);
 
   const registrationRef = useRef<ServiceWorkerRegistration | null>(null);
+  const lastSyncedPushEndpointRef = useRef<string | null>(null);
   const pushCapability = useMemo(() => getPushCapability(platformFamily, isStandalone), [isStandalone, platformFamily]);
 
   useEffect(() => {
@@ -300,6 +327,7 @@ export function AppExperienceProvider({ children }: { children: React.ReactNode 
     const subscription = await registration.pushManager.getSubscription().catch(() => null);
     if (!subscription) {
       setPushEnabled(false);
+      lastSyncedPushEndpointRef.current = null;
       return;
     }
 
@@ -308,13 +336,16 @@ export function AppExperienceProvider({ children }: { children: React.ReactNode 
     if (endpoint) {
       await deleteSubscription(endpoint).catch(() => null);
     }
+    lastSyncedPushEndpointRef.current = null;
     setPushEnabled(false);
   }, []);
 
   const syncPushSubscription = useCallback(async () => {
     if (typeof window === 'undefined') return false;
 
-    const capability = getPushCapability(platformFamily, isStandalone);
+    const effectiveStandalone = isStandaloneMode();
+    const effectivePlatformFamily = detectDeviceMeta().platformFamily;
+    const capability = getPushCapability(effectivePlatformFamily, effectiveStandalone);
     if (!capability.browserSupported || !capability.availableInContext) {
       setPushEnabled(false);
       setPushStatusMessage(capability.reason);
@@ -349,12 +380,26 @@ export function AppExperienceProvider({ children }: { children: React.ReactNode 
         return false;
       }
 
+      const expectedApplicationServerKey = urlBase64ToUint8Array(pushKey.publicKey);
       let subscription = await registration.pushManager.getSubscription();
+      let shouldSaveSubscription = false;
+
+      if (subscription && !subscriptionApplicationServerKeyMatches(subscription, expectedApplicationServerKey)) {
+        const endpoint = subscription.endpoint;
+        await subscription.unsubscribe().catch(() => false);
+        if (endpoint) {
+          await deleteSubscription(endpoint).catch(() => null);
+        }
+        subscription = null;
+        lastSyncedPushEndpointRef.current = null;
+      }
+
       if (!subscription) {
         subscription = await registration.pushManager.subscribe({
           userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array(pushKey.publicKey),
+          applicationServerKey: expectedApplicationServerKey,
         });
+        shouldSaveSubscription = true;
       }
 
       const serialized = subscription.toJSON();
@@ -364,7 +409,15 @@ export function AppExperienceProvider({ children }: { children: React.ReactNode 
         return false;
       }
 
-      await saveSubscription(serialized);
+      if (lastSyncedPushEndpointRef.current !== serialized.endpoint) {
+        shouldSaveSubscription = true;
+      }
+
+      if (shouldSaveSubscription) {
+        await saveSubscription(serialized);
+      }
+
+      lastSyncedPushEndpointRef.current = serialized.endpoint;
       setPushEnabled(true);
       setPushStatusMessage(null);
       return true;
@@ -376,7 +429,7 @@ export function AppExperienceProvider({ children }: { children: React.ReactNode 
     } finally {
       setPushSyncing(false);
     }
-  }, [isStandalone, platformFamily, unsubscribePushSubscription]);
+  }, [unsubscribePushSubscription]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -449,6 +502,22 @@ export function AppExperienceProvider({ children }: { children: React.ReactNode 
       else media.removeListener(onMediaChange);
     };
   }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const revalidateStandalonePush = () => {
+      if (document.visibilityState !== 'visible') return;
+      if (!isStandaloneMode()) return;
+      if (getNotificationPermission() !== 'granted') return;
+      void syncPushSubscription();
+    };
+
+    document.addEventListener('visibilitychange', revalidateStandalonePush);
+    return () => {
+      document.removeEventListener('visibilitychange', revalidateStandalonePush);
+    };
+  }, [syncPushSubscription]);
 
   useEffect(() => {
     if (notificationPermission === 'granted') {
