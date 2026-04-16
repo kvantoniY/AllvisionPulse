@@ -21,6 +21,7 @@ import { useIsMobile } from '@/shared/lib/hooks/useIsMobile';
 import { PostCommentsMobileModal } from '@/features/postComments/ui/PostCommentsMobileModal';
 import { EditPostModal } from '@/features/postEdit/ui/EditPostModal';
 import { PulseShareCard } from '@/shared/ui/PulseShareCard/PulseShareCard';
+import { MediaPlaceholder } from '@/shared/ui/MediaPlaceholder/MediaPlaceholder';
 import { getLegacyHealthWidgetPayload, getPulseShareWidgetPayload } from '@/shared/lib/socialWidgets';
 
 function getOriginalPost(post: Post): Post {
@@ -33,6 +34,9 @@ function QuoteCard({ post, onOpenOriginal, mobile }: { post: Post; onOpenOrigina
   const lightbox = useLightbox();
   const images = post.images ?? [];
   const singleImage = images.length === 1 ? images[0] : null;
+  const [quoteImgLoaded, setQuoteImgLoaded] = useState(false);
+
+  useEffect(() => { setQuoteImgLoaded(false); }, [singleImage?.url]);
 
   return (
     <div
@@ -56,14 +60,17 @@ function QuoteCard({ post, onOpenOriginal, mobile }: { post: Post; onOpenOrigina
       {post.text ? <div className={styles.quoteText}>{post.text}</div> : null}
 
       {singleImage ? (
-        <div className={styles.quoteMediaSingle}>
+        <div className={styles.quoteMediaSingle} style={{ position: 'relative' }}>
           <img
             src={singleImage.url}
             alt=""
             className={styles.quoteSingleImage}
             loading="lazy"
+            onLoad={() => setQuoteImgLoaded(true)}
+            onError={() => setQuoteImgLoaded(true)}
             onClick={(event) => { event.stopPropagation(); lightbox?.openLightbox([{ id: singleImage.id, url: singleImage.url }], 0); }}
           />
+          <MediaPlaceholder loaded={quoteImgLoaded} small />
         </div>
       ) : null}
 
@@ -147,6 +154,9 @@ function PostCardComponent({
   const singleImage = images.length === 1 ? images[0] : null;
   const healthWidget = useMemo(() => getLegacyHealthWidgetPayload(post.widgetsJson), [post.widgetsJson]);
   const pulseShareWidget = useMemo(() => getPulseShareWidgetPayload(post.widgetsJson), [post.widgetsJson]);
+  const [singleImgLoaded, setSingleImgLoaded] = useState(false);
+
+  useEffect(() => { setSingleImgLoaded(false); }, [singleImage?.url]);
 
   const openCurrent = () => {
     if (isMobile) return;
@@ -273,14 +283,17 @@ function PostCardComponent({
         ) : null}
 
         {!originalPost && singleImage ? (
-          <div className={styles.mediaSingle}>
+          <div className={styles.mediaSingle} style={{ position: 'relative' }}>
             <img
               src={singleImage.url}
               alt=""
               className={styles.singleImage}
               loading="lazy"
+              onLoad={() => setSingleImgLoaded(true)}
+              onError={() => setSingleImgLoaded(true)}
               onClick={(event) => { event.stopPropagation(); lightbox?.openLightbox([{ id: singleImage.id, url: singleImage.url }], 0); }}
             />
+            <MediaPlaceholder loaded={singleImgLoaded} />
           </div>
         ) : null}
 

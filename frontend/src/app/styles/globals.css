@@ -1,5 +1,5 @@
 :root {
-  color-scheme: dark;
+  color-scheme: dark only;
 
   /* ── Backgrounds ── */
   --bg: #141414;
@@ -121,6 +121,8 @@ html {
   scrollbar-width: thin;
   scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
   overflow-x: hidden;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 body {
   margin: 0;
@@ -134,6 +136,8 @@ body {
   line-height: 1.5;
   text-rendering: optimizeLegibility;
   overflow-x: hidden;
+  forced-color-adjust: none;
+  -ms-high-contrast-adjust: none;
 }
 body::before {
   content: '';

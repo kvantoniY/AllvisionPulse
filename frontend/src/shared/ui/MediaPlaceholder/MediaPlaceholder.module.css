@@ -1,0 +1,88 @@
+/* ═══════════════════════════════════════════
+   MediaPlaceholder — blur / shimmer / spinner
+   Telegram-style loading overlay for images
+   ═══════════════════════════════════════════ */
+
+.wrap {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  pointer-events: none;
+  transition: opacity 320ms ease;
+}
+
+.wrapHidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* blurred thumbnail / gradient background */
+.blur {
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(0px);
+}
+
+/* shimmer animation over the blur */
+.shimmer {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.shimmer::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.05) 40%,
+    rgba(255, 255, 255, 0.08) 50%,
+    rgba(255, 255, 255, 0.05) 60%,
+    transparent 100%
+  );
+  animation: mediaShimmer 1.6s ease-in-out infinite;
+}
+
+@keyframes mediaShimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* spinner ring */
+.spinner {
+  position: relative;
+  z-index: 2;
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  border: 2.5px solid rgba(255, 255, 255, 0.1);
+  border-top-color: rgba(255, 255, 255, 0.72);
+  animation: mediaSpin 0.8s linear infinite;
+}
+
+.spinnerSmall {
+  width: 24px;
+  height: 24px;
+  border-width: 2px;
+}
+
+@keyframes mediaSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* dark scrim behind spinner for visibility */
+.scrim {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.18);
+}

@@ -1,10 +1,11 @@
 'use client';
 
 import type { CSSProperties } from 'react';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import styles from './ImageGallery.module.css';
 import { useLightbox } from '@/shared/ui/Lightbox/LightboxProvider';
 import { Icon } from '@/shared/ui/Icon/Icon';
+import { MediaPlaceholder } from '@/shared/ui/MediaPlaceholder/MediaPlaceholder';
 
 export type GalleryImage = { id: string; url: string };
 
@@ -95,11 +96,22 @@ export function ImageGallery({
   const list = images ?? [];
   const many = list.length > 1;
   const [idx, setIdx] = useState(0);
+  const [loadedSet, setLoadedSet] = useState<Set<number>>(new Set());
   const lb = useLightbox();
   const ratios = useImageRatios(list, mode === 'modal' || adaptive);
 
+  const markLoaded = useCallback((i: number) => {
+    setLoadedSet((prev) => {
+      if (prev.has(i)) return prev;
+      const next = new Set(prev);
+      next.add(i);
+      return next;
+    });
+  }, []);
+
   useEffect(() => {
     setIdx(0);
+    setLoadedSet(new Set());
   }, [list.map((i) => i.id).join('|')]);
 
   const safeIdx = useMemo(() => clamp(idx, 0, Math.max(0, list.length - 1)), [idx, list.length]);
@@ -134,7 +146,7 @@ export function ImageGallery({
           mode === 'modal' ? styles.modal : '',
           !rounded ? styles.noRadius : '',
         ].filter(Boolean).join(' ')}
-        style={galleryStyle ?? { aspectRatio: aspect, maxHeight }}
+        style={{ ...galleryStyle ?? { aspectRatio: aspect, maxHeight }, position: 'relative' as const }}
       >
         <img
           src={img.url}
@@ -144,9 +156,11 @@ export function ImageGallery({
           decoding="async"
           draggable={false}
           onClick={(event) => { event.stopPropagation(); lb?.openLightbox([{ id: img.id, url: img.url }], 0); }}
-          onLoad={() => onActiveImageLoad?.(0)}
+          onLoad={() => { markLoaded(0); onActiveImageLoad?.(0); }}
+          onError={() => markLoaded(0)}
           style={{ cursor: 'pointer' }}
         />
+        <MediaPlaceholder loaded={loadedSet.has(0)} />
       </div>
     );
   }
@@ -158,7 +172,7 @@ export function ImageGallery({
     >
       <div className={styles.track} style={{ transform: `translateX(-${safeIdx * 100}%)` }}>
         {list.map((img, i) => (
-          <div key={img.id} className={styles.slide}>
+          <div key={img.id} className={styles.slide} style={{ position: 'relative' }}>
             <img
               src={img.url}
               alt=""
@@ -168,10 +182,13 @@ export function ImageGallery({
               draggable={false}
               onClick={(event) => { event.stopPropagation(); lb?.openLightbox(list.map((it) => ({ id: it.id, url: it.url })), i); }}
               onLoad={() => {
+                markLoaded(i);
                 if (i === safeIdx) onActiveImageLoad?.(i);
               }}
+              onError={() => markLoaded(i)}
               style={{ cursor: 'pointer' }}
             />
+            {i === safeIdx ? <MediaPlaceholder loaded={loadedSet.has(i)} /> : null}
           </div>
         ))}
       </div>

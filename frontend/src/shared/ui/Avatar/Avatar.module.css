@@ -26,6 +26,28 @@
 .img { width: 100%; height: 100%; object-fit: cover; }
 .fallback { font-weight: 700; color: var(--text); font-size: 12px; }
 
+.shimmer {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: 999px;
+  background: linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02));
+  overflow: hidden;
+}
+
+.shimmer::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent);
+  animation: avatarShimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes avatarShimmer {
+  100% { transform: translateX(100%); }
+}
+
 .statusDot {
   position: absolute;
   right: var(--avatar-status-inset, 2px);

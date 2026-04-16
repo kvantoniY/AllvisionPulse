@@ -10,6 +10,7 @@ import {
   useState,
 } from 'react';
 import { Modal } from '@/shared/ui/Modal/Modal';
+import { MediaPlaceholder } from '@/shared/ui/MediaPlaceholder/MediaPlaceholder';
 import styles from './LightboxContext.module.css';
 
 export type LightboxImage = { id: string; url: string };
@@ -54,6 +55,11 @@ export function LightboxProvider({ children }: PropsWithChildren) {
 
   const many = images.length > 1;
   const current = images[idx];
+  const [lbImgLoaded, setLbImgLoaded] = useState(false);
+
+  useEffect(() => {
+    setLbImgLoaded(false);
+  }, [current?.url]);
 
   return (
     <Ctx.Provider value={api}>
@@ -61,8 +67,16 @@ export function LightboxProvider({ children }: PropsWithChildren) {
       <Modal open={state.open} onClose={closeLightbox} title="">
         {current ? (
           <div className={styles.wrap}>
-            <div className={styles.stage}>
-              <img src={current.url} alt="" className={styles.img} draggable={false} />
+            <div className={styles.stage} style={{ position: 'relative' }}>
+              <img
+                src={current.url}
+                alt=""
+                className={styles.img}
+                draggable={false}
+                onLoad={() => setLbImgLoaded(true)}
+                onError={() => setLbImgLoaded(true)}
+              />
+              <MediaPlaceholder loaded={lbImgLoaded} />
             </div>
 
             {many ? (

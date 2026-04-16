@@ -21,6 +21,7 @@ import { Icon } from '@/shared/ui/Icon/Icon';
 import { AdminBadge } from '@/shared/ui/AdminBadge/AdminBadge';
 import { StoryEditorItem, StoryItem } from '@/shared/types/story';
 import { StoryRingAvatar } from './StoryRingAvatar';
+import { MediaPlaceholder } from '@/shared/ui/MediaPlaceholder/MediaPlaceholder';
 import styles from './Stories.module.css';
 import { ROUTES } from '@/shared/config/app';
 
@@ -138,6 +139,7 @@ export function StoryViewer({
   const [newHighlightTitle, setNewHighlightTitle] = useState('');
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const holdRef = useRef<{ timeoutId: number | null; held: boolean }>({ timeoutId: null, held: false });
+  const [mediaLoaded, setMediaLoaded] = useState(false);
   const current = items[index] ?? null;
   const isOwn = current?.authorId === me?.id;
   const storyDurationMs = getDurationMs(current);
@@ -148,6 +150,7 @@ export function StoryViewer({
 
   useEffect(() => {
     setMyReaction(current?.myReaction ?? null);
+    setMediaLoaded(false);
   }, [current?.id, current?.myReaction]);
 
   useEffect(() => {
@@ -160,6 +163,7 @@ export function StoryViewer({
       setHighlightSheetOpen(false);
       setReplyText('');
       setMyReaction(null);
+      setMediaLoaded(false);
       return;
     }
     const targetIndex = viewer?.storyId ? items.findIndex((item) => item.id === viewer.storyId) : 0;
@@ -168,6 +172,7 @@ export function StoryViewer({
     setViewersOpen(false);
     setHighlightSheetOpen(false);
     setUiHidden(false);
+    setMediaLoaded(false);
   }, [open, viewer?.storyId, viewer?.userId, items]);
 
   useEffect(() => {
@@ -229,7 +234,7 @@ export function StoryViewer({
   }, [current?.mediaType, currentTrimStart, goToUser, index, items.length, progress]);
 
   useEffect(() => {
-    if (!open || !current || paused || viewersOpen) return;
+    if (!open || !current || paused || viewersOpen || !mediaLoaded) return;
     const duration = storyDurationMs;
     const startedAt = performance.now() - progress * duration;
     let raf = 0;
@@ -244,7 +249,7 @@ export function StoryViewer({
     };
     raf = window.requestAnimationFrame(tick);
     return () => window.cancelAnimationFrame(raf);
-  }, [current?.id, goNext, open, paused, progress, storyDurationMs, viewersOpen]);
+  }, [current?.id, goNext, mediaLoaded, open, paused, progress, storyDurationMs, viewersOpen]);
 
   useEffect(() => {
     if (!videoRef.current || !current?.mediaType.startsWith('video/')) return;
@@ -253,7 +258,7 @@ export function StoryViewer({
       if (Math.abs(video.currentTime - currentTrimStart) > 0.25) {
         video.currentTime = currentTrimStart;
       }
-      if (!paused && !viewersOpen) {
+      if (!paused && !viewersOpen && mediaLoaded) {
         const play = video.play();
         if (play && typeof play.catch === 'function') play.catch(() => null);
       } else {
@@ -261,7 +266,7 @@ export function StoryViewer({
       }
     };
     syncStart();
-  }, [current?.id, current?.mediaType, currentTrimStart, paused, viewersOpen]);
+  }, [current?.id, current?.mediaType, currentTrimStart, mediaLoaded, paused, viewersOpen]);
 
   useEffect(() => {
     if (!open) return;
@@ -398,6 +403,7 @@ export function StoryViewer({
                     const target = event.currentTarget;
                     if (Math.abs(target.currentTime - currentTrimStart) > 0.25) target.currentTime = currentTrimStart;
                   }}
+                  onCanPlay={() => setMediaLoaded(true)}
                   onTimeUpdate={(event) => {
                     if (event.currentTarget.currentTime >= currentTrimEnd - 0.05) {
                       goNext();
@@ -406,8 +412,16 @@ export function StoryViewer({
                   style={getMediaStyle(current)}
                 />
               ) : (
-                <img className={styles.viewerMedia} src={current.mediaUrl} alt="Сторис" style={getMediaStyle(current)} />
+                <img
+                  className={styles.viewerMedia}
+                  src={current.mediaUrl}
+                  alt="Сторис"
+                  style={getMediaStyle(current)}
+                  onLoad={() => setMediaLoaded(true)}
+                  onError={() => setMediaLoaded(true)}
+                />
               )}
+              <MediaPlaceholder loaded={mediaLoaded} />
             </div>
 
             {(current.itemsJson ?? []).map((item) => renderStoryOverlay(item as StoryEditorItem))}

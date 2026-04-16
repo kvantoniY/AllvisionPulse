@@ -18,9 +18,11 @@ export function Avatar({
 }) {
   const initials = (name ?? 'U').slice(0, 1).toUpperCase();
   const [hasImageError, setHasImageError] = useState(false);
+  const [imageLoaded, setImageLoaded] = useState(false);
 
   useEffect(() => {
     setHasImageError(false);
+    setImageLoaded(false);
   }, [url]);
 
   const showImage = Boolean(url && !hasImageError);
@@ -42,7 +44,16 @@ export function Avatar({
     >
       <div className={styles.inner}>
         {showImage ? (
-          <img className={styles.img} src={url ?? undefined} alt="" onError={() => setHasImageError(true)} />
+          <>
+            {!imageLoaded ? <span className={styles.shimmer} aria-hidden="true" /> : null}
+            <img
+              className={styles.img}
+              src={url ?? undefined}
+              alt=""
+              onLoad={() => setImageLoaded(true)}
+              onError={() => setHasImageError(true)}
+            />
+          </>
         ) : (
           <span className={styles.fallback}>{initials}</span>
         )}

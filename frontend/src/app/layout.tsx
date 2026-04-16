@@ -27,6 +27,8 @@ export const metadata: Metadata = {
   },
   other: {
     'mobile-web-app-capable': 'yes',
+    'supported-color-schemes': 'dark',
+    'darkreader-lock': '',
   },
   formatDetection: {
     telephone: false,
@@ -37,7 +39,8 @@ export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   viewportFit: 'cover',
-  themeColor: '#060709',
+  colorScheme: 'dark',
+  themeColor: '#141414',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
