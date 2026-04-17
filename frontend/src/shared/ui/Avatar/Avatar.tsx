@@ -50,6 +50,7 @@ export function Avatar({
               className={styles.img}
               src={url ?? undefined}
               alt=""
+              ref={(node) => { if (node?.complete && node.naturalWidth > 0) setImageLoaded(true); }}
               onLoad={() => setImageLoaded(true)}
               onError={() => setHasImageError(true)}
             />

@@ -304,11 +304,22 @@ export function DiaryTimelineBoard({ date, tasks, onCreateTaskAtSlot, onOpenTask
       ? currentPointer.currentSlotIndex
       : resolveSlotIndexFromClientX(options?.finalClientX ?? currentPointer.originX) ?? currentPointer.currentSlotIndex;
     const heldLongEnough = Date.now() - currentPointer.startedAt > 180;
-    const shouldSuppressClick = currentPointer.moved
-      || heldLongEnough
-      || !currentPointer.startSameArmed
-      || finalSlotIndex !== currentPointer.initialSlotIndex
-      || Boolean(options?.cancelled);
+
+    // When the user taps an already-armed slot without moving, always let
+    // the click through so the task is created — regardless of hold duration.
+    const isConfirmingArmedSlot =
+      currentPointer.startSameArmed
+      && finalSlotIndex === currentPointer.initialSlotIndex
+      && !currentPointer.moved
+      && !options?.cancelled;
+
+    const shouldSuppressClick = isConfirmingArmedSlot
+      ? false
+      : currentPointer.moved
+        || heldLongEnough
+        || !currentPointer.startSameArmed
+        || finalSlotIndex !== currentPointer.initialSlotIndex
+        || Boolean(options?.cancelled);
 
     stopSlotAutoScroll();
     slotPointerClientXRef.current = null;
@@ -592,29 +603,48 @@ export function DiaryTimelineBoard({ date, tasks, onCreateTaskAtSlot, onOpenTask
   const previewBottom = hoveredLayout ? Math.min(146, hoveredLayout.bottom + 42) : 0;
   const previewLeft = hoveredLayout ? clamp(hoveredLayout.centerPercent, 10, 90) : 0;
   const activeSlotIndex = isMobile ? slotPointer?.currentSlotIndex ?? armedSlotIndex : hoveredSlotIndex;
+  const hasTimedTasks = layouts.length > 0;
 
   return (
     <section ref={rootRef} className={styles.root}>
       <div ref={frameRef} className={styles.frame}>
-        <div className={styles.canvas}>
+        <div className={[styles.canvas, hasTimedTasks ? '' : styles.canvasCompact].filter(Boolean).join(' ')}>
           <div className={styles.backdrop} aria-hidden="true">
             <div className={[styles.segment, styles.segmentMorning].join(' ')} />
             <div className={[styles.segment, styles.segmentDay].join(' ')} />
             <div className={[styles.segment, styles.segmentSunset].join(' ')} />
             <div className={[styles.segment, styles.segmentNight].join(' ')} />
 
-            <span className={[styles.orb, styles.orbSunrise].join(' ')} />
-            <span className={[styles.orb, styles.orbDay].join(' ')} />
-            <span className={[styles.orb, styles.orbSunset].join(' ')} />
-            <span className={[styles.orb, styles.orbMoon].join(' ')} />
+            <span className={styles.auroraGlow} />
+            <span className={styles.sunGlow} />
+            <span className={styles.sunsetGlow} />
 
+            <span className={[styles.orb, styles.orbSunrise].join(' ')}>
+              <span className={styles.sunRays} />
+            </span>
+            <span className={[styles.orb, styles.orbDay].join(' ')} />
+            <span className={[styles.orb, styles.orbSunset].join(' ')}>
+              <span className={styles.sunRays} />
+            </span>
+            <span className={[styles.orb, styles.orbMoon].join(' ')}>
+              <span className={styles.moonCrater} />
+              <span className={[styles.moonCrater, styles.moonCraterSm].join(' ')} />
+            </span>
+
+            <span className={[styles.cloud, styles.cloudMorningHigh].join(' ')} />
             <span className={[styles.cloud, styles.cloudMorning].join(' ')} />
             <span className={[styles.cloud, styles.cloudDay].join(' ')} />
+            <span className={[styles.cloud, styles.cloudDayPuff].join(' ')} />
+            <span className={[styles.cloud, styles.cloudSunset].join(' ')} />
+            <span className={[styles.cloud, styles.cloudNight].join(' ')} />
+
+            <span className={[styles.landscape, styles.landscapeMountains].join(' ')} />
             <span className={[styles.landscape, styles.landscapeFar].join(' ')} />
             <span className={[styles.landscape, styles.landscapeNear].join(' ')} />
-            <span className={styles.citySunset} />
-            <span className={styles.cityNight} />
+            <span className={styles.haze} />
             <span className={styles.stars} />
+            <span className={[styles.stars, styles.starsTwinkle].join(' ')} />
+            <span className={styles.shootingStar} />
           </div>
 
           <div ref={trackRef} className={styles.trackArea}>

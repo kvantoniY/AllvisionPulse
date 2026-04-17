@@ -155,6 +155,7 @@ export function ImageGallery({
           loading={mode === 'modal' ? 'eager' : 'lazy'}
           decoding="async"
           draggable={false}
+          ref={(node) => { if (node?.complete && node.naturalWidth > 0) { markLoaded(0); onActiveImageLoad?.(0); } }}
           onClick={(event) => { event.stopPropagation(); lb?.openLightbox([{ id: img.id, url: img.url }], 0); }}
           onLoad={() => { markLoaded(0); onActiveImageLoad?.(0); }}
           onError={() => markLoaded(0)}
@@ -180,6 +181,7 @@ export function ImageGallery({
               loading={mode === 'modal' ? 'eager' : 'lazy'}
               decoding="async"
               draggable={false}
+              ref={(node) => { if (node?.complete && node.naturalWidth > 0) { markLoaded(i); if (i === safeIdx) onActiveImageLoad?.(i); } }}
               onClick={(event) => { event.stopPropagation(); lb?.openLightbox(list.map((it) => ({ id: it.id, url: it.url })), i); }}
               onLoad={() => {
                 markLoaded(i);

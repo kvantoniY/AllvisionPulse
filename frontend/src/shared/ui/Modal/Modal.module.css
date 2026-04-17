@@ -68,6 +68,13 @@
   line-height: 1.5;
 }
 
+.headerRight {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+}
+
 .close {
   width: 34px;
   height: 34px;

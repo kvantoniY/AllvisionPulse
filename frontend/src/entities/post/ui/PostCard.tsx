@@ -66,6 +66,7 @@ function QuoteCard({ post, onOpenOriginal, mobile }: { post: Post; onOpenOrigina
             alt=""
             className={styles.quoteSingleImage}
             loading="lazy"
+            ref={(node) => { if (node?.complete && node.naturalWidth > 0) setQuoteImgLoaded(true); }}
             onLoad={() => setQuoteImgLoaded(true)}
             onError={() => setQuoteImgLoaded(true)}
             onClick={(event) => { event.stopPropagation(); lightbox?.openLightbox([{ id: singleImage.id, url: singleImage.url }], 0); }}
@@ -289,6 +290,7 @@ function PostCardComponent({
               alt=""
               className={styles.singleImage}
               loading="lazy"
+              ref={(node) => { if (node?.complete && node.naturalWidth > 0) setSingleImgLoaded(true); }}
               onLoad={() => setSingleImgLoaded(true)}
               onError={() => setSingleImgLoaded(true)}
               onClick={(event) => { event.stopPropagation(); lightbox?.openLightbox([{ id: singleImage.id, url: singleImage.url }], 0); }}

@@ -1,4 +1,7 @@
 .pageDesktop {
+  --feed-content-inset: clamp(18px, 2vw, 24px);
+  --feed-card-inline-padding: var(--feed-content-inset);
+  --stories-rail-inline-padding: var(--feed-content-inset);
   width: calc(100% + (var(--page-gutter) * 2));
   max-width: none;
   margin: 0 calc(var(--page-gutter) * -1);
@@ -18,7 +21,7 @@
   gap: 0;
   align-content: start;
   grid-auto-rows: max-content;
-  padding: 18px 0 28px;
+  padding: 18px 0 30px;
   background: transparent;
 }
 
@@ -37,11 +40,11 @@
   color: var(--muted);
   font-weight: 700;
   margin: 2px auto 10px;
-  padding-inline: 2px;
+  padding-inline: var(--feed-content-inset);
 }
 
 .storiesSection {
-  margin-bottom: 8px;
+  margin-bottom: 10px;
 }
 
 .composerSection,
@@ -69,6 +72,11 @@
 }
 
 .pageMobile {
+  --feed-content-inset: clamp(14px, 4vw, 18px);
+  --feed-card-inline-padding: var(--feed-content-inset);
+  --stories-rail-inline-padding: var(--feed-content-inset);
+  --feed-inline-safe-start: max(var(--feed-content-inset), calc(env(safe-area-inset-left, 0px) + 12px));
+  --feed-inline-safe-end: max(var(--feed-content-inset), calc(env(safe-area-inset-right, 0px) + 12px));
   padding-inline: 0;
   background: transparent;
   min-width: 0;
@@ -77,7 +85,8 @@
 
 .pageMobile .stack {
   gap: 0;
-  padding-top: 0;
+  padding-top: 4px;
+  padding-bottom: 18px;
   background: transparent;
   min-width: 0;
   overflow-x: hidden;
@@ -85,12 +94,14 @@
 
 .pageMobile .storiesSection {
   margin-top: 0;
-  margin-bottom: 0;
+  margin-bottom: 8px;
 }
 
 .pageMobile .scopeTabs {
   padding-top: 0;
-  padding-bottom: 4px;
+  padding-right: var(--feed-inline-safe-end);
+  padding-bottom: 12px;
+  padding-left: var(--feed-inline-safe-start);
   margin: 0;
 }
 
@@ -120,8 +131,8 @@
 
 .scopeTabs {
   display: flex;
-  gap: 6px;
-  padding: 10px 2px 6px;
+  gap: 10px;
+  padding: 10px var(--feed-content-inset) 8px;
 }
 
 .scopeTab {
@@ -132,7 +143,7 @@
   color: var(--muted);
   font-size: 14px;
   font-weight: 600;
-  padding: 10px 16px;
+  padding: 10px 18px;
   border-radius: 999px;
   cursor: pointer;
   transition: color 0.15s ease, background 0.15s ease;
@@ -160,11 +171,17 @@
   border-radius: 0 !important;
   background: transparent !important;
   box-shadow: none !important;
-  padding: 18px 0 !important;
+  padding: 18px var(--feed-card-inline-padding) !important;
   border-bottom: 1px solid rgba(255, 255, 255, 0.07) !important;
 }
 
 .flatCard::before,
 .flatCard::after {
   display: none !important;
+}
+
+@media (max-width: 640px) {
+  .scopeTab {
+    padding-inline: 17px;
+  }
 }

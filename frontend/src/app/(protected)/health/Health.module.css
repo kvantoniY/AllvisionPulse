@@ -3453,6 +3453,11 @@
   transform: translateY(-1px);
 }
 
+.diaryProgressStrip { display: grid; gap: 6px; }
+.diaryProgressMeta { display: flex; justify-content: space-between; color: rgba(255,255,255,0.45); font-size: 12px; font-weight: 600; }
+.diaryProgressTrack { height: 4px; border-radius: 999px; overflow: hidden; background: rgba(255,255,255,0.06); }
+.diaryProgressTrack span { display: block; height: 100%; border-radius: inherit; background: var(--dp-fill, linear-gradient(90deg, #ff9554, var(--accent))); transition: width 400ms ease; }
+
 .diarySectionStack {
   display: grid;
   gap: 28px;
@@ -3637,6 +3642,31 @@
 .diaryHabitStreakIcon {
   width: 13px;
   height: 13px;
+}
+
+.habitMiniCal {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+  margin-top: 6px;
+}
+
+.habitMiniCalDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.habitMiniCalDone {
+  background: linear-gradient(135deg, #ff7d1f, #ffb347);
+  border-color: rgba(255, 155, 27, 0.55);
+  box-shadow: 0 0 6px rgba(255, 155, 27, 0.45);
+}
+
+.habitMiniCalFuture {
+  opacity: 0.3;
 }
 
 .diaryHeroSection {
@@ -5733,6 +5763,92 @@
 
 .modalHeaderSvg { width: 18px; height: 18px; color: rgba(255,255,255,0.54); }
 .modalInlineIcon { width: 17px; height: 17px; color: rgba(255,255,255,0.54); }
+
+.modalHeaderBtn {
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--stroke);
+  background: var(--surface-0);
+  color: var(--muted);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+  list-style: none;
+}
+.modalHeaderBtn:hover { background: var(--surface-2); border-color: var(--stroke-strong); color: var(--text); }
+.modalHeaderBtn::-webkit-details-marker { display: none; }
+
+.modalHeaderOverflow { position: relative; }
+.modalHeaderOverflowMenu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 180px;
+  padding: 6px;
+  border-radius: 14px;
+  border: 1px solid var(--stroke);
+  background: var(--surface-1);
+  box-shadow: 0 12px 32px rgba(0,0,0,0.36);
+  z-index: 10;
+}
+.modalHeaderOverflowDanger {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: #ff7b7b;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 100ms ease;
+}
+.modalHeaderOverflowDanger:hover { background: rgba(255,123,123,0.08); }
+
+.taskDetailsMainAction { width: 100%; margin-top: 4px; }
+
+.fab {
+  position: fixed;
+  bottom: 80px;
+  right: 20px;
+  z-index: 50;
+  width: 56px;
+  height: 56px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 50%;
+  background: var(--accent, #ff7d1f);
+  color: #ffffff;
+  box-shadow: 0 8px 28px rgba(255, 125, 31, 0.4);
+  cursor: pointer;
+  transition: transform 140ms ease, box-shadow 140ms ease;
+}
+.fab:active { transform: scale(0.92); }
+
+.accordionToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color 120ms ease;
+}
+.accordionToggle:hover { color: var(--text-soft); }
+.accordionToggle svg { transition: transform 200ms ease; }
+.accordionToggleOpen svg { transform: rotate(180deg); }
 
 .modalSecondaryButton {
   display: inline-flex;

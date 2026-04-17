@@ -534,7 +534,14 @@ export function AppExperienceProvider({ children }: { children: React.ReactNode 
     if (typeof window === 'undefined') return;
 
     const handleBeforeInstallPrompt = (event: Event) => {
-      event.preventDefault();
+      const nextDeviceMeta = detectDeviceMeta();
+
+      // We defer the native prompt only on mobile/tablet where we render
+      // our own install UI. On desktop we keep the browser-native flow.
+      if (nextDeviceMeta.deviceKind !== 'desktop') {
+        event.preventDefault();
+      }
+
       setInstallPromptEvent(event as BeforeInstallPromptEvent);
     };
 

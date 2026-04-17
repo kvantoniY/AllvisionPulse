@@ -73,6 +73,7 @@ export function LightboxProvider({ children }: PropsWithChildren) {
                 alt=""
                 className={styles.img}
                 draggable={false}
+                ref={(node) => { if (node?.complete && node.naturalWidth > 0) setLbImgLoaded(true); }}
                 onLoad={() => setLbImgLoaded(true)}
                 onError={() => setLbImgLoaded(true)}
               />

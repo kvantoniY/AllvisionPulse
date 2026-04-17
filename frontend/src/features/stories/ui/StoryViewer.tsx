@@ -417,6 +417,7 @@ export function StoryViewer({
                   src={current.mediaUrl}
                   alt="Сторис"
                   style={getMediaStyle(current)}
+                  ref={(node) => { if (node?.complete && node.naturalWidth > 0) setMediaLoaded(true); }}
                   onLoad={() => setMediaLoaded(true)}
                   onError={() => setMediaLoaded(true)}
                 />
@@ -447,11 +448,6 @@ export function StoryViewer({
                 </Link>
                 <div className={styles.viewerTime}>{formatStoryTime(current.createdAt)}</div>
               </div>
-              {isOwn ? (
-                <button type="button" className={styles.viewerStatButton} onClick={() => setViewersOpen(true)} aria-label="Кто посмотрел сторис">
-                  {current.viewsCount}
-                </button>
-              ) : null}
               {isOwn ? (
                 <button type="button" className={styles.viewerDeleteButton} onClick={() => setHighlightSheetOpen(true)} aria-label="Добавить в актуальное">
                   <Icon name="plus" size={18} />
@@ -495,13 +491,19 @@ export function StoryViewer({
             />
           </div>
 
-          <div className={[styles.viewerFooter, uiHidden ? styles.viewerUiHidden : ''].filter(Boolean).join(' ')}>
-            {isOwn ? (
-              <div>
-                <div className={styles.viewerHint}>Удерживай, чтобы поставить сторис на паузу без оверлея.</div>
-                <div className={styles.viewerHint}>Просмотры и реакции доступны в списке зрителей.</div>
-              </div>
-            ) : (
+          {isOwn ? (
+            <button
+              type="button"
+              className={[styles.viewerStatButton, styles.viewerBottomStat, uiHidden ? styles.viewerUiHidden : ''].filter(Boolean).join(' ')}
+              onClick={() => setViewersOpen(true)}
+              aria-label="Кто посмотрел сторис"
+            >
+              {current.viewsCount}
+            </button>
+          ) : null}
+
+          {!isOwn ? (
+            <div className={[styles.viewerFooter, uiHidden ? styles.viewerUiHidden : ''].filter(Boolean).join(' ')}>
               <div className={styles.viewerReplyArea}>
                 <div className={styles.viewerReactionRow}>
                   {QUICK_REACTIONS.map((emoji) => (
@@ -529,8 +531,8 @@ export function StoryViewer({
                   </Button>
                 </div>
               </div>
-            )}
-          </div>
+            </div>
+          ) : null}
 
           {viewersOpen ? (
             <div className={styles.viewerSheet}>

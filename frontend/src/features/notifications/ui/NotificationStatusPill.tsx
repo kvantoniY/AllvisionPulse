@@ -82,7 +82,14 @@ export function NotificationStatusPill({ compact = false }: Props) {
   return (
     <div className={[styles.stack, compact ? styles.stackCompact : ''].filter(Boolean).join(' ')}>
       {indicators.map((indicator) => {
-        const className = [styles.pill, styles.clickable, indicator.toneClass, compact ? styles.compact : '']
+        const className = [
+          styles.pill,
+          styles.clickable,
+          indicator.toneClass,
+          compact ? styles.compact : '',
+          compact && indicator.label.length > 26 ? styles.compactWide : '',
+          compact && indicator.key !== 'notifications' ? styles.compactSecondary : '',
+        ]
           .filter(Boolean)
           .join(' ');
 

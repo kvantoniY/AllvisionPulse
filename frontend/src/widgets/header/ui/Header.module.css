@@ -148,7 +148,7 @@
   min-width: 0;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
 }
 
 .mobileAvatar {
@@ -172,8 +172,9 @@
 .mobileActions {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   margin-left: auto;
+  flex-shrink: 0;
 }
 
 .mobileSearchHeaderFull {
@@ -199,8 +200,8 @@
 }
 
 .mobileSearchBtn {
-  width: 40px;
-  height: 40px;
+  width: 42px;
+  height: 42px;
   border: 1px solid var(--stroke);
   border-radius: 999px;
   background: transparent;
@@ -209,6 +210,12 @@
   place-items: center;
   cursor: pointer;
   transition: background 130ms ease, border-color 130ms ease, color 130ms ease;
+}
+
+.mobileCircleBtn {
+  border-color: var(--stroke);
+  background: transparent;
+  color: var(--text-soft);
 }
 
 .mobileSearchBtn:hover {

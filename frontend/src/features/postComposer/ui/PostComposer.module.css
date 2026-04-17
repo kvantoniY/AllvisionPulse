@@ -11,7 +11,7 @@
 }
 
 .cardFlat {
-  padding: 6px 0 8px;
+  padding: 8px var(--feed-card-inline-padding, 0px) 10px;
   border: 0 !important;
   border-radius: 0 !important;
   background: transparent !important;

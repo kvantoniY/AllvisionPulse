@@ -663,27 +663,30 @@ function addMinutesToTime(value: string, minutesToAdd = 45) {
   return `${String(nextHours).padStart(2, '0')}:${String(nextMinutePart).padStart(2, '0')}`;
 }
 
+function inferTimeMode(draft: Pick<TaskDraft, 'time' | 'endTime' | 'hasEndTime'>): TaskDraft['timeMode'] {
+  if (!draft.time) return 'NONE';
+  if (draft.endTime || draft.hasEndTime) return 'RANGE';
+  return 'SINGLE';
+}
+
 function normalizeTaskDraft(draft: TaskDraft): TaskDraft {
-  if (draft.timeMode === 'NONE') {
-    return {
-      ...draft,
-      time: '',
-      endTime: '',
-      hasEndTime: false,
-    };
+  const timeMode = draft.timeMode === 'NONE' && !draft.time ? 'NONE'
+    : draft.timeMode === 'RANGE' || draft.hasEndTime ? 'RANGE'
+    : draft.time ? 'SINGLE'
+    : 'NONE';
+
+  if (timeMode === 'NONE') {
+    return { ...draft, timeMode, time: '', endTime: '', hasEndTime: false };
   }
 
-  if (draft.timeMode === 'SINGLE') {
-    return {
-      ...draft,
-      endTime: '',
-      hasEndTime: false,
-    };
+  if (timeMode === 'SINGLE') {
+    return { ...draft, timeMode, endTime: '', hasEndTime: false };
   }
 
   const resolvedTime = draft.time || '09:00';
   return {
     ...draft,
+    timeMode,
     time: resolvedTime,
     endTime: draft.endTime || addMinutesToTime(resolvedTime),
     hasEndTime: true,
@@ -1159,50 +1162,95 @@ function DiaryTimelineHero({
 function NutritionFigureIllustration() {
   return (
     <svg viewBox="0 0 160 260" className={styles.nutritionFigureSvg} aria-hidden="true">
-      <g>
-        {/* Neck */}
-        <path d="M72 80h16v14H72Z" fill="#f5cfa8" />
-        <path d="M72 90h16v4H72Z" fill="#e5b891" />
-        {/* Head — round face, warm skin tone */}
-        <circle cx="80" cy="58" r="22" fill="#f5cfa8" />
-        {/* Ears */}
-        <ellipse cx="58" cy="60" rx="3" ry="4.5" fill="#f5cfa8" />
-        <ellipse cx="102" cy="60" rx="3" ry="4.5" fill="#f5cfa8" />
-        {/* Hair back layer — full cap covering top and sides */}
-        <path d="M56 58C56 34 104 34 104 58C104 62 103 66 102 69C100 62 98 56 95 52C90 47 84 46 80 46C76 46 70 47 65 52C62 56 60 62 58 69C57 66 56 62 56 58Z" fill="#5b3a24" />
-        {/* Fringe — soft bangs covering forehead */}
-        <path d="M60 48C64 38 74 34 80 34C86 34 96 38 100 48C98 50 94 52 90 51C86 54 82 54 80 54C78 54 74 54 70 51C66 52 62 50 60 48Z" fill="#4a2e1c" />
-        {/* Hair highlight strands */}
-        <path d="M72 40C70 45 68 50 68 54" fill="none" stroke="#8b5a3c" strokeWidth="2" strokeLinecap="round" opacity="0.7" />
-        <path d="M88 40C90 45 92 50 92 54" fill="none" stroke="#8b5a3c" strokeWidth="2" strokeLinecap="round" opacity="0.7" />
-        {/* Eyebrows */}
-        <path d="M68 56h7" stroke="#3a2416" strokeWidth="2" strokeLinecap="round" />
-        <path d="M85 56h7" stroke="#3a2416" strokeWidth="2" strokeLinecap="round" />
-        {/* Eyes */}
-        <circle cx="72" cy="62" r="2.2" fill="#201f24" />
-        <circle cx="88" cy="62" r="2.2" fill="#201f24" />
-        {/* Cheeks */}
-        <circle cx="67" cy="69" r="2.5" fill="#f0a88a" opacity="0.55" />
-        <circle cx="93" cy="69" r="2.5" fill="#f0a88a" opacity="0.55" />
-        {/* Smile */}
-        <path d="M74 72c3 4 9 4 12 0" fill="none" stroke="#201f24" strokeWidth="2.2" strokeLinecap="round" />
-      </g>
-      <g>
-        <rect x="58" y="96" width="44" height="78" rx="14" fill="#4a84f4" />
-        <path d="M58 134h44v40H58Z" fill="#3d73db" />
-        <path d="M62 105c-9 18-15 34-19 49" fill="none" stroke="#efc3a0" strokeWidth="9" strokeLinecap="round" />
-        <path d="M98 105c9 18 15 34 19 49" fill="none" stroke="#efc3a0" strokeWidth="9" strokeLinecap="round" />
-        <path d="M46 146l-7 15" fill="none" stroke="#4a84f4" strokeWidth="9" strokeLinecap="round" />
-        <path d="M114 146l7 15" fill="none" stroke="#4a84f4" strokeWidth="9" strokeLinecap="round" />
-        <path d="M33 160c-3 2-4 6-2 9c2 4 8 5 11 2c3-3 2-8-2-10c-3-2-5-2-7-1Z" fill="#efc3a0" />
-        <path d="M127 160c3 2 4 6 2 9c-2 4-8 5-11 2c-3-3-2-8 2-10c3-2 5-2 7-1Z" fill="#efc3a0" />
-      </g>
-      <g>
-        <path d="M69 174v46" fill="none" stroke="#24314a" strokeWidth="12" strokeLinecap="round" />
-        <path d="M91 174v46" fill="none" stroke="#24314a" strokeWidth="12" strokeLinecap="round" />
-        <path d="M68 220h-12" fill="none" stroke="#ff7a18" strokeWidth="10" strokeLinecap="round" />
-        <path d="M92 220h12" fill="none" stroke="#ff7a18" strokeWidth="10" strokeLinecap="round" />
-      </g>
+      <defs>
+        <linearGradient id="nfSkin" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#fbdcbd" />
+          <stop offset="100%" stopColor="#e2b690" />
+        </linearGradient>
+        <linearGradient id="nfShirt" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#56b6ff" />
+          <stop offset="60%" stopColor="#2c8ee0" />
+          <stop offset="100%" stopColor="#1d6ab3" />
+        </linearGradient>
+        <linearGradient id="nfPants" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#3a4658" />
+          <stop offset="100%" stopColor="#1b2433" />
+        </linearGradient>
+        <linearGradient id="nfShoe" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#ff9a3c" />
+          <stop offset="100%" stopColor="#d85a0c" />
+        </linearGradient>
+        <linearGradient id="nfHair" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#4d2e1a" />
+          <stop offset="100%" stopColor="#271709" />
+        </linearGradient>
+        <radialGradient id="nfShadow" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stopColor="#000000" stopOpacity="0.42" />
+          <stop offset="100%" stopColor="#000000" stopOpacity="0" />
+        </radialGradient>
+      </defs>
+
+      <ellipse cx="80" cy="252" rx="44" ry="4.5" fill="url(#nfShadow)" />
+
+      <path d="M56 238 Q52 242 54 247 Q56 250 62 250 L78 250 Q80 249 80 246 L80 236 Z" fill="url(#nfShoe)" />
+      <path d="M80 236 L80 246 Q80 249 82 250 L98 250 Q104 250 106 247 Q108 242 104 238 Z" fill="url(#nfShoe)" />
+      <path d="M54 248 L106 248 L106 250 L54 250 Z" fill="#000000" opacity="0.22" />
+
+      <path d="M66 170 Q64 172 64 176 L60 238 Q60 240 62 240 L78 240 Q80 240 80 238 L80 170 Z" fill="url(#nfPants)" />
+      <path d="M80 170 L80 238 Q80 240 82 240 L98 240 Q100 240 100 238 L96 176 Q96 172 94 170 Z" fill="url(#nfPants)" />
+      <rect x="79" y="172" width="2" height="66" fill="#121827" opacity="0.7" />
+      <path d="M62 230 Q80 236 98 230 L100 238 Q80 244 60 238 Z" fill="#0f1724" opacity="0.35" />
+
+      <path d="M52 98 Q54 86 68 82 Q74 80 80 80 Q86 80 92 82 Q106 86 108 98 L110 140 Q110 160 106 172 Q90 178 80 178 Q70 178 54 172 Q50 160 50 140 Z" fill="url(#nfShirt)" />
+      <path d="M52 152 Q80 164 108 152 L110 170 Q80 180 50 170 Z" fill="#0f4a85" opacity="0.28" />
+      <path d="M70 82 Q80 88 90 82 L88 90 Q80 94 72 90 Z" fill="url(#nfSkin)" />
+      <path d="M70 82 Q80 88 90 82" fill="none" stroke="#0f4a85" strokeWidth="1.2" opacity="0.6" />
+
+      <path d="M50 98 Q44 108 44 120 L44 158 Q44 166 52 166 Q60 166 60 158 L60 120 Q60 110 56 102 Z" fill="url(#nfShirt)" />
+      <path d="M110 98 Q116 108 116 120 L116 158 Q116 166 108 166 Q100 166 100 158 L100 120 Q100 110 104 102 Z" fill="url(#nfShirt)" />
+      <path d="M44 148 Q52 152 60 148 L60 160 Q52 162 44 160 Z" fill="#0f4a85" opacity="0.25" />
+      <path d="M100 148 Q108 152 116 148 L116 160 Q108 162 100 160 Z" fill="#0f4a85" opacity="0.25" />
+
+      <circle cx="52" cy="170" r="7.5" fill="url(#nfSkin)" />
+      <circle cx="108" cy="170" r="7.5" fill="url(#nfSkin)" />
+      <path d="M46 172 Q52 176 58 172" fill="none" stroke="#c79470" strokeWidth="1" opacity="0.55" />
+      <path d="M102 172 Q108 176 114 172" fill="none" stroke="#c79470" strokeWidth="1" opacity="0.55" />
+
+      <path d="M72 76 L72 88 Q72 92 78 92 L82 92 Q88 92 88 88 L88 76 Z" fill="url(#nfSkin)" />
+      <path d="M72 86 Q80 90 88 86 L88 92 Q80 94 72 92 Z" fill="#b98a6d" opacity="0.55" />
+
+      <circle cx="80" cy="54" r="24" fill="url(#nfSkin)" />
+      <ellipse cx="57" cy="56" rx="3" ry="5" fill="url(#nfSkin)" />
+      <ellipse cx="103" cy="56" rx="3" ry="5" fill="url(#nfSkin)" />
+      <circle cx="58" cy="56" r="1.4" fill="#c68a67" opacity="0.5" />
+      <circle cx="102" cy="56" r="1.4" fill="#c68a67" opacity="0.5" />
+
+      <path d="M56 48 Q54 32 66 26 Q72 22 80 22 Q88 22 94 26 Q106 32 104 48 Q80 52 56 48 Z" fill="url(#nfShoe)" />
+      <path d="M62 30 Q70 25 80 25" fill="none" stroke="#ffc288" strokeWidth="2.4" strokeLinecap="round" opacity="0.55" />
+      <path d="M66 40 Q72 37 78 36" fill="none" stroke="#ffc288" strokeWidth="1.6" strokeLinecap="round" opacity="0.45" />
+      <path d="M52 44 L108 44 Q112 48 110 52 L106 54 L54 54 Q48 52 50 46 Z" fill="#a83d06" />
+      <path d="M54 48 Q80 52 106 48" fill="none" stroke="#ffb066" strokeWidth="0.9" opacity="0.65" />
+      <path d="M54 50 L106 50" fill="none" stroke="#6d2704" strokeWidth="0.6" opacity="0.6" />
+      <circle cx="80" cy="20" r="5" fill="#ffc99a" />
+      <circle cx="81.5" cy="18.4" r="1.5" fill="#ffedd4" opacity="0.9" />
+      <path d="M77 20 Q80 23 83 20" fill="none" stroke="#cf7a3c" strokeWidth="0.8" opacity="0.7" strokeLinecap="round" />
+      <path d="M80 16 L80 12" fill="none" stroke="#c96b2a" strokeWidth="1.4" strokeLinecap="round" opacity="0.7" />
+
+      <path d="M66 54 Q71 51 76 54" fill="none" stroke="#241208" strokeWidth="2.4" strokeLinecap="round" />
+      <path d="M84 54 Q89 51 94 54" fill="none" stroke="#241208" strokeWidth="2.4" strokeLinecap="round" />
+
+      <ellipse cx="71" cy="61" rx="2.3" ry="2.7" fill="#1d120a" />
+      <ellipse cx="89" cy="61" rx="2.3" ry="2.7" fill="#1d120a" />
+      <circle cx="71.8" cy="60.2" r="0.8" fill="#ffffff" />
+      <circle cx="89.8" cy="60.2" r="0.8" fill="#ffffff" />
+
+      <ellipse cx="64" cy="68" rx="3" ry="1.8" fill="#f29478" opacity="0.55" />
+      <ellipse cx="96" cy="68" rx="3" ry="1.8" fill="#f29478" opacity="0.55" />
+
+      <path d="M79 64 Q82 68 80 71 Q78 70 79 64" fill="#cc9675" opacity="0.6" />
+
+      <path d="M74 73 Q80 77 86 73" fill="none" stroke="#2a1a10" strokeWidth="2.2" strokeLinecap="round" />
+      <path d="M76 74 Q80 76 84 74" fill="#d47a68" opacity="0.6" />
     </svg>
   );
 }
@@ -1400,12 +1448,13 @@ export default function HealthPage() {
   const [taskDetailsItem, setTaskDetailsItem] = useState<PulseTaskItem | null>(null);
   const [goalModalOpen, setGoalModalOpen] = useState(false);
   const [taskFilter, setTaskFilter] = useState<'ALL' | 'TASKS' | 'HABITS'>('ALL');
-  const [showScheduledTasksInList, setShowScheduledTasksInList] = useState(false);
+  const [showScheduledTasksInList, setShowScheduledTasksInList] = useState(true);
   const [showCompletedTasks, setShowCompletedTasks] = useState(false);
   const [showPulseCompletedTasks, setShowPulseCompletedTasks] = useState(false);
   const [expandedMealId, setExpandedMealId] = useState<string | null | undefined>(undefined);
   const [expandedGoalIds, setExpandedGoalIds] = useState<string[]>([]);
   const [quickTaskExpanded, setQuickTaskExpanded] = useState(false);
+  const [taskAdvancedOpen, setTaskAdvancedOpen] = useState(false);
   const [financeModalOpen, setFinanceModalOpen] = useState(false);
   const [categoryModalOpen, setCategoryModalOpen] = useState(false);
   const [activeFinanceCategoryId, setActiveFinanceCategoryId] = useState<string | null>(null);
@@ -2157,6 +2206,18 @@ export default function HealthPage() {
 
   const renderDiaryHabitRow = (task: PulseTaskItem) => {
     const streak = habitStreakMap.get(task.id) ?? 0;
+    const baseDate = parseDate(selectedDate) ?? new Date();
+    const todayNoon = new Date();
+    todayNoon.setHours(0, 0, 0, 0);
+    const miniCalendar = Array.from({ length: 7 }, (_, i) => {
+      const day = new Date(baseDate);
+      day.setHours(0, 0, 0, 0);
+      day.setDate(day.getDate() - 6 + i);
+      const daysUntilBase = Math.floor((baseDate.getTime() - day.getTime()) / 86400000);
+      const isFuture = day.getTime() > todayNoon.getTime();
+      const isDone = !isFuture && daysUntilBase >= 0 && daysUntilBase < streak;
+      return { key: fmtDate(day), isFuture, isDone };
+    });
 
     return (
       <article
@@ -2187,6 +2248,18 @@ export default function HealthPage() {
         >
           <div className={styles.diaryListContent}>
             <strong className={styles.diaryListTitle}>{task.title}</strong>
+            <div className={styles.habitMiniCal} aria-hidden="true">
+              {miniCalendar.map((day) => (
+                <span
+                  key={day.key}
+                  className={[
+                    styles.habitMiniCalDot,
+                    day.isDone ? styles.habitMiniCalDone : '',
+                    day.isFuture ? styles.habitMiniCalFuture : '',
+                  ].filter(Boolean).join(' ')}
+                />
+              ))}
+            </div>
           </div>
         </button>
 
@@ -4037,6 +4110,18 @@ export default function HealthPage() {
               </button>
             </div>
 
+            {filteredTasks.length > 0 ? (
+              <div className={styles.diaryProgressStrip}>
+                <div className={styles.diaryProgressMeta}>
+                  <span>{completedTasks.length} / {filteredTasks.length} выполнено</span>
+                  <span>{filteredCompletionPercent}%</span>
+                </div>
+                <div className={styles.diaryProgressTrack} style={{ ['--dp-fill' as string]: getTaskProgressGradient(filteredCompletionPercent) }}>
+                  <span style={{ width: `${filteredCompletionPercent}%` }} />
+                </div>
+              </div>
+            ) : null}
+
             <DiaryTimelineBoard
               date={selectedDate}
               tasks={scheduledDiaryItems}
@@ -5246,6 +5331,41 @@ export default function HealthPage() {
         title={taskDetailsItem?.title ?? 'Задача'}
         subtitle={taskDetailsItem?.dueDate ? formatLongDate(taskDetailsItem.dueDate) : formatLongDate(selectedDate)}
         icon={<PulseIcon name="check" className={styles.modalHeaderSvg} />}
+        headerActions={taskDetailsItem ? (
+          <>
+            <button
+              type="button"
+              className={styles.modalHeaderBtn}
+              onClick={() => {
+                const taskToEdit = taskDetailsItem;
+                setTaskDetailsItem(null);
+                if (taskToEdit) openTaskEditModal(taskToEdit);
+              }}
+              aria-label="Редактировать"
+            >
+              <Pencil size={16} strokeWidth={1.8} />
+            </button>
+            <details className={styles.modalHeaderOverflow}>
+              <summary className={styles.modalHeaderBtn} aria-label="Ещё">
+                <Ellipsis size={16} strokeWidth={1.9} />
+              </summary>
+              <div className={styles.modalHeaderOverflowMenu}>
+                <button
+                  type="button"
+                  className={styles.modalHeaderOverflowDanger}
+                  onClick={() => {
+                    const taskToDelete = taskDetailsItem;
+                    setTaskDetailsItem(null);
+                    if (taskToDelete) void deletePulseTask(taskToDelete.id);
+                  }}
+                >
+                  <Trash2 size={14} strokeWidth={1.8} />
+                  Удалить задачу
+                </button>
+              </div>
+            </details>
+          </>
+        ) : undefined}
       >
         {taskDetailsItem ? (
           <div className={styles.modalStack}>
@@ -5289,41 +5409,16 @@ export default function HealthPage() {
               ) : null}
             </div>
 
-            <div className={styles.modalActions}>
-              <Button onClick={() => setTaskDetailsItem(null)}>Закрыть</Button>
-              <Button
-                onClick={() => {
-                  const taskToEdit = taskDetailsItem;
-                  setTaskDetailsItem(null);
-                  if (taskToEdit) {
-                    openTaskEditModal(taskToEdit);
-                  }
-                }}
-              >
-                <Pencil size={16} aria-hidden="true" />
-                Редактировать
-              </Button>
-              <Button
-                onClick={() => {
-                  const taskToDelete = taskDetailsItem;
-                  setTaskDetailsItem(null);
-                  if (taskToDelete) {
-                    void deletePulseTask(taskToDelete.id);
-                  }
-                }}
-              >
-                Удалить
-              </Button>
-              <Button
-                variant="primary"
-                onClick={() => {
-                  void togglePulseTaskDate({ taskId: taskDetailsItem.id, date: selectedDate });
-                  setTaskDetailsItem(null);
-                }}
-              >
-                {taskDetailsItem.completedForDate ? 'Снять выполнение' : 'Отметить выполненной'}
-              </Button>
-            </div>
+            <Button
+              variant="primary"
+              className={styles.taskDetailsMainAction}
+              onClick={() => {
+                void togglePulseTaskDate({ taskId: taskDetailsItem.id, date: selectedDate });
+                setTaskDetailsItem(null);
+              }}
+            >
+              {taskDetailsItem.completedForDate ? 'Снять выполнение' : 'Отметить выполненной'}
+            </Button>
           </div>
         ) : null}
       </Modal>
@@ -5338,85 +5433,32 @@ export default function HealthPage() {
         <div className={styles.modalStack}>
           <Field label="Название задачи"><input placeholder="Что нужно сделать?" value={taskForm.title} onChange={(e) => setTaskForm((prev) => ({ ...prev, title: e.target.value }))} /></Field>
 
-          <div className={styles.taskQuickAddBlock}>
-            <div className={styles.taskQuickAddBlockTitle}>Когда</div>
-            <div className={styles.taskTimeModeRow}>
-              <Segmented
-                value={taskForm.timeMode}
-                onChange={(value) =>
-                  setTaskForm((prev) =>
-                    normalizeTaskDraft({
-                      ...prev,
-                      timeMode: value as TaskDraft['timeMode'],
-                    }))}
-                options={[
-                  { value: 'NONE', label: 'Без времени' },
-                  { value: 'SINGLE', label: 'Одно время' },
-                  { value: 'RANGE', label: 'Интервал' },
-                ]}
-              />
-            </div>
-            <div className={styles.inlineFields}>
-              <Field label="Дата"><input type="date" value={taskForm.date} onChange={(e) => setTaskForm((prev) => ({ ...prev, date: e.target.value }))} /></Field>
-              {taskForm.timeMode !== 'NONE' ? (
-                <Field label={taskForm.timeMode === 'RANGE' ? 'Начало' : 'Время'}>
-                  <input
-                    type="time"
-                    value={taskForm.time}
-                    onChange={(e) =>
-                      setTaskForm((prev) =>
-                        normalizeTaskDraft({
-                          ...prev,
-                          time: e.target.value,
-                          endTime:
-                            e.target.value && prev.timeMode === 'RANGE'
-                              ? (prev.endTime || addMinutesToTime(e.target.value))
-                              : prev.endTime,
-                        }))}
-                  />
-                </Field>
-              ) : (
-                <div className={styles.taskTimeHint}>Задача появится в блоке без времени.</div>
-              )}
-              {taskForm.timeMode === 'RANGE' ? (
-                <Field label="Окончание">
-                  <input
-                    type="time"
-                    value={taskForm.endTime}
-                    min={taskForm.time || undefined}
-                    disabled={!taskForm.time}
-                    onChange={(e) => setTaskForm((prev) => ({ ...prev, endTime: e.target.value }))}
-                  />
-                </Field>
-              ) : null}
-            </div>
-          </div>
-
-          <div className={styles.modalBlock}>
-            <div className={styles.modalBlockTitle}>Тип задачи</div>
-            <div className={styles.modalOptionGridWide}>
-              {[
-                { value: 'ONE_TIME', label: 'Один раз', note: 'На выбранную дату', icon: 'calendar' as const },
-                { value: 'REGULAR', label: 'Повтор', note: 'Повторяется по расписанию', icon: 'trend' as const },
-                { value: 'HABIT', label: 'Привычка', note: 'Для ежедневного ритма', icon: 'flame' as const },
-              ].map((option) => (
-                <button
-                  key={option.value}
-                  type="button"
-                  className={[styles.modalOptionCard, taskForm.taskType === option.value ? styles.modalOptionCardActive : ''].filter(Boolean).join(' ')}
-                  onClick={() =>
-                    setTaskForm((prev) => ({
-                      ...prev,
-                      taskType: option.value as typeof prev.taskType,
-                      scheduleType: option.value === 'REGULAR' ? (prev.scheduleType === 'NONE' ? 'WEEKLY' : prev.scheduleType) : 'NONE',
-                    }))}
-                >
-                  <PulseIcon name={option.icon} className={styles.modalOptionIcon} />
-                  <strong>{option.label}</strong>
-                  <span>{option.note}</span>
+          {!taskEditingId ? (
+            <div className={styles.modalChipRow}>
+              {['Утренняя зарядка', 'Выпить воды', 'Прогулка', 'Медитация', 'Чтение'].map((template) => (
+                <button key={template} type="button" className={styles.modalChip} onClick={() => setTaskForm((prev) => ({ ...prev, title: template }))}>
+                  {template}
                 </button>
               ))}
             </div>
+          ) : null}
+
+          <div className={styles.modalBlock}>
+            <div className={styles.modalBlockTitle}>Тип задачи</div>
+            <Segmented
+              value={taskForm.taskType}
+              onChange={(value) =>
+                setTaskForm((prev) => ({
+                  ...prev,
+                  taskType: value as typeof prev.taskType,
+                  scheduleType: value === 'REGULAR' ? (prev.scheduleType === 'NONE' ? 'WEEKLY' : prev.scheduleType) : 'NONE',
+                }))}
+              options={[
+                { value: 'ONE_TIME', label: 'Один раз' },
+                { value: 'REGULAR', label: 'Повтор' },
+                { value: 'HABIT', label: 'Привычка' },
+              ]}
+            />
           </div>
 
           {taskForm.taskType === 'REGULAR' ? (
@@ -5428,18 +5470,51 @@ export default function HealthPage() {
             </div>
           ) : null}
 
-          <Field label="Описание (опционально)"><textarea rows={4} placeholder="Добавьте детали, чтобы задача была понятнее" value={taskForm.notes} onChange={(e) => setTaskForm((prev) => ({ ...prev, notes: e.target.value }))} /></Field>
-
-          <div className={styles.modalBlock}>
-            <div className={styles.modalBlockTitle}>Быстрые шаблоны</div>
-            <div className={styles.modalChipRow}>
-              {['Утренняя зарядка', 'Выпить воды', 'Прогулка', 'Медитация', 'Чтение'].map((template) => (
-                <button key={template} type="button" className={styles.modalChip} onClick={() => setTaskForm((prev) => ({ ...prev, title: template }))}>
-                  {template}
-                </button>
-              ))}
+          <div className={styles.taskQuickAddBlock}>
+            <div className={styles.taskQuickAddBlockTitle}>Когда</div>
+            <div className={styles.inlineFields}>
+              <Field label="Дата"><input type="date" value={taskForm.date} onChange={(e) => setTaskForm((prev) => ({ ...prev, date: e.target.value }))} /></Field>
+              <Field label="Время">
+                <input
+                  type="time"
+                  value={taskForm.time}
+                  placeholder="Без времени"
+                  onChange={(e) =>
+                    setTaskForm((prev) =>
+                      normalizeTaskDraft({
+                        ...prev,
+                        time: e.target.value,
+                        endTime: e.target.value && prev.hasEndTime
+                          ? (prev.endTime || addMinutesToTime(e.target.value))
+                          : prev.endTime,
+                      }))}
+                />
+              </Field>
+              {taskForm.time ? (
+                <Field label="Окончание">
+                  <input
+                    type="time"
+                    value={taskForm.endTime}
+                    min={taskForm.time || undefined}
+                    placeholder="Необязательно"
+                    onChange={(e) => setTaskForm((prev) => normalizeTaskDraft({ ...prev, endTime: e.target.value, hasEndTime: Boolean(e.target.value) }))}
+                  />
+                </Field>
+              ) : null}
             </div>
           </div>
+
+          <button
+            type="button"
+            className={[styles.accordionToggle, taskAdvancedOpen ? styles.accordionToggleOpen : ''].filter(Boolean).join(' ')}
+            onClick={() => setTaskAdvancedOpen((prev) => !prev)}
+          >
+            <ChevronDown size={14} />
+            Дополнительно
+          </button>
+          {taskAdvancedOpen ? (
+            <Field label="Описание"><textarea rows={3} placeholder="Добавьте детали, чтобы задача была понятнее" value={taskForm.notes} onChange={(e) => setTaskForm((prev) => ({ ...prev, notes: e.target.value }))} /></Field>
+          ) : null}
 
           <div className={styles.modalActions}>
             <Button onClick={closeTaskModal}>Отмена</Button>

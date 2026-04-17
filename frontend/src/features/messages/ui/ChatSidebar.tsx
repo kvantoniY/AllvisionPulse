@@ -114,7 +114,7 @@ export function ChatSidebar({ activeChatId }: { activeChatId?: string | null }) 
         <div>
           <div className={styles.eyebrow}>Сообщения</div>
           <div className={styles.title}>Ваши чаты</div>
-          <div style={{ marginTop: 8 }}>
+          <div className={styles.statusPillWrap}>
             <NotificationStatusPill compact />
           </div>
         </div>

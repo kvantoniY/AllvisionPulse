@@ -23,7 +23,7 @@
 }
 
 .cardFlat {
-  padding: 18px 0 22px;
+  padding: 18px var(--feed-card-inline-padding, 0px) 22px;
   border: 0 !important;
   border-radius: 0 !important;
   background: transparent !important;
@@ -440,9 +440,9 @@
 
 .cardMobile {
   width: 100%;
-  padding: 0 16px 18px;
+  padding: 0 var(--feed-card-inline-padding, 16px) 18px;
   contain-intrinsic-size: 520px auto;
-  margin: 0 0 18px;
+  margin: 0 0 16px;
   border: 0 !important;
   border-radius: 0 !important;
   background: transparent !important;
@@ -522,7 +522,7 @@
 }
 
 .cardMobile .header {
-  padding-top: 2px;
+  padding-top: 4px;
 }
 
 .cardMobile .footer {
