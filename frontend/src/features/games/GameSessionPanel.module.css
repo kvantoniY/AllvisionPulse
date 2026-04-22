@@ -32,8 +32,8 @@
   gap: 8px;
   padding: 10px 16px;
   border-radius: 18px;
-  border: 1px solid rgba(255,255,255,0.08);
-  background: rgba(255,255,255,0.06);
+  border: 1px solid var(--stroke);
+  background: var(--surface-2);
   color: #fff;
   cursor: pointer;
 }
@@ -49,8 +49,8 @@
 .catalogTabs {
   padding: 4px;
   border-radius: 18px;
-  border: 1px solid rgba(255,255,255,0.08);
-  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--stroke);
+  background: var(--surface-1);
 }
 
 .catalogTab {
@@ -99,7 +99,7 @@
 }
 
 .leftPanel {
-  border-right: 1px solid rgba(255,255,255,0.08);
+  border-right: 1px solid var(--stroke);
   display: flex;
   flex-direction: column;
   gap: 14px;
@@ -141,11 +141,11 @@
   font-size: 13px;
   text-transform: uppercase;
   letter-spacing: .04em;
-  color: rgba(255,255,255,0.78);
+  color: var(--text-soft);
 }
 
 .metaMuted {
-  color: rgba(255,255,255,0.72);
+  color: var(--text-soft);
   font-size: 14px;
   line-height: 1.45;
 }
@@ -155,16 +155,16 @@
   min-width: 0;
   padding: 14px 16px;
   border-radius: 16px;
-  border: 1px solid rgba(255,255,255,0.1);
-  background: rgba(255,255,255,0.08);
+  border: 1px solid var(--stroke);
+  background: var(--stroke);
   color: #fff;
 }
 
 .rulesCard {
   padding: 14px 16px;
   border-radius: 18px;
-  background: rgba(255,255,255,0.05);
-  border: 1px solid rgba(255,255,255,0.08);
+  background: var(--surface-2);
+  border: 1px solid var(--stroke);
 }
 
 .lobbyActions,
@@ -227,7 +227,7 @@
 }
 
 .headerUtilityActionSecondary {
-  color: rgba(255,255,255,0.86);
+  color: var(--text);
 }
 
 .headerUtilityActionPrimary {
@@ -235,7 +235,7 @@
 }
 
 .primaryBtn { background: #e0b12d; color: #111; }
-.ghostBtn { background: rgba(255,255,255,0.08); color: #fff; border: 1px solid rgba(255,255,255,0.08); }
+.ghostBtn { background: var(--stroke); color: #fff; border: 1px solid var(--stroke); }
 .successBtn { background: #26b36b; color: #fff; }
 .dangerBtn { background: #922b2b; color: #fff; }
 .primaryBtn:disabled,.ghostBtn:disabled,.successBtn:disabled,.dangerBtn:disabled { opacity: .55; cursor: default; }
@@ -251,7 +251,7 @@
 .heroSeat {
   border-radius: 22px;
   border: 1px solid rgba(220, 181, 51, 0.45);
-  background: rgba(255,255,255,0.06);
+  background: var(--surface-2);
 }
 
 .playerRow {
@@ -268,7 +268,7 @@
 .playerRowActive { box-shadow: inset 0 0 0 1px #e0b12d; }
 .playerMeta { display: grid; gap: 4px; min-width: 0; flex: 1; }
 .playerMeta strong { font-size: 18px; }
-.playerMeta span { color: rgba(255,255,255,0.74); }
+.playerMeta span { color: var(--text-soft); }
 
 .tag,
 .tagReady,
@@ -283,9 +283,9 @@
   font-weight: 700;
 }
 
-.tag { background: rgba(255,255,255,0.08); }
+.tag { background: var(--stroke); }
 .tagReady { background: rgba(38, 179, 107, 0.26); color: #bdf6d6; }
-.tagMuted { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.7); }
+.tagMuted { background: var(--surface-2); color: var(--text-soft); }
 .tagWarn { background: rgba(224, 177, 45, 0.24); color: #fbe9a0; }
 
 .gameLayout {
@@ -319,12 +319,12 @@
 .stagePill {
   padding: 8px 12px;
   border-radius: 999px;
-  background: rgba(255,255,255,0.08);
-  color: rgba(255,255,255,0.7);
+  background: var(--stroke);
+  color: var(--text-soft);
   font-size: 13px;
 }
 
-.stagePillDone { background: rgba(255,255,255,0.14); color: #fff; }
+.stagePillDone { background: var(--stroke-strong); color: #fff; }
 .stagePillCurrent { background: #e0b12d; color: #111; font-weight: 800; }
 
 .timerWrap {
@@ -340,7 +340,7 @@
   border-radius: 50%;
   display: grid;
   place-items: center;
-  background: conic-gradient(#e0b12d var(--pct), rgba(255,255,255,0.14) 0);
+  background: conic-gradient(#e0b12d var(--pct), var(--stroke-strong) 0);
 }
 .timerRing span {
   display: grid;
@@ -348,7 +348,7 @@
   width: 48px;
   height: 48px;
   border-radius: 50%;
-  background: #07150d;
+  background: var(--bg);
   font-weight: 800;
 }
 
@@ -408,7 +408,7 @@
   min-height: 0;
   border-radius: 28px;
   padding: 18px;
-  border: 1px solid rgba(255,255,255,0.08);
+  border: 1px solid var(--stroke);
   background: radial-gradient(circle at center, rgba(20, 108, 49, 0.46), rgba(2, 40, 18, 0.95));
   display: grid;
   align-content: center;
@@ -420,7 +420,7 @@
   padding: 10px 14px;
   border-radius: 999px;
   background: rgba(0,0,0,0.28);
-  border: 1px solid rgba(255,255,255,0.08);
+  border: 1px solid var(--stroke);
   font-weight: 700;
 }
 
@@ -442,7 +442,7 @@
   padding: 14px;
   border-radius: 22px;
   background: rgba(0,0,0,0.24);
-  border: 1px solid rgba(255,255,255,0.08);
+  border: 1px solid var(--stroke);
   display: grid;
   gap: 12px;
   align-content: center;
@@ -462,7 +462,7 @@
   gap: 12px;
   padding: 10px 12px;
   border-radius: 14px;
-  background: rgba(255,255,255,0.06);
+  background: var(--surface-2);
 }
 
 .card {
@@ -474,7 +474,7 @@
   padding: 10px;
   display: grid;
   align-content: space-between;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.22);
+  box-shadow: 0 8px 24px  rgba(92, 54, 18, 0.22);
 }
 .cardSm { width: 56px; height: 78px; border-radius: 14px; padding: 8px; }
 .cardBack { background: linear-gradient(135deg, #0d75ee, #1f4fc0); }
@@ -529,8 +529,8 @@
 .sessionMain {
   min-width: 0;
   border-radius: 24px;
-  border: 1px solid rgba(255,255,255,0.08);
-  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--stroke);
+  background: var(--surface-1);
   padding: 16px;
 }
 
@@ -550,7 +550,7 @@
   text-align: left;
   padding: 14px 16px;
   border-radius: 18px;
-  border: 1px solid rgba(255,255,255,0.08);
+  border: 1px solid var(--stroke);
   background: rgba(8, 18, 18, 0.56);
   color: #fff;
   cursor: pointer;
@@ -583,7 +583,7 @@
   margin: 12px 0 8px;
   font-size: 13px;
   text-transform: uppercase;
-  color: rgba(255,255,255,0.72);
+  color: var(--text-soft);
 }
 
 .overviewGrid {
@@ -622,7 +622,7 @@
   text-align: left;
   padding: 18px;
   border-radius: 24px;
-  border: 1px solid rgba(255,255,255,0.08);
+  border: 1px solid var(--stroke);
   background: rgba(7, 18, 14, 0.72);
   color: #fff;
   cursor: pointer;
@@ -719,7 +719,7 @@
   gap: 10px;
   padding: 12px;
   border-radius: 24px;
-  border: 1px solid rgba(255,255,255,0.09);
+  border: 1px solid var(--stroke);
   background: linear-gradient(180deg, rgba(6,12,18,.96), rgba(4,9,14,.98));
   box-shadow: inset 0 0 0 1px rgba(255,255,255,.03), 0 18px 40px rgba(0,0,0,.22);
   overflow: hidden;
@@ -849,7 +849,7 @@
   border-radius: 18px;
   background: linear-gradient(180deg, rgba(10,14,19,.96), rgba(5,9,13,.98));
   border: 1px solid rgba(255,255,255,.08);
-  box-shadow: 0 10px 22px rgba(0,0,0,.22);
+  box-shadow: 0 10px 22px  rgba(92, 54, 18, .22);
 }
 
 .tableSeatHeader {
@@ -1079,7 +1079,7 @@
   border-radius: 24px;
   background: linear-gradient(180deg, rgba(23,18,9,.96), rgba(9,10,13,.97));
   border: 1px solid rgba(224,177,45,.34);
-  box-shadow: 0 14px 36px rgba(0,0,0,.35);
+  box-shadow: 0 14px 36px  rgba(92, 54, 18, .35);
   text-align: center;
 }
 
@@ -1280,7 +1280,7 @@
   border-radius: 16px;
   background: linear-gradient(180deg, rgba(11,14,18,.96), rgba(5,8,12,.98));
   border: 1px solid rgba(255,255,255,.08);
-  box-shadow: 0 8px 20px rgba(0,0,0,.24);
+  box-shadow: 0 8px 20px  rgba(92, 54, 18, .24);
   z-index: 2;
 }
 
@@ -1636,7 +1636,7 @@
   border-radius: 24px;
   border: 1px solid rgba(222, 182, 79, 0.18);
   background: linear-gradient(180deg, rgba(6, 21, 15, 0.98), rgba(4, 15, 11, 0.98));
-  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.26);
+  box-shadow: 0 12px 36px  rgba(92, 54, 18, 0.26);
   gap: 8px;
 }
 
@@ -1655,7 +1655,7 @@
 
 .pokerStatusMeta {
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.72);
+  color: var(--text-soft);
 }
 
 .pokerStatusAside {
@@ -1695,7 +1695,7 @@
   border-radius: 240px;
   background:
     radial-gradient(circle at 50% 42%, rgba(24, 124, 62, 0.98) 0%, rgba(8, 61, 30, 0.98) 58%, rgba(4, 25, 14, 1) 100%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(0, 0, 0, 0.18));
+    linear-gradient(180deg, var(--surface-1), rgba(0, 0, 0, 0.18));
   box-shadow:
     inset 0 0 0 2px rgba(227, 186, 89, 0.28),
     inset 0 16px 40px rgba(0, 0, 0, 0.18),
@@ -1722,9 +1722,9 @@
   height: 100%;
   padding: 12px 14px 14px;
   border-radius: 180px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--stroke);
   background: radial-gradient(circle at 50% 40%, rgba(26, 118, 61, 0.72), rgba(9, 58, 31, 0.82));
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+  box-shadow: inset 0 0 0 1px var(--surface-2);
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -1751,7 +1751,7 @@
 .infoChip {
   padding: 5px 10px;
   border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--stroke);
   background: rgba(7, 12, 10, 0.58);
   font-size: 11px;
   font-weight: 700;
@@ -1771,9 +1771,9 @@
   min-height: 74px;
   padding: 6px 7px;
   border-radius: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--stroke);
   background: linear-gradient(180deg, rgba(11, 14, 18, 0.96), rgba(6, 9, 12, 0.98));
-  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.22);
+  box-shadow: 0 8px 18px  rgba(92, 54, 18, 0.22);
   display: grid;
   gap: 4px;
   z-index: 2;
@@ -1797,7 +1797,7 @@
   color: #111;
   font-size: 9px;
   font-weight: 900;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.32);
+  box-shadow: 0 2px 6px  rgba(92, 54, 18, 0.32);
 }
 
 .tableSeatHeader {
@@ -1823,7 +1823,7 @@
 
 .tableSeatMeta span {
   font-size: 9px;
-  color: rgba(255, 255, 255, 0.66);
+  color: var(--muted);
 }
 
 .tableSeatCards {
@@ -1855,8 +1855,8 @@
 
 .seatActionPill,
 .seatStatePill {
-  background: rgba(255, 255, 255, 0.08);
-  color: rgba(255, 255, 255, 0.86);
+  background: var(--stroke);
+  color: var(--text);
 }
 
 .seatStatusOnline {
@@ -1908,7 +1908,7 @@
   color: #fff;
   font-weight: 800;
   font-size: 11px;
-  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.28);
+  box-shadow: 0 6px 14px  rgba(92, 54, 18, 0.28);
 }
 
 .heroBetBadge {
@@ -2662,7 +2662,7 @@
   border-radius: 14px;
   background: linear-gradient(180deg, rgba(8,11,15,.92), rgba(4,7,10,.98));
   border: 1px solid rgba(255,255,255,.08);
-  box-shadow: 0 8px 18px rgba(0,0,0,.24);
+  box-shadow: 0 8px 18px  rgba(92, 54, 18, .24);
   display: grid;
   gap: 4px;
   z-index: 3;
@@ -2746,7 +2746,7 @@
   color: #fff;
   font-weight: 800;
   font-size: 10px;
-  box-shadow: 0 6px 12px rgba(0,0,0,.28);
+  box-shadow: 0 6px 12px  rgba(92, 54, 18, .28);
 }
 
 .heroSeatFlat {
@@ -5018,8 +5018,8 @@
   border-radius: 18px;
   overflow: hidden;
   border: 1px solid rgba(214, 177, 75, 0.28);
-  background: rgba(255,255,255,0.04);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+  background: var(--surface-1);
+  box-shadow: inset 0 1px 0 var(--surface-1);
   justify-self: start;
 }
 
@@ -5043,9 +5043,9 @@
 .flappyOverlayCard,
 .flappySidebarCard {
   border-radius: 16px;
-  border: 1px solid rgba(255,255,255,0.08);
+  border: 1px solid var(--stroke);
   background: rgba(5, 13, 10, 0.84);
-  box-shadow: 0 12px 28px rgba(0,0,0,0.24);
+  box-shadow: 0 12px 28px  rgba(92, 54, 18, 0.24);
 }
 
 .flappyOverlayCard {
@@ -5078,12 +5078,12 @@
   gap: 3px;
   padding: 8px 10px;
   border-radius: 12px;
-  background: rgba(255,255,255,0.05);
-  border: 1px solid rgba(255,255,255,0.06);
+  background: var(--surface-2);
+  border: 1px solid var(--surface-2);
 }
 
 .statTile span {
-  color: rgba(255,255,255,0.66);
+  color: var(--muted);
   font-size: 11px;
   text-transform: uppercase;
 }
@@ -5106,8 +5106,8 @@
   align-items: center;
   padding: 8px 10px;
   border-radius: 12px;
-  background: rgba(255,255,255,0.05);
-  border: 1px solid rgba(255,255,255,0.06);
+  background: var(--surface-2);
+  border: 1px solid var(--surface-2);
   font-size: 12px;
 }
 
@@ -5813,7 +5813,7 @@
   line-height: 1;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.52);
+  color: var(--muted);
 }
 
 .revampHudTitle {
@@ -5826,7 +5826,7 @@
 .revampHudMeta {
   font-size: 13px;
   line-height: 1.45;
-  color: rgba(255, 255, 255, 0.72);
+  color: var(--text-soft);
 }
 
 .revampHudControls {
@@ -5849,9 +5849,9 @@
   min-height: 30px;
   padding: 0 12px;
   border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--stroke);
   background: rgba(8, 12, 18, 0.78);
-  color: rgba(255, 255, 255, 0.88);
+  color: var(--text);
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -5879,7 +5879,7 @@
 }
 
 .revampHudStatusMuted {
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--text-soft);
 }
 
 .revampHudBottomMeta {
@@ -5909,7 +5909,7 @@
 .revampFlappyStageWrap {
   border-radius: 28px;
   overflow: hidden;
-  box-shadow: 0 28px 56px rgba(0, 0, 0, 0.34);
+  box-shadow: 0 28px 56px  rgba(92, 54, 18, 0.34);
 }
 
 .revampGameViewportImmersive .revampFlappyStageWrap {
@@ -5939,10 +5939,10 @@
   width: min(100%, 392px);
   max-height: calc(100% - 16px);
   border-radius: 24px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--stroke);
   background: rgba(5, 12, 9, 0.84);
   backdrop-filter: blur(18px);
-  box-shadow: 0 22px 44px rgba(0, 0, 0, 0.28);
+  box-shadow: 0 22px 44px  rgba(92, 54, 18, 0.28);
 }
 
 .revampRotatePrompt {
@@ -5961,11 +5961,11 @@
   text-align: center;
   padding: clamp(22px, 4vw, 32px);
   border-radius: 28px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--stroke);
   background:
     radial-gradient(circle at top, rgba(84, 146, 255, 0.16), transparent 42%),
     rgba(8, 10, 15, 0.92);
-  box-shadow: 0 28px 60px rgba(0, 0, 0, 0.34);
+  box-shadow: 0 28px 60px  rgba(92, 54, 18, 0.34);
 }
 
 .revampRotateGlyph {
@@ -5976,8 +5976,8 @@
   place-items: center;
   font-size: 34px;
   color: #fff;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--surface-2);
+  border: 1px solid var(--stroke);
 }
 
 .revampRotateTitle {
@@ -6003,11 +6003,11 @@
   text-align: center;
   padding: clamp(22px, 4vw, 32px);
   border-radius: 28px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--stroke);
   background:
     radial-gradient(circle at top, rgba(84, 146, 255, 0.16), transparent 42%),
     rgba(8, 10, 15, 0.92);
-  box-shadow: 0 28px 60px rgba(0, 0, 0, 0.34);
+  box-shadow: 0 28px 60px  rgba(92, 54, 18, 0.34);
 }
 
 .rotatePromptGlyph {
@@ -6018,8 +6018,8 @@
   place-items: center;
   font-size: 34px;
   color: #fff;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--surface-2);
+  border: 1px solid var(--stroke);
 }
 
 .rotatePromptTitle {
@@ -6124,7 +6124,7 @@
 
 .cardHighlight .cardTop,
 .cardHighlight .cardSuit {
-  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.24);
+  text-shadow: 0 1px 0 var(--stroke-strong);
 }
 
 .cardRed.cardHighlight .cardTop,
@@ -6140,7 +6140,7 @@
   border: 1px solid rgba(232, 190, 84, 0.2);
   background:
     linear-gradient(180deg, rgba(58, 43, 12, 0.34), rgba(19, 15, 9, 0.24)),
-    rgba(255, 255, 255, 0.03);
+    var(--surface-1);
 }
 
 .showdownWinningGroup {
@@ -6173,7 +6173,7 @@
   border-color: rgba(238, 196, 86, 0.36);
   background:
     linear-gradient(180deg, rgba(58, 43, 12, 0.3), rgba(16, 13, 10, 0.14)),
-    rgba(255, 255, 255, 0.03);
+    var(--surface-1);
   box-shadow: inset 0 0 0 1px rgba(255, 224, 132, 0.12);
 }
 
@@ -6208,7 +6208,7 @@
   min-height: clamp(60px, calc(64px * var(--poker-scale, 1)), 88px);
   padding: calc(6px * var(--poker-scale, 1));
   border-radius: calc(14px * var(--poker-scale, 1));
-  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.28);
+  box-shadow: 0 14px 28px  rgba(92, 54, 18, 0.28);
 }
 
 .revampGameViewport .seatPanelTop {
@@ -6221,9 +6221,9 @@
 
 .revampFlappyStageWrap {
   position: relative;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--stroke);
   background:
-    radial-gradient(circle at top, rgba(255, 255, 255, 0.18), transparent 34%),
+    radial-gradient(circle at top, var(--stroke-strong), transparent 34%),
     linear-gradient(180deg, rgba(8, 17, 27, 0.22), rgba(5, 12, 19, 0.34));
 }
 
@@ -6232,7 +6232,7 @@
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 0 0 1px var(--stroke);
   pointer-events: none;
 }
 
@@ -6328,19 +6328,19 @@
   .leftPanel,
   .rightPanel {
     padding: 14px;
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    border: 1px solid var(--stroke);
     border-radius: 20px;
-    background: rgba(255, 255, 255, 0.03);
+    background: var(--surface-1);
     gap: 12px;
   }
 
   .leftPanel {
-    border-right: 1px solid rgba(255, 255, 255, 0.08);
+    border-right: 1px solid var(--stroke);
     grid-template-rows: none;
   }
 
   .rightPanel {
-    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    border-top: 1px solid var(--stroke);
   }
 
   .sectionRow {

@@ -56,15 +56,15 @@
 }
 
 .info {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.12);
-  color: var(--text);
+  background: var(--surface-1);
+  border-color: var(--stroke-soft);
+  color: var(--text-soft);
 }
 
 .warn {
-  background: rgba(255, 122, 26, 0.14);
-  border-color: rgba(255, 122, 26, 0.26);
-  color: #ffbe8b;
+  background: var(--warning-soft);
+  border-color: rgba(234, 179, 8, 0.3);
+  color: #8a6914;
 }
 
 @media (max-width: 640px) {

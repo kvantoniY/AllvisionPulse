@@ -218,20 +218,26 @@ function subscriptionApplicationServerKeyMatches(subscription: PushSubscription,
 }
 
 async function fetchPushPublicKey() {
-  const response = await fetch('/api/backend/notifications/push/public-key', {
-    credentials: 'include',
-    cache: 'no-store',
-  });
+  try {
+    const response = await fetch('/api/backend/notifications/push/public-key', {
+      credentials: 'include',
+      cache: 'no-store',
+    });
 
-  if (!response.ok) {
+    if (!response.ok) {
+      console.warn('[push:public-key] non-ok response', response.status);
+      return { enabled: false, publicKey: null as string | null };
+    }
+
+    const data = await response.json().catch(() => null);
+    return {
+      enabled: Boolean(data?.enabled && typeof data?.publicKey === 'string' && data.publicKey.trim()),
+      publicKey: typeof data?.publicKey === 'string' ? data.publicKey.trim() : null,
+    };
+  } catch (error) {
+    console.error('[push:public-key] fetch failed', error);
     return { enabled: false, publicKey: null as string | null };
   }
-
-  const data = await response.json().catch(() => null);
-  return {
-    enabled: Boolean(data?.enabled && typeof data?.publicKey === 'string' && data.publicKey.trim()),
-    publicKey: typeof data?.publicKey === 'string' ? data.publicKey.trim() : null,
-  };
 }
 
 async function saveSubscription(subscription: PushSubscriptionJSON) {
@@ -506,16 +512,24 @@ export function AppExperienceProvider({ children }: { children: React.ReactNode 
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    const revalidateStandalonePush = () => {
+    const revalidatePush = () => {
       if (document.visibilityState !== 'visible') return;
-      if (!isStandaloneMode()) return;
       if (getNotificationPermission() !== 'granted') return;
       void syncPushSubscription();
     };
 
-    document.addEventListener('visibilitychange', revalidateStandalonePush);
+    const onOnline = () => {
+      if (getNotificationPermission() !== 'granted') return;
+      void syncPushSubscription();
+    };
+
+    document.addEventListener('visibilitychange', revalidatePush);
+    window.addEventListener('focus', revalidatePush);
+    window.addEventListener('online', onOnline);
     return () => {
-      document.removeEventListener('visibilitychange', revalidateStandalonePush);
+      document.removeEventListener('visibilitychange', revalidatePush);
+      window.removeEventListener('focus', revalidatePush);
+      window.removeEventListener('online', onOnline);
     };
   }, [syncPushSubscription]);
 

@@ -273,6 +273,7 @@ function PostCardComponent({
             artifactId={String(pulseShareWidget.artifactId ?? '')}
             artifact={pulseShareWidget.artifact ?? null}
             compact={compact || isMobile}
+            surface={surface === 'flat' ? 'flat' : 'default'}
             className={styles.pulseWidgetCard}
           />
         ) : null}

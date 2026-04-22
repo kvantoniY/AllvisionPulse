@@ -14,7 +14,7 @@
 .content {
   min-width: 0;
   padding: calc(var(--header-height) + 20px) var(--page-gutter) var(--content-bottom-pad-desktop);
-  background: #141414;
+  background: var(--bg);
 }
 
 .contentMobileImmersive {
@@ -23,7 +23,18 @@
 .contentHealth {
   min-height: calc(100dvh - var(--header-height));
   padding: calc(var(--header-height) + 18px) clamp(20px, 2.2vw, 30px) var(--content-bottom-pad-desktop);
-  background: #141414;
+  background: var(--bg);
+}
+
+.contentPulseGame {
+  height: 100dvh;
+  min-height: 100dvh;
+  min-width: 0;
+  max-width: 100%;
+  padding: var(--header-height) 0 0;
+  background: var(--bg);
+  overflow: hidden;
+  overflow-x: clip;
 }
 
 @media (max-width: 1180px) {
@@ -33,6 +44,10 @@
 
   .contentHealth {
     padding-inline: 20px;
+  }
+
+  .contentPulseGame {
+    padding-inline: 0;
   }
 }
 
@@ -50,7 +65,7 @@
     padding-right: max(6px, calc(env(safe-area-inset-right, 0px) + 6px));
     padding-bottom: calc(var(--mobile-nav-height) + env(safe-area-inset-bottom, 0px) + 18px);
     padding-left: 0;
-    background: #141414;
+    background: var(--bg);
   }
 
   .contentMobileImmersive {
@@ -63,9 +78,23 @@
   .contentHealth {
     min-height: calc(100dvh - var(--mobile-header-height));
     padding-top: calc(var(--mobile-header-height) + 10px);
-    padding-right: max(calc(var(--page-gutter-mobile) + 8px), calc(env(safe-area-inset-right, 0px) + 20px));
+    padding-right: max(var(--page-gutter-tight), calc(env(safe-area-inset-right, 0px) + 12px));
     padding-bottom: calc(var(--mobile-nav-height) + env(safe-area-inset-bottom, 0px) + 18px);
-    padding-left: max(var(--page-gutter-mobile), calc(env(safe-area-inset-left, 0px) + 12px));
-    background: #141414;
+    padding-left: max(var(--page-gutter-tight), calc(env(safe-area-inset-left, 0px) + 12px));
+    background: var(--bg);
+  }
+
+  .contentPulseGame {
+    height: 100dvh;
+    min-height: 100dvh;
+    min-width: 0;
+    max-width: 100%;
+    padding-top: var(--mobile-header-height);
+    padding-right: 0;
+    padding-bottom: calc(var(--mobile-nav-height) + env(safe-area-inset-bottom, 0px));
+    padding-left: 0;
+    background: var(--bg);
+    overflow: hidden;
+    overflow-x: clip;
   }
 }

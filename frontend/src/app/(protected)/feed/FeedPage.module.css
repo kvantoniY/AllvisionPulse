@@ -155,7 +155,7 @@
 
 .scopeTabActive {
   color: var(--text);
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--stroke);
 }
 
 .inlineLink {
@@ -172,7 +172,7 @@
   background: transparent !important;
   box-shadow: none !important;
   padding: 18px var(--feed-card-inline-padding) !important;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.07) !important;
+  border-bottom: 1px solid var(--surface-2) !important;
 }
 
 .flatCard::before,

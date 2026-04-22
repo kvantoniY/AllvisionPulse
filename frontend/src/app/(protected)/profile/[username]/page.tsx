@@ -21,11 +21,10 @@ import { useCreateDirectChatMutation } from '@/shared/api/chatsApi';
 import { useGetUserPostsQuery, useLazyGetUserPostsQuery } from '@/shared/api/postsApi';
 import { PostCard } from '@/entities/post/ui/PostCard';
 import { PostComposer } from '@/features/postComposer/ui/PostComposer';
-import { ProfileAchievementsSection } from '@/features/programs/ui/ProfileAchievementsSection';
 import { PostModal } from '@/features/postModal/ui/PostModal';
 import { useIntersection } from '@/shared/lib/hooks/useIntersection';
+import { useIsMobile } from '@/shared/lib/hooks/useIsMobile';
 import { useAppSelector } from '@/shared/lib/storeHooks';
-import { ROUTES } from '@/shared/config/app';
 import { Icon } from '@/shared/ui/Icon/Icon';
 import { Skeleton, SkeletonText } from '@/shared/ui/Skeleton/Skeleton';
 import { Modal } from '@/shared/ui/Modal/Modal';
@@ -304,6 +303,7 @@ export default function ProfilePage() {
   const { username } = useParams<{ username: string }>();
   const router = useRouter();
   const { openViewer } = useStoriesUi();
+  const isMobile = useIsMobile();
   const { data: meData } = useGetMeQuery();
   const me = meData?.user;
   const { data, isLoading, isError, refetch: refetchUser } = useGetUserByUsernameQuery(username);
@@ -360,6 +360,7 @@ export default function ProfilePage() {
 
   const fullName = useMemo(() => [user?.firstName?.trim(), user?.lastName?.trim()].filter(Boolean).join(' '), [user?.firstName, user?.lastName]);
   const profileSubtitle = fullName || `@${user?.username ?? ''}`;
+  const profileAvatarSize = isMobile ? 108 : 136;
   const hasLiveStory = Boolean(liveStoriesData?.items?.length);
   const avatarStatus = p?.isOnline ? 'online' : 'offline';
   const avatarPreviewSrc = avatarDraftUrl || user?.avatarUrl || null;
@@ -665,7 +666,7 @@ export default function ProfilePage() {
               <div className={styles.avatarMenuAnchor} ref={avatarMenuRef}>
                 <div className={styles.avatarButton} role="button" tabIndex={0} aria-haspopup="menu" aria-expanded={avatarMenuOpen} onClick={() => setAvatarMenuOpen((prev) => !prev)} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); setAvatarMenuOpen((prev) => !prev); } }}>
                   <span className={styles.avatarSlot}>
-                    <StoryRingAvatar userId={user.id} url={user.avatarUrl} name={user.username} size={74} status={avatarStatus} disableStoryClick />
+                    <StoryRingAvatar userId={user.id} url={user.avatarUrl} name={user.username} size={profileAvatarSize} status={avatarStatus} disableStoryClick />
                   </span>
                 </div>
                 {avatarMenuOpen ? (
@@ -704,38 +705,39 @@ export default function ProfilePage() {
                 </div>
                 <div className={styles.handle}>{profileSubtitle}</div>
                 <div className={styles.bio}>{canViewProfile ? (user.bio ?? 'Пока без описания.') : restrictionMessage}</div>
-              </div>
-              <div className={styles.counts}>
-                <button type="button" className={styles.countItem} onClick={() => setConnectionsOpen('followers')} disabled={!canViewProfile && !isSelf}>
-                  <div className={styles.countValue}>{user.followersCount ?? 0}</div>
-                  <div className={styles.countLabel}>Подписчики</div>
-                </button>
-                <button type="button" className={styles.countItem} onClick={() => setConnectionsOpen('following')} disabled={!canViewProfile && !isSelf}>
-                  <div className={styles.countValue}>{user.followingCount ?? 0}</div>
-                  <div className={styles.countLabel}>Подписки</div>
-                </button>
-                <div className={styles.countItem}>
-                  <div className={styles.countValue}>{user.postsCount ?? 0}</div>
-                  <div className={styles.countLabel}>Посты</div>
+                <div className={styles.counts}>
+                  <div className={styles.countItem}>
+                    <div className={styles.countValue}>{user.postsCount ?? 0}</div>
+                    <div className={styles.countLabel}>Публикаций</div>
+                  </div>
+                  <button type="button" className={styles.countItem} onClick={() => setConnectionsOpen('followers')} disabled={!canViewProfile && !isSelf}>
+                    <div className={styles.countValue}>{user.followersCount ?? 0}</div>
+                    <div className={styles.countLabel}>Подписчиков</div>
+                  </button>
+                  <button type="button" className={styles.countItem} onClick={() => setConnectionsOpen('following')} disabled={!canViewProfile && !isSelf}>
+                    <div className={styles.countValue}>{user.followingCount ?? 0}</div>
+                    <div className={styles.countLabel}>Подписок</div>
+                  </button>
                 </div>
               </div>
             </div>
             <div className={[styles.actions, isSelf ? styles.selfActions : styles.peerActions].join(' ')}>
               {isSelf ? (
-                <>
-                  <Button variant="primary" onClick={() => { resetProfileDraft(); setProfileEditOpen(true); }}>
+                <Button
+                  variant="primary"
+                  iconOnly={isMobile}
+                  aria-label="Редактировать профиль"
+                  className={[styles.heroPrimaryAction, isMobile ? styles.heroIconAction : ''].filter(Boolean).join(' ')}
+                  onClick={() => { resetProfileDraft(); setProfileEditOpen(true); }}
+                >
                   <Icon name="pencil" size={16} />
                   Редактировать
-                  </Button>
-                  <Button onClick={() => router.push(ROUTES.app.pro)}>
-                    <Icon name="pulse" size={16} />
-                    Пульс Про
-                  </Button>
-                </>
+                </Button>
               ) : (
                 <>
                   <Button
                     variant={primaryAction.tone === 'primary' ? 'primary' : 'default'}
+                    className={primaryAction.tone === 'primary' ? styles.heroPrimaryAction : styles.heroSecondaryAction}
                     onClick={handlePrimaryFollowAction}
                     loading={primaryAction.loading}
                     disabled={primaryAction.disabled}
@@ -764,7 +766,6 @@ export default function ProfilePage() {
           </Card>
         ) : (
           <>
-            <ProfileAchievementsSection username={user.username} />
             <div className={styles.sectionHeader}>
               <div className={styles.sectionTitle}>Публикации</div>
             </div>

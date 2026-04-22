@@ -2,7 +2,7 @@
   position: fixed;
   inset: 0;
   z-index: 220;
-  background: rgba(20, 20, 20, 0.88);
+  background: var(--overlay-scrim);
   display: grid;
   align-items: end;
   overscroll-behavior: contain;
@@ -12,13 +12,25 @@
   width: 100vw;
   height: 100dvh;
   contain: paint;
-  background: #141414;
+  background: var(--bg);
   border-radius: 0;
   border-top: 1px solid var(--stroke-soft);
-  box-shadow: 0 -12px 28px rgba(0, 0, 0, 0.24);
+  box-shadow: 0 -12px 28px  rgba(92, 54, 18, 0.24);
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
   animation: sheetIn 180ms ease;
+}
+
+.backdropPulse {
+  background: var(--overlay-scrim-strong);
+}
+
+.sheetPulse {
+  background: oklch(0.965 0.022 78);
+  color: oklch(0.3 0.04 45);
+  border-top: 1px solid rgba(183, 145, 97, 0.26);
+  box-shadow: 0 -12px 28px rgba(67, 45, 22, 0.14);
+  font-family: var(--font-pulse-body), 'Nunito', ui-sans-serif, system-ui, sans-serif;
 }
 
 @keyframes sheetIn {
@@ -40,7 +52,7 @@
   gap: 10px;
   padding: max(12px, env(safe-area-inset-top, 0px)) 16px 10px;
   border-bottom: 1px solid var(--stroke-soft);
-  background: #141414;
+  background: var(--bg);
 }
 
 .close {
@@ -76,7 +88,38 @@
   padding-bottom: 0;
 }
 
+.headerPulse {
+  min-height: auto;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: start;
+  gap: 10px;
+  padding: max(18px, env(safe-area-inset-top, 0px)) 18px 6px;
+  border-bottom: 0;
+  background: transparent;
+}
 
-@media (pointer: coarse), (prefers-reduced-motion: reduce) {
-  .backdrop { backdrop-filter: none; }
+.sheetPulse .title {
+  font-family: var(--font-pulse-display), 'Comfortaa', ui-sans-serif, system-ui, sans-serif;
+  font-size: 30px;
+  line-height: 1.08;
+  font-weight: 700;
+  color: oklch(0.3 0.04 45);
+}
+
+.sheetPulse .action {
+  min-width: 0;
+}
+
+.sheetPulse .close {
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: rgba(90, 62, 39, 0.78);
+}
+
+.sheetPulse .body {
+  padding: 10px 18px calc(24px + env(safe-area-inset-bottom, 0px));
+  scrollbar-color: rgba(183, 145, 97, 0.34) transparent;
 }

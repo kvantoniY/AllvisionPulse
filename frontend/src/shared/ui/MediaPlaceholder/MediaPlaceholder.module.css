@@ -23,7 +23,7 @@
 .blur {
   position: absolute;
   inset: 0;
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(120, 72, 24, 0.05);
   backdrop-filter: blur(0px);
 }
 
@@ -42,9 +42,9 @@
   background: linear-gradient(
     90deg,
     transparent 0%,
-    rgba(255, 255, 255, 0.05) 40%,
-    rgba(255, 255, 255, 0.08) 50%,
-    rgba(255, 255, 255, 0.05) 60%,
+    var(--surface-2) 40%,
+    var(--stroke) 50%,
+    var(--surface-2) 60%,
     transparent 100%
   );
   animation: mediaShimmer 1.6s ease-in-out infinite;
@@ -63,8 +63,8 @@
   width: 36px;
   height: 36px;
   border-radius: 999px;
-  border: 2.5px solid rgba(255, 255, 255, 0.1);
-  border-top-color: rgba(255, 255, 255, 0.72);
+  border: 2.5px solid rgba(120, 72, 24, 0.16);
+  border-top-color: var(--accent);
   animation: mediaSpin 0.8s linear infinite;
 }
 
@@ -84,5 +84,5 @@
 .scrim {
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0.18);
+  background: rgba(255, 247, 228, 0.32);
 }

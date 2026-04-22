@@ -16,7 +16,8 @@ export function Modal({
   icon,
   bodyClassName = '',
   headerActions,
-}: PropsWithChildren<{ open: boolean; onClose: () => void; title?: string; subtitle?: string; icon?: ReactNode; size?: 'md' | 'lg' | 'xl' | 'game'; bodyClassName?: string; headerActions?: ReactNode }>) {
+  appearance = 'default',
+}: PropsWithChildren<{ open: boolean; onClose: () => void; title?: string; subtitle?: string; icon?: ReactNode; size?: 'md' | 'lg' | 'xl' | 'game'; bodyClassName?: string; headerActions?: ReactNode; appearance?: 'default' | 'pulse' }>) {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -40,13 +41,19 @@ export function Modal({
   if (!open || !mounted) return null;
 
   return createPortal(
-    <div className={styles.backdrop} role="dialog" aria-modal="true" onMouseDown={onClose}>
+    <div
+      className={[styles.backdrop, appearance === 'pulse' ? styles.backdropPulse : ''].filter(Boolean).join(' ')}
+      role="dialog"
+      aria-modal="true"
+      onMouseDown={onClose}
+    >
       <div
         className={[
           styles.modal,
           size === 'lg' ? styles.modalLg : '',
           size === 'xl' ? styles.modalXl : '',
           size === 'game' ? styles.modalGame : '',
+          appearance === 'pulse' ? styles.modalPulse : '',
         ]
           .filter(Boolean)
           .join(' ')}

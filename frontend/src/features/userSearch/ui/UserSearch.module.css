@@ -6,7 +6,7 @@
   height: 40px;
   border-radius: 14px;
   border: 1px solid var(--stroke);
-  background: rgba(255,255,255,0.03);
+  background: var(--surface-1);
   color: var(--text);
   padding: 0 14px 0 38px;
   outline: none;
@@ -15,7 +15,7 @@
 .input:hover { border-color: var(--stroke-strong); }
 .input:focus {
   border-color: var(--stroke-accent);
-  background: rgba(255,255,255,0.04);
+  background: var(--surface-1);
   box-shadow: 0 0 0 4px rgba(255,122,26,0.08);
 }
 
@@ -25,7 +25,9 @@
   left: 0;
   right: 0;
   border: 1px solid var(--stroke);
-  background: rgba(12,13,16,0.98);
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.62), rgba(255,255,255,0.18)),
+    rgba(255, 251, 243, 0.96);
   backdrop-filter: blur(16px);
   border-radius: 16px;
   overflow: hidden;
@@ -45,7 +47,7 @@
   cursor: pointer;
   text-align: left;
 }
-.item:hover { background: rgba(255,255,255,0.05); }
+.item:hover { background: rgba(255,255,255,0.68); }
 .meta { display: grid; gap: 2px; }
 .name { font-weight: 700; font-size: 13px; line-height: 1.1; }
 .handle { font-size: 11px; color: var(--muted); }

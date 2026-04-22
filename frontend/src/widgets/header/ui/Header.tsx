@@ -50,8 +50,17 @@ export function Header() {
   }, [pathname, searchParams]);
 
   useEffect(() => {
-    const syncPulseTab = () => {
+    const syncPulseTab = (event?: Event) => {
       if (typeof window === 'undefined') return;
+
+      if (event instanceof CustomEvent) {
+        const nextFromEvent = event.detail?.tab;
+        if (typeof nextFromEvent === 'string') {
+          setPulseTab(nextFromEvent);
+          return;
+        }
+      }
+
       setPulseTab(new URLSearchParams(window.location.search).get('tab'));
     };
 

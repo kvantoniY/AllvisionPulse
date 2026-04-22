@@ -52,8 +52,8 @@
   aspect-ratio: 0.82;
   border-radius: 14px;
   overflow: hidden;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: var(--surface-1);
+  border: 1px solid var(--surface-2);
 }
 
 .previewImg {
@@ -70,7 +70,7 @@
   height: 30px;
   border-radius: 999px;
   border: none;
-  background: rgba(10, 11, 14, 0.68);
+  background: var(--surface-1);
   color: white;
   display: grid;
   place-items: center;
@@ -94,7 +94,7 @@
   height: 22px;
   border-radius: 999px;
   border: none;
-  background: rgba(255,255,255,0.08);
+  background: var(--stroke);
   color: white;
   display: grid;
   place-items: center;
@@ -117,8 +117,8 @@
   position: relative;
   z-index: 3;
   margin-top: auto;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
-  background: rgba(17, 18, 20, 0.98);
+  border-top: 1px solid var(--surface-2);
+  background: var(--panel);
 }
 
 .footerDesktop {
@@ -150,13 +150,13 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--stroke);
 }
 
 .attachBtn,
 .secondaryBtn,
 .iconBtn {
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--surface-1);
   color: var(--text-soft);
 }
 
@@ -203,8 +203,8 @@
   display: grid;
   gap: 6px;
   border-radius: 18px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(10, 11, 14, 0.98);
+  border: 1px solid var(--stroke);
+  background: var(--surface-1);
   box-shadow: var(--shadow-md);
   z-index: 32;
 }
@@ -231,7 +231,7 @@
 }
 
 .iconBtnActive {
-  background: rgba(255,255,255,0.07);
+  background: var(--surface-2);
   color: var(--text);
 }
 

@@ -1,0 +1,1044 @@
+.workspace {
+  position: relative;
+  z-index: 4;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 0;
+  height: 100%;
+  min-height: 0;
+  padding: 0;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.workspace,
+.workspace *,
+.workspace *::before,
+.workspace *::after {
+  box-sizing: border-box;
+}
+
+.shell {
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  gap: 18px;
+  min-height: 0;
+  height: 100%;
+  padding: 12px 0 0;
+  border-radius: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: clip;
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  min-width: 0;
+  padding-inline: clamp(12px, 1.8vw, 20px);
+}
+
+.headerTools {
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  gap: 12px;
+  flex: 0 0 auto;
+}
+
+.headerCopy {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.eyebrow {
+  font-size: 11px;
+  line-height: 1;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #9b876d;
+  font-weight: 800;
+}
+
+.title {
+  margin: 0;
+  font-family: var(--font-pulse-display), 'Comfortaa', ui-sans-serif, system-ui, sans-serif;
+  font-size: clamp(24px, 2.6vw, 34px);
+  line-height: 1.06;
+  font-weight: 700;
+  color: #332316;
+}
+
+.subtitle {
+  max-width: 760px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #7c6850;
+}
+
+.dateRail {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0;
+  min-width: 0;
+  max-width: min(100%, 468px);
+}
+
+.dateScroller {
+  width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-x pinch-zoom;
+  scrollbar-width: none;
+  padding: 2px 0;
+  scroll-padding-inline: 8px;
+  scroll-snap-type: x proximity;
+}
+
+.dateScroller::-webkit-scrollbar {
+  display: none;
+}
+
+.dateRow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: max-content;
+  min-width: 100%;
+  margin-inline: auto;
+}
+
+.dateCell {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  width: 54px;
+  min-width: 54px;
+  aspect-ratio: 1 / 1;
+  min-height: 54px;
+  padding: 7px 5px;
+  border-radius: 16px;
+  border: 1px solid rgba(168, 124, 74, 0.28);
+  background: #ffffff;
+  color: #5f4a34;
+  cursor: pointer;
+  box-shadow: 0 3px 10px -8px rgba(82, 52, 18, 0.24);
+  transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease, box-shadow 0.18s ease;
+  scroll-snap-align: center;
+}
+
+.dateCell:hover {
+  border-color: rgba(168, 124, 74, 0.42);
+  box-shadow: 0 4px 12px -8px rgba(82, 52, 18, 0.3);
+}
+
+.dateCell span {
+  font-size: 11px;
+  line-height: 1;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.dateCell strong {
+  font-family: var(--font-pulse-display), 'Comfortaa', ui-sans-serif, system-ui, sans-serif;
+  font-size: 1.08rem;
+  line-height: 1;
+  font-weight: 700;
+}
+
+.dateCell[data-active='true'] {
+  background: #ed8431;
+  border-color: rgba(176, 86, 22, 0.5);
+  color: #fff8ef;
+  box-shadow:
+    0 8px 20px -10px rgba(198, 108, 41, 0.6),
+    0 1px 0 rgba(255, 255, 255, 0.25) inset;
+}
+
+.hiddenDateInput {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.closeButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 16px;
+  border: 1px solid rgba(168, 124, 74, 0.3);
+  background: #ffffff;
+  color: #4a3822;
+  cursor: pointer;
+  box-shadow: 0 3px 10px -8px rgba(82, 52, 18, 0.24);
+  transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.closeButton:hover {
+  background: #fffdf7;
+  border-color: rgba(168, 124, 74, 0.44);
+  color: #2a1f13;
+  box-shadow: 0 4px 12px -8px rgba(82, 52, 18, 0.3);
+}
+
+.sectionTabs {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  overflow-x: auto;
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-x pinch-zoom;
+  scrollbar-width: none;
+  padding: 0 clamp(12px, 1.8vw, 20px) 2px;
+  scroll-padding-inline: clamp(12px, 1.8vw, 20px);
+  scroll-snap-type: x proximity;
+}
+
+.sectionTabs::-webkit-scrollbar {
+  display: none;
+}
+
+.sectionTab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  padding: 0 16px;
+  flex: 0 0 auto;
+  border-radius: 999px;
+  border: 1px solid rgba(168, 124, 74, 0.28);
+  background: #ffffff;
+  color: #5f4a34;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  box-shadow: 0 2px 8px -6px rgba(82, 52, 18, 0.2);
+  transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease, box-shadow 0.18s ease;
+  scroll-snap-align: start;
+}
+
+.sectionTab:hover {
+  background: #fffdf7;
+  border-color: rgba(168, 124, 74, 0.42);
+  color: #352619;
+  box-shadow: 0 4px 10px -6px rgba(82, 52, 18, 0.26);
+}
+
+.sectionTab[data-active='true'] {
+  background: #ed8431;
+  border-color: rgba(176, 86, 22, 0.5);
+  color: #fff8ef;
+  box-shadow:
+    0 8px 20px -10px rgba(198, 108, 41, 0.6),
+    0 1px 0 var(--stroke-strong) inset;
+}
+
+.body {
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.scroll {
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 4px clamp(12px, 1.8vw, 20px) calc(var(--pulse-dock-height) + 18px);
+  scrollbar-width: thin;
+  scrollbar-color: rgba(173, 132, 83, 0.45) transparent;
+}
+
+.scroll::-webkit-scrollbar {
+  width: 8px;
+}
+
+.scroll::-webkit-scrollbar-thumb {
+  background: rgba(173, 132, 83, 0.4);
+  border-radius: 999px;
+}
+
+.scroll > * {
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
+}
+
+.overview {
+  display: grid;
+  gap: 16px;
+}
+
+.overviewTop {
+  display: grid;
+  grid-template-columns: 1.25fr 0.95fr;
+  gap: 16px;
+}
+
+.overviewCard {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+  padding: 18px;
+  border-radius: 26px;
+  border: 1px solid rgba(168, 124, 74, 0.26);
+  background: #ffffff;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.9) inset,
+    0 14px 34px -22px rgba(82, 52, 18, 0.34);
+}
+
+.overviewPulseCard {
+  gap: 18px;
+}
+
+.overviewPulseBody {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 18px;
+}
+
+.overviewPulseSummary {
+  display: flex;
+  align-items: stretch;
+  min-width: 0;
+}
+
+.overviewPulseValueRow {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.overviewPulseValueRow strong {
+  font-family: var(--font-pulse-display), 'Comfortaa', ui-sans-serif, system-ui, sans-serif;
+  font-size: clamp(36px, 4.2vw, 54px);
+  line-height: 1;
+  font-weight: 700;
+  color: #2f2115;
+}
+
+.overviewPulseValueRow span {
+  font-size: 18px;
+  line-height: 1;
+  color: #8a7359;
+}
+
+.overviewPulseText {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #7b684f;
+}
+
+.overviewPulseMeta {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  width: 100%;
+}
+
+.overviewPulseMetaItem {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 76px;
+  padding: 12px 14px;
+  border-radius: 18px;
+  border: 1px solid rgba(168, 124, 74, 0.2);
+  background: #fff8e7;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.6) inset;
+}
+
+.overviewPulseMetaItem span {
+  font-size: 11px;
+  line-height: 1.2;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #9b876d;
+  font-weight: 800;
+}
+
+.overviewPulseMetaItem strong {
+  font-family: var(--font-pulse-display), 'Comfortaa', ui-sans-serif, system-ui, sans-serif;
+  font-size: 20px;
+  line-height: 1.1;
+  color: #2f2115;
+  font-weight: 700;
+}
+
+.overviewPulseFooter {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+}
+
+.overviewScoreRing {
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+}
+
+.overviewScoreRing svg {
+  position: absolute;
+  inset: 0;
+}
+
+.overviewScoreRing strong {
+  position: relative;
+  font-family: var(--font-pulse-display), 'Comfortaa', ui-sans-serif, system-ui, sans-serif;
+  font-size: 28px;
+  line-height: 1;
+  font-weight: 700;
+  color: #2e2115;
+}
+
+.overviewStatusGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 286px;
+  overflow-y: auto;
+  padding-right: 4px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(173, 132, 83, 0.4) transparent;
+}
+
+.overviewStatusCard {
+  display: flex;
+  align-items: center;
+  min-height: 0;
+  padding: 14px 16px;
+  border-radius: 22px;
+  border: 1px solid rgba(168, 124, 74, 0.18);
+  background: #ffffff;
+  color: #2a1f13;
+  text-align: left;
+  cursor: pointer;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.7) inset, 0 6px 16px -14px rgba(82, 52, 18, 0.24);
+  transition: background 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.overviewStatusCard:hover {
+  background: #fffdf7;
+  border-color: rgba(168, 124, 74, 0.34);
+  box-shadow: 0 8px 18px -14px rgba(82, 52, 18, 0.3);
+}
+
+.overviewStatusHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  min-width: 0;
+}
+
+.overviewStatusLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  font-size: 12px;
+  line-height: 1.2;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #8e785f;
+  font-weight: 800;
+}
+
+.overviewStatusDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.38);
+  flex-shrink: 0;
+}
+
+.overviewStatusRowMain {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex: 1;
+}
+
+.overviewStatusRowCopy {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.overviewStatusRowCopy strong {
+  font-size: 15px;
+  line-height: 1.2;
+  font-weight: 800;
+  color: #2f2115;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.overviewStatusRowCopy span {
+  font-size: 12px;
+  line-height: 1.5;
+  color: #7b684f;
+  overflow-wrap: anywhere;
+}
+
+.overviewStatusMetric {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  min-width: 122px;
+  flex-shrink: 0;
+  text-align: right;
+  font-size: 13px;
+  line-height: 1.3;
+  font-weight: 800;
+  color: #5e4327;
+  font-variant-numeric: tabular-nums;
+}
+
+.overviewActions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.actionButton {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 68px;
+  padding: 16px;
+  border-radius: 20px;
+  border: 1px solid rgba(168, 124, 74, 0.26);
+  background: #fff8e7;
+  color: #2a1f13;
+  cursor: pointer;
+  box-shadow: 0 4px 14px -10px rgba(82, 52, 18, 0.26);
+  transition: background 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+}
+
+.actionButton:hover {
+  background: #ffffff;
+  border-color: rgba(168, 124, 74, 0.42);
+  box-shadow: 0 6px 18px -10px rgba(82, 52, 18, 0.32);
+  transform: translateY(-1px);
+}
+
+.actionButton strong {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.actionButton span {
+  display: block;
+  font-size: 12px;
+  line-height: 1.4;
+  color: #7b684f;
+}
+
+.overviewSplit {
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  gap: 16px;
+}
+
+.overviewProgramRow {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+
+.legacySurface {
+  --accent: #ed8431;
+  --accent-strong: #f09b4c;
+  --accent-soft: rgba(237, 132, 49, 0.14);
+  --accent-softer: rgba(237, 132, 49, 0.08);
+  --success: #69b67a;
+  --success-soft: rgba(105, 182, 122, 0.12);
+  --danger: #dd7a5d;
+  --danger-soft: rgba(221, 122, 93, 0.12);
+  --warning: #d7a53c;
+  --warning-soft: rgba(215, 165, 60, 0.12);
+  --pulse-info: #59a6b6;
+  --pulse-info-soft: rgba(89, 166, 182, 0.12);
+  --surface-0: rgba(255, 255, 255, 0.58);
+  --surface-1: rgba(255, 251, 243, 0.92);
+  --surface-2: rgba(247, 237, 219, 0.86);
+  --surface-3: rgba(242, 230, 210, 0.92);
+  --stroke-soft: rgba(178, 138, 92, 0.1);
+  --stroke: rgba(178, 138, 92, 0.16);
+  --stroke-strong: rgba(178, 138, 92, 0.24);
+  --text: #332316;
+  --text-soft: #5e4933;
+  --muted: #7b684f;
+  --muted-2: #8f775e;
+  --bg: rgba(255, 251, 243, 0.98);
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.legacySurface :global(.page) {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  padding: 0;
+}
+
+.legacySurface :global(*),
+.legacySurface :global(*::before),
+.legacySurface :global(*::after) {
+  box-sizing: border-box;
+}
+
+.legacySurface :global(img),
+.legacySurface :global(svg),
+.legacySurface :global(canvas),
+.legacySurface :global(video),
+.legacySurface :global(table) {
+  max-width: 100%;
+}
+
+.legacySurface :global([class*='analyticsScene']),
+.legacySurface :global([class*='configScene']),
+.legacySurface :global([class*='stack']) {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.legacySurface :global([class*='healthScene']),
+.legacySurface :global([class*='financeScene']),
+.legacySurface :global([class*='nutritionScene']),
+.legacySurface :global([class*='configScene']),
+.legacySurface :global([class*='analyticsScene']) {
+  padding: 0;
+}
+
+.legacySurface :global([class*='analyticsCard']),
+.legacySurface :global([class*='configHeroCard']),
+.legacySurface :global([class*='configSectionCard']),
+.legacySurface :global([class*='flatSection']),
+.legacySurface :global([class*='noticeCard']) {
+  border-radius: 26px;
+  border: 1px solid rgba(168, 124, 74, 0.26);
+  background: #ffffff;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.9) inset,
+    0 14px 34px -22px rgba(82, 52, 18, 0.34);
+}
+
+.legacySurface :global([class*='analyticsSummaryCard']),
+.legacySurface :global([class*='analyticsStatCard']),
+.legacySurface :global([class*='analyticsInsightCard']),
+.legacySurface :global([class*='analyticsAdviceItem']),
+.legacySurface :global([class*='analyticsHabitRow']),
+.legacySurface :global([class*='programRowStrip']),
+.legacySurface :global([class*='configModuleRow']),
+.legacySurface :global([class*='programRowSummary']) {
+  border-radius: 20px;
+  border: 1px solid rgba(168, 124, 74, 0.22);
+  background: #fff8e7;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.6) inset;
+}
+
+.legacySurface :global([class*='programRowStrip']) {
+  padding: 14px 16px;
+}
+
+.legacySurface :global([class*='programsHeader']),
+.legacySurface :global([class*='programsToolbar']),
+.legacySurface :global([class*='flatSectionHead']),
+.legacySurface :global([class*='analyticsSectionHeader']),
+.legacySurface :global([class*='configSectionTitle']),
+.legacySurface :global([class*='configHeroTitle']) {
+  color: #332316;
+}
+
+.legacySurface :global([class*='sectionHint']),
+.legacySurface :global([class*='analyticsSectionText']),
+.legacySurface :global([class*='analyticsHeroText']),
+.legacySurface :global([class*='configHeroSubtitle']),
+.legacySurface :global([class*='analyticsStatMeta']),
+.legacySurface :global([class*='analyticsSummaryHint']),
+.legacySurface :global([class*='compactProgramCopy'] span),
+.legacySurface :global([class*='programRowSummary']),
+.legacySurface :global([class*='configSummaryLine'] span) {
+  color: #7b684f;
+}
+
+.legacySurface :global([class*='subtabBar']),
+.legacySurface :global([class*='filterRow']),
+.legacySurface :global([class*='searchBarInline']) {
+  border-radius: 22px;
+  border: 1px solid rgba(168, 124, 74, 0.24);
+  background: #f5e7c5;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.5) inset;
+}
+
+.legacySurface :global([class*='subtabButton']),
+.legacySurface :global([class*='filterChip']),
+.legacySurface :global([class*='programMenuItem']),
+.legacySurface :global([class*='actionMenuSummary']) {
+  border-radius: 16px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: #6d553d;
+  box-shadow: none;
+}
+
+.legacySurface :global([class*='subtabButtonActive']),
+.legacySurface :global([class*='filterChipActive']),
+.legacySurface :global([class*='pillAccent']) {
+  background: #ed8431;
+  color: #fff8ef;
+  border-color: rgba(198, 108, 41, 0.26);
+}
+
+.legacySurface :global([class*='pill']) {
+  border-radius: 999px;
+  box-shadow: none;
+}
+
+.legacySurface :global([class*='inlineSearch']) {
+  color: #332316;
+  background: transparent;
+}
+
+.legacySurface :global([class*='actionMenuBody']) {
+  border-radius: 18px;
+  border: 1px solid rgba(178, 138, 92, 0.18);
+  background: rgba(255, 251, 243, 0.96);
+  box-shadow: none;
+}
+
+.legacySurface :global([class*='progressLine']),
+.legacySurface :global([class*='analyticsDayBar']) {
+  box-shadow: none;
+}
+
+@media (max-width: 1180px) {
+  .overviewTop,
+  .overviewSplit {
+    grid-template-columns: 1fr;
+  }
+
+  .overviewPulseBody {
+    grid-template-columns: 1fr;
+    justify-items: flex-start;
+  }
+
+  .overviewPulseMeta {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+}
+
+@media (max-width: 760px) {
+  .workspace {
+    padding: 0;
+  }
+
+  .shell {
+    padding: 0 0 8px;
+    gap: 12px;
+    min-width: 0;
+    overflow-x: clip;
+  }
+
+  .header {
+    flex-direction: column;
+    gap: 12px;
+    padding-inline: 12px;
+  }
+
+  .headerTools {
+    display: none;
+  }
+
+  .sectionTabs {
+    padding-top: 0;
+    padding-right: var(--pulse-mobile-inline-end);
+    padding-bottom: 2px;
+    padding-left: var(--pulse-mobile-inline-start);
+    scroll-padding-inline: 8px;
+  }
+
+  .sectionTab {
+    min-height: 38px;
+    padding: 0 14px;
+    font-size: 13px;
+  }
+
+  .body,
+  .scroll,
+  .legacySurface,
+  .legacySurface :global(.page) {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .scroll {
+    padding:
+      0
+      var(--pulse-mobile-inline-end)
+      calc(var(--mobile-nav-height) + env(safe-area-inset-bottom, 0px) + 18px)
+      var(--pulse-mobile-inline-start);
+    overflow-x: clip;
+  }
+
+  .scroll > * {
+    width: min(100%, 560px);
+    margin-inline: auto;
+  }
+
+  .overviewCard {
+    padding: 16px;
+    border-radius: 22px;
+  }
+
+  .overviewPulseBody {
+    gap: 14px;
+  }
+
+  .overviewPulseMeta {
+    grid-template-columns: 1fr;
+  }
+
+  .overviewPulseMetaItem {
+    min-height: 0;
+    border-radius: 16px;
+  }
+
+  .overviewStatusGrid {
+    max-height: 320px;
+  }
+
+  .overviewStatusCard {
+    padding: 14px;
+    border-radius: 18px;
+  }
+
+  .actionButton {
+    align-items: flex-start;
+    min-height: 0;
+    padding: 14px;
+    border-radius: 18px;
+  }
+
+  .actionButton span {
+    font-size: 13px;
+    line-height: 1.45;
+  }
+
+  .overviewStatusRowCopy strong,
+  .overviewStatusRowCopy span,
+  .actionButton strong,
+  .actionButton span {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  .legacySurface :global([class*='stack']),
+  .legacySurface :global([class*='grid']),
+  .legacySurface :global([class*='row']),
+  .legacySurface :global([class*='section']),
+  .legacySurface :global([class*='card']),
+  .legacySurface :global([class*='surface']),
+  .legacySurface :global([class*='panel']) {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .legacySurface :global([class*='progressLine']),
+  .legacySurface :global([class*='progressBar']),
+  .legacySurface :global([class*='progressTrack']),
+  .legacySurface :global([class*='analyticsDayBar']),
+  .legacySurface :global([class*='Bar']),
+  .legacySurface :global([class*='bar']),
+  .legacySurface :global([class*='meter']),
+  .legacySurface :global([class*='Meter']) {
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  .legacySurface :global([class*='progressFill']),
+  .legacySurface :global([class*='barFill']),
+  .legacySurface :global([class*='Fill']),
+  .legacySurface :global([class*='fill']) {
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  .legacySurface :global([class*='programsHeader']),
+  .legacySurface :global([class*='programsToolbar']),
+  .legacySurface :global([class*='analyticsSectionHeader']),
+  .legacySurface :global([class*='configSectionTitle']),
+  .legacySurface :global([class*='flatSectionHead']) {
+    flex-wrap: wrap;
+    align-items: stretch;
+  }
+
+  .legacySurface :global([class*='sectionHint']),
+  .legacySurface :global([class*='analyticsSectionText']),
+  .legacySurface :global([class*='analyticsHeroText']),
+  .legacySurface :global([class*='configHeroSubtitle']),
+  .legacySurface :global([class*='analyticsStatMeta']),
+  .legacySurface :global([class*='analyticsSummaryHint']),
+  .legacySurface :global([class*='compactProgramCopy'] span),
+  .legacySurface :global([class*='programRowSummary']),
+  .legacySurface :global([class*='configSummaryLine'] span) {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  .legacySurface :global([class*='subtabBar']),
+  .legacySurface :global([class*='filterRow']),
+  .legacySurface :global([class*='searchBarInline']),
+  .legacySurface :global([class*='tabs']),
+  .legacySurface :global([class*='healthSubnav']),
+  .legacySurface :global([class*='financeSubnav']),
+  .legacySurface :global([class*='segmented']) {
+    overflow-x: auto;
+    overflow-y: hidden;
+    flex-wrap: nowrap;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-x pinch-zoom;
+    scrollbar-width: none;
+    max-width: 100%;
+    padding-bottom: 2px;
+    scroll-snap-type: x proximity;
+  }
+
+  .legacySurface :global([class*='subtabButton']),
+  .legacySurface :global([class*='filterChip']),
+  .legacySurface :global([class*='programMenuItem']),
+  .legacySurface :global([class*='actionMenuSummary']),
+  .legacySurface :global([class*='segment']),
+  .legacySurface :global([class*='healthSubnavButton']),
+  .legacySurface :global([class*='financeSubnavButton']),
+  .legacySurface :global([class*='tab']) {
+    flex: 0 0 auto;
+    white-space: nowrap;
+    scroll-snap-align: start;
+  }
+
+  .legacySurface :global([class*='analyticsSummaryGrid']),
+  .legacySurface :global([class*='analyticsStatGrid']),
+  .legacySurface :global([class*='analyticsInlineStats']),
+  .legacySurface :global([class*='analyticsSplitGrid']),
+  .legacySurface :global([class*='analyticsSectionGrid']),
+  .legacySurface :global([class*='analyticsInsightsGrid']),
+  .legacySurface :global([class*='pulseLowerGrid']),
+  .legacySurface :global([class*='pulseHeroGrid']),
+  .legacySurface :global([class*='pulseSupportingGrid']),
+  .legacySurface :global([class*='pulseProfileGrid']),
+  .legacySurface :global([class*='pulseProfileSummaryGrid']),
+  .legacySurface :global([class*='profileStatGrid']),
+  .legacySurface :global([class*='pulseInlineGrid']),
+  .legacySurface :global([class*='recommendationGrid']),
+  .legacySurface :global([class*='financeStatsDashboard']),
+  .legacySurface :global([class*='financeCompositionChart']),
+  .legacySurface :global([class*='financeCategoryGrid']),
+  .legacySurface :global([class*='financeMetricGrid']),
+  .legacySurface :global([class*='financeComparisonGrid']),
+  .legacySurface :global([class*='financeDebtMetricsEnhanced']),
+  .legacySurface :global([class*='financeDebtPaymentSummary']),
+  .legacySurface :global([class*='financeSplitGrid']),
+  .legacySurface :global([class*='foodGrid']),
+  .legacySurface :global([class*='modalOptionGridWide']),
+  .legacySurface :global([class*='summaryGrid']),
+  .legacySurface :global([class*='sessionOverviewGrid']),
+  .legacySurface :global([class*='storyPanel']),
+  .legacySurface :global([class*='infoGrid']),
+  .legacySurface :global([class*='split']),
+  .legacySurface :global([class*='wizard']),
+  .legacySurface :global([class*='formGrid']),
+  .legacySurface :global([class*='optionGrid']),
+  .legacySurface :global([class*='actionPresetGrid']),
+  .legacySurface :global([class*='achievementsGrid']) {
+    grid-template-columns: 1fr !important;
+  }
+
+  .legacySurface :global([class*='heroActions']),
+  .legacySurface :global([class*='rowActions']),
+  .legacySurface :global([class*='inlineActions']),
+  .legacySurface :global([class*='actionControls']),
+  .legacySurface :global([class*='todayActionTail']),
+  .legacySurface :global([class*='programRowAside']) {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .legacySurface :global([class*='participantHeader']),
+  .legacySurface :global([class*='compactListRow']),
+  .legacySurface :global([class*='actionRow']),
+  .legacySurface :global([class*='todayActionRow']),
+  .legacySurface :global([class*='actionCompactRow']),
+  .legacySurface :global([class*='historyRow']),
+  .legacySurface :global([class*='builderDaySummaryRow']),
+  .legacySurface :global([class*='builderActionSummary']),
+  .legacySurface :global([class*='programRowStrip']),
+  .legacySurface :global([class*='participantRow']) {
+    grid-template-columns: 1fr !important;
+  }
+
+  .title {
+    font-size: 24px;
+  }
+
+  .subtitle {
+    font-size: 13px;
+  }
+
+  .overviewActions {
+    grid-template-columns: 1fr;
+  }
+}

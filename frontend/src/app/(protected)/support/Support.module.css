@@ -1,5 +1,5 @@
 .page {
-  --support-card-bg: #181819;
+  --support-card-bg: var(--panel);
   display: grid;
   gap: 18px;
   min-width: 0;
@@ -96,7 +96,7 @@
   height: 34px;
   border-radius: 12px;
   color: var(--accent-strong);
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--surface-1);
   border: 1px solid var(--stroke);
 }
 
@@ -143,7 +143,7 @@
 
 .modeCard:hover {
   border-color: var(--stroke-strong);
-  background: #1c1c1d;
+  background: var(--panel);
 }
 
 .modeCardActive {
@@ -159,7 +159,7 @@
   height: 40px;
   border-radius: 12px;
   color: var(--accent-strong);
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--surface-1);
   border: 1px solid var(--stroke);
 }
 
@@ -278,7 +278,7 @@
   padding: 7px 12px;
   border-radius: 999px;
   border: 1px solid var(--stroke);
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--surface-1);
   color: var(--text-soft);
   font-size: 12px;
   font-weight: 800;
@@ -307,7 +307,7 @@
   width: 24px;
   height: 24px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--surface-1);
   border: 1px solid var(--stroke);
   color: var(--accent-strong);
   font-size: 12px;
@@ -361,7 +361,7 @@
 .kindButtonActive {
   background: var(--accent-soft);
   border-color: var(--stroke-accent);
-  color: #fff;
+  color: var(--text);
 }
 
 .field {
@@ -415,7 +415,7 @@
   height: 28px;
   border-radius: 10px;
   border: 1px solid var(--stroke);
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--surface-1);
   color: var(--accent-strong);
 }
 
@@ -547,7 +547,7 @@
 .filterChipActive {
   border-color: var(--stroke-accent);
   background: var(--accent-soft);
-  color: #fff;
+  color: var(--text);
 }
 
 .list,
@@ -666,7 +666,7 @@
 .kindChip,
 .categoryChip {
   border: 1px solid var(--stroke);
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--surface-1);
   color: var(--text-soft);
 }
 
@@ -694,7 +694,7 @@
 
 .statusArchived {
   border-color: var(--stroke);
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--surface-2);
   color: var(--muted);
 }
 
@@ -786,7 +786,7 @@
   height: 36px;
   border-radius: 12px;
   color: var(--accent-strong);
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--surface-1);
   border: 1px solid var(--stroke);
 }
 

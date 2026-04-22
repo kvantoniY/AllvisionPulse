@@ -9,10 +9,10 @@
   overflow-x: auto;
   overflow-y: hidden;
   border-radius: 26px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: #101117;
+  border: 1px solid var(--stroke);
+  background: var(--bg);
   scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.22) transparent;
+  scrollbar-color: var(--stroke-strong) transparent;
   touch-action: pan-x;
 }
 
@@ -26,7 +26,7 @@
 
 .frame::-webkit-scrollbar-thumb {
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.22);
+  background: var(--stroke-strong);
 }
 
 .canvas {
@@ -280,14 +280,14 @@
 .cloud::after {
   position: absolute;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.32);
+  background: var(--stroke-strong);
   filter: blur(0.5px);
 }
 
 .cloud {
   width: 72px;
   height: 26px;
-  box-shadow: 0 4px 16px rgba(255, 255, 255, 0.08);
+  box-shadow: 0 4px 16px var(--stroke);
 }
 
 .cloud::before,
@@ -452,7 +452,7 @@
   height: 62px;
   background: linear-gradient(180deg, rgba(128, 172, 128, 0.82), rgba(62, 104, 72, 0.96));
   clip-path: polygon(0 100%, 0 72%, 12% 88%, 24% 66%, 34% 80%, 46% 60%, 58% 78%, 70% 58%, 82% 82%, 92% 62%, 100% 72%, 100% 100%);
-  box-shadow: 0 -1px 0 rgba(255, 255, 255, 0.08);
+  box-shadow: 0 -1px 0 var(--stroke);
 }
 
 .haze {
@@ -653,7 +653,7 @@
   width: 2px;
   height: 14px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.16);
+  background: var(--stroke-strong);
   transform: translateX(-50%);
   opacity: 0;
   transition: opacity 140ms ease, height 140ms ease, background 140ms ease, box-shadow 140ms ease;
@@ -682,7 +682,7 @@
   justify-content: center;
   border-radius: 999px;
   background: #ff911c;
-  color: #ffffff;
+  color: var(--text);
   transform: translate(-50%, 2px) scale(0.94);
   box-shadow: 0 10px 24px rgba(255, 146, 28, 0.28);
   opacity: 0;
@@ -707,7 +707,7 @@
   padding: 0 10px;
   border-radius: 999px;
   background: rgba(223, 124, 23, 0.96);
-  color: #ffffff;
+  color: var(--text);
   font-size: 12px;
   font-weight: 800;
   letter-spacing: -0.02em;
@@ -724,8 +724,8 @@
   bottom: 28px;
   height: 12px;
   border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(14, 16, 24, 0.62);
+  border: 1px solid var(--stroke);
+  background: var(--surface-2);
   overflow: hidden;
   z-index: 4;
 }
@@ -778,7 +778,7 @@
 }
 
 .eventDone .eventRail {
-  border-color: rgba(255, 255, 255, 0.12);
+  border-color: var(--stroke-strong);
   background: linear-gradient(90deg, rgba(138, 147, 160, 0.6), rgba(116, 124, 138, 0.6));
 }
 
@@ -805,24 +805,24 @@
   border: 2px solid rgba(255, 255, 255, 0.88);
   background: #23a8ff;
   transform: translate(-50%, -50%);
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.28);
+  box-shadow: 0 10px 28px  rgba(92, 54, 18, 0.28);
   transition: transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease;
 }
 
 .eventSelected .eventDot {
-  border-color: rgba(255, 255, 255, 0.96);
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.34);
+  border-color: var(--text);
+  box-shadow: 0 12px 30px  rgba(92, 54, 18, 0.34);
 }
 
 .eventCheck {
   width: 12px;
   height: 12px;
-  color: #ffffff;
+  color: var(--text);
 }
 
 .eventDot[data-tone='event'],
 .previewDot[data-tone='event'] {
-  background: #16d4b0;
+  background: var(--panel);
 }
 
 .eventDot[data-tone='habit'],
@@ -901,9 +901,9 @@
   gap: 10px;
   padding: 16px 18px 14px;
   border-radius: 22px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(26, 27, 35, 0.95);
-  box-shadow: 0 22px 36px rgba(0, 0, 0, 0.26);
+  border: 1px solid var(--stroke);
+  background: var(--panel);
+  box-shadow: 0 22px 36px  rgba(92, 54, 18, 0.26);
   transform: translateX(-50%);
   pointer-events: none;
   text-align: left;
@@ -932,13 +932,13 @@
 }
 
 .previewText {
-  color: rgba(255, 255, 255, 0.72);
+  color: var(--text-soft);
   font-size: 14px;
   line-height: 1.45;
 }
 
 .previewTime {
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--muted);
   font-size: 13px;
   font-weight: 600;
 }
@@ -952,7 +952,7 @@
   .event:hover .eventDot,
   .event:focus-visible .eventDot {
     transform: translate(-50%, -50%) scale(1.18);
-    box-shadow: 0 14px 32px rgba(0, 0, 0, 0.34);
+    box-shadow: 0 14px 32px  rgba(92, 54, 18, 0.34);
   }
 }
 
@@ -977,7 +977,7 @@
   padding: 0 14px;
   border-radius: 999px;
   background: #df7c17;
-  color: #ffffff;
+  color: var(--text);
   font-size: 13px;
   font-weight: 800;
   letter-spacing: -0.02em;
@@ -1020,7 +1020,7 @@
 }
 
 .scaleLabel {
-  color: rgba(255, 255, 255, 0.9);
+  color: var(--text);
   font-size: 13px;
   font-weight: 700;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.24);

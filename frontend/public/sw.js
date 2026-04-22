@@ -32,20 +32,26 @@ function urlBase64ToUint8Array(base64String) {
 }
 
 async function fetchPushPublicKey() {
-  const response = await fetch(PUSH_PUBLIC_KEY_URL, {
-    credentials: 'include',
-    cache: 'no-store',
-  });
+  try {
+    const response = await fetch(PUSH_PUBLIC_KEY_URL, {
+      credentials: 'include',
+      cache: 'no-store',
+    });
 
-  if (!response.ok) {
+    if (!response.ok) {
+      console.warn('[sw:push] public-key fetch non-ok', response.status);
+      return { enabled: false, publicKey: null };
+    }
+
+    const data = await response.json().catch(() => null);
+    return {
+      enabled: Boolean(data?.enabled && typeof data?.publicKey === 'string' && data.publicKey.trim()),
+      publicKey: typeof data?.publicKey === 'string' ? data.publicKey.trim() : null,
+    };
+  } catch (error) {
+    console.error('[sw:push] public-key fetch failed', error);
     return { enabled: false, publicKey: null };
   }
-
-  const data = await response.json().catch(() => null);
-  return {
-    enabled: Boolean(data?.enabled && typeof data?.publicKey === 'string' && data.publicKey.trim()),
-    publicKey: typeof data?.publicKey === 'string' ? data.publicKey.trim() : null,
-  };
 }
 
 async function saveSubscription(subscription) {
@@ -57,6 +63,8 @@ async function saveSubscription(subscription) {
   });
 
   if (!response.ok) {
+    const text = await response.text().catch(() => '');
+    console.error('[sw:push] subscribe failed', response.status, text);
     throw new Error(`Push subscribe failed with status ${response.status}`);
   }
 }

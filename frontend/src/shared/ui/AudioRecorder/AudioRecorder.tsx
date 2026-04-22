@@ -150,7 +150,7 @@ export function AudioRecorder({ onRecordingComplete, onCancel, className, varian
       const barHeight = Math.max(canvas.height * 0.16, value * canvas.height * 0.76);
       const x = i * (barWidth * 1.6) + 2;
       const y = centerY - barHeight / 2;
-      ctx.fillStyle = i % 3 === 0 ? 'rgba(255,255,255,0.88)' : 'rgba(255,255,255,0.58)';
+      ctx.fillStyle = i % 3 === 0 ? 'rgba(120, 72, 24, 0.78)' : 'rgba(120, 72, 24, 0.42)';
       ctx.beginPath();
       if (typeof ctx.roundRect === 'function') {
         ctx.roundRect(x, y, barWidth, barHeight, Math.min(barWidth / 2, 8));

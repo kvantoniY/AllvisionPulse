@@ -382,7 +382,7 @@ export function StoryViewer({
       <div className={styles.viewer}>
         <div className={styles.viewerInner}>
           <div key={current.id} className={styles.viewerStage}>
-            <div className={styles.viewerMediaBackdrop} style={{ background: current.transformJson?.backgroundFill ?? '#0b0b0e' }} />
+            <div className={styles.viewerMediaBackdrop} style={{ background: current.transformJson?.backgroundFill ?? 'var(--bg-canvas)' }} />
             <div className={styles.viewerMediaBlurFrame}>
               {current.mediaType.startsWith('video/') ? (
                 <video className={styles.viewerMediaBlurVideo} src={current.mediaUrl} playsInline muted preload="auto" style={{ objectFit: 'cover' }} />

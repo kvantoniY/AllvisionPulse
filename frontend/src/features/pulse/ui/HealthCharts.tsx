@@ -152,12 +152,12 @@ export function TrendAreaChart({
             allowDecimals={false}
           />
           <RechartsTooltip
-            cursor={{ stroke: 'rgba(255,255,255,0.12)' }}
+            cursor={{ stroke: 'rgba(120, 72, 24, 0.14)' }}
             contentStyle={{
-              background: '#181819',
-              border: '1px solid rgba(255,255,255,0.08)',
+              background: 'var(--panel)',
+              border: '1px solid var(--stroke)',
               borderRadius: 14,
-              color: '#fff',
+              color: 'var(--text)',
             }}
             formatter={(value: number | string, name: string) => {
               const nextValue = typeof value === 'number' ? value : Number(value);

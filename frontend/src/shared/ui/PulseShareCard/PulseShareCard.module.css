@@ -8,10 +8,10 @@
   gap: 10px;
   padding: 14px 16px;
   border-radius: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--surface-2);
   background:
     radial-gradient(ellipse at top right, rgba(255, 122, 26, 0.06), transparent 50%),
-    rgba(255, 255, 255, 0.025);
+    var(--surface-1);
   color: var(--text-soft);
   overflow: hidden;
 }
@@ -25,9 +25,9 @@
   border-color: rgba(255, 122, 26, 0.2);
   background:
     radial-gradient(ellipse at top right, rgba(255, 122, 26, 0.1), transparent 50%),
-    rgba(255, 255, 255, 0.04);
+    var(--surface-1);
   transform: translateY(-1px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 8px 24px  rgba(92, 54, 18, 0.12);
 }
 
 .interactive:active {
@@ -54,7 +54,7 @@
   line-height: 1;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.42);
+  color: var(--muted-2);
   font-weight: 600;
 }
 
@@ -71,7 +71,7 @@
 }
 
 .mode {
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--surface-2);
   color: rgba(255, 255, 255, 0.68);
 }
 
@@ -111,12 +111,12 @@
   padding: 10px 12px;
   border-radius: 12px;
   background: rgba(0, 0, 0, 0.18);
-  border: 1px solid rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--surface-1);
 }
 
 .statLabel {
   font-size: 10px;
-  color: rgba(255, 255, 255, 0.42);
+  color: var(--muted-2);
   text-transform: uppercase;
   letter-spacing: 0.04em;
   font-weight: 600;
@@ -142,8 +142,8 @@
   border-radius: 999px;
   display: inline-flex;
   align-items: center;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: var(--surface-1);
+  border: 1px solid var(--surface-2);
   color: rgba(255, 255, 255, 0.68);
   font-size: 12px;
   transition: background 120ms ease;
@@ -154,8 +154,8 @@
   gap: 8px;
   padding: 12px;
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.025);
-  border: 1px solid rgba(255, 255, 255, 0.04);
+  background: var(--surface-1);
+  border: 1px solid var(--surface-1);
 }
 
 .subtaskSectionHeader {
@@ -182,7 +182,7 @@
   padding: 10px 12px;
   border-radius: 12px;
   background: rgba(0, 0, 0, 0.14);
-  border: 1px solid rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--surface-1);
   transition: background 120ms ease;
 }
 
@@ -211,7 +211,7 @@
 .subtaskText span {
   font-size: 12px;
   line-height: 1.45;
-  color: rgba(255, 255, 255, 0.52);
+  color: var(--muted);
   white-space: pre-wrap;
 }
 
@@ -228,7 +228,7 @@
   border-radius: 999px;
   display: inline-flex;
   align-items: center;
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--surface-2);
   color: rgba(255, 255, 255, 0.68);
   font-size: 10px;
   font-weight: 700;
@@ -238,7 +238,7 @@
   display: grid;
   gap: 3px;
   font-size: 11px;
-  color: rgba(255, 255, 255, 0.52);
+  color: var(--muted);
 }
 
 .subtaskProgress {
@@ -251,7 +251,7 @@
   flex-wrap: wrap;
   gap: 10px;
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.52);
+  color: var(--muted);
 }
 
 .activityLine {
@@ -266,7 +266,7 @@
 
 .activityItem {
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--muted);
 }
 
 /* ── Actions ── */
@@ -284,8 +284,8 @@
   min-height: 34px;
   padding: 0 14px;
   border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--surface-2);
+  background: var(--surface-1);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -297,8 +297,8 @@
 }
 
 .actionLink:hover {
-  background: rgba(255, 255, 255, 0.07);
-  border-color: rgba(255, 255, 255, 0.1);
+  background: var(--surface-2);
+  border-color: var(--stroke);
 }
 
 .actionPrimary {
@@ -318,8 +318,8 @@
   gap: 10px;
   padding: 12px;
   border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid var(--surface-2);
+  background: var(--surface-1);
 }
 
 .inlineField {
@@ -331,7 +331,7 @@
   font-size: 10px;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.42);
+  color: var(--muted-2);
   font-weight: 600;
 }
 
@@ -341,7 +341,7 @@
   width: 100%;
   padding: 0 12px;
   border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--surface-2);
   background: rgba(0, 0, 0, 0.18);
   color: var(--text);
   font-size: 14px;
@@ -350,7 +350,7 @@
 
 .inlineField input:focus,
 .inlineField select:focus {
-  border-color: rgba(255, 255, 255, 0.14);
+  border-color: var(--stroke-strong);
   outline: none;
 }
 
@@ -375,8 +375,8 @@
   min-height: 30px;
   padding: 0 12px;
   border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--surface-2);
+  background: var(--surface-1);
   color: var(--text);
   font-size: 12px;
   font-weight: 700;
@@ -385,7 +385,7 @@
 }
 
 .settlementShortcut:hover {
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--surface-2);
 }
 
 /* ── Progress Section ── */
@@ -395,7 +395,7 @@
   padding: 10px 12px;
   border-radius: 12px;
   background: rgba(0, 0, 0, 0.12);
-  border: 1px solid rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--surface-1);
 }
 
 .progressHeader {
@@ -415,7 +415,7 @@
   position: relative;
   height: 6px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--surface-2);
   overflow: hidden;
 }
 
@@ -442,7 +442,7 @@
   gap: 3px;
   padding: 10px 12px;
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.025);
+  background: var(--surface-1);
   color: rgba(255, 255, 255, 0.58);
   font-size: 12px;
   line-height: 1.45;
@@ -453,13 +453,13 @@
   gap: 6px;
   padding: 10px 12px;
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.025);
-  border: 1px solid rgba(255, 255, 255, 0.03);
+  background: var(--surface-1);
+  border: 1px solid var(--surface-1);
   transition: background 120ms ease;
 }
 
 .participantRow:hover {
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--surface-1);
 }
 
 .participantHead {
@@ -503,7 +503,7 @@
 
 .participantMeta span {
   font-size: 11px;
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--muted);
   line-height: 1.4;
 }
 
@@ -514,7 +514,7 @@
   display: inline-flex;
   align-items: center;
   white-space: nowrap;
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--surface-2);
   color: rgba(255, 255, 255, 0.68);
   font-size: 10px;
   font-weight: 700;
@@ -552,7 +552,7 @@
   min-height: 84px;
   display: grid;
   place-items: center;
-  color: rgba(255, 255, 255, 0.48);
+  color: var(--muted);
   font-size: 13px;
 }
 
@@ -609,9 +609,9 @@
   min-width: 0;
   padding: 10px 12px;
   border-radius: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--surface-1);
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.015)),
+    linear-gradient(180deg, var(--surface-1), var(--surface-0)),
     rgba(8, 8, 10, 0.14);
 }
 
@@ -620,7 +620,7 @@
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.42);
+  color: var(--muted-2);
 }
 
 .snapshotSummaryItem strong {
@@ -635,8 +635,8 @@
 
 .participantsSummaryCollapsed {
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.02)),
-    rgba(255, 255, 255, 0.02);
+    linear-gradient(180deg, var(--surface-1), var(--surface-1)),
+    var(--surface-1);
 }
 
 .participantsSummaryCollapsed span:nth-child(n + 3) {
@@ -644,26 +644,26 @@
 }
 
 .participantsSummaryExpanded {
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--surface-1);
 }
 
 .card {
   border-radius: 18px;
-  border-color: rgba(255, 255, 255, 0.07);
+  border-color: var(--surface-2);
   background:
     radial-gradient(circle at top right, rgba(255, 122, 26, 0.08), transparent 34%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.015)),
+    linear-gradient(180deg, var(--surface-1), var(--surface-0)),
     #161618;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  box-shadow: inset 0 1px 0 var(--surface-1);
 }
 
 .interactive:hover {
   border-color: rgba(255, 122, 26, 0.24);
   background:
     radial-gradient(circle at top right, rgba(255, 122, 26, 0.12), transparent 34%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.02)),
+    linear-gradient(180deg, var(--surface-1), var(--surface-1)),
     #18181b;
-  box-shadow: 0 18px 38px rgba(0, 0, 0, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  box-shadow: 0 18px 38px  rgba(92, 54, 18, 0.24), inset 0 1px 0 var(--surface-1);
 }
 
 .stat,
@@ -674,9 +674,9 @@
 .subtaskRow,
 .inlineForm {
   border-radius: 14px;
-  border-color: rgba(255, 255, 255, 0.05);
+  border-color: var(--surface-2);
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.028), rgba(255, 255, 255, 0.014)),
+    linear-gradient(180deg, var(--surface-1), rgba(255, 255, 255, 0.014)),
     rgba(0, 0, 0, 0.16);
 }
 
@@ -721,9 +721,11 @@
 .subtaskRow,
 .inlineForm,
 .snapshotSummaryItem {
-  background: #181819;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  box-shadow: none;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.5), rgba(255,255,255,0.14)),
+    var(--panel);
+  border: 1px solid var(--stroke-soft);
+  box-shadow: var(--shadow-xs);
 }
 
 .interactive:hover,
@@ -733,17 +735,159 @@
 
 .subtaskChip,
 .participantStatus,
-.mode,
+.mode {
+  background: rgba(255,255,255,0.78);
+  border: 1px solid var(--stroke-soft);
+  color: var(--text-soft);
+}
+
 .statusBadge {
-  background: #232326;
-  border: 0;
-  color: rgba(255, 255, 255, 0.7);
+  background: var(--accent-softer);
+  border: 1px solid rgba(255, 109, 10, 0.18);
+  color: var(--accent-strong);
 }
 
 .progressBar {
-  background: #242428;
+  background: rgba(60, 42, 18, 0.1);
 }
 
 .progressFill {
-  background: rgba(255, 255, 255, 0.9);
+  background: linear-gradient(90deg, var(--accent), var(--accent-strong));
+}
+
+.interactive:hover {
+  border-color: rgba(255, 109, 10, 0.28);
+  box-shadow: var(--shadow-sm);
+}
+
+.description,
+.activityLine,
+.settlementHintRow,
+.progressHeader,
+.participantsSummary,
+.participantAmounts,
+.subtaskSectionHeader,
+.subtaskBadge,
+.subtaskChip,
+.participantStatus,
+.mode {
+  color: var(--muted);
+}
+
+.stat,
+.progressSection,
+.participantsSummary,
+.participantRow,
+.subtaskSection,
+.subtaskRow,
+.inlineForm,
+.snapshotSummaryItem,
+.participantsSummaryCollapsed,
+.participantsSummaryExpanded {
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.84), rgba(255,255,255,0.58)),
+    var(--panel-white);
+  border-color: var(--stroke-soft);
+}
+
+.subtaskBadge {
+  background: rgba(255,255,255,0.82);
+  border: 1px solid var(--stroke-soft);
+}
+
+.inlineField input,
+.inlineField select {
+  background: rgba(255,255,255,0.9);
+  border: 1px solid var(--stroke-soft);
+}
+
+.inlineField input:focus,
+.inlineField select:focus {
+  border-color: var(--stroke-accent);
+  box-shadow: 0 0 0 4px rgba(255, 109, 10, 0.08);
+}
+
+.error {
+  border-color: rgba(220, 38, 38, 0.16);
+  background: rgba(220, 38, 38, 0.08);
+  color: #9b3e2e;
+}
+
+.flat {
+  gap: 12px;
+  padding: 18px 20px;
+  border-radius: 20px;
+  border-color: var(--stroke-soft);
+  background: rgba(255, 255, 255, 0.52);
+  box-shadow: none;
+}
+
+.flat.interactive:hover {
+  border-color: var(--stroke);
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: none;
+}
+
+.flat .eyebrow,
+.flat .description,
+.flat .activityLine,
+.flat .settlementHintRow,
+.flat .progressHeader,
+.flat .participantsSummary,
+.flat .participantAmounts,
+.flat .subtaskSectionHeader,
+.flat .subtaskBadge,
+.flat .subtaskChip,
+.flat .participantStatus,
+.flat .mode,
+.flat .snapshotSummaryLabel {
+  color: var(--muted);
+}
+
+.flat .mode,
+.flat .statusBadge,
+.flat .subtaskChip,
+.flat .participantStatus,
+.flat .subtaskBadge {
+  background: rgba(255, 255, 255, 0.76);
+  border: 1px solid var(--stroke-soft);
+}
+
+.flat .statusBadge {
+  background: var(--accent-softer);
+  color: var(--accent-strong);
+}
+
+.flat .stat,
+.flat .progressSection,
+.flat .participantsSummary,
+.flat .participantRow,
+.flat .subtaskSection,
+.flat .subtaskRow,
+.flat .inlineForm,
+.flat .snapshotSummaryItem,
+.flat .participantsSummaryCollapsed,
+.flat .participantsSummaryExpanded {
+  border-color: var(--stroke-soft);
+  background: rgba(255, 255, 255, 0.74);
+  box-shadow: none;
+}
+
+.flat .progressBar {
+  background: rgba(60, 42, 18, 0.08);
+}
+
+.flat .progressFill {
+  background: var(--accent);
+}
+
+.flat .participantAvatar {
+  background: rgba(255, 109, 10, 0.1);
+  color: var(--accent-strong);
+}
+
+.flat .actionButton,
+.flat .actionLink,
+.flat .settlementShortcut {
+  box-shadow: none;
 }

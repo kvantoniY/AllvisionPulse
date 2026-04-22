@@ -1,7 +1,7 @@
 'use client';
 
 import { PropsWithChildren } from 'react';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import styles from './AppShell.module.css';
 import { Sidebar } from '@/widgets/sidebar/ui/Sidebar';
 import { BottomNav } from '@/widgets/bottomNav/ui/BottomNav';
@@ -10,9 +10,12 @@ import { NotificationExperienceBanner } from '@/features/notifications/ui/Notifi
 
 export function AppShell({ children }: PropsWithChildren) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const isMessagesRoute = pathname.startsWith('/messages');
   const isMobileImmersiveRoute = /^\/messages\/[^/]+$/.test(pathname);
   const isHealthRoute = pathname.startsWith('/health');
+  const pulseTab = searchParams.get('tab');
+  const isPulseGameRoute = isHealthRoute && (pulseTab == null || pulseTab === 'pulse');
 
   return (
     <div className={styles.shell}>
@@ -23,10 +26,11 @@ export function AppShell({ children }: PropsWithChildren) {
           className={[
             styles.content,
             isMobileImmersiveRoute ? styles.contentMobileImmersive : '',
-            isHealthRoute ? styles.contentHealth : '',
+            isPulseGameRoute ? styles.contentPulseGame : '',
+            isHealthRoute && !isPulseGameRoute ? styles.contentHealth : '',
           ].filter(Boolean).join(' ')}
         >
-          {!isMessagesRoute ? <NotificationExperienceBanner /> : null}
+          {!isMessagesRoute && !isPulseGameRoute ? <NotificationExperienceBanner /> : null}
           {children}
         </div>
       </div>

@@ -1,11 +1,12 @@
 .card {
   position: relative;
-  background: linear-gradient(180deg, rgba(14, 16, 20, 0.97), rgba(10, 12, 16, 0.99));
+  background: var(--panel);
   border: 1px solid var(--stroke);
   border-radius: var(--radius-xl);
   padding: 20px;
   overflow: hidden;
-  transition: border-color var(--dur) var(--ease), background var(--dur) var(--ease);
+  box-shadow: var(--shadow-xs);
+  transition: border-color var(--dur) var(--ease), background var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
 }
 
 .card:hover {

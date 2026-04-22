@@ -5,7 +5,7 @@
   right: 0;
   z-index: 30;
   border-bottom: 1px solid var(--stroke-soft);
-  background: #141414;
+  background: var(--bg);
   backdrop-filter: blur(12px);
 }
 
@@ -79,13 +79,14 @@
 .mobileCircleBtn {
   width: 36px;
   height: 36px;
-  border: 1px solid var(--stroke);
-  background: var(--surface-0);
-  color: var(--muted);
+  border: 1px solid var(--stroke-soft);
+  background: var(--panel);
+  color: var(--text-soft);
   border-radius: var(--radius-sm);
   display: grid;
   place-items: center;
   cursor: pointer;
+  box-shadow: var(--shadow-xs);
   transition: background 130ms ease, border-color 130ms ease, color 130ms ease;
 }
 
@@ -133,13 +134,13 @@
 /* ── Mobile header variant ── */
 .headerMobile {
   border-bottom: 1px solid var(--stroke-soft);
-  background: #141414;
+  background: var(--bg);
 }
 
 .innerMobile {
   min-height: var(--mobile-header-height);
   padding-top: max(12px, env(safe-area-inset-top, 0px));
-  padding-right: max(calc(var(--page-gutter-mobile) + 6px), calc(env(safe-area-inset-right, 0px) + 18px));
+  padding-right: max(var(--page-gutter-mobile), calc(env(safe-area-inset-right, 0px) + 12px));
   padding-bottom: 10px;
   padding-left: max(var(--page-gutter-mobile), calc(env(safe-area-inset-left, 0px) + 12px));
 }

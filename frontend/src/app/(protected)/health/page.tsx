@@ -84,6 +84,7 @@ import {
 import { computeMentalPulse7, computeMentalScore } from '@/shared/lib/health';
 import type { PulseFinanceEntry, PulseFinanceShareMeta, PulseFood, PulseMeal, PulseMealItem, PulseTaskGoal, PulseTaskItem } from '@/shared/types/pulse';
 import { DiaryTimelineBoard } from '@/features/dailyPlanner/ui/DiaryTimelineBoard';
+import { PulseGamePage } from '@/features/pulseGame/ui/PulseGamePage';
 import { ProgramTodayWidget } from '@/features/programs/ui/ProgramTodayWidget';
 import { Field, FinanceComparisonMetricCard, FinanceEntryCompactRow, FinanceShareParticipants, HealthSlider, MiniRing, PulseIcon, Segmented, SliderCard } from '@/features/pulse/ui/HealthPageWidgets';
 import type { PulseIconName } from '@/features/pulse/ui/HealthPageWidgets';
@@ -1255,10 +1256,14 @@ function NutritionFigureIllustration() {
   );
 }
 
-export default function HealthPage() {
+function HealthLegacyPage() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const requestedMainTab = searchParams.get('tab');
+  const requestedHealthSubTab = searchParams.get('healthTab');
+  const requestedFinanceSubTab = searchParams.get('financeTab');
+  const requestedTaskFilter = searchParams.get('taskFilter');
+  const isImmersiveGame = searchParams.get('source') === 'game';
   const today = useMemo(() => fmtDate(new Date()), []);
   const [selectedDate, setSelectedDate] = useState(today);
   const [mainTab, setMainTab] = useState<'pulse' | 'health' | 'tasks' | 'finance' | 'programs' | 'analytics' | 'config'>(() => {
@@ -1267,8 +1272,21 @@ export default function HealthPage() {
     }
     return 'pulse';
   });
-  const [healthSubTab, setHealthSubTab] = useState<'mental' | 'nutrition'>('mental');
-  const [financeSubTab, setFinanceSubTab] = useState<'expenses' | 'income' | 'savings' | 'debts' | 'stats'>('expenses');
+  const [healthSubTab, setHealthSubTab] = useState<'mental' | 'nutrition'>(() =>
+    requestedHealthSubTab === 'nutrition' ? 'nutrition' : 'mental',
+  );
+  const [financeSubTab, setFinanceSubTab] = useState<'expenses' | 'income' | 'savings' | 'debts' | 'stats'>(() => {
+    if (
+      requestedFinanceSubTab === 'income' ||
+      requestedFinanceSubTab === 'savings' ||
+      requestedFinanceSubTab === 'debts' ||
+      requestedFinanceSubTab === 'stats'
+    ) {
+      return requestedFinanceSubTab;
+    }
+
+    return 'expenses';
+  });
   const [financeRange, setFinanceRange] = useState<'DAY' | 'MONTH' | 'YEAR'>('DAY');
   const [taskViewMode, setTaskViewMode] = useState<'list' | 'timeline'>('list');
   const [plannerMode, setPlannerMode] = useState<'day' | 'week'>('day');
@@ -1447,7 +1465,13 @@ export default function HealthPage() {
   const [taskEditingId, setTaskEditingId] = useState<string | null>(null);
   const [taskDetailsItem, setTaskDetailsItem] = useState<PulseTaskItem | null>(null);
   const [goalModalOpen, setGoalModalOpen] = useState(false);
-  const [taskFilter, setTaskFilter] = useState<'ALL' | 'TASKS' | 'HABITS'>('ALL');
+  const [taskFilter, setTaskFilter] = useState<'ALL' | 'TASKS' | 'HABITS'>(() => {
+    if (requestedTaskFilter === 'TASKS' || requestedTaskFilter === 'HABITS') {
+      return requestedTaskFilter;
+    }
+
+    return 'ALL';
+  });
   const [showScheduledTasksInList, setShowScheduledTasksInList] = useState(true);
   const [showCompletedTasks, setShowCompletedTasks] = useState(false);
   const [showPulseCompletedTasks, setShowPulseCompletedTasks] = useState(false);
@@ -1656,6 +1680,41 @@ export default function HealthPage() {
       setMainTab(nextTab);
     }
   }, [requestedMainTab, visibleTabs, mainTab]);
+
+  useEffect(() => {
+    const nextHealthTab =
+      requestedHealthSubTab === 'nutrition' ? 'nutrition' : requestedHealthSubTab === 'mental' ? 'mental' : null;
+
+    if (nextHealthTab && nextHealthTab !== healthSubTab) {
+      setHealthSubTab(nextHealthTab);
+    }
+  }, [requestedHealthSubTab, healthSubTab]);
+
+  useEffect(() => {
+    const nextFinanceTab =
+      requestedFinanceSubTab === 'income' ||
+      requestedFinanceSubTab === 'savings' ||
+      requestedFinanceSubTab === 'debts' ||
+      requestedFinanceSubTab === 'stats' ||
+      requestedFinanceSubTab === 'expenses'
+        ? requestedFinanceSubTab
+        : null;
+
+    if (nextFinanceTab && nextFinanceTab !== financeSubTab) {
+      setFinanceSubTab(nextFinanceTab);
+    }
+  }, [requestedFinanceSubTab, financeSubTab]);
+
+  useEffect(() => {
+    const nextTaskFilter =
+      requestedTaskFilter === 'TASKS' || requestedTaskFilter === 'HABITS' || requestedTaskFilter === 'ALL'
+        ? requestedTaskFilter
+        : null;
+
+    if (nextTaskFilter && nextTaskFilter !== taskFilter) {
+      setTaskFilter(nextTaskFilter);
+    }
+  }, [requestedTaskFilter, taskFilter]);
 
   const isHealthEnabled = config?.healthEnabled ?? true;
   const isMentalEnabled = config?.mentalEnabled ?? true;
@@ -3359,8 +3418,15 @@ export default function HealthPage() {
   };
 
   return (
-    <div className={styles.page}>
+    <div className={styles.page} data-immersive={isImmersiveGame ? 'pulse' : undefined}>
       <header className={styles.pulseShellHeader}>
+        {isImmersiveGame ? (
+          <div className={styles.pulseShellToolbar}>
+            <Link href="/health" className={styles.pulseShellBack}>
+              Вернуться в комнату
+            </Link>
+          </div>
+        ) : null}
         <div className={styles.pulseShellTitleWrap}>
           <h1 className={styles.pulseShellTitle}>{mainTabMeta.title}</h1>
           <div className={styles.pulseCalendarRail}>
@@ -5822,4 +5888,12 @@ export default function HealthPage() {
       </Modal>
     </div>
   );
+}
+
+export default function HealthPage() {
+  const searchParams = useSearchParams();
+  const requestedTab = searchParams.get('tab');
+  const useLegacy = requestedTab != null && requestedTab !== 'pulse';
+  if (useLegacy) return <HealthLegacyPage />;
+  return <PulseGamePage />;
 }

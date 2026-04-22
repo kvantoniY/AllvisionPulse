@@ -1,14 +1,14 @@
 /* ── AudioMessage — Telegram-style voice message ── */
 
 .audio {
-  --am-accent: #ffb05c;
-  --am-accent-soft: rgba(255, 176, 92, 0.18);
-  --am-bar: rgba(255, 255, 255, 0.16);
+  --am-accent: var(--accent);
+  --am-accent-soft: var(--accent-soft);
+  --am-bar: rgba(120, 72, 24, 0.22);
   --am-bar-active: var(--am-accent);
-  --am-surface: linear-gradient(180deg, rgba(30, 31, 35, 0.97), rgba(22, 23, 27, 0.96));
-  --am-border: rgba(255, 255, 255, 0.06);
-  --am-text: rgba(255, 249, 243, 0.94);
-  --am-muted: rgba(255, 255, 255, 0.46);
+  --am-surface: var(--panel);
+  --am-border: var(--stroke-soft);
+  --am-text: var(--text);
+  --am-muted: var(--muted);
 
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
@@ -20,19 +20,21 @@
   border-radius: 20px;
   border: 1px solid var(--am-border);
   background: var(--am-surface);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.16);
+  box-shadow: var(--shadow-xs);
 }
 
 .audio[data-tone='outgoing'] {
-  --am-accent: #7ec8f0;
-  --am-accent-soft: rgba(126, 200, 240, 0.16);
-  --am-bar-active: #7ec8f0;
+  --am-accent: var(--accent);
+  --am-accent-soft: var(--accent-soft);
+  --am-bar-active: var(--accent);
+  --am-surface: var(--accent-soft);
+  --am-border: var(--stroke-accent);
 }
 
 .audio[data-phase='error'] {
-  --am-accent: #ff7676;
-  --am-accent-soft: rgba(255, 118, 118, 0.16);
-  --am-bar-active: #ff7676;
+  --am-accent: var(--danger);
+  --am-accent-soft: var(--danger-soft);
+  --am-bar-active: var(--danger);
 }
 
 /* ── play button ── */
@@ -45,8 +47,8 @@
   display: grid;
   place-items: center;
   background: var(--am-accent);
-  color: rgba(0, 0, 0, 0.82);
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(255, 130, 29, 0.25);
   cursor: pointer;
   transition: transform 120ms ease, box-shadow 140ms ease, opacity 140ms ease;
   touch-action: manipulation;
@@ -55,7 +57,7 @@
 
 .playBtn:hover:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.22);
+  box-shadow: 0 6px 18px rgba(255, 130, 29, 0.32);
 }
 
 .playBtn:active:not(:disabled) {
@@ -168,9 +170,9 @@
 .speedBtn {
   height: 22px;
   padding: 0 8px;
-  border: 1px solid rgba(255, 255, 255, 0.10);
+  border: 1px solid var(--stroke);
   border-radius: 11px;
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--surface-1);
   color: var(--am-text);
   font-size: 11px;
   font-weight: 700;
@@ -182,7 +184,7 @@
 }
 
 .speedBtn:hover {
-  background: rgba(255, 255, 255, 0.10);
+  background: var(--surface-2);
 }
 
 .speedBtn:active {
@@ -201,8 +203,8 @@
   width: 18px;
   height: 18px;
   border-radius: 50%;
-  border: 2.5px solid rgba(0, 0, 0, 0.15);
-  border-top-color: rgba(0, 0, 0, 0.7);
+  border: 2.5px solid var(--stroke-strong);
+  border-top-color: #fff;
   animation: spin 0.8s linear infinite;
 }
 

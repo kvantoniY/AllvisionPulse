@@ -23,7 +23,7 @@
 }
 
 .cardFlat {
-  padding: 18px var(--feed-card-inline-padding, 0px) 22px;
+  padding: 16px var(--feed-card-inline-padding, 0px) 18px;
   border: 0 !important;
   border-radius: 0 !important;
   background: transparent !important;
@@ -31,7 +31,7 @@
   overflow: visible !important;
   content-visibility: visible;
   contain: none;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.07) !important;
+  border-bottom: 1px solid var(--stroke-soft) !important;
 }
 
 .cardFlat::before,
@@ -132,7 +132,7 @@
   padding: 6px;
   border-radius: var(--radius-md);
   border: 1px solid var(--stroke);
-  background: rgba(10, 12, 16, 0.99);
+  background: var(--panel);
   box-shadow: var(--shadow-sm);
   display: grid;
   gap: 2px;
@@ -178,8 +178,8 @@
   margin-top: 12px;
   padding: 12px 14px;
   border-radius: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid var(--surface-2);
+  background: var(--surface-1);
   display: flex;
   justify-content: space-between;
   gap: 12px;
@@ -193,6 +193,73 @@
   width: 100%;
   margin-top: 12px;
   max-width: 100%;
+}
+
+.cardFlat .author {
+  gap: 10px;
+}
+
+.cardFlat .menuBtn {
+  width: 30px;
+  height: 30px;
+  border-color: transparent;
+  border-radius: 12px;
+}
+
+.cardFlat .menuBtn:hover {
+  background: rgba(255, 255, 255, 0.72);
+  border-color: var(--stroke-soft);
+}
+
+.cardFlat .text {
+  margin-top: 10px;
+  line-height: 1.52;
+  color: var(--text);
+}
+
+.cardFlat .widget {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  border-color: var(--stroke-soft);
+  background: rgba(255, 255, 255, 0.46);
+}
+
+.cardFlat .pulseWidgetCard,
+.cardFlat .repostWrap,
+.cardFlat .mediaSingle,
+.cardFlat .galleryWrap {
+  margin-top: 10px;
+}
+
+.cardFlat .mediaSingle {
+  border-radius: 16px;
+  border-color: var(--stroke-soft);
+  background: rgba(255, 255, 255, 0.34);
+}
+
+.cardFlat .quoteCard {
+  padding: 14px;
+  border-radius: 16px;
+  border-color: var(--stroke-soft);
+  background: rgba(255, 255, 255, 0.48);
+}
+
+.cardFlat .quoteOpenBtn {
+  border-color: var(--stroke-soft);
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.cardFlat .footer {
+  margin-top: 10px;
+}
+
+.cardFlat .actions {
+  gap: 16px;
+}
+
+.cardFlat .actionStat {
+  font-size: 12px;
 }
 
 .widgetTitle {
@@ -227,8 +294,8 @@
 .mediaSingle {
   border-radius: 18px;
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--surface-2);
+  background: var(--surface-1);
 }
 
 .singleImage,
@@ -237,7 +304,7 @@
   display: block;
   object-fit: contain;
   cursor: zoom-in;
-  background: #050608;
+  background: var(--bg);
 }
 
 .singleImage {
@@ -246,8 +313,8 @@
 
 .quoteCard {
   border-radius: 18px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  background: linear-gradient(180deg, rgba(15, 17, 20, 0.94), rgba(10, 12, 15, 0.98));
+  border: 1px solid var(--stroke-soft);
+  background: var(--bg-canvas);
   padding: 12px;
 }
 
@@ -338,8 +405,8 @@
   min-height: 34px;
   padding: 0 12px;
   border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid var(--surface-2);
+  background: var(--surface-1);
   color: var(--text-soft);
   display: inline-flex;
   align-items: center;
@@ -351,7 +418,7 @@
 
 .quoteOpenBtn:hover {
   color: var(--text);
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--surface-2);
 }
 
 .quoteOpenIcon {
@@ -442,7 +509,7 @@
   width: 100%;
   padding: 0 var(--feed-card-inline-padding, 16px) 18px;
   contain-intrinsic-size: 520px auto;
-  margin: 0 0 16px;
+  margin: 0;
   border: 0 !important;
   border-radius: 0 !important;
   background: transparent !important;
@@ -475,7 +542,7 @@
 }
 
 .quoteCardMobile {
-  background: rgba(255,255,255,0.025);
+  background: var(--surface-1);
 }
 
 @media (max-width: 900px) {
@@ -494,9 +561,9 @@
 
   .cardMobile .mediaSingle {
     border-radius: 16px;
-    border-left: 1px solid rgba(255, 255, 255, 0.06);
-    border-right: 1px solid rgba(255, 255, 255, 0.06);
-    background: #050608;
+    border-left: 1px solid var(--surface-2);
+    border-right: 1px solid var(--surface-2);
+    background: var(--bg);
   }
 
   .cardMobile .singleImage {

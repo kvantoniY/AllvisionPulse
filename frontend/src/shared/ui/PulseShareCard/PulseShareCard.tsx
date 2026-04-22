@@ -20,6 +20,7 @@ type Props = {
   artifact?: Partial<PulseShareEmbedArtifact> | null;
   compact?: boolean;
   interactive?: boolean;
+  surface?: 'default' | 'flat';
   className?: string;
 };
 
@@ -216,7 +217,7 @@ function settlementActionLabel(actionType?: string | null, sourceType?: string |
   return 'Погасить вручную';
 }
 
-export function PulseShareCard({ artifactId, artifact, compact = false, interactive = true, className = '' }: Props) {
+export function PulseShareCard({ artifactId, artifact, compact = false, interactive = true, surface = 'default', className = '' }: Props) {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [settlementOpen, setSettlementOpen] = useState(false);
@@ -414,7 +415,7 @@ export function PulseShareCard({ artifactId, artifact, compact = false, interact
   }
 
   return (
-    <div className={[styles.card, compact ? styles.compact : '', interactive ? styles.interactive : '', className].filter(Boolean).join(' ')} data-message-interactive="true">
+    <div className={[styles.card, surface === 'flat' ? styles.flat : '', compact ? styles.compact : '', interactive ? styles.interactive : '', className].filter(Boolean).join(' ')} data-message-interactive="true">
       <div className={styles.top}>
         <div>
           <div className={styles.eyebrow}>{snapshot.label}</div>

@@ -1,0 +1,242 @@
+.hud {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 10px;
+  align-items: center;
+  padding: 8px 12px;
+  background: transparent;
+  border: 0;
+  border-radius: 24px;
+  box-shadow: none;
+  z-index: 3;
+}
+
+.levelBadge {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  border: 0;
+  border-radius: 16px;
+  background: #ffb061;
+  border: 1px solid rgba(152, 90, 27, 0.32);
+  color: #4a2810;
+  font-weight: 800;
+  font-size: 12px;
+  cursor: pointer;
+  box-shadow: none;
+  transition: background 0.18s ease, border-color 0.18s ease;
+}
+
+.levelBadge:hover {
+  background: #ffbc74;
+  border-color: rgba(152, 90, 27, 0.38);
+}
+
+.levelBadge span {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1;
+  gap: 1px;
+}
+
+.levelBadge strong {
+  font-size: 15px;
+  letter-spacing: 0.04em;
+}
+
+.levelBadge em {
+  font-style: normal;
+  font-size: 9px;
+  opacity: 0.72;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.levelSpark {
+  position: absolute;
+  top: -6px;
+  right: -4px;
+  width: 18px;
+  height: 18px;
+  color: #dc7d2f;
+}
+
+.identity {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  padding: 5px 8px;
+  border-radius: 18px;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+
+.identityHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.nick {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--game-ink-1);
+  letter-spacing: 0.01em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.scorePill {
+  display: inline-flex;
+  gap: 4px;
+  align-items: baseline;
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+  color: var(--game-ink-2);
+}
+
+.scorePill strong {
+  font-size: 14px;
+  color: var(--game-ink-1);
+}
+
+.scenarioTag {
+  font-size: 10px;
+  color: var(--game-ink-3);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.progressBar {
+  position: relative;
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(220, 185, 128, 0.35);
+  cursor: pointer;
+  border: 1px solid rgba(184, 144, 80, 0.22);
+  overflow: hidden;
+  transition: background 0.18s ease;
+}
+
+.progressFill {
+  position: absolute;
+  inset: 0;
+  width: var(--p, 0%);
+  background: #ed8431;
+  border-radius: 999px;
+  transition: width 0.35s ease;
+}
+
+.game[data-scenario='tired'] .progressFill {
+  background: #7180bc;
+}
+
+.game[data-scenario='active'] .progressFill {
+  background: #63b97f;
+}
+
+.hudActions {
+  display: inline-flex;
+  gap: 5px;
+}
+
+.iconBtn {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  border: 1px solid var(--stroke-soft);
+  background: var(--panel-2);
+  color: var(--muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.18s ease, color 0.18s ease, border-color 0.18s ease;
+}
+
+.iconBtn:hover {
+  background: var(--panel-3);
+  border-color: var(--stroke);
+  color: var(--text);
+}
+
+.iconBtn svg { width: 18px; height: 18px; }
+
+.demoTag {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(143, 104, 48, 0.8);
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(255, 236, 185, 0.76);
+  border: 1px solid rgba(184, 144, 80, 0.18);
+}
+
+.hud {
+  overflow: visible;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+
+.levelBadge { color: #4a2810; }
+
+.identity {
+  background: transparent;
+  border: 0;
+}
+
+.scorePill {
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: transparent;
+  border: 0;
+}
+
+.scenarioTag {
+  letter-spacing: 0.11em;
+  color: rgba(107, 88, 57, 0.9);
+}
+
+.progressBar {
+  height: 10px;
+  background: rgba(220, 185, 128, 0.28);
+}
+
+.progressFill {
+  position: absolute;
+  overflow: hidden;
+}
+
+.hudActions {
+  gap: 6px;
+}
+
+.iconBtn {
+  background: var(--panel-2);
+}
+
+@media (max-width: 720px) {
+  .hud {
+    grid-template-columns: auto 1fr auto;
+    padding: 7px 9px;
+    border-radius: 18px;
+  }
+
+  .identity { padding: 4px 8px; }
+  .nick { font-size: 14px; }
+  .levelBadge { width: 46px; height: 46px; border-radius: 13px; }
+  .iconBtn { width: 36px; height: 36px; border-radius: 11px; }
+  .demoTag { font-size: 9px; }
+}

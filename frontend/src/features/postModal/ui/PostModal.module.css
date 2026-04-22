@@ -2,7 +2,7 @@
   position: fixed;
   inset: 0;
   z-index: 150;
-  background: rgba(2, 4, 7, 0.94);
+  background: var(--overlay-scrim);
   display: grid;
   place-items: center;
   overscroll-behavior: contain;
@@ -16,8 +16,8 @@
   width: 48px;
   height: 48px;
   border-radius: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(7, 9, 12, 0.78);
+  border: 1px solid var(--stroke);
+  background: var(--panel);
   color: var(--text);
   display: grid;
   place-items: center;
@@ -35,9 +35,9 @@
   grid-template-rows: minmax(0, 1fr) auto;
   border-radius: 28px;
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  background: linear-gradient(180deg, rgba(10, 12, 16, 0.98), rgba(6, 8, 12, 0.99));
-  box-shadow: 0 18px 46px rgba(0, 0, 0, 0.28);
+  border: 1px solid var(--stroke);
+  background: linear-gradient(180deg, rgba(255, 251, 243, 0.98), rgba(241, 230, 197, 0.98));
+  box-shadow: var(--shadow-lg);
   overscroll-behavior: contain;
 }
 
@@ -58,10 +58,10 @@
 .mediaPane {
   width: 100%;
   min-width: 0;
-  background: #020304;
+  background: linear-gradient(180deg, rgba(255,255,255,0.38), rgba(255,255,255,0.08)), var(--panel);
   display: block;
   overflow: hidden;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid var(--stroke-soft);
 }
 
 .mediaPaneSingle {
@@ -81,7 +81,7 @@
   display: grid;
   place-items: center;
   overscroll-behavior: contain;
-  background: #000;
+  background: linear-gradient(180deg, rgba(234, 221, 178, 0.46), rgba(241, 230, 197, 0.94));
   overflow: hidden;
 }
 
@@ -92,7 +92,7 @@
   display: grid;
   align-content: start;
   flex: none;
-  background: linear-gradient(180deg, rgba(10, 12, 16, 0.98), rgba(6, 8, 12, 0.99));
+  background: linear-gradient(180deg, rgba(255,255,255,0.34), rgba(255,255,255,0.08)), var(--panel);
 }
 
 .mediaPane {
@@ -107,7 +107,7 @@
   max-height: min(72vh, 760px);
   object-fit: contain;
   cursor: zoom-in;
-  background: #000;
+  background: transparent;
 }
 
 .postSkeleton {
@@ -120,8 +120,8 @@
   display: grid;
   gap: 10px;
   padding: 18px 24px 16px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-  background: linear-gradient(180deg, rgba(9, 11, 15, 0.98), rgba(7, 9, 13, 0.99));
+  border-bottom: 1px solid var(--stroke-soft);
+  background: linear-gradient(180deg, rgba(255,255,255,0.52), rgba(255,255,255,0.12));
 }
 
 .postMetaRow {
@@ -172,13 +172,14 @@
   width: 36px;
   height: 36px;
   border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  background: rgba(255, 255, 255, 0.03);
-  color: var(--muted);
+  border: 1px solid var(--stroke-soft);
+  background: rgba(255,255,255,0.82);
+  color: var(--text-soft);
   display: grid;
   place-items: center;
   overscroll-behavior: contain;
   cursor: pointer;
+  box-shadow: var(--shadow-xs);
 }
 
 .description {
@@ -200,7 +201,7 @@
   padding: 0;
   border: none;
   background: transparent;
-  color: #6da8ff;
+  color: var(--accent-strong);
   font-size: 13px;
   font-weight: 700;
   text-align: left;
@@ -264,8 +265,8 @@
 .commentDelete,
 .inputToolBtn,
 .replyChipClose {
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--surface-2);
+  background: var(--surface-1);
   color: var(--muted);
   cursor: pointer;
 }
@@ -307,8 +308,8 @@
   min-height: 32px;
   padding: 0 10px;
   border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--surface-2);
+  background: var(--surface-1);
   color: var(--muted);
   display: inline-flex;
   align-items: center;
@@ -323,9 +324,9 @@
   min-width: 180px;
   padding: 6px;
   border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(10, 12, 16, 0.98);
-  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.34);
+  border: 1px solid var(--stroke);
+  background: var(--panel);
+  box-shadow: 0 18px 40px  rgba(92, 54, 18, 0.34);
   display: grid;
   gap: 4px;
 }
@@ -341,7 +342,7 @@
 }
 
 .sortOptionActive {
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--surface-2);
   color: var(--text);
 }
 
@@ -361,7 +362,7 @@
   display: grid;
   gap: 10px;
   padding-left: 12px;
-  border-left: 1px solid rgba(255, 255, 255, 0.06);
+  border-left: 1px solid var(--surface-2);
 }
 
 .comment {
@@ -452,9 +453,9 @@
 .commentImg {
   width: 100%;
   border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--surface-2);
   object-fit: contain;
-  background: #050608;
+  background: var(--bg);
   aspect-ratio: 1 / 1;
   cursor: zoom-in;
 }
@@ -503,8 +504,8 @@
   align-items: center;
   gap: 10px;
   padding: 14px 24px calc(16px + env(safe-area-inset-bottom, 0px));
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
-  background: rgba(10, 12, 16, 0.98);
+  border-top: 1px solid var(--surface-2);
+  background: var(--panel);
 }
 
 .commentInputWrap {
@@ -521,7 +522,7 @@
   min-height: 28px;
   padding: 0 10px;
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--surface-1);
   color: var(--muted);
   width: fit-content;
   font-size: 12px;
@@ -551,14 +552,14 @@
   min-width: 64px;
   border-radius: 12px;
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--stroke);
 }
 
 .attachmentImage {
   width: 100%;
   height: 100%;
   object-fit: contain;
-  background: #050608;
+  background: var(--bg);
 }
 
 .attachmentRemove {
@@ -568,13 +569,14 @@
   width: 20px;
   height: 20px;
   border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(4, 5, 7, 0.75);
-  color: #fff;
+  border: 1px solid var(--stroke);
+  background: rgba(255,255,255,0.88);
+  color: var(--text);
   display: grid;
   place-items: center;
   overscroll-behavior: contain;
   cursor: pointer;
+  box-shadow: var(--shadow-xs);
 }
 
 .textareaShell {
@@ -590,8 +592,8 @@
   min-height: 44px;
   max-height: 120px;
   border-radius: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--surface-2);
+  background: var(--surface-1);
   padding: 11px 14px;
   color: var(--text);
   outline: none;
@@ -640,13 +642,14 @@
   height: 42px;
   min-width: 42px;
   border-radius: 14px;
-  border: 1px solid var(--stroke-accent);
-  background: linear-gradient(180deg, var(--accent-soft), var(--accent-softer));
+  border: 1px solid transparent;
+  background: linear-gradient(180deg, var(--accent), var(--accent-strong));
   color: #fff;
   display: grid;
   place-items: center;
   overscroll-behavior: contain;
   cursor: pointer;
+  box-shadow: 0 10px 24px rgba(255, 109, 10, 0.22);
 }
 
 .sendBtn:disabled {
@@ -666,9 +669,9 @@
   min-width: 180px;
   padding: 8px;
   border-radius: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(10, 12, 16, 0.98);
-  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.36);
+  border: 1px solid var(--stroke);
+  background: var(--panel);
+  box-shadow: 0 18px 40px  rgba(92, 54, 18, 0.36);
   display: grid;
   gap: 4px;
 }
@@ -686,12 +689,12 @@
 }
 
 .modalMenuActionDanger {
-  color: #f4a3a3;
+  color: var(--danger);
 }
 
 @media (hover: hover) and (pointer: fine) {
   .sortOption:hover {
-    background: rgba(255, 255, 255, 0.05);
+    background: var(--surface-2);
     color: var(--text);
   }
 
@@ -708,7 +711,7 @@
   .replyChipClose:hover,
   .modalMenuAction:hover {
     color: var(--text);
-    background: rgba(255, 255, 255, 0.055);
+    background: var(--surface-2);
   }
 
   .metricBtnActive:hover,
@@ -801,7 +804,3 @@
   width: 100%;
 }
 
-
-@media (pointer: coarse), (prefers-reduced-motion: reduce) {
-  .backdrop { backdrop-filter: none; }
-}

@@ -1,0 +1,206 @@
+.calendarShell {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.calendarHint {
+  color: var(--pulse-ink-soft);
+  font-size: 0.86rem;
+  line-height: 1.45;
+}
+
+.calendarViewport {
+  min-width: 0;
+  border-radius: 26px;
+  border: 1px solid var(--pulse-border);
+  background:
+    linear-gradient(180deg, rgba(255, 251, 243, 0.98) 0%, rgba(255, 247, 232, 0.96) 100%);
+  box-shadow: var(--pulse-card-shadow-soft);
+  overflow: hidden;
+}
+
+.calendarViewport :global(.fc) {
+  --fc-border-color: rgba(168, 124, 74, 0.18);
+  --fc-neutral-bg-color: rgba(245, 231, 197, 0.42);
+  --fc-now-indicator-color: #ed8431;
+  font-family: var(--font-pulse-body), 'Nunito', ui-sans-serif, system-ui, sans-serif;
+  color: var(--pulse-ink);
+}
+
+.calendarViewport :global(.fc-theme-standard td),
+.calendarViewport :global(.fc-theme-standard th),
+.calendarViewport :global(.fc-theme-standard .fc-scrollgrid) {
+  border-color: rgba(168, 124, 74, 0.14);
+}
+
+.calendarViewport :global(.fc .fc-scrollgrid),
+.calendarViewport :global(.fc .fc-scrollgrid-section > *) {
+  border: 0;
+}
+
+.calendarViewport :global(.fc .fc-col-header-cell) {
+  background: rgba(255, 248, 231, 0.84);
+}
+
+.calendarViewport :global(.fc .fc-col-header-cell-cushion) {
+  padding: 12px 6px;
+  color: var(--pulse-ink);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.calendarViewport :global(.fc .fc-day-today) {
+  background: rgba(255, 212, 157, 0.16) !important;
+}
+
+.calendarViewport :global(.fc .fc-timegrid-axis),
+.calendarViewport :global(.fc .fc-timegrid-slot-label) {
+  background: rgba(255, 252, 247, 0.92);
+}
+
+.calendarViewport :global(.fc .fc-timegrid-axis-cushion),
+.calendarViewport :global(.fc .fc-timegrid-slot-label-cushion) {
+  color: var(--pulse-ink-soft);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.calendarViewport :global(.fc .fc-timegrid-slot) {
+  height: 2.8rem;
+}
+
+.calendarViewport :global(.fc .fc-timegrid-slot-minor) {
+  border-top-style: dotted;
+}
+
+.calendarViewport :global(.fc .fc-timegrid-now-indicator-line) {
+  border-color: #ed8431;
+  border-width: 2px;
+}
+
+.calendarViewport :global(.fc .fc-timegrid-now-indicator-arrow) {
+  border-top-color: #ed8431;
+  border-bottom-color: #ed8431;
+}
+
+.calendarViewport :global(.fc .fc-timegrid-event-harness),
+.calendarViewport :global(.fc .fc-timegrid-more-link) {
+  margin-inline: 3px;
+}
+
+.calendarViewport :global(.fc .fc-event-main) {
+  padding: 0;
+}
+
+.calendarViewport :global(.fc .fc-timegrid-event),
+.calendarViewport :global(.fc .fc-timegrid-more-link),
+.calendarViewport :global(.fc .fc-daygrid-event) {
+  box-shadow: none;
+}
+
+.calendarViewport :global(.fc .fc-timegrid-event .fc-event-resizer) {
+  right: 4px;
+  left: 4px;
+  height: 10px;
+  border-radius: 999px;
+  cursor: ns-resize;
+}
+
+.calendarViewport :global(.fc .fc-timegrid-event .fc-event-resizer-start),
+.calendarViewport :global(.fc .fc-timegrid-event .fc-event-resizer-end) {
+  background: rgba(255, 250, 244, 0.9);
+  opacity: 0.95;
+}
+
+.calendarEvent {
+  border: 0 !important;
+  border-radius: 16px !important;
+  background: linear-gradient(135deg, #d09152 0%, #ed8431 100%) !important;
+  color: rgba(255, 250, 244, 0.98) !important;
+  box-shadow: 0 10px 20px -16px rgba(126, 72, 20, 0.58);
+}
+
+.calendarEventRegular {
+  background: linear-gradient(135deg, #86ba7b 0%, #5d9c68 100%) !important;
+}
+
+.calendarEventDone {
+  background: linear-gradient(135deg, #8ec78d 0%, #65a764 100%) !important;
+  color: rgba(248, 255, 248, 0.96) !important;
+  opacity: 0.86;
+}
+
+.calendarEventOverdue {
+  background: linear-gradient(135deg, #f0a48f 0%, #d96d53 100%) !important;
+}
+
+.calendarEventAllDay {
+  border-radius: 14px !important;
+}
+
+.eventContent {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  padding: 6px 8px;
+}
+
+.eventTime {
+  font-size: 0.68rem;
+  line-height: 1.1;
+  font-weight: 800;
+  opacity: 0.9;
+}
+
+.eventTitle {
+  font-size: 0.78rem;
+  line-height: 1.2;
+  font-weight: 700;
+  overflow: hidden;
+  word-break: break-word;
+}
+
+.eventTitleDone {
+  text-decoration: line-through;
+}
+
+@media (max-width: 900px) {
+  .calendarViewport {
+    border-radius: 22px;
+  }
+
+  .calendarViewport :global(.fc .fc-col-header-cell-cushion) {
+    padding: 10px 4px;
+    font-size: 0.72rem;
+  }
+
+  .calendarViewport :global(.fc .fc-timegrid-slot) {
+    height: 3rem;
+  }
+
+  .eventContent {
+    padding: 5px 7px;
+  }
+}
+
+@media (max-width: 520px) {
+  .calendarHint {
+    font-size: 0.82rem;
+  }
+
+  .calendarViewport {
+    border-radius: 20px;
+  }
+
+  .calendarViewport :global(.fc .fc-col-header-cell-cushion) {
+    padding: 9px 2px;
+    letter-spacing: 0.04em;
+  }
+
+  .eventTitle {
+    font-size: 0.74rem;
+  }
+}

@@ -13,6 +13,22 @@ import {
 } from "../utils/webPush";
 
 const router = Router();
+
+// Public VAPID key — intentionally unauthenticated. The service worker needs
+// to fetch this during `pushsubscriptionchange` when it may not have a user
+// context, and it's literally a public key (safe to expose).
+router.get("/push/public-key", asyncHandler(async (_req, res) => {
+  if (!isWebPushConfigured()) {
+    res.status(503).json({ enabled: false, message: "Web push is not configured" });
+    return;
+  }
+
+  res.json({
+    enabled: true,
+    publicKey: getWebPushPublicKey(),
+  });
+}));
+
 router.use(requireAuth, requireActiveUser);
 
 router.get("/", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
@@ -33,18 +49,6 @@ router.get("/", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
   res.json({ items: await Promise.all(items.map((item) => serializeNotification(item as any))), nextCursor });
 }));
 
-router.get("/push/public-key", requireAuth, asyncHandler(async (_req: AuthedRequest, res) => {
-  if (!isWebPushConfigured()) {
-    res.status(503).json({ enabled: false, message: "Web push is not configured" });
-    return;
-  }
-
-  res.json({
-    enabled: true,
-    publicKey: getWebPushPublicKey(),
-  });
-}));
-
 const PushSubscriptionSchema = z.object({
   endpoint: z.string().url(),
   expirationTime: z.number().nullable().optional(),
@@ -61,6 +65,13 @@ router.post("/push/subscribe", requireAuth, asyncHandler(async (req: AuthedReque
     subscription,
     userAgent: req.headers["user-agent"]?.toString() ?? null,
   });
+  if (!saved) {
+    res.status(503).json({
+      ok: false,
+      message: "Web push subscriptions are unavailable until the pending Prisma migration is applied",
+    });
+    return;
+  }
   res.json({ ok: true, subscriptionId: saved.id });
 }));
 

@@ -1,7 +1,22 @@
 import type { Metadata, Viewport } from 'next';
+import localFont from 'next/font/local';
 import './styles/globals.css';
 import { StoreProvider } from './providers/StoreProvider';
 import { LightboxProvider } from '@/shared/ui/Lightbox/LightboxProvider';
+
+const pulseBodyFont = localFont({
+  src: './fonts/Nunito-Variable.ttf',
+  variable: '--font-pulse-body',
+  display: 'swap',
+  weight: '400 800',
+});
+
+const pulseDisplayFont = localFont({
+  src: './fonts/Comfortaa-Variable.ttf',
+  variable: '--font-pulse-display',
+  display: 'swap',
+  weight: '400 700',
+});
 
 export const metadata: Metadata = {
   title: {
@@ -27,7 +42,7 @@ export const metadata: Metadata = {
   },
   other: {
     'mobile-web-app-capable': 'yes',
-    'supported-color-schemes': 'dark',
+    'supported-color-schemes': 'light',
     'darkreader-lock': '',
   },
   formatDetection: {
@@ -39,13 +54,13 @@ export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   viewportFit: 'cover',
-  colorScheme: 'dark',
-  themeColor: '#141414',
+  colorScheme: 'light',
+  themeColor: '#f3ede0',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="ru">
+    <html lang="ru" className={`${pulseBodyFont.variable} ${pulseDisplayFont.variable}`}>
       <body>
         <StoreProvider>
           <LightboxProvider>{children}</LightboxProvider>

@@ -15,12 +15,12 @@
   display: grid;
   gap: 0;
   min-width: 0;
-  padding: 20px 0 28px;
+  padding: 12px 0 26px;
   background: transparent;
 }
 
 .stack > * {
-  width: min(100%, 1040px);
+  width: min(100%, 980px);
   min-width: 0;
   max-width: 100%;
   margin-inline: auto;
@@ -29,37 +29,31 @@
 .hero {
   position: relative;
   display: grid;
-  gap: 22px;
-  padding: 24px;
-  border-radius: 24px;
-  border: 1px solid var(--stroke);
-  background: linear-gradient(180deg, rgba(16, 18, 23, 0.94), rgba(10, 12, 16, 0.98));
-  box-shadow: var(--shadow-sm);
-  overflow: hidden;
+  gap: 18px;
+  padding: 18px 0 22px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  overflow: visible;
 }
 
 .hero::before {
-  content: '';
-  position: absolute;
-  inset: 0 auto auto 0;
-  width: 100%;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent);
-  pointer-events: none;
+  display: none;
 }
 
 .header {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: start;
-  gap: 24px;
+  gap: 20px;
   min-width: 0;
 }
 
 .user {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
-  gap: 18px;
+  gap: 16px;
   align-items: start;
   min-width: 0;
 }
@@ -78,8 +72,8 @@
 }
 
 .avatarSlot {
-  width: 80px;
-  height: 80px;
+  width: 142px;
+  height: 142px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -91,11 +85,11 @@
   left: 0;
   z-index: 8;
   min-width: 216px;
-  padding: 8px;
-  border-radius: 16px;
-  border: 1px solid rgba(255,255,255,0.08);
-  background: rgba(10, 11, 14, 0.98);
-  box-shadow: 0 18px 40px rgba(0,0,0,0.42);
+  padding: 6px;
+  border-radius: 14px;
+  border: 1px solid var(--stroke-soft);
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: var(--shadow-sm);
   display: grid;
   gap: 4px;
 }
@@ -104,8 +98,8 @@
   width: 100%;
   border: none;
   background: transparent;
-  border-radius: 12px;
-  padding: 11px 12px;
+  border-radius: 10px;
+  padding: 10px 11px;
   color: var(--text-soft);
   display: flex;
   align-items: center;
@@ -115,7 +109,7 @@
 }
 
 .avatarMenuItem:hover:not(:disabled) {
-  background: rgba(255,255,255,0.05);
+  background: var(--surface-2);
   color: var(--text);
 }
 
@@ -128,6 +122,7 @@
   min-width: 0;
   display: grid;
   align-content: start;
+  max-width: 620px;
 }
 
 .nameRow {
@@ -138,70 +133,102 @@
 }
 
 .name {
-  font-size: clamp(1.75rem, 3.2vw, 2.25rem);
-  font-weight: 800;
+  font-size: clamp(1.7rem, 3vw, 2.15rem);
+  font-weight: 780;
   letter-spacing: -0.04em;
   line-height: 1.02;
 }
 
 .handle {
   color: var(--muted);
-  margin-top: 6px;
-  font-size: 15px;
+  margin-top: 4px;
+  font-size: 14px;
 }
 
 .bio {
   color: var(--muted);
-  margin-top: 12px;
-  max-width: 640px;
-  line-height: 1.65;
+  margin-top: 10px;
+  max-width: 560px;
+  line-height: 1.55;
   font-size: 14px;
   overflow-wrap: anywhere;
 }
 
 .counts {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(110px, 1fr));
-  gap: 12px;
-  width: min(100%, 460px);
-  margin-top: 18px;
-  grid-column: 2;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 10px 18px;
+  width: auto;
+  margin-top: 14px;
+}
+
+.counts > :nth-child(1) {
+  order: initial;
+}
+
+.counts > :nth-child(2) {
+  order: initial;
+}
+
+.counts > :nth-child(3) {
+  order: initial;
 }
 
 .countItem {
   min-width: 0;
-  min-height: 92px;
-  display: grid;
-  align-content: start;
-  gap: 6px;
-  padding: 14px 14px 12px;
-  border: 1px solid var(--stroke);
-  border-radius: 18px;
-  background: rgba(255,255,255,0.02);
+  min-height: 0;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
   color: var(--text);
   text-align: left;
 }
 
 button.countItem { cursor: pointer; }
-button.countItem:disabled { opacity: 0.64; cursor: not-allowed; }
+button.countItem:disabled { opacity: 1; cursor: default; }
 
 .countValue {
-  font-size: 2rem;
-  font-weight: 800;
+  font-size: 1rem;
+  font-weight: 780;
   line-height: 1;
   letter-spacing: -0.04em;
 }
 
 .countLabel {
-  font-size: 12px;
+  font-size: 14px;
   line-height: 1.25;
-  color: var(--muted);
-  overflow-wrap: anywhere;
+  color: var(--text-soft);
+  overflow-wrap: normal;
+}
+
+.countLabel::after {
+  content: none;
+}
+
+.counts > :nth-child(1) .countLabel::after {
+  content: 'Подписчиков';
+}
+
+.counts > :nth-child(2) .countLabel::after {
+  content: 'Подписок';
+}
+
+.counts > :nth-child(3) .countLabel::after {
+  content: 'Публикаций';
+}
+
+.counts .countLabel::after {
+  content: none !important;
 }
 
 .actions {
   display: flex;
-  gap: 10px;
+  gap: 8px;
   flex-wrap: wrap;
   justify-content: flex-end;
   align-items: center;
@@ -214,20 +241,79 @@ button.countItem:disabled { opacity: 0.64; cursor: not-allowed; }
 
 .heroStories {
   min-width: 0;
-  padding-top: 4px;
-  border-top: 1px solid rgba(255,255,255,0.06);
+  padding-top: 18px;
+  border-top: 1px solid var(--stroke-soft);
+}
+
+.heroPrimaryAction,
+.heroSecondaryAction,
+.heroMoreAction {
+  min-height: 40px;
+  border-radius: 14px;
+  box-shadow: none;
+}
+
+.actions > .heroPrimaryAction,
+.peerActions > button:first-child {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+}
+
+.actions > .heroPrimaryAction:hover,
+.peerActions > button:first-child:hover {
+  border-color: var(--accent-strong);
+  background: var(--accent-strong);
+  color: #fff;
+}
+
+.actions > .heroSecondaryAction,
+.selfActions > button:nth-child(2),
+.peerActions > button:nth-child(2) {
+  border-color: var(--stroke-soft);
+  background: rgba(255, 255, 255, 0.46);
+  color: var(--text-soft);
+}
+
+.actions > .heroSecondaryAction:hover,
+.selfActions > button:nth-child(2):hover,
+.peerActions > button:nth-child(2):hover {
+  border-color: var(--stroke);
+  background: rgba(255, 255, 255, 0.74);
+  color: var(--text);
+}
+
+.selfActions > button:nth-child(2) {
+  display: none;
+}
+
+.actions > .heroMoreAction,
+.peerActions > button:nth-child(3) {
+  width: 40px;
+  min-width: 40px;
+  padding: 0;
+  border-color: transparent;
+  background: transparent;
+  color: var(--muted);
+}
+
+.actions > .heroMoreAction:hover,
+.peerActions > button:nth-child(3):hover {
+  border-color: var(--stroke-soft);
+  background: var(--surface-1);
+  color: var(--text);
 }
 
 .sectionHeader {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: space-between;
-  gap: 12px;
+  gap: 14px;
 }
 
 .sectionTitle {
-  font-weight: 800;
-  font-size: 1.35rem;
+  font-weight: 780;
+  font-size: 1.18rem;
   letter-spacing: -0.03em;
 }
 
@@ -397,7 +483,7 @@ button.countItem:disabled { opacity: 0.64; cursor: not-allowed; }
   padding: 12px;
   border-radius: 12px;
   border: 1px solid var(--stroke);
-  background: rgba(255,255,255,0.03);
+  background: var(--surface-1);
   color: var(--text);
   outline: none;
 }
@@ -429,7 +515,7 @@ button.countItem:disabled { opacity: 0.64; cursor: not-allowed; }
   min-height: 320px;
   border-radius: 18px;
   overflow: hidden;
-  background: rgba(255,255,255,0.02);
+  background: var(--surface-1);
 }
 
 .avatarViewerImage {
@@ -467,12 +553,12 @@ button.countItem:disabled { opacity: 0.64; cursor: not-allowed; }
   }
 
   .hero {
-    padding: 20px;
-    gap: 20px;
+    padding: 16px 0 20px;
+    gap: 18px;
   }
 
   .counts {
-    width: min(100%, 520px);
+    width: auto;
   }
 }
 
@@ -483,7 +569,7 @@ button.countItem:disabled { opacity: 0.64; cursor: not-allowed; }
 
   .hero {
     padding: 0 16px 10px;
-    border: none;
+    border: 0;
     border-radius: 0;
     box-shadow: none;
     background: transparent;
@@ -499,19 +585,29 @@ button.countItem:disabled { opacity: 0.64; cursor: not-allowed; }
   }
 
   .user {
-    grid-template-columns: 92px minmax(0, 1fr);
+    grid-template-columns: 118px minmax(0, 1fr);
     gap: 14px;
     align-items: start;
   }
 
-  .avatarMenuAnchor {
-    width: 92px;
+  .identity {
+    display: grid;
+    align-content: start;
+    min-width: 0;
   }
 
-  .avatarSlot,
+  .avatarMenuAnchor {
+    width: 118px;
+  }
+
+  .avatarSlot {
+    width: 118px;
+    height: 118px;
+  }
+
   .avatarEditorPreviewWrap {
-    width: 92px;
-    height: 92px;
+    width: 88px;
+    height: 88px;
   }
 
   .name {
@@ -528,33 +624,39 @@ button.countItem:disabled { opacity: 0.64; cursor: not-allowed; }
   }
 
   .counts {
-    width: 100%;
-    grid-column: 1 / -1;
+    display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 10px;
-    margin-top: 6px;
+    width: 100%;
+    gap: 8px 10px;
+    margin-top: 10px;
   }
 
   .countItem {
-    min-height: 88px;
-    padding: 12px 8px;
-    border-radius: 16px;
-    justify-items: center;
-    text-align: center;
+    width: 100%;
+    min-height: 0;
+    display: grid;
+    align-content: start;
+    justify-items: start;
+    gap: 3px;
+    padding: 0;
+    border-radius: 0;
+    text-align: left;
   }
 
   .countValue {
-    font-size: 1.55rem;
+    font-size: 1.02rem;
   }
 
   .countLabel {
     font-size: 11px;
+    line-height: 1.15;
+    white-space: nowrap;
   }
 
   .actions {
-    width: calc(100% - 106px);
-    margin-left: 106px;
-    justify-content: flex-end;
+    width: 100%;
+    margin-left: 0;
+    justify-content: flex-start;
     padding-top: 0;
   }
 
@@ -573,7 +675,7 @@ button.countItem:disabled { opacity: 0.64; cursor: not-allowed; }
   }
 
   .sectionTitle {
-    font-size: 1.15rem;
+    font-size: 1.06rem;
   }
 
   .editCard,
@@ -622,37 +724,24 @@ button.countItem:disabled { opacity: 0.64; cursor: not-allowed; }
 
   .heroStories {
     margin-top: 2px;
-    padding-top: 10px;
+    padding-top: 12px;
   }
 }
 
 
 @media (min-width: 961px) {
-  .hero {
-    gap: 18px;
-    padding: 18px 0 22px;
-    border: 0;
-    border-radius: 0;
-    background: transparent;
-    box-shadow: none;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.07);
-  }
-
-  .hero::before {
-    display: none;
-  }
-
   .heroStories {
-    padding-top: 16px;
-    border-top: 1px solid rgba(255, 255, 255, 0.07);
+    padding-top: 18px;
+    border-top: 1px solid var(--stroke-soft);
   }
 
   .sectionHeader {
-    padding: 20px 0 6px;
+    padding: 24px 0 10px;
   }
 
   .composerWrap {
-    border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--stroke-soft);
   }
 
   .postsList {
@@ -689,15 +778,16 @@ button.countItem:disabled { opacity: 0.64; cursor: not-allowed; }
 
 /* Count items: clean, transparent */
 .countItem {
-  background: transparent;
-  border-color: var(--stroke);
-  transition: border-color 140ms ease, background 140ms ease, transform 140ms ease;
+  transition: color 140ms ease, opacity 140ms ease;
 }
 
 button.countItem:hover:not(:disabled) {
-  border-color: var(--stroke-accent);
-  background: var(--accent-softer);
-  transform: translateY(-1px);
+  color: var(--accent-strong);
+}
+
+button.countItem:hover:not(:disabled) .countLabel,
+button.countItem:hover:not(:disabled) .countValue {
+  color: inherit;
 }
 
 @media (max-width: 640px) {

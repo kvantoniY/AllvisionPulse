@@ -39,7 +39,7 @@
   align-items: center;
   gap: 12px;
   padding: 10px 0 14px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid var(--surface-2);
 }
 
 .back {
@@ -49,7 +49,7 @@
   border-radius: 999px;
   border: 0 !important;
   background: transparent !important;
-  color: rgba(255, 255, 255, 0.62);
+  color: var(--muted);
   cursor: pointer;
   display: grid;
   place-items: center;
@@ -57,7 +57,7 @@
 }
 
 .back:hover {
-  background: rgba(255, 255, 255, 0.08) !important;
+  background: var(--stroke) !important;
   color: var(--text);
 }
 
@@ -88,7 +88,7 @@
   width: 8px;
   height: 8px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.25);
+  background: var(--stroke-strong);
   flex-shrink: 0;
 }
 
@@ -98,7 +98,7 @@
 }
 
 .statusDotOffline {
-  background: rgba(255, 255, 255, 0.25);
+  background: var(--stroke-strong);
 }
 
 .headerActions {
@@ -130,7 +130,7 @@
   border-radius: 999px;
   border: 0 !important;
   background: transparent !important;
-  color: rgba(255, 255, 255, 0.62);
+  color: var(--muted);
   cursor: pointer;
   display: grid;
   place-items: center;
@@ -138,7 +138,7 @@
 }
 
 .mobileHeaderMore:hover {
-  background: rgba(255, 255, 255, 0.08) !important;
+  background: var(--stroke) !important;
   color: var(--text);
 }
 
@@ -151,9 +151,9 @@
   display: grid;
   gap: 4px;
   border-radius: 18px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(11, 13, 16, 0.98);
-  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.38);
+  border: 1px solid var(--stroke);
+  background: var(--panel);
+  box-shadow: 0 18px 44px  rgba(92, 54, 18, 0.38);
   backdrop-filter: blur(20px);
   z-index: 30;
 }
@@ -176,7 +176,7 @@
 }
 
 .mobileHeaderMenuItem:hover {
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--surface-2);
 }
 
 .mobileHeaderMenuItem:disabled {
@@ -196,7 +196,7 @@
   border-radius: 999px;
   border: 0 !important;
   background: transparent !important;
-  color: rgba(255, 255, 255, 0.62);
+  color: var(--muted);
   cursor: pointer;
   display: grid;
   place-items: center;
@@ -205,7 +205,7 @@
 
 .mediaLink:hover,
 .callAction:hover {
-  background: rgba(255, 255, 255, 0.08) !important;
+  background: var(--stroke) !important;
   color: var(--text);
 }
 
@@ -219,7 +219,7 @@
 }
 
 .headerActionActive {
-  background: rgba(255, 255, 255, 0.08) !important;
+  background: var(--stroke) !important;
   color: var(--text);
 }
 
@@ -269,7 +269,7 @@
   left: 12px;
   top: 50%;
   transform: translateY(-50%);
-  color: rgba(255, 255, 255, 0.36);
+  color: var(--muted-2);
   pointer-events: none;
 }
 
@@ -277,8 +277,8 @@
   width: 100%;
   height: 40px;
   border-radius: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--surface-2);
+  background: var(--surface-1);
   color: var(--text);
   padding: 0 14px 0 38px;
   outline: none;
@@ -287,8 +287,8 @@
 }
 
 .searchField:focus {
-  border-color: rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.06);
+  border-color: var(--stroke-strong);
+  background: var(--surface-2);
 }
 
 .searchTools {
@@ -365,12 +365,12 @@
 }
 
 .messages::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--stroke);
   border-radius: 999px;
 }
 
 .messages::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.14);
+  background: var(--stroke-strong);
 }
 
 .loadingMore {
@@ -390,8 +390,8 @@
 .dateBadge {
   padding: 5px 12px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.05);
-  color: rgba(255, 255, 255, 0.48);
+  background: var(--surface-2);
+  color: var(--muted);
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.02em;
@@ -464,12 +464,12 @@
 }
 
 .bubbleMine {
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--stroke);
   border-radius: 18px 18px 6px 18px;
 }
 
 .bubbleTheirs {
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--surface-1);
   border-radius: 18px 18px 18px 6px;
 }
 
@@ -514,8 +514,8 @@
   width: 22px;
   height: 22px;
   border-radius: 50%;
-  border: 2px solid rgba(255, 255, 255, 0.14);
-  background: rgba(18, 18, 20, 0.96);
+  border: 2px solid var(--stroke-strong);
+  background: var(--panel);
   display: grid;
   place-items: center;
   color: white;
@@ -534,7 +534,7 @@
   margin-bottom: 4px;
   font-size: 12px;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.52);
+  color: var(--muted);
   letter-spacing: 0.01em;
 }
 
@@ -544,7 +544,7 @@
   align-items: center;
   gap: 6px;
   margin-bottom: 6px;
-  color: rgba(255, 255, 255, 0.44);
+  color: var(--muted-2);
   font-size: 11px;
   font-weight: 600;
   font-style: italic;
@@ -560,7 +560,7 @@
   border: none;
   border-left: 3px solid rgba(255, 122, 26, 0.5);
   border-radius: 0 12px 12px 0;
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--surface-2);
   color: inherit;
   text-align: left;
   cursor: pointer;
@@ -568,7 +568,7 @@
 }
 
 .replyBlock:hover {
-  background: rgba(255, 255, 255, 0.07);
+  background: var(--surface-2);
 }
 
 .replyAuthor {
@@ -579,7 +579,7 @@
 
 .replyText {
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--muted);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -595,7 +595,7 @@
   padding: 8px;
   border: none;
   border-radius: 14px;
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--surface-2);
   color: inherit;
   text-align: left;
   cursor: pointer;
@@ -603,7 +603,7 @@
 }
 
 .storyReplyBlock:hover {
-  background: rgba(255, 255, 255, 0.07);
+  background: var(--surface-2);
 }
 
 .storyReplyThumb {
@@ -611,7 +611,7 @@
   height: 56px;
   border-radius: 10px;
   overflow: hidden;
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--surface-2);
   flex: 0 0 auto;
 }
 
@@ -658,7 +658,7 @@
 /* ── Message Meta ── */
 .meta {
   margin-top: 6px;
-  color: rgba(255, 255, 255, 0.36);
+  color: var(--muted-2);
   font-size: 11px;
   display: flex;
   align-items: center;
@@ -675,7 +675,7 @@
 }
 
 .unreadMark {
-  color: rgba(255, 255, 255, 0.72);
+  color: var(--text-soft);
 }
 
 /* ── Status Badge ── */
@@ -684,7 +684,7 @@
   align-items: center;
   justify-content: center;
   min-width: 14px;
-  color: rgba(255, 255, 255, 0.4);
+  color: var(--muted-2);
   transition: color 200ms ease;
 }
 
@@ -693,7 +693,7 @@
 }
 
 .statusBadgePending {
-  color: rgba(255, 255, 255, 0.28);
+  color: var(--stroke-strong);
 }
 
 /* ── Media Block (images, files in messages) ── */
@@ -715,8 +715,8 @@
   gap: 8px;
   padding: 8px 12px;
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.05);
-  color: rgba(255, 255, 255, 0.62);
+  background: var(--surface-2);
+  color: var(--muted);
   text-decoration: none;
   font-size: 13px;
   overflow: hidden;
@@ -726,7 +726,7 @@
 }
 
 .fileLink:hover {
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--stroke);
   color: var(--text);
 }
 
@@ -741,8 +741,8 @@
   width: min(460px, 100%);
   padding: 12px 16px;
   border-radius: 14px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: var(--surface-1);
+  border: 1px solid var(--surface-2);
   text-align: left;
   color: var(--text);
   border: none;
@@ -754,7 +754,7 @@
 }
 
 .systemCardInteractive:hover {
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--surface-2);
 }
 
 .systemCardWithAction {
@@ -779,7 +779,7 @@
 }
 
 .systemAction {
-  color: rgba(255, 255, 255, 0.72);
+  color: var(--text-soft);
   font-weight: 600;
 }
 
@@ -788,8 +788,8 @@
   padding: 0 14px;
   border: 0;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.08);
-  color: rgba(255, 255, 255, 0.92);
+  background: var(--stroke);
+  color: var(--text);
   font-size: 12px;
   font-weight: 700;
   cursor: pointer;
@@ -797,7 +797,7 @@
 }
 
 .systemActionButton:hover {
-  background: rgba(255, 255, 255, 0.12);
+  background: var(--stroke-strong);
 }
 
 .systemActionButton:disabled {
@@ -814,12 +814,12 @@
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(14, 16, 20, 0.96);
+  border: 1px solid var(--stroke);
+  background: var(--panel);
   color: white;
   display: grid;
   place-items: center;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.32);
+  box-shadow: 0 8px 24px  rgba(92, 54, 18, 0.32);
   cursor: pointer;
   backdrop-filter: blur(8px);
   transition: transform 140ms ease, box-shadow 140ms ease;
@@ -827,7 +827,7 @@
 
 .scrollDown:hover {
   transform: translateY(-2px);
-  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 12px 28px  rgba(92, 54, 18, 0.4);
 }
 
 /* ── Return to Call Banner ── */
@@ -896,16 +896,16 @@
   width: 100%;
   padding: 7px 9px;
   border-radius: 26px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  background: rgba(12, 15, 19, 0.92);
-  box-shadow: 0 -2px 16px rgba(0, 0, 0, 0.12);
+  border: 1px solid var(--surface-2);
+  background: var(--panel);
+  box-shadow: 0 -2px 16px  rgba(92, 54, 18, 0.12);
   transition: background 140ms ease, border-color 140ms ease, box-shadow 140ms ease;
 }
 
 .composerInputShell:focus-within {
-  background: rgba(14, 17, 22, 0.98);
-  border-color: rgba(255, 255, 255, 0.1);
-  box-shadow: 0 -2px 20px rgba(0, 0, 0, 0.16);
+  background: var(--panel);
+  border-color: var(--stroke);
+  box-shadow: 0 -2px 20px  rgba(92, 54, 18, 0.16);
 }
 
 .composerInputShellRecording {
@@ -923,7 +923,7 @@
   gap: 10px;
   padding: 10px 14px;
   border-radius: 14px;
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--surface-1);
   border-left: 3px solid rgba(255, 122, 26, 0.4);
 }
 
@@ -931,7 +931,7 @@
   display: grid;
   gap: 3px;
   min-width: 0;
-  color: rgba(255, 255, 255, 0.68);
+  color: var(--muted);
   font-size: 12px;
 }
 
@@ -948,8 +948,8 @@
   height: 28px;
   border-radius: 50%;
   border: none;
-  background: rgba(255, 255, 255, 0.06);
-  color: rgba(255, 255, 255, 0.62);
+  background: var(--surface-2);
+  color: var(--muted);
   display: grid;
   place-items: center;
   cursor: pointer;
@@ -957,7 +957,7 @@
 }
 
 .composerMetaClose:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--stroke);
 }
 
 /* ── Preview Panel (pending media) ── */
@@ -966,8 +966,8 @@
   gap: 10px;
   padding: 12px;
   border-radius: 16px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: var(--surface-1);
+  border: 1px solid var(--surface-2);
 }
 
 .previewHead {
@@ -975,7 +975,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  color: rgba(255, 255, 255, 0.62);
+  color: var(--muted);
   font-size: 12px;
   font-weight: 600;
 }
@@ -985,8 +985,8 @@
   height: 28px;
   border: none;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.06);
-  color: rgba(255, 255, 255, 0.62);
+  background: var(--surface-2);
+  color: var(--muted);
   display: grid;
   place-items: center;
   cursor: pointer;
@@ -1038,9 +1038,9 @@
   display: grid;
   gap: 2px;
   border-radius: 18px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(11, 13, 16, 0.98);
-  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.38);
+  border: 1px solid var(--stroke);
+  background: var(--panel);
+  box-shadow: 0 18px 44px  rgba(92, 54, 18, 0.38);
   backdrop-filter: blur(20px);
   z-index: 15;
 }
@@ -1063,7 +1063,7 @@
 }
 
 .attachMenuItem:hover {
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--surface-2);
 }
 
 /* ── Inner Action Buttons ── */
@@ -1075,7 +1075,7 @@
   border: 0;
   border-radius: 999px;
   background: transparent;
-  color: rgba(255, 255, 255, 0.62);
+  color: var(--muted);
   display: inline-grid;
   place-items: center;
   cursor: pointer;
@@ -1084,7 +1084,7 @@
 
 .innerActionBtn:hover,
 .innerActionBtnHover {
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--stroke);
   color: var(--text);
 }
 
@@ -1093,7 +1093,7 @@
 }
 
 .innerActionBtnActive {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--stroke);
   color: var(--text);
 }
 
@@ -1117,7 +1117,7 @@
 .innerActionBtnPrimary:focus-visible {
   background: rgba(255, 122, 26, 0.12);
   box-shadow: inset 0 0 0 1px rgba(255, 122, 26, 0.26);
-  color: #fff;
+  color: var(--text);
 }
 
 /* ── Text Input ── */
@@ -1162,7 +1162,7 @@
 .toolBtn {
   border-radius: 14px;
   border: none;
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--surface-2);
   color: var(--text);
   cursor: pointer;
   transition: background 120ms ease;
@@ -1176,11 +1176,11 @@
 }
 
 .toolBtn:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--stroke);
 }
 
 .toolBtnActive {
-  background: rgba(255, 255, 255, 0.12);
+  background: var(--stroke-strong);
 }
 
 .toolBtnDanger {
@@ -1191,13 +1191,13 @@
   min-width: 72px;
   height: 44px;
   padding: 0 16px;
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--stroke);
   color: white;
   font-weight: 600;
 }
 
 .send:hover {
-  background: rgba(255, 255, 255, 0.14);
+  background: var(--stroke-strong);
 }
 
 /* ── File Thumbnails (composer) ── */
@@ -1213,7 +1213,7 @@
   height: 80px;
   overflow: hidden;
   border-radius: 14px;
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--surface-2);
 }
 
 .fileThumb img {
@@ -1231,7 +1231,7 @@
   height: 22px;
   border-radius: 50%;
   border: none;
-  background: rgba(0, 0, 0, 0.52);
+  background: rgba(54, 39, 23, 0.32);
   color: white;
   display: grid;
   place-items: center;
@@ -1240,7 +1240,7 @@
 }
 
 .fileRemove:hover {
-  background: rgba(0, 0, 0, 0.7);
+  background: rgba(54, 39, 23, 0.32);
 }
 
 .fileInput {
@@ -1256,9 +1256,9 @@
   margin-bottom: 8px;
   padding: 0 16px;
   border-radius: 999px;
-  background: rgba(10, 14, 20, 0.94);
-  color: rgba(255, 255, 255, 0.92);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: var(--panel);
+  color: var(--text);
+  border: 1px solid var(--surface-2);
 }
 
 .recordingHudCancel {
@@ -1283,7 +1283,7 @@
 .recordingHudTimer {
   font-size: 13px;
   font-weight: 800;
-  color: rgba(255, 255, 255, 0.72);
+  color: var(--text-soft);
   font-variant-numeric: tabular-nums;
 }
 
@@ -1291,7 +1291,7 @@
   margin-left: auto;
   min-width: 0;
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.48);
+  color: var(--muted);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1335,7 +1335,7 @@
 .recordingComposerTimer {
   font-size: 14px;
   font-weight: 800;
-  color: rgba(255, 255, 255, 0.82);
+  color: var(--text-soft);
   font-variant-numeric: tabular-nums;
 }
 
@@ -1364,8 +1364,8 @@
   height: 100%;
   border-radius: 50%;
   object-fit: cover;
-  background: rgba(13, 16, 20, 0.98);
-  box-shadow: 0 20px 44px rgba(0, 0, 0, 0.32);
+  background: var(--panel);
+  box-shadow: 0 20px 44px  rgba(92, 54, 18, 0.32);
 }
 
 .videoNoteProgress {
@@ -1374,8 +1374,8 @@
   border-radius: 50%;
   border-top: 4px solid rgba(255, 255, 255, 0.9);
   border-right: 4px solid transparent;
-  border-bottom: 4px solid rgba(255, 255, 255, 0.14);
-  border-left: 4px solid rgba(255, 255, 255, 0.14);
+  border-bottom: 4px solid var(--stroke-strong);
+  border-left: 4px solid var(--stroke-strong);
   animation: spin 1.2s linear infinite;
 }
 
@@ -1386,8 +1386,8 @@
   min-height: 44px;
   padding: 0 16px;
   border-radius: 999px;
-  background: rgba(10, 14, 20, 0.92);
-  color: rgba(255, 255, 255, 0.9);
+  background: var(--panel);
+  color: var(--text);
 }
 
 .videoNoteRecorderDot {
@@ -1436,15 +1436,15 @@
   height: calc(100% - 24px);
   border-radius: 50%;
   object-fit: cover;
-  background: rgba(10, 14, 20, 0.96);
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.36);
+  background: var(--panel);
+  box-shadow: 0 20px 40px  rgba(92, 54, 18, 0.36);
 }
 
 .videoRecordPreviewRing {
   position: absolute;
   inset: -6px;
   border-radius: 50%;
-  border: 4px solid rgba(255, 255, 255, 0.12);
+  border: 4px solid var(--stroke-strong);
 }
 
 .videoRecordProgressSvg {
@@ -1461,7 +1461,7 @@
 }
 
 .videoRecordProgressTrack {
-  stroke: rgba(255, 255, 255, 0.1);
+  stroke: var(--stroke);
 }
 
 .videoRecordProgressValue {
@@ -1481,7 +1481,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: rgba(16, 20, 32, 0.52);
+  background: var(--surface-2);
   color: white;
   font-size: 13px;
   font-weight: 800;
@@ -1514,7 +1514,7 @@
 .videoRecordToolbarTimer {
   font-size: 14px;
   font-weight: 800;
-  color: rgba(255, 255, 255, 0.72);
+  color: var(--text-soft);
   font-variant-numeric: tabular-nums;
 }
 
@@ -1544,9 +1544,9 @@
   display: grid;
   gap: 2px;
   border-radius: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(11, 13, 16, 0.98);
-  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.42), 0 0 0 1px rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--stroke);
+  background: var(--panel);
+  box-shadow: 0 20px 48px  rgba(92, 54, 18, 0.42), 0 0 0 1px var(--surface-1);
   backdrop-filter: blur(24px);
 }
 
@@ -1569,11 +1569,11 @@
 }
 
 .messageContextMenuItem:hover {
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--surface-2);
 }
 
 .messageContextMenuItem:active {
-  background: rgba(255, 255, 255, 0.09);
+  background: var(--stroke);
 }
 
 .messageContextMenuItemDanger {
@@ -1592,7 +1592,7 @@
   position: fixed;
   inset: 0;
   z-index: 220;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(54, 39, 23, 0.32);
   backdrop-filter: blur(4px);
 }
 
@@ -1606,9 +1606,9 @@
   gap: 4px;
   padding: 8px;
   border-radius: 22px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(11, 13, 16, 0.98);
-  box-shadow: 0 24px 52px rgba(0, 0, 0, 0.42);
+  border: 1px solid var(--stroke);
+  background: var(--panel);
+  box-shadow: 0 24px 52px  rgba(92, 54, 18, 0.42);
   backdrop-filter: blur(24px);
 }
 
@@ -1626,7 +1626,7 @@
   padding: 0 16px;
   border: 0;
   border-radius: 14px;
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--surface-1);
   color: var(--text);
   text-align: left;
   cursor: pointer;
@@ -1636,7 +1636,7 @@
 }
 
 .mobileMessageActionsItem:active {
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--stroke);
 }
 
 .mobileMessageActionsItemDanger {
@@ -1671,8 +1671,8 @@
   gap: 12px;
   padding: 12px 14px;
   border-radius: 14px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.04);
+  background: var(--surface-1);
+  border: 1px solid var(--surface-1);
   transition: background 120ms ease, border-color 120ms ease;
 }
 
@@ -1713,7 +1713,7 @@
   display: grid;
   grid-template-rows: auto auto 1fr;
   min-height: 0;
-  background: rgba(8, 8, 10, 0.88);
+  background: var(--panel-2);
   backdrop-filter: blur(12px);
 }
 
@@ -1751,10 +1751,10 @@
 .mediaTab {
   min-height: 34px;
   padding: 0 14px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--surface-2);
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.02);
-  color: rgba(255, 255, 255, 0.58);
+  background: var(--surface-1);
+  color: var(--muted);
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
@@ -1762,8 +1762,8 @@
 }
 
 .mediaTab:hover {
-  background: rgba(255, 255, 255, 0.05);
-  color: rgba(255, 255, 255, 0.78);
+  background: var(--surface-2);
+  color: var(--text-soft);
 }
 
 .mediaTabActive {
@@ -1785,7 +1785,7 @@
   overflow: hidden;
   border-radius: 12px;
   border: none;
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--surface-1);
   cursor: pointer;
   transition: transform 120ms ease, opacity 120ms ease;
 }
@@ -1830,9 +1830,9 @@
   min-height: 30px;
   padding: 0 12px;
   border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  background: rgba(255, 255, 255, 0.02);
-  color: rgba(255, 255, 255, 0.58);
+  border: 1px solid var(--surface-2);
+  background: var(--surface-1);
+  color: var(--muted);
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
@@ -1840,8 +1840,8 @@
 }
 
 .pulseMediaChip:hover {
-  background: rgba(255, 255, 255, 0.05);
-  color: rgba(255, 255, 255, 0.78);
+  background: var(--surface-2);
+  color: var(--text-soft);
 }
 
 .pulseMediaChipActive {
@@ -1861,8 +1861,8 @@
   width: 100%;
   padding: 0 12px;
   border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--surface-2);
+  background: var(--surface-1);
   color: var(--text);
   font-size: 13px;
 }
@@ -1879,14 +1879,14 @@
   gap: 8px;
   padding: 12px 14px;
   border-radius: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid var(--surface-2);
+  background: var(--surface-1);
   transition: background 120ms ease, border-color 120ms ease;
 }
 
 .pulseHistoryItem:hover {
-  background: rgba(255, 255, 255, 0.04);
-  border-color: rgba(255, 255, 255, 0.08);
+  background: var(--surface-1);
+  border-color: var(--stroke);
 }
 
 .pulseHistoryMeta {
@@ -1895,12 +1895,12 @@
   justify-content: space-between;
   gap: 10px;
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.56);
+  color: var(--muted);
 }
 
 .pulseHistoryOwner {
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.48);
+  color: var(--muted);
 }
 
 /* ════════════════════════════════════════════
@@ -1993,7 +1993,7 @@
     padding: 4px 6px;
     border-radius: 24px;
     border: 0;
-    background: rgba(12, 15, 19, 0.98);
+    background: var(--panel);
     box-shadow: none;
     backdrop-filter: blur(12px);
   }
@@ -2268,21 +2268,21 @@
 .messageQuickAction {
   width: 30px;
   height: 30px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--stroke);
   border-radius: 10px;
-  background: rgba(22, 22, 24, 0.92);
-  color: rgba(255, 255, 255, 0.72);
+  background: var(--panel);
+  color: var(--text-soft);
   display: grid;
   place-items: center;
   cursor: pointer;
   transition: background 140ms ease, border-color 140ms ease, color 140ms ease, transform 140ms ease;
-  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 10px 22px  rgba(92, 54, 18, 0.2);
 }
 
 .messageQuickAction:hover {
   background: rgba(255, 122, 26, 0.12);
   border-color: rgba(255, 122, 26, 0.24);
-  color: rgba(255, 255, 255, 0.94);
+  color: var(--text);
   transform: translateY(-1px);
 }
 
@@ -2295,35 +2295,35 @@
 }
 
 .messageShellHovered .bubble:not(.bubbleAudioBare):not(.bubbleVideoBare) {
-  box-shadow: 0 18px 38px rgba(0, 0, 0, 0.24);
+  box-shadow: 0 18px 38px  rgba(92, 54, 18, 0.24);
 }
 
 .bubble {
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--surface-2);
   backdrop-filter: blur(16px);
-  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.16);
+  box-shadow: 0 10px 26px  rgba(92, 54, 18, 0.16);
 }
 
 .bubbleMine {
   background:
     linear-gradient(180deg, rgba(255, 152, 72, 0.14), rgba(255, 122, 26, 0.06)),
-    rgba(255, 255, 255, 0.05);
+    var(--surface-2);
   border-color: rgba(255, 164, 92, 0.16);
 }
 
 .bubbleTheirs {
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.025)),
-    rgba(255, 255, 255, 0.03);
-  border-color: rgba(255, 255, 255, 0.06);
+    linear-gradient(180deg, var(--surface-1), var(--surface-1)),
+    var(--surface-1);
+  border-color: var(--surface-2);
 }
 
 .forwardedBlock {
   margin-bottom: 8px;
   padding: 6px 10px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.045);
-  color: rgba(255, 255, 255, 0.58);
+  background: var(--surface-1);
+  color: var(--muted);
   font-style: normal;
 }
 
@@ -2332,13 +2332,13 @@
   border-radius: 14px;
   background:
     linear-gradient(90deg, rgba(255, 122, 26, 0.12), transparent 22%),
-    rgba(255, 255, 255, 0.045);
+    var(--surface-1);
 }
 
 .replyBlock:hover {
   background:
     linear-gradient(90deg, rgba(255, 122, 26, 0.16), transparent 22%),
-    rgba(255, 255, 255, 0.06);
+    var(--surface-2);
 }
 
 .mediaBlock {
@@ -2348,46 +2348,46 @@
 .fileLink {
   min-height: 46px;
   border-radius: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--surface-2);
+  background: var(--surface-1);
 }
 
 .systemCardRich {
   width: min(560px, 100%);
   padding: 14px 16px;
   border-radius: 20px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--stroke);
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.028), rgba(255, 255, 255, 0.012)),
-    #161618;
-  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.2);
+    linear-gradient(180deg, var(--surface-1), var(--surface-0)),
+    var(--panel);
+  box-shadow: 0 18px 42px  rgba(92, 54, 18, 0.2);
 }
 
 .systemCardGame {
   background:
     radial-gradient(circle at top right, rgba(255, 122, 26, 0.14), transparent 38%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.028), rgba(255, 255, 255, 0.012)),
-    #161618;
+    linear-gradient(180deg, var(--surface-1), var(--surface-0)),
+    var(--panel);
 }
 
 .systemCardToneAccent {
   background:
     radial-gradient(circle at top right, rgba(255, 122, 26, 0.12), transparent 38%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.028), rgba(255, 255, 255, 0.012)),
-    #161618;
+    linear-gradient(180deg, var(--surface-1), var(--surface-0)),
+    var(--panel);
 }
 
 .systemCardToneDanger {
   background:
     radial-gradient(circle at top right, rgba(239, 68, 68, 0.12), transparent 40%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.028), rgba(255, 255, 255, 0.012)),
-    #161618;
+    linear-gradient(180deg, var(--surface-1), var(--surface-0)),
+    var(--panel);
 }
 
 .systemCardToneMuted {
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.026), rgba(255, 255, 255, 0.012)),
-    #161618;
+    linear-gradient(180deg, var(--surface-1), var(--surface-0)),
+    var(--panel);
 }
 
 .systemCardTop {
@@ -2401,7 +2401,7 @@
 .systemTimestamp {
   font-size: 11px;
   font-weight: 700;
-  color: rgba(255, 255, 255, 0.4);
+  color: var(--muted-2);
   font-variant-numeric: tabular-nums;
 }
 
@@ -2416,22 +2416,22 @@
   width: 38px;
   height: 38px;
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.06);
-  color: rgba(255, 255, 255, 0.88);
+  background: var(--surface-2);
+  color: var(--text);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  box-shadow: inset 0 1px 0 var(--surface-2);
 }
 
 .systemIconWrapGame {
-  background: rgba(255, 122, 26, 0.12);
-  color: #ffb777;
+  background: var(--accent-soft);
+  color: var(--accent);
 }
 
 .systemIconWrapDanger {
-  background: rgba(239, 68, 68, 0.12);
-  color: #ff9b9b;
+  background: var(--danger-soft);
+  color: var(--danger);
 }
 
 .systemBody {
@@ -2443,7 +2443,7 @@
 .systemDetails {
   font-size: 13px;
   line-height: 1.45;
-  color: rgba(255, 255, 255, 0.58);
+  color: var(--muted);
 }
 
 .systemFooter {
@@ -2452,7 +2452,7 @@
   flex-wrap: wrap;
   gap: 8px 14px;
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--muted);
 }
 
 .systemEventBadge {
@@ -2461,8 +2461,8 @@
   border-radius: 999px;
   display: inline-flex;
   align-items: center;
-  background: rgba(255, 255, 255, 0.06);
-  color: rgba(255, 255, 255, 0.72);
+  background: var(--surface-2);
+  color: var(--text-soft);
   font-size: 10px;
   font-weight: 800;
   letter-spacing: 0.06em;
@@ -2470,17 +2470,17 @@
 }
 
 .systemEventBadgeGame {
-  background: rgba(255, 122, 26, 0.12);
-  color: #ffbf85;
+  background: var(--accent-soft);
+  color: var(--accent-strong);
 }
 
 .systemEventBadgeDanger {
-  background: rgba(239, 68, 68, 0.14);
-  color: #ffabab;
+  background: var(--danger-soft);
+  color: var(--danger);
 }
 
 .systemAction {
-  color: rgba(255, 255, 255, 0.78);
+  color: var(--text-soft);
   font-weight: 700;
 }
 
@@ -2488,13 +2488,14 @@
   min-height: 36px;
   padding: 0 16px;
   border-radius: 12px;
-  background: linear-gradient(135deg, rgba(255, 122, 26, 0.92), rgba(255, 140, 61, 0.82));
+  background: var(--accent);
   color: #fff;
-  box-shadow: 0 12px 28px rgba(255, 122, 26, 0.2);
+  box-shadow: 0 8px 20px rgba(255, 109, 10, 0.24);
+  font-weight: 700;
 }
 
 .systemActionButton:hover {
-  background: linear-gradient(135deg, rgba(255, 132, 38, 0.98), rgba(255, 153, 82, 0.88));
+  background: var(--accent-strong);
 }
 
 .selectionBar,
@@ -2503,16 +2504,16 @@
 .attachMenu,
 .messageContextMenu,
 .mobileMessageActionMenu {
-  border-color: rgba(255, 255, 255, 0.09);
+  border-color: var(--stroke);
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.015)),
-    #151517;
+    linear-gradient(180deg, var(--surface-1), var(--surface-0)),
+    var(--panel);
 }
 
 .messageContextMenu,
 .mobileMessageActionMenu {
   border-radius: 20px;
-  box-shadow: 0 28px 52px rgba(0, 0, 0, 0.42);
+  box-shadow: 0 28px 52px  rgba(92, 54, 18, 0.42);
 }
 
 .mobileMessageActionsItem,
@@ -2588,8 +2589,8 @@
   width: 54px;
   height: 54px;
   border-radius: 50%;
-  background: rgba(17, 17, 19, 0.72);
-  color: #fff;
+  background: var(--surface-2);
+  color: var(--text);
   display: grid;
   place-items: center;
   pointer-events: none;
@@ -2597,12 +2598,12 @@
 
 .messageQuickAction {
   border: 0;
-  background: #202023;
+  background: var(--panel-2);
   box-shadow: none;
 }
 
 .messageQuickAction:hover {
-  background: #29292d;
+  background: var(--panel-2);
   transform: none;
 }
 
@@ -2617,11 +2618,14 @@
 }
 
 .bubbleMine {
-  background: #232326;
+  background: var(--accent-muted);
+  border: 1px solid var(--stroke-accent);
+  color: var(--text);
 }
 
 .bubbleTheirs {
-  background: #1d1d20;
+  background: var(--panel-2);
+  border: 1px solid var(--stroke-soft);
 }
 
 .forwardedBlock {
@@ -2630,17 +2634,17 @@
 }
 
 .replyBlock {
-  background: #202023;
-  border-left-color: rgba(255, 255, 255, 0.18);
+  background: var(--panel-2);
+  border-left-color: var(--stroke-strong);
 }
 
 .replyBlock:hover {
-  background: #252529;
+  background: var(--panel-2);
 }
 
 .fileLink {
   border: 0;
-  background: #202023;
+  background: var(--panel-2);
 }
 
 .systemCardRich,
@@ -2654,49 +2658,58 @@
 .attachMenu,
 .messageContextMenu,
 .mobileMessageActionMenu {
-  background: #181819;
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: var(--panel);
+  border: 1px solid var(--surface-2);
   box-shadow: none;
 }
 
 .systemIconWrap {
-  background: #222225;
+  background: var(--panel-2);
   box-shadow: none;
 }
 
 .systemIconWrapGame,
 .systemIconWrapDanger {
-  background: #222225;
-  color: rgba(255, 255, 255, 0.82);
+  background: var(--panel-2);
+  color: var(--text-soft);
 }
 
-.systemEventBadge,
-.systemEventBadgeGame,
+.systemEventBadge {
+  background: var(--surface-1);
+  color: var(--text-soft);
+}
+
+.systemEventBadgeGame {
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+}
+
 .systemEventBadgeDanger {
-  background: #232326;
-  color: rgba(255, 255, 255, 0.66);
+  background: var(--danger-soft);
+  color: var(--danger);
 }
 
 .systemActionButton {
-  background: #2a2a2e;
-  box-shadow: none;
+  background: var(--accent);
+  color: #fff;
+  box-shadow: 0 6px 16px rgba(255, 109, 10, 0.22);
 }
 
 .systemActionButton:hover {
-  background: #323238;
+  background: var(--accent-strong);
 }
 
 .composerInputShell {
   outline: none !important;
   box-shadow: none !important;
-  border-color: rgba(255, 255, 255, 0.06) !important;
+  border-color: var(--surface-2) !important;
 }
 
 .composerInputShell:focus-within {
   outline: none !important;
   box-shadow: none !important;
   border-color: rgba(255, 122, 26, 0.24) !important;
-  background: #1b1a19 !important;
+  background: var(--panel) !important;
 }
 
 .input,
@@ -2717,5 +2730,5 @@
 .mobileMessageActionsItem:active,
 .messageContextMenuItem:hover,
 .messageContextMenuItem:active {
-  background: #222225;
+  background: var(--panel-2);
 }

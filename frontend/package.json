@@ -10,7 +10,12 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@fullcalendar/core": "^6.1.20",
+    "@fullcalendar/interaction": "^6.1.20",
+    "@fullcalendar/react": "^6.1.20",
+    "@fullcalendar/timegrid": "^6.1.20",
     "@reduxjs/toolkit": "2.2.7",
+    "avataaars": "^2.0.0",
     "framer-motion": "^12.38.0",
     "lucide-react": "^1.7.0",
     "next": "14.2.5",

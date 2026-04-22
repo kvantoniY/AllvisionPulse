@@ -19,6 +19,7 @@ import { buildHealthProgramsHref } from './programUi';
 type ProgramTodayWidgetProps = {
   compact?: boolean;
   variant?: 'default' | 'pulse';
+  onOpenPrograms?: () => void;
 };
 
 function getPulseProgramContext(item: {
@@ -34,7 +35,7 @@ function getPulseProgramContext(item: {
   return [item.programTitle, humanStage ?? statusNote].filter(Boolean).join(' · ');
 }
 
-export function ProgramTodayWidget({ compact = false, variant = 'default' }: ProgramTodayWidgetProps) {
+export function ProgramTodayWidget({ compact = false, variant = 'default', onOpenPrograms }: ProgramTodayWidgetProps) {
   const { data, isLoading } = useGetProgramTodayActionsQuery();
   const [completeAction, { isLoading: completing }] = useCompleteProgramActionMutation();
   const [skipAction, { isLoading: skipping }] = useSkipProgramActionMutation();
@@ -104,9 +105,15 @@ export function ProgramTodayWidget({ compact = false, variant = 'default' }: Pro
         </div>
 
         {items.length > visibleItems.length ? (
-          <Link href="/health?tab=programs" className={styles.pulseMoreLink}>
-            Ещё действия из программ
-          </Link>
+          onOpenPrograms ? (
+            <button type="button" className={styles.pulseMoreLink} onClick={onOpenPrograms}>
+              Ещё действия из программ
+            </button>
+          ) : (
+            <Link href="/health?tab=programs" className={styles.pulseMoreLink}>
+              Ещё действия из программ
+            </Link>
+          )
         ) : null}
       </div>
     );
@@ -117,9 +124,13 @@ export function ProgramTodayWidget({ compact = false, variant = 'default' }: Pro
       <CardHeader
         title="Сегодня по программам"
         action={(
-          <Link href="/health?tab=programs" className={styles.linkButton}>
-            <Button size="sm">Открыть</Button>
-          </Link>
+          onOpenPrograms ? (
+            <Button size="sm" onClick={onOpenPrograms}>Открыть</Button>
+          ) : (
+            <Link href="/health?tab=programs" className={styles.linkButton}>
+              <Button size="sm">Открыть</Button>
+            </Link>
+          )
         )}
       />
 

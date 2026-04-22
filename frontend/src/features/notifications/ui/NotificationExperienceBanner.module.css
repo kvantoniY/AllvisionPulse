@@ -62,7 +62,7 @@
 
 .primary {
   background: var(--accent);
-  color: #fff;
+  color: var(--text);
   font-weight: 700;
 }
 

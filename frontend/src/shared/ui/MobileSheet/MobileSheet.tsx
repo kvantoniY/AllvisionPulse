@@ -12,11 +12,13 @@ export function MobileSheet({
   title,
   action,
   children,
+  appearance = 'default',
 }: PropsWithChildren<{
   open: boolean;
   onClose: () => void;
   title?: string;
   action?: ReactNode;
+  appearance?: 'default' | 'pulse';
 }>) {
   const [mounted, setMounted] = useState(false);
 
@@ -40,15 +42,33 @@ export function MobileSheet({
   if (!open || !mounted) return null;
 
   return createPortal(
-    <div className={styles.backdrop} role="dialog" aria-modal="true" onMouseDown={onClose}>
-      <div className={styles.sheet} onMouseDown={(event) => event.stopPropagation()}>
-        <div className={styles.header}>
-          <button type="button" className={styles.close} onClick={onClose} aria-label="Закрыть">
-            <Icon name="close" size={22} />
-          </button>
-          <div className={styles.title}>{title ?? ''}</div>
-          <div className={styles.action}>{action ?? <span />}</div>
-        </div>
+    <div
+      className={[styles.backdrop, appearance === 'pulse' ? styles.backdropPulse : ''].filter(Boolean).join(' ')}
+      role="dialog"
+      aria-modal="true"
+      onMouseDown={onClose}
+    >
+      <div
+        className={[styles.sheet, appearance === 'pulse' ? styles.sheetPulse : ''].filter(Boolean).join(' ')}
+        onMouseDown={(event) => event.stopPropagation()}
+      >
+        {appearance === 'pulse' ? (
+          <div className={`${styles.header} ${styles.headerPulse}`}>
+            <div className={styles.title}>{title ?? ''}</div>
+            {action ? <div className={styles.action}>{action}</div> : null}
+            <button type="button" className={styles.close} onClick={onClose} aria-label="Закрыть">
+              <Icon name="close" size={22} />
+            </button>
+          </div>
+        ) : (
+          <div className={styles.header}>
+            <button type="button" className={styles.close} onClick={onClose} aria-label="Закрыть">
+              <Icon name="close" size={22} />
+            </button>
+            <div className={styles.title}>{title ?? ''}</div>
+            <div className={styles.action}>{action ?? <span />}</div>
+          </div>
+        )}
         <div className={styles.body}>{children}</div>
       </div>
     </div>,

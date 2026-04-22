@@ -5,10 +5,10 @@
   width: 18px;
   height: 18px;
   border-radius: 999px;
-  background: rgba(255, 74, 74, 0.18);
-  border: 1px solid rgba(255, 74, 74, 0.38);
-  color: #ff5d5d;
-  box-shadow: 0 6px 16px rgba(255, 74, 74, 0.16);
+  background: var(--danger-soft);
+  border: 1px solid rgba(214, 106, 62, 0.36);
+  color: var(--danger);
+  box-shadow: 0 6px 16px rgba(214, 106, 62, 0.16);
   flex: 0 0 auto;
 }
 

@@ -7,7 +7,7 @@
 
 .svg { overflow: visible; }
 
-.track { stroke: rgba(255, 255, 255, 0.08); }
+.track { stroke: rgba(120, 72, 24, 0.14); }
 .progress { transition: stroke-dashoffset var(--dur) var(--ease), filter var(--dur) var(--ease); }
 .text {
   position: absolute;

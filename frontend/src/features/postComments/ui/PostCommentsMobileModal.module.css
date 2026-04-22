@@ -50,7 +50,7 @@
   min-height: 28px;
   padding: 0 8px 0 4px;
   border-radius: 999px;
-  background: rgba(255,255,255,0.04);
+  background: var(--surface-1);
   color: var(--text-soft);
   white-space: nowrap;
   font-size: 12px;
@@ -64,8 +64,8 @@
   min-width: 188px;
   padding: 6px;
   border-radius: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(12, 14, 18, 0.98);
+  border: 1px solid var(--stroke);
+  background: var(--panel);
   display: grid;
   gap: 4px;
 }
@@ -82,7 +82,7 @@
 
 .sortOptionActive,
 .sortOption:hover {
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--surface-2);
   color: var(--text);
 }
 
@@ -103,7 +103,7 @@
 .replies {
   margin-left: 22px;
   padding-left: 14px;
-  border-left: 1px solid rgba(255, 255, 255, 0.06);
+  border-left: 1px solid var(--surface-2);
   display: grid;
   gap: 10px;
 }
@@ -156,7 +156,7 @@
   width: 100%;
   aspect-ratio: 1 / 1;
   object-fit: contain;
-  background: #050608;
+  background: var(--bg);
   border-radius: 14px;
 }
 
@@ -195,8 +195,8 @@
   min-height: 34px;
   padding: 0 12px;
   border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--stroke);
+  background: var(--surface-1);
   color: var(--text-soft);
 }
 
@@ -215,8 +215,8 @@
   padding: 10px 16px calc(10px + env(safe-area-inset-bottom, 0px));
   display: grid;
   gap: 8px;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
-  background: rgba(17, 18, 20, 0.98);
+  border-top: 1px solid var(--surface-2);
+  background: var(--panel);
 }
 
 .previewStrip {
@@ -233,14 +233,14 @@
   min-width: 56px;
   border-radius: 12px;
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--stroke);
 }
 
 .previewItem img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  background: #050608;
+  background: var(--bg);
 }
 
 .previewRemove {
@@ -251,7 +251,7 @@
   height: 18px;
   border-radius: 999px;
   border: none;
-  background: rgba(0, 0, 0, 0.65);
+  background: rgba(54, 39, 23, 0.42);
   color: white;
   display: grid;
   place-items: center;
@@ -264,7 +264,7 @@
   min-height: 26px;
   padding: 0 10px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--surface-2);
   color: var(--muted);
 }
 
@@ -296,8 +296,8 @@
   max-height: 120px;
   resize: none;
   border-radius: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--stroke);
+  background: var(--surface-1);
   padding: 10px 12px;
   color: var(--text);
   outline: none;
@@ -317,8 +317,8 @@
   display: grid;
   gap: 6px;
   border-radius: 18px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(10, 11, 14, 0.98);
+  border: 1px solid var(--stroke);
+  background: var(--surface-1);
   box-shadow: var(--shadow-md);
   z-index: 32;
 }
@@ -345,15 +345,15 @@
   min-width: 44px;
   height: 44px;
   border-radius: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--stroke);
+  background: var(--surface-1);
   color: var(--text-soft);
   display: grid;
   place-items: center;
 }
 
 .toolBtnActive {
-  background: rgba(255,255,255,0.07);
+  background: var(--surface-2);
   color: var(--text);
 }
 

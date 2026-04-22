@@ -24,8 +24,8 @@
   min-height: 36px;
   padding: 0 12px;
   border-radius: 12px;
-  border: 1px solid rgba(255,255,255,0.06);
-  background: rgba(255,255,255,0.025);
+  border: 1px solid var(--surface-2);
+  background: var(--surface-1);
   color: var(--muted);
   text-decoration: none;
   transition: background 120ms ease, border-color 120ms ease, color 120ms ease, transform 120ms ease;
@@ -34,8 +34,8 @@
 .contextBack:hover,
 .contextLink:hover {
   color: var(--text);
-  border-color: rgba(255,255,255,0.12);
-  background: rgba(255,255,255,0.05);
+  border-color: var(--stroke-strong);
+  background: var(--surface-2);
   transform: translateY(-1px);
 }
 
@@ -61,7 +61,7 @@
     radial-gradient(circle at top right, rgba(255, 122, 26, 0.12), transparent 28%),
     linear-gradient(180deg, rgba(8, 10, 13, 0.82), rgba(8, 10, 13, 0));
   box-shadow: none;
-  border-bottom: 1px solid rgba(255,255,255,0.06);
+  border-bottom: 1px solid var(--surface-2);
 }
 
 .heroRow {
@@ -102,9 +102,9 @@
 
 .tab {
   min-height: 34px;
-  border: 1px solid rgba(255,255,255,0.06);
+  border: 1px solid var(--surface-2);
   border-radius: 10px;
-  background: rgba(255,255,255,0.025);
+  background: var(--surface-1);
   color: var(--muted);
   padding: 0 12px;
   cursor: pointer;
@@ -145,7 +145,7 @@
   display: grid;
   gap: 8px;
   padding-top: 14px;
-  border-top: 1px solid rgba(255,255,255,0.06);
+  border-top: 1px solid var(--surface-2);
 }
 
 .compactSection:first-of-type {
@@ -176,7 +176,7 @@
   justify-content: space-between;
   gap: 12px;
   padding: 9px 0;
-  border-bottom: 1px solid rgba(255,255,255,0.06);
+  border-bottom: 1px solid var(--surface-2);
 }
 
 .compactProgramRow:last-child,
@@ -214,7 +214,7 @@
   width: 100%;
   height: 6px;
   border-radius: 999px;
-  background: rgba(255,255,255,0.06);
+  background: var(--surface-2);
   overflow: hidden;
 }
 
@@ -304,8 +304,8 @@
   gap: 6px;
   padding: 5px 9px;
   border-radius: 999px;
-  border: 1px solid rgba(255,255,255,0.05);
-  background: rgba(255,255,255,0.025);
+  border: 1px solid var(--surface-2);
+  background: var(--surface-1);
   color: var(--muted);
   font-size: 12px;
 }
@@ -330,7 +330,7 @@
 
 .summaryCard {
   border: 0;
-  border-left: 1px solid rgba(255,255,255,0.08);
+  border-left: 1px solid var(--stroke);
   border-radius: 0;
   background: transparent;
   padding: 0 0 0 12px;
@@ -394,7 +394,7 @@
   gap: 12px;
   align-items: center;
   padding: 12px 0;
-  border-top: 1px solid rgba(255,255,255,0.06);
+  border-top: 1px solid var(--surface-2);
 }
 
 .actionRow:first-child {
@@ -430,7 +430,7 @@
 
 .sectionDivider {
   height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent);
+  background: linear-gradient(90deg, transparent, var(--stroke), transparent);
 }
 
 .storyPanel {
@@ -466,7 +466,7 @@
   align-items: flex-start;
   gap: 10px;
   padding: 10px 0;
-  border-bottom: 1px solid rgba(255,255,255,0.06);
+  border-bottom: 1px solid var(--surface-2);
   color: var(--muted);
   font-size: 13px;
   line-height: 1.45;
@@ -486,7 +486,7 @@
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 12px;
   padding: 12px 0;
-  border-top: 1px solid rgba(255,255,255,0.06);
+  border-top: 1px solid var(--surface-2);
 }
 
 .todayActionRow:first-child {
@@ -544,15 +544,15 @@
   align-items: center;
   justify-content: center;
   border-radius: 10px;
-  border: 1px solid rgba(255,255,255,0.08);
-  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--stroke);
+  background: var(--surface-1);
   color: var(--muted);
   cursor: pointer;
 }
 
 .actionMenu[open] .actionMenuSummary {
   color: var(--text);
-  border-color: rgba(255,255,255,0.14);
+  border-color: var(--stroke-strong);
 }
 
 .actionMenuBody {
@@ -565,16 +565,16 @@
   gap: 8px;
   padding: 10px;
   border-radius: 14px;
-  border: 1px solid rgba(255,255,255,0.08);
-  background: rgba(13, 16, 20, 0.98);
-  box-shadow: 0 18px 34px rgba(0,0,0,0.28);
+  border: 1px solid var(--stroke);
+  background: var(--panel);
+  box-shadow: 0 18px 34px  rgba(92, 54, 18, 0.28);
 }
 
 .inlineEditor {
   display: grid;
   gap: 10px;
   padding: 12px 0 0;
-  border-top: 1px solid rgba(255,255,255,0.06);
+  border-top: 1px solid var(--surface-2);
 }
 
 .inlineEditorRow {
@@ -594,7 +594,7 @@
   display: grid;
   gap: 10px;
   padding: 12px 0;
-  border-top: 1px solid rgba(255,255,255,0.06);
+  border-top: 1px solid var(--surface-2);
 }
 
 .participantRow:first-child {
@@ -624,7 +624,7 @@
   align-items: center;
   justify-content: center;
   background: linear-gradient(180deg, rgba(255, 122, 26, 0.24), rgba(255, 122, 26, 0.12));
-  color: #fff;
+  color: var(--text);
   font-weight: 800;
   flex-shrink: 0;
 }
@@ -661,7 +661,7 @@
   justify-content: space-between;
   gap: 12px;
   padding: 10px 0;
-  border-top: 1px solid rgba(255,255,255,0.06);
+  border-top: 1px solid var(--surface-2);
 }
 
 .compactListRow:first-child {
@@ -690,7 +690,7 @@
   gap: 12px;
   align-items: center;
   padding: 8px 0;
-  border-bottom: 1px solid rgba(255,255,255,0.06);
+  border-bottom: 1px solid var(--surface-2);
   color: var(--muted);
 }
 
@@ -714,7 +714,7 @@
   justify-content: space-between;
   gap: 10px;
   padding: 8px 0;
-  border-bottom: 1px solid rgba(255,255,255,0.06);
+  border-bottom: 1px solid var(--surface-2);
 }
 
 .actionCompactRow:last-child {
@@ -757,7 +757,7 @@
 
 .detailsCard {
   border: 0;
-  border-top: 1px solid rgba(255,255,255,0.06);
+  border-top: 1px solid var(--surface-2);
   border-radius: 0;
   background: transparent;
   padding: 10px 0 0;
@@ -796,7 +796,7 @@
   width: 100%;
   text-align: left;
   border: 0;
-  border-left: 1px solid rgba(255,255,255,0.08);
+  border-left: 1px solid var(--stroke);
   border-radius: 0;
   background: transparent;
   color: var(--text);
@@ -863,8 +863,8 @@
 .field select {
   width: 100%;
   border-radius: 10px;
-  border: 1px solid rgba(255,255,255,0.07);
-  background: rgba(255,255,255,0.025);
+  border: 1px solid var(--surface-2);
+  background: var(--surface-1);
   color: var(--text);
   padding: 9px 11px;
 }
@@ -895,9 +895,9 @@
   display: grid;
   gap: 6px;
   text-align: left;
-  border: 1px solid rgba(255,255,255,0.06);
+  border: 1px solid var(--surface-2);
   border-radius: 10px;
-  background: rgba(255,255,255,0.012);
+  background: var(--surface-0);
   color: var(--text);
   padding: 10px 12px;
   cursor: pointer;
@@ -930,7 +930,7 @@
   display: grid;
   gap: 12px;
   padding: 12px 0 0;
-  border-top: 1px solid rgba(255,255,255,0.06);
+  border-top: 1px solid var(--surface-2);
 }
 
 .builderDayCard:first-child {
@@ -942,7 +942,7 @@
   display: grid;
   gap: 8px;
   padding: 10px 0;
-  border-top: 1px solid rgba(255,255,255,0.06);
+  border-top: 1px solid var(--surface-2);
 }
 
 .builderDaySummary:first-child {
@@ -1006,7 +1006,7 @@
   display: grid;
   gap: 10px;
   padding-top: 10px;
-  border-top: 1px solid rgba(255,255,255,0.06);
+  border-top: 1px solid var(--surface-2);
 }
 
 .builderDaySection:first-child {
@@ -1034,8 +1034,8 @@
   gap: 8px;
   padding: 7px 10px;
   border-radius: 999px;
-  border: 1px solid rgba(255,255,255,0.07);
-  background: rgba(255,255,255,0.025);
+  border: 1px solid var(--surface-2);
+  background: var(--surface-1);
   color: var(--text);
   cursor: pointer;
   font-size: 12px;
@@ -1051,7 +1051,7 @@
   display: grid;
   gap: 8px;
   padding: 10px 0;
-  border-top: 1px solid rgba(255,255,255,0.06);
+  border-top: 1px solid var(--surface-2);
 }
 
 .builderActionItem:first-child {
@@ -1109,8 +1109,8 @@
   gap: 8px;
   padding: 10px 12px;
   border-radius: 14px;
-  border: 1px solid rgba(255,255,255,0.06);
-  background: rgba(255,255,255,0.02);
+  border: 1px solid var(--surface-2);
+  background: var(--surface-1);
   color: var(--muted);
   font-size: 13px;
   line-height: 1.45;
@@ -1127,9 +1127,9 @@
 .emptyState {
   padding: 14px 16px;
   border-radius: 16px;
-  border: 1px solid rgba(255,255,255,0.06);
+  border: 1px solid var(--surface-2);
   color: var(--muted);
-  background: rgba(255,255,255,0.028);
+  background: var(--surface-1);
   line-height: 1.5;
 }
 
@@ -1138,8 +1138,8 @@
   gap: 8px;
   padding: 12px;
   border-radius: 16px;
-  border: 1px solid rgba(255,255,255,0.06);
-  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--surface-2);
+  background: var(--surface-1);
 }
 
 .sharePrimary {
@@ -1178,7 +1178,7 @@
   gap: 12px;
   align-items: flex-start;
   padding: 12px 0;
-  border-bottom: 1px solid rgba(255,255,255,0.06);
+  border-bottom: 1px solid var(--surface-2);
 }
 
 .historyRow:last-child {
@@ -1282,7 +1282,7 @@
   gap: 8px;
   align-items: center;
   padding: 8px 0;
-  border-top: 1px solid rgba(255,255,255,0.06);
+  border-top: 1px solid var(--surface-2);
 }
 
 .pulseActionRow:first-child {
@@ -1308,7 +1308,7 @@
 }
 
 .pulseActionCopy span {
-  color: rgba(255, 255, 255, 0.52);
+  color: var(--muted);
   font-size: 10.5px;
   line-height: 1.35;
 }
@@ -1343,8 +1343,8 @@
   align-items: center;
   justify-content: center;
   border-radius: 10px;
-  border: 1px solid rgba(255,255,255,0.08);
-  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--stroke);
+  background: var(--surface-1);
   color: var(--muted);
   cursor: pointer;
   transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
@@ -1353,8 +1353,8 @@
 .pulseOverflow[open] .pulseOverflowTrigger,
 .pulseOverflowTrigger:hover {
   color: var(--text);
-  border-color: rgba(255,255,255,0.14);
-  background: rgba(255,255,255,0.06);
+  border-color: var(--stroke-strong);
+  background: var(--surface-2);
 }
 
 .pulseOverflowMenu {
@@ -1367,9 +1367,9 @@
   gap: 6px;
   padding: 8px;
   border-radius: 12px;
-  border: 1px solid rgba(255,255,255,0.08);
-  background: rgba(13, 16, 20, 0.98);
-  box-shadow: 0 18px 34px rgba(0,0,0,0.28);
+  border: 1px solid var(--stroke);
+  background: var(--panel);
+  box-shadow: 0 18px 34px  rgba(92, 54, 18, 0.28);
 }
 
 .pulseOverflowItem {
@@ -1388,7 +1388,7 @@
 }
 
 .pulseOverflowItem:hover {
-  background: rgba(255,255,255,0.06);
+  background: var(--surface-2);
 }
 
 .pulseOverflowItem:disabled {
@@ -1397,13 +1397,13 @@
 }
 
 .pulseMoreLink {
-  color: rgba(255,255,255,0.52);
+  color: var(--muted);
   font-size: 11px;
   text-decoration: none;
 }
 
 .pulseMoreLink:hover {
-  color: #fff;
+  color: var(--text);
 }
 
 
@@ -1417,7 +1417,7 @@
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 12px;
   padding: 12px 0;
-  border-top: 1px solid rgba(255,255,255,0.06);
+  border-top: 1px solid var(--surface-2);
 }
 
 .widgetActionRow:first-child {
@@ -1597,7 +1597,7 @@
   gap: 12px;
   flex-wrap: wrap;
   padding-bottom: 10px;
-  border-bottom: 1px solid rgba(255,255,255,0.06);
+  border-bottom: 1px solid var(--surface-2);
 }
 
 .subtabBar {
@@ -1628,7 +1628,7 @@
   display: grid;
   gap: 12px;
   padding: 6px 0 0;
-  border-top: 1px solid rgba(255,255,255,0.06);
+  border-top: 1px solid var(--surface-2);
 }
 
 .flatSectionHead {
@@ -1644,7 +1644,7 @@
   gap: 12px;
   align-self: start;
   padding-top: 6px;
-  border-top: 1px solid rgba(255,255,255,0.06);
+  border-top: 1px solid var(--surface-2);
 }
 
 .filterRow {
@@ -1657,7 +1657,7 @@
 .filterChip {
   min-height: 30px;
   padding: 0 12px;
-  border: 1px solid rgba(255,255,255,0.06);
+  border: 1px solid var(--surface-2);
   border-radius: 999px;
   background: transparent;
   color: var(--muted);
@@ -1679,9 +1679,9 @@
   gap: 10px;
   min-height: 42px;
   padding: 0 12px;
-  border: 1px solid rgba(255,255,255,0.06);
+  border: 1px solid var(--surface-2);
   border-radius: 12px;
-  background: rgba(255,255,255,0.018);
+  background: var(--surface-0);
 }
 
 .inlineSearch {
@@ -1694,7 +1694,7 @@
 }
 
 .inlineSearch::placeholder {
-  color: rgba(255,255,255,0.42);
+  color: var(--muted-2);
 }
 
 .programRowStrip {
@@ -1703,7 +1703,7 @@
   gap: 14px;
   align-items: start;
   padding: 12px 0;
-  border-top: 1px solid rgba(255,255,255,0.06);
+  border-top: 1px solid var(--surface-2);
 }
 
 .list > .programRowStrip:first-child {
@@ -1725,7 +1725,7 @@
 
 .programRowSummary {
   padding-left: 38px;
-  color: rgba(255,255,255,0.56);
+  color: var(--muted);
   font-size: 12px;
   line-height: 1.45;
 }
@@ -1739,7 +1739,7 @@
 }
 
 .programRowMetric {
-  color: rgba(255,255,255,0.56);
+  color: var(--muted);
   font-size: 11px;
   font-weight: 700;
 }
@@ -1765,9 +1765,9 @@
   align-items: center;
   justify-content: center;
   border-radius: 10px;
-  border: 1px solid rgba(255,255,255,0.08);
+  border: 1px solid var(--stroke);
   background: transparent;
-  color: rgba(255,255,255,0.56);
+  color: var(--muted);
   cursor: pointer;
 }
 
@@ -1813,7 +1813,7 @@
   display: grid;
   gap: 10px;
   padding-top: 10px;
-  border-top: 1px solid rgba(255,255,255,0.06);
+  border-top: 1px solid var(--surface-2);
 }
 
 .programMenuItem {
@@ -1839,7 +1839,7 @@
 .subtabBar {
   gap: 18px;
   padding-bottom: 2px;
-  border-bottom: 1px solid rgba(255,255,255,0.06);
+  border-bottom: 1px solid var(--surface-2);
 }
 
 .subtabButton {
@@ -1923,7 +1923,7 @@
 .field textarea,
 .field select,
 .searchBarInline {
-  border-color: rgba(255,255,255,0.06);
+  border-color: var(--surface-2);
   background: rgba(255,255,255,0.016);
 }
 
@@ -1966,13 +1966,13 @@
 
 .pulseActionRow {
   padding: 14px 16px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(178, 138, 92, 0.16);
   border-radius: 16px;
-  background: linear-gradient(180deg, rgba(16, 20, 30, 0.88), rgba(10, 13, 20, 0.94));
+  background: rgba(255, 255, 255, 0.72);
 }
 
 .pulseActionRow:first-child {
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  border-top: 1px solid var(--surface-2);
 }
 
 .pulseActionMain {
@@ -1997,7 +1997,7 @@
 .pulseActionCopy span {
   font-size: 12px;
   line-height: 1.45;
-  color: rgba(255, 255, 255, 0.64);
+  color: #7b684f;
 }
 
 .pulseActionControls :global(button) {
@@ -2036,12 +2036,12 @@
   align-items: center !important;
   padding: 10px 12px !important;
   border-radius: 14px !important;
-  border: 1px solid rgba(255, 255, 255, 0.06) !important;
-  background: #1d1d1e !important;
+  border: 1px solid rgba(178, 138, 92, 0.16) !important;
+  background: rgba(255, 255, 255, 0.74) !important;
 }
 
 .pulseActionRow:first-child {
-  border-top: 1px solid rgba(255, 255, 255, 0.06) !important;
+  border-top: 1px solid var(--surface-2) !important;
 }
 
 .pulseActionMain {
@@ -2057,9 +2057,9 @@
   width: 36px;
   height: 36px;
   border-radius: 13px;
-  border-color: rgba(255, 161, 92, 0.18);
-  background: linear-gradient(180deg, rgba(255, 122, 26, 0.08), rgba(255, 122, 26, 0.04));
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  border-color: rgba(215, 125, 45, 0.16);
+  background: rgba(237, 132, 49, 0.12);
+  box-shadow: none;
   flex: 0 0 auto;
 }
 
@@ -2070,13 +2070,9 @@
   flex: 0 0 auto;
 }
 
-.pulseActionMainLink:hover .pulseActionCopy strong {
-  color: #ffffff;
-}
+.pulseActionMainLink:hover .pulseActionCopy strong { color: #2f2115; }
 
-.pulseActionMainLink:hover .pulseActionCopy span {
-  color: rgba(255, 255, 255, 0.72);
-}
+.pulseActionMainLink:hover .pulseActionCopy span { color: #6d573d; }
 
 .pulseActionCopy {
   gap: 2px !important;
@@ -2090,7 +2086,7 @@
 .pulseActionCopy span {
   font-size: 12px !important;
   line-height: 1.4 !important;
-  color: rgba(255, 255, 255, 0.58) !important;
+  color: var(--muted) !important;
 }
 
 .pulseActionControls {
@@ -2112,26 +2108,26 @@
   align-items: center;
   justify-content: center;
   border-radius: 13px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: #1d1d1e;
-  color: rgba(255, 255, 255, 0.64);
+  border: 1px solid rgba(178, 138, 92, 0.16);
+  background: rgba(255, 250, 243, 0.82);
+  color: #7b684f;
   transition: background 140ms ease, border-color 140ms ease, color 140ms ease, transform 140ms ease;
 }
 
 .pulseActionChevron:hover {
-  background: #1d1d1e;
-  border-color: rgba(255, 255, 255, 0.12);
-  color: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.96);
+  border-color: rgba(178, 138, 92, 0.24);
+  color: #332316;
   transform: translateX(1px);
 }
 
 .pulseMoreLink {
-  color: rgba(255, 255, 255, 0.56) !important;
+  color: #7b684f !important;
   font-size: 12px !important;
 }
 
 .pulseMoreLink:hover {
-  color: rgba(255, 255, 255, 0.88) !important;
+  color: #332316 !important;
 }
 
 @media (max-width: 720px) {
@@ -2168,7 +2164,7 @@
   gap: 6px;
   padding: 6px;
   border-radius: 20px;
-  background: rgba(255, 255, 255, 0.055);
+  background: var(--surface-2);
 }
 
 .tab {
@@ -2176,16 +2172,16 @@
   border: 1px solid transparent;
   border-radius: 16px;
   background: transparent;
-  color: rgba(255, 255, 255, 0.56);
+  color: var(--muted);
   padding: 0 20px;
   font-weight: 700;
   font-size: 14px;
 }
 
 .tabActive {
-  color: #fff;
-  border-color: rgba(255,255,255,0.06);
-  background: rgba(8, 10, 14, 0.86);
+  color: var(--text);
+  border-color: var(--surface-2);
+  background: var(--panel-2);
 }
 
 .searchBarInline,
@@ -2197,17 +2193,17 @@
 .compactSection,
 .featuredGrid > *,
 .list > .programRowStrip {
-  border-color: rgba(255, 255, 255, 0.08) !important;
+  border-color: var(--stroke) !important;
 }
 
 .searchBarInline {
   min-height: 48px;
   border-radius: 18px;
-  background: rgba(255,255,255,0.03);
+  background: var(--surface-1);
 }
 
 .searchBarInline input {
-  color: #fff;
+  color: var(--text);
 }
 
 .programRowStrip,
@@ -2235,15 +2231,15 @@
 .programRowSummary,
 .programRowMetric,
 .helperItem span:last-child {
-  color: rgba(255, 255, 255, 0.62);
+  color: var(--muted);
 }
 
 .pill,
 .filterChip {
   border-radius: 999px;
-  border-color: rgba(255, 255, 255, 0.08);
-  background: rgba(255,255,255,0.04);
-  color: rgba(255,255,255,0.72);
+  border-color: var(--stroke);
+  background: var(--surface-1);
+  color: var(--text-soft);
 }
 
 .pillAccent,
@@ -2258,8 +2254,8 @@
   min-width: 40px;
   height: 40px;
   border-radius: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--stroke);
+  background: var(--surface-1);
 }
 
 .favoriteButtonActive {
@@ -2270,7 +2266,7 @@
 
 .progressLine {
   height: 6px;
-  background: rgba(255,255,255,0.08);
+  background: var(--stroke);
 }
 
 .progressFill {
@@ -2299,7 +2295,7 @@
   display: grid;
   gap: 8px;
   padding: 18px 20px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--surface-2);
   border-radius: 22px;
   background:
     radial-gradient(circle at top right, rgba(255, 122, 26, 0.1), transparent 28%),
@@ -2330,9 +2326,9 @@
   gap: 16px;
   flex-wrap: wrap;
   padding: 14px 16px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--surface-2);
   border-radius: 20px;
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--surface-1);
 }
 
 .subtabBar {
@@ -2356,14 +2352,14 @@
   border-radius: 12px;
   background: transparent;
   font-size: 14px;
-  color: rgba(255, 255, 255, 0.58);
+  color: var(--muted);
   transition: color 120ms ease, background 120ms ease, border-color 120ms ease;
 }
 
 .subtabButton:hover,
 .subtabButton:focus-visible {
-  color: rgba(255, 255, 255, 0.88);
-  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-soft);
+  background: var(--surface-1);
 }
 
 .subtabButtonActive {
@@ -2376,7 +2372,7 @@
   display: grid;
   gap: 16px;
   padding: 20px 22px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--surface-2);
   border-radius: 22px;
   background: linear-gradient(180deg, rgba(10, 14, 24, 0.82), rgba(7, 10, 18, 0.94));
 }
@@ -2403,14 +2399,14 @@
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 18px;
   padding: 18px 20px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--surface-2);
   border-radius: 22px;
   background: linear-gradient(180deg, rgba(10, 14, 24, 0.9), rgba(7, 10, 18, 0.96));
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.02);
+  box-shadow: inset 0 1px 0 var(--surface-1);
 }
 
 .list > .programRowStrip:first-child {
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  border-top: 1px solid var(--surface-2);
 }
 
 .programRowLink {
@@ -2430,14 +2426,14 @@
 }
 
 .compactProgramCopy > span {
-  color: rgba(255, 255, 255, 0.64);
+  color: var(--muted);
   font-size: 14px;
 }
 
 .programRowSummary {
   max-width: 64ch;
   padding-left: 42px;
-  color: rgba(255, 255, 255, 0.54);
+  color: var(--muted);
   font-size: 13px;
   line-height: 1.5;
 }
@@ -2448,7 +2444,7 @@
 }
 
 .programRowMetric {
-  color: rgba(255, 255, 255, 0.78);
+  color: var(--text-soft);
   font-size: 12px;
 }
 
@@ -2473,16 +2469,16 @@
   width: 34px;
   height: 34px;
   border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.07);
-  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--surface-2);
+  background: var(--surface-1);
 }
 
 .favoriteButton:hover,
 .favoriteButton:focus-visible,
 .actionMenuSummary:hover,
 .actionMenuSummary:focus-visible {
-  border-color: rgba(255, 255, 255, 0.14);
-  background: rgba(255, 255, 255, 0.05);
+  border-color: var(--stroke-strong);
+  background: var(--surface-2);
 }
 
 .inlineProgramActions {
@@ -2517,10 +2513,10 @@
 
 .stepItem {
   padding: 12px 14px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-left: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--surface-2);
+  border-left: 1px solid var(--surface-2);
   border-radius: 18px;
-  background: rgba(255, 255, 255, 0.018);
+  background: var(--surface-0);
 }
 
 .stepItemActive {
@@ -2534,9 +2530,9 @@
   min-height: 34px;
   padding: 0 12px;
   border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.025);
-  color: rgba(255, 255, 255, 0.72);
+  border: 1px solid var(--stroke);
+  background: var(--surface-1);
+  color: var(--text-soft);
   font-size: 12px;
   font-weight: 700;
 }
@@ -2554,7 +2550,7 @@
 .builderActionItem,
 .detailsCard {
   border-radius: 18px;
-  border-color: rgba(255, 255, 255, 0.06);
+  border-color: var(--surface-2);
   background: linear-gradient(180deg, rgba(10, 14, 24, 0.84), rgba(8, 11, 18, 0.94));
 }
 
@@ -2720,12 +2716,12 @@
   gap: 10px;
   padding: 18px;
   border-radius: 20px;
-  border: 1px solid rgba(255,255,255,0.07);
-  background: rgba(255,255,255,0.02);
+  border: 1px solid var(--surface-2);
+  background: var(--surface-1);
 }
 
 .sessionOverviewLabel {
-  color: rgba(255,255,255,0.48);
+  color: var(--muted-2);
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.08em;
@@ -2752,16 +2748,16 @@
 .historyRow,
 .actionRow {
   padding: 16px 18px;
-  border: 1px solid rgba(255,255,255,0.06);
+  border: 1px solid var(--surface-2);
   border-radius: 18px;
-  background: rgba(255,255,255,0.018);
+  background: var(--surface-0);
 }
 
 .participantRow:first-child,
 .actionCompactRow:first-child,
 .historyRow:first-child,
 .actionRow:first-child {
-  border-top: 1px solid rgba(255,255,255,0.06);
+  border-top: 1px solid var(--surface-2);
 }
 
 .participantRow,
@@ -2778,7 +2774,7 @@
 
 .progressLine {
   height: 8px;
-  background: rgba(255,255,255,0.05);
+  background: var(--surface-2);
 }
 
 .actionCompactList,
@@ -2811,13 +2807,13 @@
 .participantTodayMeta .pill,
 .participantTaskList .pill,
 .metaRow .pill {
-  background: rgba(255,255,255,0.03);
+  background: var(--surface-1);
 }
 
 .tabs {
   padding: 6px;
   border-radius: 20px;
-  background: rgba(255,255,255,0.03);
+  background: var(--surface-1);
   width: max-content;
   max-width: 100%;
 }
@@ -2829,7 +2825,7 @@
 }
 
 .tabActive {
-  background: rgba(11,14,19,0.92);
+  background: var(--panel);
 }
 
 @media (max-width: 920px) {
@@ -2875,15 +2871,27 @@
 }
 
 /* Final palette normalization — Pulse Programs */
-.page {
-  --surface-0: #1d1d1e;
-  --surface-1: #181819;
-  --surface-2: #1d1d1e;
-  --surface-3: #1d1d1e;
-  --stroke-soft: rgba(255, 255, 255, 0.05);
-  --stroke: rgba(255, 255, 255, 0.08);
-  --accent-soft: rgba(255, 122, 26, 0.12);
-  --accent-softer: rgba(255, 122, 26, 0.08);
+.page,
+.stack,
+.pulseWidget {
+  --accent: #ed8431;
+  --accent-strong: #f09b4c;
+  --accent-soft: rgba(237, 132, 49, 0.14);
+  --accent-softer: rgba(237, 132, 49, 0.08);
+  --success: #69b67a;
+  --success-soft: rgba(105, 182, 122, 0.12);
+  --danger: #dd7a5d;
+  --danger-soft: rgba(221, 122, 93, 0.12);
+  --warning: #d7a53c;
+  --warning-soft: rgba(215, 165, 60, 0.12);
+  --surface-0: rgba(255, 255, 255, 0.58);
+  --surface-1: rgba(255, 251, 243, 0.92);
+  --surface-2: rgba(247, 237, 219, 0.86);
+  --surface-3: rgba(242, 230, 210, 0.92);
+  --stroke-soft: rgba(178, 138, 92, 0.1);
+  --stroke: rgba(178, 138, 92, 0.16);
+  --text: #332316;
+  --muted: #7b684f;
   min-width: 0;
 }
 
@@ -2892,8 +2900,8 @@
 }
 
 .page :global(.card) {
-  background: #181819 !important;
-  border: 1px solid rgba(255, 255, 255, 0.06) !important;
+  background: rgba(255, 251, 243, 0.94) !important;
+  border: 1px solid rgba(178, 138, 92, 0.16) !important;
   box-shadow: none !important;
 }
 
@@ -2905,15 +2913,15 @@
 .formCard,
 .programCard,
 .noticeCard {
-  background: #181819 !important;
-  border: 1px solid rgba(255, 255, 255, 0.06) !important;
+  background: rgba(255, 251, 243, 0.94) !important;
+  border: 1px solid rgba(178, 138, 92, 0.16) !important;
   box-shadow: none !important;
 }
 
 .hero {
   padding: 20px 22px !important;
   border-radius: 24px !important;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
+  border-bottom: 1px solid rgba(178, 138, 92, 0.16) !important;
 }
 
 .programsHeader,
@@ -2977,8 +2985,8 @@
 .pulseOverflowMenu,
 .pulseActionChevron,
 .storyHintRow {
-  background: #1d1d1e !important;
-  border-color: rgba(255, 255, 255, 0.06) !important;
+  background: rgba(255, 255, 255, 0.7) !important;
+  border-color: rgba(178, 138, 92, 0.16) !important;
   box-shadow: none !important;
 }
 
@@ -3005,12 +3013,12 @@
 .noticeInline,
 .achievementCard,
 .storyHintRow {
-  border: 1px solid rgba(255, 255, 255, 0.06) !important;
+  border: 1px solid rgba(178, 138, 92, 0.16) !important;
   border-radius: 18px !important;
 }
 
 .summaryCard {
-  border-left: 1px solid rgba(255, 255, 255, 0.06) !important;
+  border-left: 1px solid var(--surface-2) !important;
   min-height: 86px;
   padding: 14px 16px !important;
 }
@@ -3026,7 +3034,7 @@
 .featuredProgramRow,
 .inviteRow {
   padding: 16px 18px !important;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
+  border-bottom: 1px solid var(--surface-2) !important;
 }
 
 .programRowStrip:first-child,
@@ -3039,7 +3047,7 @@
 .compactProgramRow:first-child,
 .featuredProgramRow:first-child,
 .inviteRow:first-child {
-  border-top: 1px solid rgba(255, 255, 255, 0.06) !important;
+  border-top: 1px solid var(--surface-2) !important;
 }
 
 .detailsCard {
@@ -3053,7 +3061,7 @@
 }
 
 .stepItem {
-  border-left: 1px solid rgba(255, 255, 255, 0.06) !important;
+  border-left: 1px solid rgba(178, 138, 92, 0.16) !important;
 }
 
 .contextBack,
@@ -3062,7 +3070,7 @@
 .actionMenuSummary,
 .pulseOverflowTrigger,
 .pulseActionChevron {
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border: 1px solid rgba(178, 138, 92, 0.18) !important;
 }
 
 .field input,
@@ -3081,47 +3089,47 @@
 }
 
 .todayActionRowDone {
-  background: #1d1d1e !important;
-  border-color: rgba(20, 207, 134, 0.18) !important;
+  background: rgba(255, 255, 255, 0.72) !important;
+  border-color: rgba(105, 182, 122, 0.24) !important;
 }
 
 .todayActionRowMuted {
-  background: #1d1d1e !important;
-  border-color: rgba(255, 173, 31, 0.18) !important;
+  background: rgba(255, 255, 255, 0.72) !important;
+  border-color: rgba(215, 165, 60, 0.24) !important;
 }
 
 .todayActionRowDanger {
-  background: #1d1d1e !important;
-  border-color: rgba(242, 111, 123, 0.18) !important;
+  background: rgba(255, 255, 255, 0.72) !important;
+  border-color: rgba(221, 122, 93, 0.24) !important;
 }
 
 .noticeCard {
   padding: 16px 18px !important;
-  background: #181819 !important;
-  border-color: rgba(255, 122, 26, 0.16) !important;
+  background: rgba(255, 251, 243, 0.94) !important;
+  border-color: rgba(237, 132, 49, 0.18) !important;
 }
 
 .successState,
 .dangerState {
   padding: 14px 16px;
   border-radius: 18px;
-  background: #181819;
+  background: rgba(255, 251, 243, 0.94);
   box-shadow: none;
 }
 
 .successState {
-  border: 1px solid rgba(20, 207, 134, 0.18);
+  border: 1px solid rgba(105, 182, 122, 0.24);
 }
 
 .dangerState {
-  border: 1px solid rgba(242, 111, 123, 0.18);
+  border: 1px solid rgba(221, 122, 93, 0.24);
 }
 
 .pill,
 .filterChip {
-  background: #1d1d1e !important;
-  border-color: rgba(255, 255, 255, 0.06) !important;
-  color: rgba(255, 255, 255, 0.72) !important;
+  background: rgba(255, 255, 255, 0.72) !important;
+  border-color: rgba(178, 138, 92, 0.16) !important;
+  color: #6d553d !important;
 }
 
 .pillAccent,
@@ -3132,15 +3140,15 @@
 .subtabButtonActive,
 .tabActive,
 .stepItemActive {
-  background: rgba(255, 122, 26, 0.12) !important;
-  border-color: rgba(255, 122, 26, 0.24) !important;
-  color: #ffbf85 !important;
+  background: rgba(237, 132, 49, 0.12) !important;
+  border-color: rgba(237, 132, 49, 0.24) !important;
+  color: #c86a27 !important;
 }
 
 .pillSuccess {
-  background: rgba(20, 207, 134, 0.12) !important;
-  border-color: rgba(20, 207, 134, 0.18) !important;
-  color: #a7e7c7 !important;
+  background: rgba(105, 182, 122, 0.12) !important;
+  border-color: rgba(105, 182, 122, 0.2) !important;
+  color: #4d7b58 !important;
 }
 
 .subtabButton,
@@ -3150,8 +3158,8 @@
 
 .actionMenuBody,
 .pulseOverflowMenu {
-  background: #181819 !important;
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  background: rgba(255, 251, 243, 0.98) !important;
+  border: 1px solid rgba(178, 138, 92, 0.18) !important;
   backdrop-filter: none !important;
 }
 
@@ -3159,27 +3167,27 @@
 .programsKicker,
 .storyEyebrow,
 .plainButton {
-  color: #ffbf85;
+  color: #c86a27;
 }
 
 .avatarBadge {
-  background: rgba(255, 122, 26, 0.14) !important;
-  border: 1px solid rgba(255, 122, 26, 0.18);
-  color: #ffbf85;
+  background: rgba(237, 132, 49, 0.14) !important;
+  border: 1px solid rgba(237, 132, 49, 0.18);
+  color: #c86a27;
 }
 
 .iconBadge {
-  background: rgba(255, 122, 26, 0.08) !important;
-  border-color: rgba(255, 122, 26, 0.14) !important;
-  color: #ffbf85;
+  background: rgba(237, 132, 49, 0.1) !important;
+  border-color: rgba(237, 132, 49, 0.16) !important;
+  color: #c86a27;
 }
 
 .sectionDivider {
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(178, 138, 92, 0.12);
 }
 
 .builderFooterActions {
-  background: #141414 !important;
+  background: rgba(255, 248, 236, 0.94) !important;
 }
 
 @media (max-width: 720px) {
@@ -3211,5 +3219,137 @@
   .detailsCard {
     padding: 14px 16px !important;
     border-radius: 16px !important;
+  }
+}
+
+.profileSectionCard {
+  gap: 12px;
+}
+
+.profileSectionCard > .emptyState {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.profileAllLink {
+  align-self: center;
+}
+
+.profileAllLink > button,
+.profileAllButton {
+  min-height: 32px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border-color: var(--stroke-soft);
+  background: rgba(255, 255, 255, 0.48);
+  box-shadow: none;
+  color: var(--text-soft);
+}
+
+.profileAllLink > button:hover,
+.profileAllButton:hover {
+  border-color: var(--stroke);
+  background: rgba(255, 255, 255, 0.74);
+  color: var(--text);
+}
+
+.profileList {
+  display: grid;
+  gap: 10px;
+}
+
+.profileAchievementRow {
+  padding: 14px 18px;
+  border: 1px solid var(--stroke-soft);
+  border-bottom: 1px solid var(--stroke-soft);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.54);
+  box-shadow: none;
+}
+
+.profileAchievementRow:first-child {
+  padding-top: 14px;
+  border-top: 1px solid var(--stroke-soft);
+}
+
+.profileAchievementMeta {
+  gap: 4px;
+}
+
+.profileAchievementRow .actionSub,
+.profileAchievementSub {
+  color: var(--muted);
+}
+
+.profileAchievementTitle {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.profileAchievementPill {
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid var(--stroke-soft);
+  color: var(--text-soft);
+}
+
+.profileAchievementsHint {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--muted);
+}
+
+.profileAchievementsModalGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.profileAchievementModalCard {
+  min-height: 0;
+  aspect-ratio: 1;
+  align-content: start;
+  grid-template-rows: auto auto auto 1fr auto;
+  padding: 16px;
+  border-radius: 20px;
+  border: 1px solid var(--stroke-soft);
+  background: rgba(255, 255, 255, 0.58);
+  box-shadow: none;
+}
+
+.profileAchievementModalTitle {
+  font-size: 15px;
+  font-weight: 720;
+  line-height: 1.24;
+  color: var(--text);
+  letter-spacing: -0.02em;
+}
+
+.profileAchievementModalSub {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.profileAchievementModalPill {
+  justify-self: start;
+  align-self: end;
+  background: rgba(255, 255, 255, 0.74);
+  border: 1px solid var(--stroke-soft);
+  color: var(--text-soft);
+}
+
+@media (max-width: 720px) {
+  .profileAchievementsModalGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 520px) {
+  .profileAchievementsModalGrid {
+    grid-template-columns: 1fr;
   }
 }

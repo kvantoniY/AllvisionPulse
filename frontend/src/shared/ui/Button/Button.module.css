@@ -58,18 +58,19 @@
 /* ── Primary (brand orange) ── */
 .primary {
   color: #fff;
-  border-color: rgba(255, 122, 26, 0.42);
+  border-color: var(--stroke-accent);
   background: var(--accent);
+  box-shadow: 0 8px 20px rgba(255, 109, 10, 0.22);
 }
 
 .primary:hover {
-  background: #ff8f34;
-  border-color: rgba(255, 143, 52, 0.5);
+  background: var(--accent-strong);
+  border-color: var(--stroke-accent);
   color: #fff;
 }
 
 .primary:focus-visible {
-  outline-color: rgba(255, 122, 26, 0.5);
+  outline-color: var(--stroke-accent);
 }
 
 /* ── Ghost ── */

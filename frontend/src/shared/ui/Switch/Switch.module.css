@@ -53,18 +53,18 @@
   width: 18px;
   height: 18px;
   border-radius: 999px;
-  background: var(--muted);
+  background: var(--panel);
   position: absolute;
   top: 2px;
   left: 2px;
   transition: transform var(--dur) var(--ease), background var(--dur) var(--ease);
-  box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+  box-shadow: 0 1px 3px rgba(92, 54, 18, 0.18);
 }
 
 /* ── Checked state ── */
 .input:checked + .track {
   background: var(--accent);
-  border-color: rgba(255, 122, 26, 0.5);
+  border-color: var(--stroke-accent);
 }
 
 .input:checked + .track .thumb {

@@ -9,8 +9,8 @@
   gap: 8px;
   padding: 6px;
   border-radius: 18px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--surface-1);
+  border: 1px solid var(--stroke);
 }
 
 .tab {
@@ -18,13 +18,13 @@
   border: none;
   border-radius: 12px;
   background: transparent;
-  color: rgba(255, 255, 255, 0.72);
+  color: var(--text-soft);
   font-size: 13px;
   font-weight: 700;
 }
 
 .tabActive {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--stroke);
   color: var(--text);
 }
 
@@ -40,9 +40,9 @@
   padding: 12px 14px;
   text-align: left;
   border-radius: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.03);
-  color: rgba(255, 255, 255, 0.72);
+  border: 1px solid var(--stroke);
+  background: var(--surface-1);
+  color: var(--text-soft);
 }
 
 .subTab strong {
@@ -67,17 +67,17 @@
   gap: 8px;
   padding: 16px;
   border-radius: 20px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--stroke);
   background:
     radial-gradient(circle at top right, rgba(255, 122, 26, 0.18), transparent 38%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.03));
+    linear-gradient(180deg, var(--surface-2), var(--surface-1));
 }
 
 .previewEyebrow {
   font-size: 11px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.56);
+  color: var(--muted);
 }
 
 .previewTitle {
@@ -102,12 +102,12 @@
   min-height: 28px;
   padding: 0 10px;
   border-radius: 999px;
-  background: rgba(0, 0, 0, 0.2);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(54, 39, 23, 0.42);
+  border: 1px solid var(--surface-2);
   display: inline-flex;
   align-items: center;
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.82);
+  color: var(--text-soft);
 }
 
 .optionGrid,
@@ -125,8 +125,8 @@
   padding: 14px;
   text-align: left;
   border-radius: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--stroke);
+  background: var(--surface-1);
   color: var(--text-soft);
 }
 
@@ -177,7 +177,7 @@
 
 .field span {
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.64);
+  color: var(--muted);
 }
 
 .field input,
@@ -187,8 +187,8 @@
   min-height: 44px;
   padding: 12px 14px;
   border-radius: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(0, 0, 0, 0.18);
+  border: 1px solid var(--stroke);
+  background: rgba(54, 39, 23, 0.42);
   color: var(--text);
   resize: vertical;
 }
@@ -205,8 +205,8 @@
   gap: 8px;
   padding: 4px;
   border-radius: 14px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--surface-1);
+  border: 1px solid var(--stroke);
 }
 
 .toggle {
@@ -214,13 +214,13 @@
   border: none;
   border-radius: 10px;
   background: transparent;
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--text-soft);
   font-size: 12px;
   font-weight: 700;
 }
 
 .toggleActive {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--stroke);
   color: var(--text);
 }
 
@@ -234,11 +234,11 @@
   font-size: 12px;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.52);
+  color: var(--muted);
 }
 
 .sectionHint {
-  color: rgba(255, 255, 255, 0.58);
+  color: var(--muted);
   font-size: 12px;
   line-height: 1.5;
 }
@@ -253,12 +253,12 @@
   min-height: 38px;
   padding: 0 12px;
   border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--stroke);
+  background: var(--surface-1);
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  color: rgba(255, 255, 255, 0.76);
+  color: var(--text-soft);
 }
 
 .participantChipActive {
@@ -274,7 +274,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: rgba(255, 255, 255, 0.12);
+  background: var(--stroke-strong);
   font-size: 11px;
   font-weight: 800;
 }
@@ -290,9 +290,9 @@
   gap: 8px;
   padding: 12px 14px;
   border-radius: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.03);
-  color: rgba(255, 255, 255, 0.76);
+  border: 1px solid var(--stroke);
+  background: var(--surface-1);
+  color: var(--text-soft);
   font-size: 12px;
 }
 
@@ -306,8 +306,8 @@
   min-height: 34px;
   padding: 0 12px;
   border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(0, 0, 0, 0.18);
+  border: 1px solid var(--stroke);
+  background: rgba(54, 39, 23, 0.42);
   color: var(--text);
   font-size: 12px;
   font-weight: 700;
@@ -333,8 +333,8 @@
 .removeSubtaskButton {
   min-height: 40px;
   border-radius: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--stroke);
+  background: var(--surface-1);
   color: var(--text);
   display: inline-flex;
   align-items: center;
@@ -344,14 +344,14 @@
 }
 
 .removeSubtaskButton {
-  color: rgba(255, 255, 255, 0.72);
+  color: var(--text-soft);
 }
 
 .emptyHint {
   padding: 12px 14px;
   border-radius: 14px;
-  border: 1px dashed rgba(255, 255, 255, 0.08);
-  color: rgba(255, 255, 255, 0.56);
+  border: 1px dashed var(--stroke);
+  color: var(--muted);
   font-size: 12px;
   line-height: 1.45;
 }

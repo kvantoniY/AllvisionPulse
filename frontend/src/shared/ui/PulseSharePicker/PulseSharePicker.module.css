@@ -13,10 +13,10 @@
   gap: 18px;
   padding: 18px;
   border-radius: 22px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--stroke);
   background:
     radial-gradient(circle at top right, rgba(255, 122, 26, 0.16), transparent 42%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.02));
+    linear-gradient(180deg, var(--surface-1), var(--surface-1));
 }
 
 .heroText {
@@ -30,7 +30,7 @@
   line-height: 1;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.48);
+  color: var(--muted);
 }
 
 .heroTitle {
@@ -60,8 +60,8 @@
   align-content: start;
   padding: 14px 15px;
   border-radius: 18px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(10, 11, 14, 0.32);
+  border: 1px solid var(--stroke);
+  background: var(--surface-1);
 }
 
 .heroStat strong {
@@ -90,8 +90,8 @@
   gap: 10px;
   padding: 0 14px;
   border-radius: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--stroke);
+  background: var(--surface-1);
   color: var(--muted);
 }
 
@@ -120,8 +120,8 @@
   min-height: 38px;
   padding: 0 14px;
   border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid var(--stroke);
+  background: var(--surface-1);
   color: var(--muted);
   font-size: 13px;
   font-weight: 600;
@@ -131,7 +131,7 @@
 
 .sortButton:hover,
 .filterChip:hover {
-  border-color: rgba(255, 255, 255, 0.14);
+  border-color: var(--stroke-strong);
   color: var(--text);
 }
 
@@ -179,8 +179,8 @@
   min-height: 30px;
   padding: 0 10px;
   border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--stroke);
+  background: var(--surface-1);
   color: var(--text-soft);
   display: inline-flex;
   align-items: center;
@@ -198,9 +198,9 @@
 .quickCard {
   width: 100%;
   padding: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--stroke);
   border-radius: 18px;
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--surface-1);
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
   gap: 12px;
@@ -230,7 +230,7 @@
   border-radius: 14px;
   display: grid;
   place-items: center;
-  color: rgba(255, 255, 255, 0.92);
+  color: var(--text);
   background: rgba(255, 122, 26, 0.14);
   border: 1px solid rgba(255, 122, 26, 0.18);
 }
@@ -259,8 +259,8 @@
   min-height: 24px;
   padding: 0 8px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.07);
-  color: rgba(255, 255, 255, 0.82);
+  background: var(--surface-2);
+  color: var(--text-soft);
   display: inline-flex;
   align-items: center;
   font-size: 11px;
@@ -314,8 +314,8 @@
 .errorState {
   padding: 18px 16px;
   border-radius: 18px;
-  border: 1px dashed rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.02);
+  border: 1px dashed var(--stroke-strong);
+  background: var(--surface-1);
   color: var(--muted);
   font-size: 13px;
   line-height: 1.5;
