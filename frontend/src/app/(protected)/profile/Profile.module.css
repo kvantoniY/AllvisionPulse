@@ -253,6 +253,10 @@ button.countItem:disabled { opacity: 1; cursor: default; }
   box-shadow: none;
 }
 
+.heroIconAction {
+  padding: 0;
+}
+
 .actions > .heroPrimaryAction,
 .peerActions > button:first-child {
   border-color: var(--accent);
@@ -580,6 +584,7 @@ button.countItem:disabled { opacity: 1; cursor: default; }
   }
 
   .header {
+    position: relative;
     grid-template-columns: 1fr;
     gap: 14px;
   }
@@ -588,6 +593,7 @@ button.countItem:disabled { opacity: 1; cursor: default; }
     grid-template-columns: 118px minmax(0, 1fr);
     gap: 14px;
     align-items: start;
+    padding-right: 56px;
   }
 
   .identity {
@@ -608,6 +614,11 @@ button.countItem:disabled { opacity: 1; cursor: default; }
   .avatarEditorPreviewWrap {
     width: 88px;
     height: 88px;
+  }
+
+  .nameRow {
+    gap: 6px;
+    margin-left: -2px;
   }
 
   .name {
@@ -660,7 +671,16 @@ button.countItem:disabled { opacity: 1; cursor: default; }
     padding-top: 0;
   }
 
-  .selfActions,
+  .selfActions {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: auto;
+    margin: 0;
+    justify-content: flex-end;
+    z-index: 2;
+  }
+
   .peerActions {
     grid-column: 1;
     align-self: start;
@@ -668,6 +688,13 @@ button.countItem:disabled { opacity: 1; cursor: default; }
 
   .selfActions :global(button) {
     min-width: 0;
+  }
+
+  .heroIconAction {
+    width: 42px;
+    min-width: 42px;
+    min-height: 42px;
+    border-radius: 14px;
   }
 
   .sectionHeader {

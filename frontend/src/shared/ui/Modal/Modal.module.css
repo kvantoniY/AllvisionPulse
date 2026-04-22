@@ -10,6 +10,7 @@
 }
 
 .modal {
+  position: relative;
   width: min(640px, 100%);
   max-height: min(88vh, 920px);
   overflow: hidden;
@@ -19,6 +20,10 @@
   box-shadow: var(--shadow-md);
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
+}
+
+.modalWithoutHeader {
+  grid-template-rows: minmax(0, 1fr);
 }
 
 .headerMain {
@@ -94,6 +99,19 @@
   color: var(--text);
 }
 
+.closeFloating {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  z-index: 3;
+  width: 42px;
+  height: 42px;
+  border-radius: 999px;
+  background: rgba(245, 232, 195, 0.96);
+  border-color: rgba(164, 131, 72, 0.22);
+  box-shadow: 0 8px 24px rgba(77, 55, 20, 0.12);
+}
+
 .body {
   padding: 18px 20px 20px;
   max-height: calc(min(88vh, 920px) - 80px);
@@ -110,6 +128,9 @@
   max-width: calc(100vw - 32px);
   height: min(960px, calc(100dvh - 32px));
   max-height: calc(100dvh - 32px);
+  background: #f4ead6;
+  border-color: rgba(178, 138, 92, 0.22);
+  box-shadow: 0 24px 56px rgba(77, 55, 20, 0.18);
 }
 
 .backdropPulse {
@@ -180,7 +201,8 @@
 
 .bodyGame {
   padding: 0;
-  height: auto;
+  display: grid;
+  height: 100%;
   max-height: none;
   overflow: hidden;
   min-height: 0;
@@ -223,6 +245,15 @@
 
   .bodyGame {
     padding: 0;
+    height: 100%;
+    overflow: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .closeFloating {
+    top: max(12px, env(safe-area-inset-top, 0px));
+    right: max(12px, env(safe-area-inset-right, 0px));
   }
 
   .modalPulse .header {

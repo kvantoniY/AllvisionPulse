@@ -1,0 +1,7364 @@
+.shell {
+  display: grid;
+  grid-template-rows: auto auto 1fr;
+  height: 100%;
+  min-height: 0;
+  border-radius: 24px;
+  overflow: hidden;
+  background: radial-gradient(circle at top, rgba(33, 108, 56, 0.34), transparent 38%), linear-gradient(135deg, #032916, #03140c 62%, #062b17);
+  border: 1px solid rgba(220, 181, 51, 0.15);
+  color: #fff;
+}
+
+.shellEmbedded {
+  border-radius: 0;
+  border: 0;
+  background: radial-gradient(circle at top, rgba(31, 90, 53, 0.26), transparent 34%), linear-gradient(135deg, #031711, #020b08 62%, #062114);
+}
+
+.sessionTabs,
+.catalogTabs,
+.toolbarRight {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.sessionTab,
+.catalogTab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: 18px;
+  border: 1px solid var(--stroke);
+  background: var(--surface-2);
+  color: #fff;
+  cursor: pointer;
+}
+
+.sessionTabActive,
+.catalogTabActive {
+  background: #e0b12d;
+  color: #111;
+  border-color: transparent;
+  font-weight: 700;
+}
+
+.catalogTabs {
+  padding: 4px;
+  border-radius: 18px;
+  border: 1px solid var(--stroke);
+  background: var(--surface-1);
+}
+
+.catalogTab {
+  min-height: 38px;
+  padding: 0 14px;
+  border-radius: 14px;
+  font-size: 13px;
+  line-height: 1;
+  justify-content: center;
+}
+
+.tabStatus {
+  font-size: 11px;
+  opacity: 0.8;
+}
+
+.stageRoot {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.error,
+.empty {
+  margin: 12px 18px 0;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: rgba(124, 30, 30, 0.35);
+  border: 1px solid rgba(255, 117, 117, 0.28);
+}
+
+.lobbyLayout,
+.gameLayout {
+  height: 100%;
+  min-height: 0;
+}
+
+.lobbyLayout {
+  display: grid;
+  grid-template-columns: minmax(320px, 420px) minmax(0, 1fr);
+}
+
+.leftPanel,
+.rightPanel {
+  min-height: 0;
+  padding: 18px 20px;
+}
+
+.leftPanel {
+  border-right: 1px solid var(--stroke);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.rightPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow: auto;
+}
+
+.sectionTitle {
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.sectionRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.formGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.field {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.field span,
+.metaLabel {
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  color: var(--text-soft);
+}
+
+.metaMuted {
+  color: var(--text-soft);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.input {
+  width: 100%;
+  min-width: 0;
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px solid var(--stroke);
+  background: var(--stroke);
+  color: #fff;
+}
+
+.rulesCard {
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: var(--surface-2);
+  border: 1px solid var(--stroke);
+}
+
+.lobbyActions,
+.controlMain,
+.raiseRow,
+.toolbarRight {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.primaryBtn,
+.ghostBtn,
+.successBtn,
+.dangerBtn {
+  padding: 12px 18px;
+  border-radius: 16px;
+  border: 0;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.headerActionRail {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.headerActionCluster,
+.headerSegmentRail,
+.headerUtilityRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  min-width: 0;
+  justify-content: flex-end;
+}
+
+.iconActionBtn {
+  width: 40px;
+  min-width: 40px;
+  min-height: 40px;
+  padding: 0;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+}
+
+.headerPrimaryAction,
+.headerUtilityAction {
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: 12px;
+  font-size: 13px;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.headerUtilityActionSecondary {
+  color: var(--text);
+}
+
+.headerUtilityActionPrimary {
+  font-weight: 800;
+}
+
+.primaryBtn { background: #e0b12d; color: #111; }
+.ghostBtn { background: var(--stroke); color: #fff; border: 1px solid var(--stroke); }
+.successBtn { background: #26b36b; color: #fff; }
+.dangerBtn { background: #922b2b; color: #fff; }
+.primaryBtn:disabled,.ghostBtn:disabled,.successBtn:disabled,.dangerBtn:disabled { opacity: .55; cursor: default; }
+
+.playerGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 12px;
+}
+
+.playerRow,
+.seat,
+.heroSeat {
+  border-radius: 22px;
+  border: 1px solid rgba(220, 181, 51, 0.45);
+  background: var(--surface-2);
+}
+
+.playerRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 16px;
+  color: #fff;
+  cursor: pointer;
+  text-align: left;
+}
+
+.playerRowActive { box-shadow: inset 0 0 0 1px #e0b12d; }
+.playerMeta { display: grid; gap: 4px; min-width: 0; flex: 1; }
+.playerMeta strong { font-size: 18px; }
+.playerMeta span { color: var(--text-soft); }
+
+.tag,
+.tagReady,
+.tagMuted,
+.tagWarn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.tag { background: var(--stroke); }
+.tagReady { background: rgba(38, 179, 107, 0.26); color: #bdf6d6; }
+.tagMuted { background: var(--surface-2); color: var(--text-soft); }
+.tagWarn { background: rgba(224, 177, 45, 0.24); color: #fbe9a0; }
+
+.gameLayout {
+  display: grid;
+  grid-template-rows: auto auto minmax(0,1fr) auto auto;
+  gap: 12px;
+  padding: 16px 18px 14px;
+}
+
+.gameHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+}
+
+.headerRight {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.stageStrip {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.stagePill {
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: var(--stroke);
+  color: var(--text-soft);
+  font-size: 13px;
+}
+
+.stagePillDone { background: var(--stroke-strong); color: #fff; }
+.stagePillCurrent { background: #e0b12d; color: #111; font-weight: 800; }
+
+.timerWrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.timerRing {
+  --pct: 100%;
+  width: 62px;
+  height: 62px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: conic-gradient(#e0b12d var(--pct), var(--stroke-strong) 0);
+}
+.timerRing span {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--bg);
+  font-weight: 800;
+}
+
+.resultBanner {
+  display: grid;
+  gap: 10px;
+  padding: 14px 16px;
+  border-radius: 20px;
+  background: rgba(224,177,45,0.16);
+  border: 1px solid rgba(224,177,45,0.38);
+}
+.resultTitle { font-size: 14px; text-transform: uppercase; color: #f6d777; }
+.resultWinners { font-size: 22px; font-weight: 800; }
+.resultPlaces { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
+.resultPlace { display: grid; gap: 4px; padding: 10px 12px; border-radius: 16px; background: rgba(0,0,0,0.16); }
+
+.tableSection {
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
+  gap: 14px;
+}
+
+.sideSeats {
+  min-height: 0;
+  overflow: auto;
+  display: grid;
+  gap: 12px;
+  align-content: start;
+}
+
+.seat,
+.heroSeat {
+  padding: 14px;
+}
+
+.seatTop,
+.heroIdentity {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.seatTurn,
+.heroSeatTurn { box-shadow: 0 0 0 2px rgba(224,177,45,0.65); }
+.seatFolded { opacity: .55; }
+.seatCards,.heroCards { display: flex; gap: 8px; margin-top: 12px; }
+.seatFlags,.heroMetaRow,.actionInfoRow,.boardTopLine { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.seatFlags,.heroMetaRow { margin-top: 12px; }
+
+.boardShell {
+  min-width: 0;
+  display: grid;
+}
+
+.centerBoard {
+  min-height: 0;
+  border-radius: 28px;
+  padding: 18px;
+  border: 1px solid var(--stroke);
+  background: radial-gradient(circle at center, rgba(20, 108, 49, 0.46), rgba(2, 40, 18, 0.95));
+  display: grid;
+  align-content: center;
+  gap: 18px;
+}
+
+.boardTopLine { justify-content: space-between; }
+.pot,.turnBadge,.infoChip {
+  padding: 10px 14px;
+  border-radius: 999px;
+  background: rgba(0,0,0,0.28);
+  border: 1px solid var(--stroke);
+  font-weight: 700;
+}
+
+.community {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.heroDock {
+  display: grid;
+  grid-template-columns: minmax(320px, 1fr) minmax(340px, 420px);
+  gap: 14px;
+  align-items: stretch;
+}
+
+.controlDock {
+  padding: 14px;
+  border-radius: 22px;
+  background: rgba(0,0,0,0.24);
+  border: 1px solid var(--stroke);
+  display: grid;
+  gap: 12px;
+  align-content: center;
+}
+
+.logList {
+  max-height: 160px;
+  overflow: auto;
+  display: grid;
+  gap: 8px;
+  padding-right: 2px;
+}
+
+.logRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: var(--surface-2);
+}
+
+.card {
+  width: 82px;
+  height: 112px;
+  border-radius: 18px;
+  background: linear-gradient(180deg, #fff, #ececec);
+  color: #111;
+  padding: 10px;
+  display: grid;
+  align-content: space-between;
+  box-shadow: 0 8px 24px  rgba(92, 54, 18, 0.22);
+}
+.cardSm { width: 56px; height: 78px; border-radius: 14px; padding: 8px; }
+.cardBack { background: linear-gradient(135deg, #0d75ee, #1f4fc0); }
+.cardRed { color: #b60c0c; }
+.cardTop { font-size: 22px; font-weight: 800; }
+.cardSm .cardTop { font-size: 16px; }
+.cardSuit { font-size: 38px; justify-self: center; align-self: center; }
+.cardSm .cardSuit { font-size: 24px; }
+
+@media (max-width: 1180px) {
+  .lobbyLayout,
+  .tableSection,
+  .heroDock {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 860px) {
+  .toolbar,
+  .gameHeader,
+  .boardTopLine { flex-direction: column; align-items: stretch; }
+  .formGrid, .playerGrid, .resultPlaces { grid-template-columns: 1fr; }
+  .card { width: 68px; height: 96px; }
+}
+
+.directoryLayout,
+.sessionStageLayout {
+  height: 100%;
+  min-height: 0;
+  display: grid;
+  gap: 14px;
+  padding: 16px 18px;
+  overflow: auto;
+}
+
+.directoryHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.directoryColumns {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 16px;
+}
+
+.directorySection,
+.groupCard,
+.sessionMain {
+  min-width: 0;
+  border-radius: 24px;
+  border: 1px solid var(--stroke);
+  background: var(--surface-1);
+  padding: 16px;
+}
+
+.archiveSection {
+  background: rgba(110, 90, 28, 0.12);
+}
+
+.sessionList,
+.groupedList {
+  display: grid;
+  gap: 12px;
+}
+
+.sessionCard {
+  display: grid;
+  gap: 8px;
+  text-align: left;
+  padding: 14px 16px;
+  border-radius: 18px;
+  border: 1px solid var(--stroke);
+  background: rgba(8, 18, 18, 0.56);
+  color: #fff;
+  cursor: pointer;
+}
+
+.sessionCardArchive {
+  background: rgba(61, 49, 18, 0.42);
+}
+
+.sessionCardActive {
+  box-shadow: inset 0 0 0 1px #e0b12d;
+}
+
+.sessionCardTop,
+.sessionCardMeta,
+.groupSummary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.groupSummary {
+  cursor: pointer;
+  list-style: none;
+  font-weight: 700;
+}
+.groupSummary::-webkit-details-marker { display: none; }
+.groupSectionLabel {
+  margin: 12px 0 8px;
+  font-size: 13px;
+  text-transform: uppercase;
+  color: var(--text-soft);
+}
+
+.overviewGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.sessionStageLayout {
+  grid-template-rows: auto minmax(0, 1fr);
+  overflow: hidden;
+}
+
+.sessionMain {
+  overflow: hidden;
+  padding: 0;
+}
+
+@media (max-width: 1180px) {
+  .directoryColumns,
+  .lobbyLayout {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+.gameCatalogGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+}
+
+.gameCatalogTile {
+  display: grid;
+  gap: 14px;
+  text-align: left;
+  padding: 18px;
+  border-radius: 24px;
+  border: 1px solid var(--stroke);
+  background: rgba(7, 18, 14, 0.72);
+  color: #fff;
+  cursor: pointer;
+}
+
+.gameCatalogTileActive { box-shadow: inset 0 0 0 1px #e0b12d; }
+.gameCatalogTileDisabled { opacity: .72; background: rgba(70,70,70,0.28); }
+.gameCatalogTileBeta { border-color: rgba(224,177,45,0.45); }
+.gameCatalogTop { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.catalogBadgeRow { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.gamePreview { min-height: 120px; border-radius: 20px; display: grid; place-items: center; font-size: 72px; background: radial-gradient(circle at center, rgba(224,177,45,.18), rgba(255,255,255,.03)); }
+
+.lobbyLayoutCompact { grid-template-columns: 1fr; }
+.formGridCompact { grid-template-columns: repeat(2, minmax(0,1fr)); }
+.gameLayoutCompact { gap: 8px; padding: 10px 12px 12px; grid-template-rows: auto auto minmax(0,1fr) auto auto; }
+.tableSectionCompact { grid-template-columns: 1fr; gap: 8px; }
+.centerBoardCompact { gap: 10px; padding: 12px; }
+.heroDockCompact { grid-template-columns: 1fr; gap: 8px; }
+.controlDockCompact { padding: 10px; gap: 8px; }
+.seatCompact { padding: 10px 12px; }
+.sideSeatsCompactList { display: grid; gap: 8px; margin-top: 10px; }
+.foldBlock { border-radius: 18px; border: 1px solid rgba(255,255,255,.08); background: rgba(255,255,255,.05); padding: 10px 12px; }
+.foldSummary { cursor: pointer; list-style: none; font-weight: 700; }
+.foldSummary::-webkit-details-marker { display: none; }
+.timerRingCompact { width: 52px; height: 52px; }
+.timerRingCompact span { width: 38px; height: 38px; font-size: 13px; }
+.directorySectionCompact { padding: 12px 14px; }
+
+.shellEmbedded .directoryLayout,
+.shellEmbedded .sessionStageLayout { padding: 10px; gap: 8px; }
+.shellEmbedded .directoryHeader,
+.shellEmbedded .sectionRow,
+.shellEmbedded .gameHeader { gap: 8px; }
+.shellEmbedded .sectionTitle { font-size: 16px; }
+.shellEmbedded .metaMuted { font-size: 12px; line-height: 1.3; }
+.shellEmbedded .directorySection,
+.shellEmbedded .groupCard,
+.shellEmbedded .sessionMain,
+.shellEmbedded .rulesCard { border-radius: 18px; }
+.shellEmbedded .directoryColumns { grid-template-columns: 1fr; gap: 10px; }
+.shellEmbedded .gameCatalogGrid { grid-template-columns: 1fr; }
+.shellEmbedded .gamePreview { min-height: 78px; font-size: 42px; }
+.shellEmbedded .catalogTab,
+.shellEmbedded .primaryBtn,
+.shellEmbedded .ghostBtn,
+.shellEmbedded .successBtn,
+.shellEmbedded .dangerBtn { padding: 9px 12px; border-radius: 12px; font-size: 12px; }
+.shellEmbedded .tag,
+.shellEmbedded .tagReady,
+.shellEmbedded .tagMuted,
+.shellEmbedded .tagWarn { padding: 4px 8px; font-size: 11px; }
+.shellEmbedded .input { padding: 10px 12px; border-radius: 12px; font-size: 13px; }
+.shellEmbedded .playerGrid { grid-template-columns: 1fr; gap: 8px; }
+.shellEmbedded .playerRow { padding: 10px 12px; border-radius: 16px; }
+.shellEmbedded .playerMeta strong { font-size: 14px; }
+.shellEmbedded .card { width: 52px; height: 74px; border-radius: 12px; padding: 6px; }
+.shellEmbedded .cardSm { width: 40px; height: 54px; border-radius: 10px; padding: 5px; }
+.shellEmbedded .cardTop { font-size: 14px; }
+.shellEmbedded .cardSuit { font-size: 24px; }
+.shellEmbedded .cardSm .cardTop { font-size: 12px; }
+.shellEmbedded .cardSm .cardSuit { font-size: 18px; }
+.shellEmbedded .community { gap: 6px; }
+.shellEmbedded .pot,
+.shellEmbedded .turnBadge,
+.shellEmbedded .infoChip { padding: 7px 10px; font-size: 12px; }
+.shellEmbedded .boardTopLine,
+.shellEmbedded .actionInfoRow,
+.shellEmbedded .heroMetaRow,
+.shellEmbedded .seatFlags { gap: 6px; }
+.shellEmbedded .logList { max-height: 96px; gap: 6px; }
+.shellEmbedded .logRow { padding: 8px 10px; border-radius: 12px; font-size: 12px; }
+.shellEmbedded .overviewGrid { grid-template-columns: 1fr 1fr; gap: 8px; }
+.shellEmbedded .leftPanel,
+.shellEmbedded .rightPanel { padding: 10px 12px; gap: 10px; }
+.shellEmbedded .lobbyActions,
+.shellEmbedded .controlMain,
+.shellEmbedded .raiseRow,
+.shellEmbedded .toolbarRight { gap: 8px; }
+.shellEmbedded .raiseRow { grid-template-columns: 1fr 1fr 1fr; }
+
+@media (max-width: 1180px) {
+  .tableSectionCompact,
+  .heroDockCompact { grid-template-columns: 1fr; }
+}
+
+.pokerGameLayout {
+  grid-template-rows: minmax(0,1fr);
+}
+
+.pokerWindow {
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0,1fr) auto;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 24px;
+  border: 1px solid var(--stroke);
+  background: linear-gradient(180deg, rgba(6,12,18,.96), rgba(4,9,14,.98));
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.03), 0 18px 40px rgba(0,0,0,.22);
+  overflow: hidden;
+}
+
+.pokerWindowCompact {
+  padding: 8px;
+  gap: 8px;
+}
+
+.pokerStatusBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.pokerStatusMain {
+  display: grid;
+  gap: 4px;
+}
+
+.pokerStatusTitle {
+  font-size: 24px;
+  font-weight: 800;
+}
+
+.pokerStatusMeta {
+  color: rgba(255,255,255,.72);
+  font-size: 14px;
+}
+
+.pokerStatusAside {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.pokerArenaShell {
+  min-height: 0;
+  display: grid;
+  place-items: center;
+}
+
+.pokerArena {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 520px;
+  max-height: 660px;
+  aspect-ratio: 16 / 9;
+  border-radius: 24px;
+  background: radial-gradient(circle at center, rgba(24,110,58,.98), rgba(8,47,25,.96) 54%, rgba(4,16,11,.98) 100%);
+  border: 10px solid #60381d;
+  box-shadow: inset 0 0 0 3px rgba(216,168,76,.38), inset 0 18px 60px rgba(0,0,0,.22);
+  overflow: hidden;
+}
+
+.tableBoardWrap {
+  position: absolute;
+  inset: 18% 16% 23% 16%;
+  display: grid;
+  place-items: center;
+}
+
+.tableBoard {
+  width: 100%;
+  height: 100%;
+  border-radius: 999px;
+  border: 2px solid rgba(233, 191, 89, 0.42);
+  background: radial-gradient(circle at center, rgba(22,101,52,.94), rgba(11,60,31,.98));
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  justify-items: center;
+  gap: 10px;
+  padding: 18px 26px;
+}
+
+.tableBoardTop {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+}
+
+.tablePotBadge {
+  padding: 8px 16px;
+  border-radius: 999px;
+  background: rgba(14, 14, 14, 0.46);
+  border: 1px solid rgba(255,255,255,.08);
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.tableBoardMiniMeta {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+.tableBoardCards {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  align-items: center;
+}
+
+.tableBoardSummary {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.tableSeat {
+  position: absolute;
+  width: clamp(146px, 16vw, 190px);
+  min-height: 104px;
+  display: grid;
+  gap: 7px;
+  padding: 10px 12px;
+  border-radius: 18px;
+  background: linear-gradient(180deg, rgba(10,14,19,.96), rgba(5,9,13,.98));
+  border: 1px solid rgba(255,255,255,.08);
+  box-shadow: 0 10px 22px  rgba(92, 54, 18, .22);
+}
+
+.tableSeatHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tableSeatMeta {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+  flex: 1;
+}
+
+.tableSeatMeta strong,
+.tableSeatMeta span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tableSeatMeta strong { font-size: 14px; }
+.tableSeatMeta span { font-size: 12px; color: rgba(255,255,255,.72); }
+
+.tableSeatCards {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.tableSeatBadges,
+.heroActionState,
+.tableControlsSecondary,
+.compactPlayerRail,
+.heroActions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.tableSeatTurn {
+  box-shadow: 0 0 0 2px rgba(224,177,45,.74), 0 0 24px rgba(224,177,45,.32);
+}
+
+.tableSeatFolded { opacity: .62; }
+
+.heroTableSeat {
+  left: 50%;
+  bottom: 12px;
+  transform: translateX(-50%);
+  width: min(720px, calc(100% - 28px));
+  min-height: 126px;
+  background: linear-gradient(180deg, rgba(21,20,18,.98), rgba(7,10,12,.98));
+  z-index: 2;
+}
+
+.heroRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.heroActions {
+  justify-content: flex-end;
+}
+
+.seatPosTop { left: 50%; top: 10px; transform: translateX(-50%); }
+.seatPosTopLeft { left: 8%; top: 9%; }
+.seatPosTopRight { right: 8%; top: 9%; }
+.seatPosLeft { left: 2%; top: 39%; }
+.seatPosRight { right: 2%; top: 39%; }
+.seatPosLeftLow { left: 8%; bottom: 22%; }
+.seatPosRightLow { right: 8%; bottom: 22%; }
+
+.pokerBottomBar {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.raiseBox {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.raiseBox .input { width: 92px; }
+
+.playerRailItem {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.06);
+  font-size: 12px;
+}
+
+.playerRailItemTurn {
+  background: rgba(224,177,45,.18);
+  border: 1px solid rgba(224,177,45,.4);
+}
+
+@media (max-width: 1100px) {
+  .pokerStatusTitle { font-size: 20px; }
+  .pokerArena { min-height: 460px; }
+  .tableBoardWrap { inset: 19% 12% 24% 12%; }
+  .heroTableSeat { width: calc(100% - 20px); }
+  .tableSeat { width: 148px; }
+}
+
+@media (max-width: 860px) {
+  .pokerStatusBar,
+  .pokerStatusAside,
+  .tableBoardTop,
+  .heroRow,
+  .pokerBottomBar {
+    align-items: stretch;
+  }
+
+  .pokerArena {
+    aspect-ratio: auto;
+    min-height: 500px;
+    max-height: none;
+    height: 500px;
+    border-width: 8px;
+  }
+
+  .tableSeat {
+    width: 126px;
+    min-height: 86px;
+    padding: 8px 9px;
+  }
+
+  .tableSeatMeta strong { font-size: 12px; }
+  .tableSeatMeta span { font-size: 11px; }
+  .tableBoardWrap { inset: 21% 8% 28% 8%; }
+  .tableBoard { padding: 12px 14px; }
+  .tableBoardMiniMeta { justify-content: center; }
+  .heroActions { justify-content: flex-start; }
+}
+
+.shellEmbedded .pokerWindow {
+  padding: 6px;
+  gap: 6px;
+  border-radius: 18px;
+}
+
+.shellEmbedded .pokerStatusTitle { font-size: 16px; }
+.shellEmbedded .pokerStatusMeta { font-size: 12px; }
+.shellEmbedded .pokerStatusAside { gap: 8px; }
+.shellEmbedded .pokerArena {
+  min-height: 320px;
+  height: 320px;
+  max-height: 320px;
+  aspect-ratio: auto;
+  border-width: 7px;
+  border-radius: 18px;
+}
+.shellEmbedded .tableBoardWrap { inset: 17% 9% 30% 9%; }
+.shellEmbedded .tableBoard { padding: 8px 10px; gap: 6px; }
+.shellEmbedded .tableBoardTop { justify-content: center; }
+.shellEmbedded .tableBoardMiniMeta { display: none; }
+.shellEmbedded .tablePotBadge { font-size: 13px; padding: 5px 10px; }
+.shellEmbedded .tableSeat {
+  width: 100px;
+  min-height: 64px;
+  padding: 6px 7px;
+  border-radius: 14px;
+}
+.shellEmbedded .heroTableSeat {
+  width: calc(100% - 16px);
+  min-height: 78px;
+  bottom: 6px;
+}
+.shellEmbedded .tableSeatMeta strong { font-size: 10px; }
+.shellEmbedded .tableSeatMeta span { font-size: 9px; }
+.shellEmbedded .tableSeatHeader { gap: 5px; }
+.shellEmbedded .tableSeatCards,
+.shellEmbedded .heroCards,
+.shellEmbedded .heroActions,
+.shellEmbedded .tableSeatBadges,
+.shellEmbedded .heroActionState,
+.shellEmbedded .compactPlayerRail,
+.shellEmbedded .tableControlsSecondary { gap: 4px; }
+.shellEmbedded .tableSeat .tag,
+.shellEmbedded .tableSeat .tagReady,
+.shellEmbedded .tableSeat .tagMuted,
+.shellEmbedded .tableSeat .tagWarn { padding: 2px 6px; font-size: 9px; }
+.shellEmbedded .heroRow { gap: 8px; }
+.shellEmbedded .raiseBox .input { width: 58px; padding: 8px 10px; }
+.shellEmbedded .heroActions .primaryBtn,
+.shellEmbedded .heroActions .ghostBtn,
+.shellEmbedded .heroActions .dangerBtn { padding: 7px 10px; font-size: 11px; border-radius: 10px; }
+.shellEmbedded .playerRailItem { font-size: 10px; padding: 4px 8px; }
+.shellEmbedded .logList { max-height: 76px; gap: 4px; }
+.shellEmbedded .logRow { padding: 6px 8px; border-radius: 10px; font-size: 10px; }
+.shellEmbedded .seatPosTopLeft { left: 1%; top: 5%; }
+.shellEmbedded .seatPosTopRight { right: 1%; top: 5%; }
+.shellEmbedded .seatPosLeft { left: 0.5%; top: 34%; }
+.shellEmbedded .seatPosRight { right: 0.5%; top: 34%; }
+.shellEmbedded .seatPosLeftLow { left: 1%; bottom: 23%; }
+.shellEmbedded .seatPosRightLow { right: 1%; bottom: 23%; }
+.shellEmbedded .seatPosTop { top: 5px; }
+
+.showdownOverlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(3,5,7,.54);
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  z-index: 4;
+}
+
+.showdownCard {
+  width: min(680px, 100%);
+  display: grid;
+  gap: 10px;
+  padding: 18px;
+  border-radius: 24px;
+  background: linear-gradient(180deg, rgba(23,18,9,.96), rgba(9,10,13,.97));
+  border: 1px solid rgba(224,177,45,.34);
+  box-shadow: 0 14px 36px  rgba(92, 54, 18, .35);
+  text-align: center;
+}
+
+@media (max-width: 1100px) {
+  .pokerArena { height: 620px; }
+  .tableSeat { width: 150px; }
+  .tableBoardWrap { inset: 18% 15% 24% 15%; }
+}
+
+@media (max-width: 860px) {
+  .pokerWindowTopbar,
+  .tableControlsBar,
+  .tableControlsMain,
+  .tableControlsSecondary,
+  .heroSeatBody {
+    align-items: stretch;
+  }
+
+  .pokerArena {
+    height: 540px;
+    border-width: 8px;
+  }
+
+  .tableSeat {
+    width: 128px;
+    min-height: 80px;
+    padding: 8px 9px;
+  }
+
+  .tableSeatMeta strong { font-size: 12px; }
+  .tableSeatMeta span { font-size: 11px; }
+  .tableSeatCards { gap: 5px; }
+  .tableBoardWrap { inset: 21% 10% 27% 10%; }
+  .heroTableSeat { min-height: 104px; }
+}
+
+.shellEmbedded .pokerWindow {
+  padding: 6px;
+  gap: 6px;
+  border-radius: 18px;
+}
+
+.shellEmbedded .pokerWindowTitle {
+  font-size: 14px;
+}
+
+.shellEmbedded .pokerArena {
+  height: 420px;
+  border-width: 7px;
+  border-radius: 20px;
+}
+
+.shellEmbedded .tableBoardWrap {
+  inset: 18% 10% 28% 10%;
+}
+
+.shellEmbedded .tableBoard {
+  min-height: 132px;
+  max-height: 180px;
+  padding: 10px 12px;
+  gap: 8px;
+}
+
+.shellEmbedded .tablePotBadge { font-size: 14px; padding: 6px 10px; }
+.shellEmbedded .tableSeat {
+  width: 112px;
+  min-height: 68px;
+  padding: 7px 8px;
+  border-radius: 14px;
+}
+.shellEmbedded .heroTableSeat {
+  width: calc(100% - 18px);
+  bottom: 8px;
+  min-height: 82px;
+}
+.shellEmbedded .tableSeatMeta strong { font-size: 11px; }
+.shellEmbedded .tableSeatMeta span { font-size: 10px; }
+.shellEmbedded .tableSeatHeader { gap: 6px; }
+.shellEmbedded .tableSeatCards,
+.shellEmbedded .heroCards { gap: 4px; }
+.shellEmbedded .tableSeatBadges,
+.shellEmbedded .heroActionState,
+.shellEmbedded .compactPlayerRail { gap: 4px; }
+.shellEmbedded .tableControlsBar { gap: 6px; }
+.shellEmbedded .tableControlsMain,
+.shellEmbedded .tableControlsSecondary,
+.shellEmbedded .raiseBox { gap: 6px; }
+.shellEmbedded .raiseBox .input { width: 72px; }
+.shellEmbedded .showdownCard { padding: 12px; border-radius: 18px; }
+.shellEmbedded .resultWinners { font-size: 18px; }
+.shellEmbedded .resultPlaces { grid-template-columns: 1fr 1fr; gap: 6px; }
+.shellEmbedded .tableSeat .timerWrap { gap: 4px; }
+.shellEmbedded .tableSeat .metaLabel,
+.shellEmbedded .tableSeat .metaMuted { display: none; }
+.shellEmbedded .tableSeat .timerRingCompact { width: 34px; height: 34px; }
+.shellEmbedded .tableSeat .timerRingCompact span { width: 24px; height: 24px; font-size: 10px; }
+.shellEmbedded .seatPosTopLeft { left: 2%; top: 8px; }
+.shellEmbedded .seatPosTopRight { right: 2%; top: 8px; }
+.shellEmbedded .seatPosLeft { left: 1%; top: 30%; }
+.shellEmbedded .seatPosRight { right: 1%; top: 30%; }
+.shellEmbedded .seatPosLeftLow { left: 2%; bottom: 24%; }
+.shellEmbedded .seatPosRightLow { right: 2%; bottom: 24%; }
+.shellEmbedded .seatPosTop { top: 8px; }
+
+/* ===== poker layout refinement v9 ===== */
+.pokerWindow {
+  gap: 8px;
+  padding: 10px;
+}
+
+.pokerStatusBar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.pokerStatusMain {
+  gap: 2px;
+}
+
+.pokerStatusTitle {
+  font-size: 18px;
+  line-height: 1.1;
+}
+
+.pokerStatusMeta {
+  font-size: 12px;
+}
+
+.pokerArena {
+  min-height: 560px;
+  max-height: 640px;
+  border-width: 8px;
+  border-radius: 28px;
+  background:
+    radial-gradient(circle at 50% 42%, rgba(27,130,69,.98) 0%, rgba(11,71,37,.98) 52%, rgba(5,23,14,.99) 100%),
+    linear-gradient(180deg, rgba(0,0,0,.15), rgba(0,0,0,.28));
+  box-shadow:
+    inset 0 0 0 2px rgba(214,169,79,.42),
+    inset 0 14px 44px rgba(0,0,0,.24),
+    0 18px 48px rgba(0,0,0,.3);
+}
+
+.tableBoardWrap {
+  inset: 17% 15% 21% 15%;
+  z-index: 1;
+}
+
+.tableBoard {
+  padding: 14px 22px 18px;
+  gap: 8px;
+  border-width: 2px;
+  background: radial-gradient(circle at 50% 44%, rgba(22,111,57,.95), rgba(8,56,29,.98));
+  box-shadow: inset 0 0 0 1px rgba(231,191,92,.24);
+}
+
+.tableBoard::before {
+  content: '';
+  position: absolute;
+  inset: 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,.08);
+  pointer-events: none;
+}
+
+.tableBoardTop,
+.tableBoardSummary {
+  position: relative;
+  z-index: 1;
+}
+
+.tablePotBadge {
+  position: relative;
+  padding: 9px 18px;
+  font-size: 19px;
+  background: linear-gradient(180deg, rgba(18,23,19,.88), rgba(10,13,11,.95));
+  border-color: rgba(228,187,91,.26);
+}
+
+.tablePotBadge::before {
+  content: '⦿';
+  margin-right: 8px;
+  color: #e0b12d;
+}
+
+.tableBoardCards {
+  position: relative;
+  z-index: 1;
+  gap: 8px;
+}
+
+.tableSeat {
+  width: clamp(118px, 12vw, 144px);
+  min-height: 84px;
+  gap: 5px;
+  padding: 8px 9px;
+  border-radius: 16px;
+  background: linear-gradient(180deg, rgba(11,14,18,.96), rgba(5,8,12,.98));
+  border: 1px solid rgba(255,255,255,.08);
+  box-shadow: 0 8px 20px  rgba(92, 54, 18, .24);
+  z-index: 2;
+}
+
+.tableSeatHeader {
+  gap: 6px;
+}
+
+.tableSeatMeta strong {
+  font-size: 12px;
+}
+
+.tableSeatMeta span {
+  font-size: 10px;
+}
+
+.tableSeatCards {
+  gap: 4px;
+}
+
+.tableSeatBadges {
+  gap: 4px;
+}
+
+.tableSeat .tag,
+.tableSeat .tagReady,
+.tableSeat .tagMuted,
+.tableSeat .tagWarn {
+  padding: 2px 6px;
+  font-size: 9px;
+}
+
+.tableSeatTurn {
+  border-color: rgba(224,177,45,.76);
+  box-shadow: 0 0 0 2px rgba(224,177,45,.76), 0 0 28px rgba(224,177,45,.24), 0 8px 20px rgba(0,0,0,.24);
+}
+
+.tableSeatTurn .tableSeatHeader {
+  position: relative;
+}
+
+.tableSeatTurn .tableSeatHeader::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 14px;
+  border: 1px solid rgba(224,177,45,.38);
+  pointer-events: none;
+}
+
+.heroTableSeat {
+  left: 50%;
+  bottom: 10px;
+  transform: translateX(-50%);
+  width: min(660px, calc(100% - 22px));
+  min-height: 108px;
+  padding: 10px 12px;
+  border-radius: 18px;
+  z-index: 3;
+}
+
+.heroRow {
+  gap: 10px;
+  align-items: flex-end;
+}
+
+.heroCards {
+  display: flex;
+  gap: 6px;
+}
+
+.heroActions {
+  gap: 6px;
+  flex: 1;
+  justify-content: flex-end;
+}
+
+.heroActions .primaryBtn,
+.heroActions .ghostBtn,
+.heroActions .dangerBtn {
+  padding: 10px 14px;
+  min-width: 88px;
+}
+
+.raiseBox {
+  gap: 6px;
+}
+
+.raiseBox .input {
+  width: 78px;
+}
+
+.seatPosTop { left: 50%; top: 8px; transform: translateX(-50%); }
+.seatPosTopLeft { left: 7%; top: 10%; }
+.seatPosTopRight { right: 7%; top: 10%; }
+.seatPosLeft { left: 3.2%; top: 40%; }
+.seatPosRight { right: 3.2%; top: 40%; }
+.seatPosLeftLow { left: 8%; bottom: 24%; }
+.seatPosRightLow { right: 8%; bottom: 24%; }
+
+.pokerBottomBar {
+  gap: 8px;
+}
+
+.compactPlayerRail {
+  gap: 6px;
+}
+
+.showdownCard {
+  width: min(520px, calc(100% - 24px));
+  gap: 8px;
+  padding: 16px 18px;
+}
+
+.resultWinners {
+  font-size: 28px;
+}
+
+/* embedded call mode */
+.shellEmbedded .pokerWindow {
+  padding: 6px;
+  gap: 6px;
+  border-radius: 16px;
+}
+
+.shellEmbedded .pokerStatusBar {
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 6px;
+}
+
+.shellEmbedded .pokerStatusTitle {
+  font-size: 14px;
+}
+
+.shellEmbedded .pokerStatusMeta {
+  font-size: 10px;
+}
+
+.shellEmbedded .pokerStatusAside {
+  gap: 6px;
+}
+
+.shellEmbedded .stageStrip {
+  gap: 4px;
+}
+
+.shellEmbedded .stagePill {
+  padding: 4px 7px;
+  font-size: 10px;
+}
+
+.shellEmbedded .pokerArena {
+  min-height: 276px;
+  height: 276px;
+  max-height: 276px;
+  border-width: 6px;
+  border-radius: 18px;
+}
+
+.shellEmbedded .tableBoardWrap {
+  inset: 15% 14% 25% 14%;
+}
+
+.shellEmbedded .tableBoard {
+  padding: 8px 12px 10px;
+  gap: 5px;
+}
+
+.shellEmbedded .tablePotBadge {
+  padding: 5px 10px;
+  font-size: 12px;
+}
+
+.shellEmbedded .tableSeat {
+  width: 86px;
+  min-height: 58px;
+  padding: 5px 6px;
+  gap: 3px;
+  border-radius: 12px;
+}
+
+.shellEmbedded .tableSeatHeader {
+  gap: 4px;
+}
+
+.shellEmbedded .tableSeatMeta strong {
+  font-size: 9px;
+}
+
+.shellEmbedded .tableSeatMeta span {
+  font-size: 8px;
+}
+
+.shellEmbedded .tableSeatCards {
+  gap: 3px;
+}
+
+.shellEmbedded .tableSeat .tag,
+.shellEmbedded .tableSeat .tagReady,
+.shellEmbedded .tableSeat .tagMuted,
+.shellEmbedded .tableSeat .tagWarn {
+  padding: 1px 4px;
+  font-size: 7px;
+}
+
+.shellEmbedded .heroTableSeat {
+  width: calc(100% - 14px);
+  min-height: 66px;
+  bottom: 5px;
+  padding: 7px 8px;
+  border-radius: 14px;
+}
+
+.shellEmbedded .heroRow {
+  gap: 6px;
+}
+
+.shellEmbedded .heroActions {
+  gap: 4px;
+}
+
+.shellEmbedded .heroActions .primaryBtn,
+.shellEmbedded .heroActions .ghostBtn,
+.shellEmbedded .heroActions .dangerBtn {
+  min-width: 0;
+  padding: 6px 8px;
+  font-size: 10px;
+  border-radius: 9px;
+}
+
+.shellEmbedded .raiseBox .input {
+  width: 50px;
+  padding: 6px 8px;
+  font-size: 10px;
+}
+
+.shellEmbedded .compactPlayerRail,
+.shellEmbedded .logList {
+  display: none;
+}
+
+.shellEmbedded .seatPosTop { top: 5px; }
+.shellEmbedded .seatPosTopLeft { left: 5%; top: 8%; }
+.shellEmbedded .seatPosTopRight { right: 5%; top: 8%; }
+.shellEmbedded .seatPosLeft { left: 1.2%; top: 40%; }
+.shellEmbedded .seatPosRight { right: 1.2%; top: 40%; }
+.shellEmbedded .seatPosLeftLow { left: 5.5%; bottom: 25%; }
+.shellEmbedded .seatPosRightLow { right: 5.5%; bottom: 25%; }
+
+.shellEmbedded .timerRingCompact {
+  width: 28px;
+  height: 28px;
+}
+
+.shellEmbedded .timerRingCompact span {
+  width: 20px;
+  height: 20px;
+  font-size: 9px;
+}
+
+@media (max-width: 980px) {
+  .pokerArena {
+    min-height: 500px;
+    height: 500px;
+  }
+
+  .tableBoardWrap {
+    inset: 19% 11% 22% 11%;
+  }
+
+  .tableSeat {
+    width: 112px;
+  }
+
+  .seatPosTopLeft { left: 3%; }
+  .seatPosTopRight { right: 3%; }
+  .seatPosLeft { left: 1%; }
+  .seatPosRight { right: 1%; }
+}
+
+/* ===== final compact poker window v10 ===== */
+.shell {
+  width: min(100%, 980px);
+  height: min(74vh, 760px);
+  margin: 0 auto;
+}
+
+.shellEmbedded {
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  margin: 0;
+}
+
+.stageRoot {
+  height: 100%;
+  overflow: hidden;
+}
+
+.directoryLayout,
+.sessionStageLayout {
+  overflow: hidden;
+}
+
+.sessionOverviewBar {
+  padding: 10px 14px;
+}
+
+.sessionOverviewBar .sectionTitle {
+  font-size: 18px;
+}
+
+.sessionOverviewBarMinimal {
+  padding: 8px 12px;
+}
+
+.sessionOverviewBarMinimal .sectionTitle {
+  font-size: 17px;
+}
+
+.sessionOverviewBar .metaMuted {
+  font-size: 12px;
+  line-height: 1.3;
+}
+
+.sessionOverviewBar .primaryBtn,
+.sessionOverviewBar .ghostBtn,
+.sessionOverviewBar .successBtn,
+.sessionOverviewBar .dangerBtn {
+  padding: 9px 12px;
+  border-radius: 12px;
+  font-size: 13px;
+}
+
+.sessionMain {
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.pokerGameLayout {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto auto;
+  gap: 8px;
+  padding: 0;
+  height: 100%;
+}
+
+.pokerWindow {
+  width: min(100%, 900px);
+  height: 100%;
+  margin: 0 auto;
+  padding: 10px 12px 8px;
+  border-radius: 24px;
+  border: 1px solid rgba(222, 182, 79, 0.18);
+  background: linear-gradient(180deg, rgba(6, 21, 15, 0.98), rgba(4, 15, 11, 0.98));
+  box-shadow: 0 12px 36px  rgba(92, 54, 18, 0.26);
+  gap: 8px;
+}
+
+.pokerStatusBar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  padding: 0 2px;
+}
+
+.pokerStatusTitle {
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.pokerStatusMeta {
+  font-size: 12px;
+  color: var(--text-soft);
+}
+
+.pokerStatusAside {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.stageStrip {
+  gap: 6px;
+}
+
+.stagePill {
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+}
+
+.pokerArenaShell {
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 4px 0;
+  background: transparent;
+}
+
+.pokerArena {
+  position: relative;
+  width: min(100%, 860px);
+  height: 470px;
+  min-height: 470px;
+  max-height: 470px;
+  margin: 0 auto;
+  overflow: visible;
+  border: 10px solid #6d4017;
+  border-radius: 240px;
+  background:
+    radial-gradient(circle at 50% 42%, rgba(24, 124, 62, 0.98) 0%, rgba(8, 61, 30, 0.98) 58%, rgba(4, 25, 14, 1) 100%),
+    linear-gradient(180deg, var(--surface-1), rgba(0, 0, 0, 0.18));
+  box-shadow:
+    inset 0 0 0 2px rgba(227, 186, 89, 0.28),
+    inset 0 16px 40px rgba(0, 0, 0, 0.18),
+    0 20px 40px rgba(0, 0, 0, 0.28);
+}
+
+.pokerArena::before {
+  content: '';
+  position: absolute;
+  inset: 16px;
+  border-radius: 220px;
+  border: 2px solid rgba(227, 186, 89, 0.42);
+  pointer-events: none;
+}
+
+.tableBoardWrap {
+  position: absolute;
+  inset: 26% 20% 25% 20%;
+  z-index: 1;
+}
+
+.tableBoard {
+  position: relative;
+  height: 100%;
+  padding: 12px 14px 14px;
+  border-radius: 180px;
+  border: 1px solid var(--stroke);
+  background: radial-gradient(circle at 50% 40%, rgba(26, 118, 61, 0.72), rgba(9, 58, 31, 0.82));
+  box-shadow: inset 0 0 0 1px var(--surface-2);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 10px;
+}
+
+.tableBoardTop,
+.tableBoardSummary {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.tableBoardMiniMeta {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.tablePotBadge,
+.infoChip {
+  padding: 5px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--stroke);
+  background: rgba(7, 12, 10, 0.58);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.tableBoardCards {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+}
+
+.tableSeat,
+.tableSeatCompact {
+  position: absolute;
+  width: 104px;
+  min-height: 74px;
+  padding: 6px 7px;
+  border-radius: 14px;
+  border: 1px solid var(--stroke);
+  background: linear-gradient(180deg, rgba(11, 14, 18, 0.96), rgba(6, 9, 12, 0.98));
+  box-shadow: 0 8px 18px  rgba(92, 54, 18, 0.22);
+  display: grid;
+  gap: 4px;
+  z-index: 2;
+}
+
+.tableSeatAvatarWrap {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.dealerChip {
+  position: absolute;
+  right: -4px;
+  bottom: -4px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: #f6df96;
+  color: #111;
+  font-size: 9px;
+  font-weight: 900;
+  box-shadow: 0 2px 6px  rgba(92, 54, 18, 0.32);
+}
+
+.tableSeatHeader {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tableSeatMeta {
+  min-width: 0;
+  display: grid;
+  gap: 1px;
+  flex: 1;
+}
+
+.tableSeatMeta strong {
+  display: block;
+  font-size: 10px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tableSeatMeta span {
+  font-size: 9px;
+  color: var(--muted);
+}
+
+.tableSeatCards {
+  display: flex;
+  justify-content: center;
+  gap: 3px;
+}
+
+.tableSeatFooter {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  flex-wrap: wrap;
+}
+
+.seatActionPill,
+.seatStatePill,
+.seatStatusOnline,
+.seatStatusOffline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1px 5px;
+  border-radius: 999px;
+  font-size: 8px;
+  font-weight: 700;
+}
+
+.seatActionPill,
+.seatStatePill {
+  background: var(--stroke);
+  color: var(--text);
+}
+
+.seatStatusOnline {
+  background: rgba(38, 179, 107, 0.24);
+  color: #bdf6d6;
+}
+
+.seatStatusOffline {
+  background: rgba(146, 43, 43, 0.28);
+  color: #ffd0d0;
+}
+
+.seatTimerBadge {
+  margin-left: auto;
+}
+
+.tableSeatTurn {
+  border-color: rgba(230, 190, 85, 0.9);
+  box-shadow: 0 0 0 2px rgba(230, 190, 85, 0.55), 0 0 24px rgba(230, 190, 85, 0.18), 0 8px 18px rgba(0, 0, 0, 0.22);
+}
+
+.tableSeatTurn::after {
+  content: '';
+  position: absolute;
+  inset: -6px;
+  border-radius: 18px;
+  border: 1px solid rgba(230, 190, 85, 0.34);
+  pointer-events: none;
+}
+
+.tableSeatFolded {
+  opacity: 0.58;
+}
+
+.seatBetBadge,
+.heroBetBadge {
+  position: absolute;
+  left: 50%;
+  bottom: -14px;
+  transform: translateX(-50%);
+  min-width: 30px;
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at 35% 35%, #fff 0%, #f0d37b 20%, #cc2e2e 21%, #b01414 100%);
+  color: #fff;
+  font-weight: 800;
+  font-size: 11px;
+  box-shadow: 0 6px 14px  rgba(92, 54, 18, 0.28);
+}
+
+.heroBetBadge {
+  position: static;
+  transform: none;
+}
+
+.heroTableSeat {
+  left: 50%;
+  bottom: 10px;
+  transform: translateX(-50%);
+  width: min(430px, calc(100% - 26px));
+  min-height: 86px;
+  padding: 8px 10px;
+  border-radius: 16px;
+  z-index: 3;
+}
+
+.heroRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.heroCards {
+  display: flex;
+  gap: 4px;
+}
+
+.heroActions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  flex: 1;
+  flex-wrap: wrap;
+}
+
+.heroActions .primaryBtn,
+.heroActions .ghostBtn,
+.heroActions .dangerBtn {
+  min-width: 70px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  font-size: 13px;
+}
+
+.raiseBox {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.raiseBox .input {
+  width: 64px;
+  min-width: 64px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  font-size: 13px;
+}
+
+.cardSm {
+  width: 34px;
+  height: 46px;
+  padding: 4px;
+  border-radius: 9px;
+}
+
+.cardSm .cardTop {
+  font-size: 10px;
+}
+
+.cardSm .cardSuit {
+  font-size: 15px;
+}
+
+.seatPosTop {
+  left: 50%;
+  top: 8px;
+  transform: translateX(-50%);
+}
+
+.seatPosTopLeft {
+  left: 12%;
+  top: 16%;
+}
+
+.seatPosTopRight {
+  right: 12%;
+  top: 16%;
+}
+
+.seatPosLeft {
+  left: 3%;
+  top: 44%;
+}
+
+.seatPosRight {
+  right: 3%;
+  top: 44%;
+}
+
+.seatPosLeftLow {
+  left: 14%;
+  bottom: 23%;
+}
+
+.seatPosRightLow {
+  right: 14%;
+  bottom: 23%;
+}
+
+.pokerBottomBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 2px;
+}
+
+.heroActionState {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.tableControlsSecondary {
+  display: flex;
+  gap: 6px;
+}
+
+.tableControlsSecondary .ghostBtn {
+  padding: 8px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+}
+
+.compactPlayerRail,
+.logList {
+  width: min(100%, 900px);
+  margin: 0 auto;
+}
+
+.showdownCard {
+  width: min(440px, calc(100% - 20px));
+  padding: 14px 16px;
+  border-radius: 18px;
+  gap: 8px;
+}
+
+.resultWinners {
+  font-size: 22px;
+}
+
+.shellEmbedded .sessionOverviewBar {
+  padding: 6px 8px;
+  border-radius: 14px;
+}
+
+.shellEmbedded .sessionOverviewBar .sectionTitle {
+  font-size: 14px;
+}
+
+.shellEmbedded .sessionOverviewBar .metaMuted {
+  font-size: 10px;
+}
+
+.shellEmbedded .sessionOverviewBar .ghostBtn,
+.shellEmbedded .sessionOverviewBar .dangerBtn {
+  padding: 6px 8px;
+  font-size: 10px;
+}
+
+.shellEmbedded .pokerWindow {
+  width: 100%;
+  padding: 6px;
+  gap: 6px;
+  border-radius: 16px;
+}
+
+.shellEmbedded .pokerStatusTitle {
+  font-size: 14px;
+}
+
+.shellEmbedded .pokerStatusMeta {
+  font-size: 10px;
+}
+
+.shellEmbedded .stagePill {
+  padding: 4px 6px;
+  font-size: 9px;
+}
+
+.shellEmbedded .pokerArena {
+  height: 252px;
+  min-height: 252px;
+  max-height: 252px;
+  border-width: 7px;
+  border-radius: 150px;
+}
+
+.shellEmbedded .pokerArena::before {
+  inset: 10px;
+  border-radius: 136px;
+}
+
+.shellEmbedded .tableBoardWrap {
+  inset: 26% 15% 31% 15%;
+}
+
+.shellEmbedded .tableBoard {
+  padding: 8px 10px 9px;
+  border-radius: 120px;
+  gap: 5px;
+}
+
+.shellEmbedded .tablePotBadge,
+.shellEmbedded .infoChip {
+  padding: 3px 7px;
+  font-size: 9px;
+}
+
+.shellEmbedded .tableSeat,
+.shellEmbedded .tableSeatCompact {
+  width: 72px;
+  min-height: 54px;
+  padding: 4px 5px;
+  border-radius: 10px;
+}
+
+.shellEmbedded .tableSeatMeta strong {
+  font-size: 8px;
+}
+
+.shellEmbedded .tableSeatMeta span {
+  font-size: 7px;
+}
+
+.shellEmbedded .seatActionPill,
+.shellEmbedded .seatStatePill,
+.shellEmbedded .seatStatusOnline,
+.shellEmbedded .seatStatusOffline {
+  font-size: 7px;
+  padding: 1px 4px;
+}
+
+.shellEmbedded .dealerChip {
+  width: 11px;
+  height: 11px;
+  font-size: 7px;
+}
+
+.shellEmbedded .seatBetBadge,
+.shellEmbedded .heroBetBadge {
+  min-width: 24px;
+  height: 22px;
+  font-size: 9px;
+}
+
+.shellEmbedded .heroTableSeat {
+  width: min(240px, calc(100% - 20px));
+  min-height: 60px;
+  bottom: 8px;
+  padding: 6px 7px;
+  border-radius: 12px;
+}
+
+.shellEmbedded .heroRow {
+  gap: 6px;
+}
+
+.shellEmbedded .heroActions {
+  gap: 4px;
+}
+
+.shellEmbedded .heroActions .primaryBtn,
+.shellEmbedded .heroActions .ghostBtn,
+.shellEmbedded .heroActions .dangerBtn {
+  min-width: 50px;
+  padding: 5px 6px;
+  font-size: 9px;
+  border-radius: 8px;
+}
+
+.shellEmbedded .raiseBox .input {
+  width: 42px;
+  min-width: 42px;
+  padding: 5px 6px;
+  font-size: 9px;
+  border-radius: 8px;
+}
+
+.shellEmbedded .cardSm {
+  width: 24px;
+  height: 34px;
+  padding: 3px;
+  border-radius: 7px;
+}
+
+.shellEmbedded .cardSm .cardTop {
+  font-size: 8px;
+}
+
+.shellEmbedded .cardSm .cardSuit {
+  font-size: 11px;
+}
+
+.shellEmbedded .pokerBottomBar {
+  padding: 0 2px;
+}
+
+.shellEmbedded .heroActionState .metaMuted {
+  font-size: 10px;
+}
+
+.shellEmbedded .tableControlsSecondary .ghostBtn {
+  padding: 5px 7px;
+  font-size: 9px;
+}
+
+.shellEmbedded .compactPlayerRail,
+.shellEmbedded .logList {
+  display: none;
+}
+
+.shellEmbedded .seatPosTop {
+  top: 7px;
+}
+
+.shellEmbedded .seatPosTopLeft {
+  left: 9%;
+  top: 16%;
+}
+
+.shellEmbedded .seatPosTopRight {
+  right: 9%;
+  top: 16%;
+}
+
+.shellEmbedded .seatPosLeft {
+  left: 1%;
+  top: 43%;
+}
+
+.shellEmbedded .seatPosRight {
+  right: 1%;
+  top: 43%;
+}
+
+.shellEmbedded .seatPosLeftLow {
+  left: 11%;
+  bottom: 22%;
+}
+
+.shellEmbedded .seatPosRightLow {
+  right: 11%;
+  bottom: 22%;
+}
+
+@media (max-width: 860px) {
+  .shell {
+    height: min(82vh, 760px);
+  }
+
+  .sessionStageLayout {
+    padding: 12px;
+    gap: 10px;
+  }
+
+  .pokerWindow {
+    width: 100%;
+    padding: 8px;
+  }
+
+  .pokerStatusBar {
+    grid-template-columns: 1fr;
+    align-items: flex-start;
+  }
+
+  .pokerStatusAside {
+    justify-content: space-between;
+    width: 100%;
+  }
+
+  .pokerArena {
+    height: 420px;
+    min-height: 420px;
+    max-height: 420px;
+    border-width: 8px;
+    border-radius: 190px;
+  }
+
+  .pokerArena::before {
+    inset: 12px;
+    border-radius: 176px;
+  }
+
+  .tableBoardWrap {
+    inset: 25% 16% 27% 16%;
+  }
+
+  .tableSeat,
+  .tableSeatCompact {
+    width: 90px;
+    min-height: 68px;
+  }
+
+  .heroTableSeat {
+    width: min(360px, calc(100% - 22px));
+  }
+
+  .heroActions {
+    justify-content: flex-start;
+  }
+
+  .pokerBottomBar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+@media (max-width: 560px) {
+  .shell {
+    width: 100%;
+    height: min(84vh, 720px);
+    border-radius: 18px;
+  }
+
+  .directoryLayout,
+  .sessionStageLayout {
+    padding: 10px;
+  }
+
+  .pokerStatusTitle {
+    font-size: 16px;
+  }
+
+  .pokerStatusMeta {
+    font-size: 11px;
+  }
+
+  .stageStrip {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    padding-bottom: 2px;
+  }
+
+  .pokerArena {
+    height: 360px;
+    min-height: 360px;
+    max-height: 360px;
+    border-width: 7px;
+    border-radius: 150px;
+  }
+
+  .pokerArena::before {
+    inset: 10px;
+    border-radius: 136px;
+  }
+
+  .tableBoardWrap {
+    inset: 24% 12% 29% 12%;
+  }
+
+  .tableSeat,
+  .tableSeatCompact {
+    width: 76px;
+    min-height: 60px;
+    padding: 4px;
+    border-radius: 10px;
+  }
+
+  .tableSeatMeta strong {
+    font-size: 8px;
+  }
+
+  .tableSeatMeta span,
+  .seatActionPill,
+  .seatStatePill,
+  .seatStatusOnline,
+  .seatStatusOffline {
+    font-size: 7px;
+  }
+
+  .cardSm {
+    width: 28px;
+    height: 40px;
+    padding: 3px;
+  }
+
+  .cardSm .cardTop {
+    font-size: 8px;
+  }
+
+  .cardSm .cardSuit {
+    font-size: 12px;
+  }
+
+  .heroTableSeat {
+    width: min(280px, calc(100% - 16px));
+    min-height: 58px;
+    bottom: 7px;
+    padding: 5px 6px;
+  }
+
+  .heroActions .primaryBtn,
+  .heroActions .ghostBtn,
+  .heroActions .dangerBtn {
+    min-width: 58px;
+    padding: 6px 8px;
+    font-size: 11px;
+  }
+
+  .raiseBox {
+    width: 100%;
+  }
+
+  .raiseBox .input {
+    flex: 1;
+    width: auto;
+    min-width: 0;
+  }
+
+  .seatPosTopLeft {
+    left: 7%;
+    top: 14%;
+  }
+
+  .seatPosTopRight {
+    right: 7%;
+    top: 14%;
+  }
+
+  .seatPosLeft {
+    left: 0;
+    top: 43%;
+  }
+
+  .seatPosRight {
+    right: 0;
+    top: 43%;
+  }
+
+  .seatPosLeftLow {
+    left: 9%;
+    bottom: 22%;
+  }
+
+  .seatPosRightLow {
+    right: 9%;
+    bottom: 22%;
+  }
+}
+
+/* ===== v11 compact poker viewport ===== */
+.shell:not(.shellEmbedded) {
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+
+.sessionStageLayout {
+  padding: 0;
+  gap: 6px;
+}
+
+.sessionOverviewBarMinimal {
+  padding: 2px 4px 4px;
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+.sessionOverviewBarMinimal .sectionTitle {
+  font-size: 16px;
+}
+
+.sessionOverviewBarMinimal .metaMuted {
+  font-size: 11px;
+}
+
+.sessionOverviewBarMinimal .ghostBtn,
+.sessionOverviewBarMinimal .dangerBtn {
+  padding: 8px 12px;
+  border-radius: 12px;
+}
+
+.pokerGameLayout {
+  grid-template-rows: minmax(0, 1fr);
+  padding: 0;
+  gap: 0;
+}
+
+.pokerViewport {
+  width: min(100%, 940px);
+  height: 100%;
+  margin: 0 auto;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto auto auto;
+  gap: 8px;
+}
+
+.pokerViewportCompact {
+  width: 100%;
+  gap: 6px;
+}
+
+.pokerTopline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 0 2px;
+}
+
+.pokerTopMain {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.pokerHandTitle {
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.pokerHandMeta {
+  font-size: 12px;
+  color: rgba(255,255,255,.72);
+  line-height: 1.2;
+}
+
+.pokerTopAside {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.pokerTableViewport {
+  min-height: 0;
+  display: grid;
+  place-items: center;
+}
+
+.pokerTableFrame {
+  position: relative;
+  width: 100%;
+  max-width: 920px;
+  aspect-ratio: 16 / 10;
+  padding: 24px 34px 90px;
+  border-radius: 36px;
+  background: linear-gradient(180deg, rgba(6,20,15,.96), rgba(3,11,9,.98));
+  border: 1px solid rgba(218,179,86,.14);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.03), 0 16px 38px rgba(0,0,0,.26);
+  overflow: hidden;
+}
+
+.pokerTableInner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 999px;
+  background: radial-gradient(circle at 50% 40%, rgba(26,122,61,.98) 0%, rgba(9,69,35,.99) 52%, rgba(3,24,14,1) 100%);
+  border: 10px solid #794520;
+  box-shadow: inset 0 0 0 2px rgba(230,190,93,.34), inset 0 14px 38px rgba(0,0,0,.22);
+  overflow: visible;
+}
+
+.pokerTableInner::before {
+  content: '';
+  position: absolute;
+  inset: 14px;
+  border-radius: 999px;
+  border: 2px solid rgba(234,194,97,.34);
+  pointer-events: none;
+}
+
+.boardCluster {
+  position: absolute;
+  left: 50%;
+  top: 46%;
+  transform: translate(-50%, -50%);
+  z-index: 2;
+  display: grid;
+  gap: 8px;
+  justify-items: center;
+  width: min(100%, 440px);
+}
+
+.boardHeaderMini,
+.boardFooterMini {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.boardCardsCompact {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.boardCardsCompact .card {
+  width: 58px;
+  height: 78px;
+  padding: 7px;
+  border-radius: 12px;
+}
+
+.boardCardsCompact .cardTop {
+  font-size: 16px;
+}
+
+.boardCardsCompact .cardSuit {
+  font-size: 24px;
+}
+
+.potBadge,
+.boardHeaderMini .infoChip,
+.boardFooterMini .infoChip {
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: rgba(5,11,9,.58);
+  border: 1px solid rgba(255,255,255,.08);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.potBadge::before {
+  content: '⦿';
+  color: #e0b12d;
+  margin-right: 6px;
+}
+
+.seatPanel {
+  position: absolute;
+  width: 100px;
+  min-height: 72px;
+  padding: 6px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(8,11,15,.92), rgba(4,7,10,.98));
+  border: 1px solid rgba(255,255,255,.08);
+  box-shadow: 0 8px 18px  rgba(92, 54, 18, .24);
+  display: grid;
+  gap: 4px;
+  z-index: 3;
+}
+
+.seatPanelTurn {
+  border-color: rgba(228,188,88,.86);
+  box-shadow: 0 0 0 2px rgba(228,188,88,.54), 0 0 20px rgba(228,188,88,.18), 0 8px 18px rgba(0,0,0,.24);
+}
+
+.seatPanelFolded {
+  opacity: .54;
+}
+
+.seatPanelTop {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.seatAvatarWrap {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.seatPanelMeta {
+  min-width: 0;
+  display: grid;
+  gap: 1px;
+  flex: 1;
+}
+
+.seatPanelMeta strong,
+.seatPanelMeta span {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.seatPanelMeta strong {
+  font-size: 10px;
+}
+
+.seatPanelMeta span {
+  font-size: 9px;
+  color: rgba(255,255,255,.66);
+}
+
+.seatTimerMini {
+  margin-left: auto;
+}
+
+.seatPanelCards {
+  display: flex;
+  justify-content: center;
+  gap: 3px;
+}
+
+.seatPanelBadges {
+  display: flex;
+  justify-content: center;
+  gap: 3px;
+  flex-wrap: wrap;
+}
+
+.seatChipBet,
+.heroChipBet {
+  position: absolute;
+  left: 50%;
+  bottom: -12px;
+  transform: translateX(-50%);
+  min-width: 26px;
+  height: 26px;
+  padding: 0 8px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at 35% 35%, #fff 0%, #f0d37b 18%, #d63a3a 19%, #aa1010 100%);
+  color: #fff;
+  font-weight: 800;
+  font-size: 10px;
+  box-shadow: 0 6px 12px  rgba(92, 54, 18, .28);
+}
+
+.heroSeatFlat {
+  position: absolute;
+  left: 50%;
+  bottom: 12px;
+  transform: translateX(-50%);
+  z-index: 4;
+  width: min(520px, calc(100% - 40px));
+  display: grid;
+  grid-template-columns: auto auto minmax(180px, 1fr);
+  align-items: end;
+  gap: 10px;
+}
+
+.heroSeatFlatTurn .heroSeatInfo {
+  box-shadow: 0 0 0 1px rgba(228,188,88,.56), 0 0 18px rgba(228,188,88,.14);
+}
+
+.heroSeatInfo {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 10px;
+  border-radius: 14px;
+  background: rgba(4,9,13,.72);
+  border: 1px solid rgba(255,255,255,.08);
+}
+
+.heroSeatCards {
+  display: flex;
+  gap: 6px;
+  padding: 0 2px;
+}
+
+.heroSeatCards .card {
+  width: 70px;
+  height: 96px;
+  padding: 8px;
+  border-radius: 14px;
+}
+
+.heroSeatCards .cardTop {
+  font-size: 18px;
+}
+
+.heroSeatCards .cardSuit {
+  font-size: 28px;
+}
+
+.heroSeatControls {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  padding: 8px;
+  border-radius: 16px;
+  background: rgba(4,9,13,.72);
+  border: 1px solid rgba(255,255,255,.08);
+}
+
+.heroSeatControls .dangerBtn,
+.heroSeatControls .ghostBtn,
+.heroSeatControls .primaryBtn {
+  width: 100%;
+  min-width: 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  font-size: 13px;
+}
+
+.raiseBoxInline {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: 74px minmax(0, 1fr);
+  gap: 6px;
+}
+
+.raiseBoxInline .input {
+  width: 100%;
+  min-width: 0;
+  padding: 10px 10px;
+  border-radius: 12px;
+}
+
+.heroChipBet {
+  left: auto;
+  right: calc(100% + 8px);
+  bottom: 20px;
+  transform: none;
+}
+
+.seatPosTop {
+  left: 50%;
+  top: 8px;
+  transform: translateX(-50%);
+}
+
+.seatPosTopRight {
+  right: 9%;
+  top: 16%;
+}
+
+.seatPosRight {
+  right: 4%;
+  top: 41%;
+}
+
+.seatPosLeft {
+  left: 4%;
+  top: 41%;
+}
+
+.seatPosTopLeft {
+  left: 9%;
+  top: 16%;
+}
+
+.pokerBottomLine {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 4px;
+}
+
+.tableControlsSecondary .ghostBtn {
+  padding: 7px 10px;
+  font-size: 12px;
+  border-radius: 11px;
+}
+
+.compactPlayerRail,
+.logList {
+  width: min(100%, 940px);
+  margin: 0 auto;
+}
+
+.compactPlayerRail {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.playerRailItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 9px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.05);
+  font-size: 11px;
+}
+
+.logList {
+  max-height: 112px;
+}
+
+.showdownCard {
+  width: min(420px, calc(100% - 20px));
+}
+
+.shellEmbedded .sessionOverviewBarMinimal {
+  padding: 0 2px 4px;
+}
+
+.shellEmbedded .sessionOverviewBarMinimal .sectionTitle {
+  font-size: 13px;
+}
+
+.shellEmbedded .sessionOverviewBarMinimal .ghostBtn,
+.shellEmbedded .sessionOverviewBarMinimal .dangerBtn {
+  padding: 6px 8px;
+  font-size: 10px;
+}
+
+.shellEmbedded .pokerViewport {
+  width: 100%;
+  gap: 5px;
+}
+
+.shellEmbedded .pokerHandTitle {
+  font-size: 13px;
+}
+
+.shellEmbedded .pokerHandMeta {
+  font-size: 10px;
+}
+
+.shellEmbedded .pokerTopAside {
+  gap: 5px;
+}
+
+.shellEmbedded .pokerTableFrame {
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  padding: 12px 14px 62px;
+  border-radius: 22px;
+}
+
+.shellEmbedded .pokerTableInner {
+  border-width: 7px;
+}
+
+.shellEmbedded .pokerTableInner::before {
+  inset: 10px;
+}
+
+.shellEmbedded .boardCluster {
+  width: min(100%, 300px);
+  gap: 5px;
+}
+
+.shellEmbedded .boardCardsCompact .card {
+  width: 36px;
+  height: 50px;
+  padding: 4px;
+  border-radius: 9px;
+}
+
+.shellEmbedded .boardCardsCompact .cardTop {
+  font-size: 10px;
+}
+
+.shellEmbedded .boardCardsCompact .cardSuit {
+  font-size: 16px;
+}
+
+.shellEmbedded .potBadge,
+.shellEmbedded .boardHeaderMini .infoChip,
+.shellEmbedded .boardFooterMini .infoChip {
+  padding: 3px 7px;
+  font-size: 9px;
+}
+
+.shellEmbedded .seatPanel {
+  width: 72px;
+  min-height: 50px;
+  padding: 4px;
+  border-radius: 11px;
+  gap: 2px;
+}
+
+.shellEmbedded .seatPanelMeta strong {
+  font-size: 8px;
+}
+
+.shellEmbedded .seatPanelMeta span {
+  font-size: 7px;
+}
+
+.shellEmbedded .seatPanelCards {
+  gap: 2px;
+}
+
+.shellEmbedded .seatActionPill,
+.shellEmbedded .seatStatePill,
+.shellEmbedded .seatStatusOnline,
+.shellEmbedded .seatStatusOffline {
+  font-size: 6px;
+  padding: 1px 4px;
+}
+
+.shellEmbedded .seatChipBet,
+.shellEmbedded .heroChipBet {
+  min-width: 20px;
+  height: 20px;
+  font-size: 8px;
+}
+
+.shellEmbedded .heroSeatFlat {
+  width: min(330px, calc(100% - 18px));
+  bottom: 6px;
+  gap: 6px;
+  grid-template-columns: auto auto minmax(128px, 1fr);
+}
+
+.shellEmbedded .heroSeatInfo {
+  padding: 5px 6px;
+  border-radius: 10px;
+}
+
+.shellEmbedded .heroSeatCards {
+  gap: 4px;
+}
+
+.shellEmbedded .heroSeatCards .card {
+  width: 42px;
+  height: 58px;
+  padding: 5px;
+  border-radius: 10px;
+}
+
+.shellEmbedded .heroSeatCards .cardTop {
+  font-size: 11px;
+}
+
+.shellEmbedded .heroSeatCards .cardSuit {
+  font-size: 18px;
+}
+
+.shellEmbedded .heroSeatControls {
+  gap: 4px;
+  padding: 5px;
+  border-radius: 12px;
+}
+
+.shellEmbedded .heroSeatControls .dangerBtn,
+.shellEmbedded .heroSeatControls .ghostBtn,
+.shellEmbedded .heroSeatControls .primaryBtn {
+  padding: 6px 7px;
+  font-size: 10px;
+  border-radius: 9px;
+}
+
+.shellEmbedded .raiseBoxInline {
+  grid-template-columns: 46px minmax(0, 1fr);
+  gap: 4px;
+}
+
+.shellEmbedded .raiseBoxInline .input {
+  padding: 6px 6px;
+  font-size: 10px;
+  border-radius: 9px;
+}
+
+.shellEmbedded .compactPlayerRail,
+.shellEmbedded .logList {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  .pokerViewport {
+    width: 100%;
+  }
+
+  .pokerTopline,
+  .pokerBottomLine {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .pokerTopAside {
+    justify-content: space-between;
+  }
+
+  .pokerTableFrame {
+    aspect-ratio: auto;
+    min-height: 520px;
+    padding: 16px 12px 94px;
+  }
+
+  .pokerTableInner {
+    border-width: 8px;
+  }
+
+  .boardCluster {
+    top: 44%;
+    width: min(100%, 340px);
+  }
+
+  .seatPanel {
+    width: 84px;
+    min-height: 60px;
+  }
+
+  .seatPosTopLeft { left: 5%; top: 14%; }
+  .seatPosTopRight { right: 5%; top: 14%; }
+  .seatPosLeft { left: 2%; top: 39%; }
+  .seatPosRight { right: 2%; top: 39%; }
+
+  .heroSeatFlat {
+    width: calc(100% - 18px);
+    grid-template-columns: auto 1fr;
+    grid-template-areas:
+      'info cards'
+      'controls controls';
+    gap: 8px;
+  }
+
+  .heroSeatInfo { grid-area: info; }
+  .heroSeatCards { grid-area: cards; justify-content: flex-end; }
+  .heroSeatControls { grid-area: controls; }
+  .heroChipBet {
+    right: auto;
+    left: 6px;
+    bottom: 58px;
+  }
+}
+
+@media (max-width: 640px) {
+  .pokerTopMain {
+    gap: 1px;
+  }
+
+  .pokerHandTitle {
+    font-size: 15px;
+  }
+
+  .pokerHandMeta {
+    font-size: 11px;
+  }
+
+  .stageStrip {
+    gap: 4px;
+  }
+
+  .stagePill {
+    padding: 4px 7px;
+    font-size: 10px;
+  }
+
+  .pokerTableFrame {
+    min-height: 470px;
+    padding: 10px 8px 110px;
+  }
+
+  .boardCluster {
+    width: min(100%, 280px);
+  }
+
+  .boardCardsCompact .card {
+    width: 42px;
+    height: 58px;
+    padding: 5px;
+  }
+
+  .boardCardsCompact .cardTop {
+    font-size: 11px;
+  }
+
+  .boardCardsCompact .cardSuit {
+    font-size: 18px;
+  }
+
+  .seatPanel {
+    width: 74px;
+    min-height: 54px;
+    padding: 4px;
+  }
+
+  .seatPanelMeta strong { font-size: 8px; }
+  .seatPanelMeta span { font-size: 7px; }
+  .seatActionPill,
+  .seatStatePill,
+  .seatStatusOnline,
+  .seatStatusOffline { font-size: 6px; padding: 1px 4px; }
+
+  .seatPosTop { top: 6px; }
+  .seatPosTopLeft { left: 3%; top: 13%; }
+  .seatPosTopRight { right: 3%; top: 13%; }
+  .seatPosLeft { left: 0.5%; top: 38%; }
+  .seatPosRight { right: 0.5%; top: 38%; }
+
+  .heroSeatFlat {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      'info'
+      'cards'
+      'controls';
+    justify-items: stretch;
+    bottom: 8px;
+  }
+
+  .heroSeatCards {
+    justify-content: center;
+  }
+
+  .heroSeatCards .card {
+    width: 52px;
+    height: 72px;
+    padding: 6px;
+  }
+
+  .heroSeatControls {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .raiseBoxInline {
+    grid-template-columns: 60px minmax(0, 1fr);
+  }
+
+  .compactPlayerRail,
+  .logList {
+    max-height: 88px;
+    overflow: auto;
+  }
+}
+
+/* ===== dense poker / lobby / overview polish v12 ===== */
+.shell {
+  width: min(100%, 920px);
+  height: min(82vh, 700px);
+  margin: 0 auto;
+}
+
+.directoryLayout,
+.sessionStageLayout {
+  padding: 8px 10px;
+  gap: 8px;
+}
+
+.directoryHeader,
+.sectionRow,
+.toolbarRight,
+.catalogTabs,
+.lobbyActions,
+.sessionCardTop,
+.sessionCardMeta,
+.groupSummary,
+.groupedList,
+.sessionList {
+  gap: 8px;
+}
+
+.directorySection,
+.groupCard,
+.sessionMain,
+.rulesCard,
+.sessionCard,
+.gameCatalogTile {
+  border-radius: 14px;
+  padding: 10px 12px;
+}
+
+.sectionTitle { font-size: 16px; line-height: 1.15; }
+.metaMuted { font-size: 12px; line-height: 1.25; }
+.field span,
+.metaLabel { font-size: 10px; letter-spacing: .06em; }
+
+.primaryBtn,
+.ghostBtn,
+.successBtn,
+.dangerBtn,
+.catalogTab,
+.sessionTab {
+  padding: 7px 10px;
+  border-radius: 10px;
+  font-size: 12px;
+}
+
+.tag,
+.tagReady,
+.tagMuted,
+.tagWarn {
+  padding: 3px 7px;
+  font-size: 10px;
+}
+
+.input {
+  padding: 8px 10px;
+  border-radius: 10px;
+  font-size: 13px;
+}
+
+.lobbyLayout {
+  grid-template-columns: minmax(250px, 300px) minmax(0, 1fr);
+  overflow: hidden;
+}
+
+.leftPanel,
+.rightPanel {
+  padding: 10px 12px;
+  gap: 10px;
+  overflow: auto;
+  min-height: 0;
+}
+
+.formGrid {
+  gap: 8px;
+}
+
+.playerGrid {
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 8px;
+}
+
+.playerRow {
+  padding: 8px 10px;
+  gap: 8px;
+  border-radius: 12px;
+}
+
+.playerMeta strong { font-size: 13px; }
+.playerMeta span { font-size: 11px; }
+
+.lobbyActions {
+  position: sticky;
+  bottom: 0;
+  margin-top: auto;
+  padding-top: 8px;
+  background: linear-gradient(180deg, rgba(3,20,12,0), rgba(3,20,12,.9) 30%, rgba(3,20,12,.98));
+}
+
+.overviewGrid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.sessionOverviewBar {
+  padding: 8px 10px;
+}
+
+.sessionOverviewBar .sectionTitle { font-size: 15px; }
+.sessionOverviewBar .metaMuted { font-size: 11px; }
+.sessionOverviewBar .rulesCard { padding: 8px 10px; border-radius: 12px; }
+
+.pokerViewport {
+  width: min(100%, 860px);
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: 6px;
+}
+
+.pokerTopline {
+  gap: 6px;
+  padding: 0;
+}
+
+.pokerTopMain { gap: 1px; }
+.pokerHandTitle { font-size: 15px; }
+.pokerHandMeta { font-size: 11px; }
+.pokerTopAside { gap: 6px; }
+.stageStrip { gap: 4px; }
+.stagePill { padding: 4px 7px; font-size: 10px; }
+
+.pokerTableViewport {
+  min-height: 0;
+  align-items: start;
+}
+
+.pokerTableFrame {
+  width: min(100%, 860px);
+  max-width: 860px;
+  aspect-ratio: 16 / 10;
+  padding: 8px 10px 72px;
+  border-radius: 18px;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  overflow: hidden;
+}
+
+.pokerTableInner {
+  border-width: 8px;
+  border-radius: 220px;
+}
+
+.pokerTableInner::before {
+  inset: 10px;
+}
+
+.boardCluster {
+  top: 42%;
+  width: min(100%, 330px);
+  gap: 5px;
+}
+
+.boardHeaderMini,
+.boardFooterMini,
+.tableBoardSummary,
+.tableBoardMiniMeta {
+  gap: 4px;
+}
+
+.boardCardsCompact { gap: 4px; }
+.boardCardsCompact .card {
+  width: 42px;
+  height: 58px;
+  padding: 5px;
+  border-radius: 10px;
+}
+.boardCardsCompact .cardTop { font-size: 12px; }
+.boardCardsCompact .cardSuit { font-size: 18px; }
+
+.potBadge,
+.boardHeaderMini .infoChip,
+.boardFooterMini .infoChip,
+.inlineLastAction {
+  padding: 4px 8px;
+  font-size: 10px;
+  border-radius: 999px;
+  background: rgba(6,11,10,.7);
+  border: 1px solid rgba(255,255,255,.08);
+}
+
+.seatPanel {
+  width: 78px;
+  min-height: 56px;
+  padding: 4px 5px;
+  border-radius: 10px;
+  gap: 2px;
+}
+
+.seatPanelTop { gap: 4px; }
+.seatPanelMeta strong { font-size: 8px; }
+.seatPanelMeta span { font-size: 7px; }
+.seatPanelCards { gap: 2px; }
+.seatPanelBadges { gap: 2px; }
+
+.seatActionPill,
+.seatStatePill,
+.seatStatusOnline,
+.seatStatusOffline {
+  padding: 1px 4px;
+  font-size: 6px;
+}
+
+.seatChipBet,
+.heroChipBet {
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  bottom: -9px;
+  font-size: 7px;
+}
+
+.seatPosTop { top: 6px; }
+.seatPosTopLeft { left: 8%; top: 12%; }
+.seatPosTopRight { right: 8%; top: 12%; }
+.seatPosLeft { left: 3%; top: 42%; }
+.seatPosRight { right: 3%; top: 42%; }
+
+.heroSeatFlat {
+  width: min(430px, calc(100% - 18px));
+  bottom: 6px;
+  grid-template-columns: auto auto minmax(116px, 1fr);
+  gap: 6px;
+  align-items: end;
+}
+
+.heroSeatInfo {
+  padding: 4px 6px;
+  border-radius: 10px;
+  gap: 4px;
+}
+
+.heroSeatCards {
+  gap: 4px;
+}
+
+.heroSeatCards .card {
+  width: 46px;
+  height: 64px;
+  padding: 5px;
+  border-radius: 10px;
+}
+.heroSeatCards .cardTop { font-size: 12px; }
+.heroSeatCards .cardSuit { font-size: 20px; }
+
+.heroSeatControls {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px;
+  padding: 4px;
+  border-radius: 10px;
+  background: rgba(4,9,13,.58);
+}
+
+.heroSeatControls .dangerBtn,
+.heroSeatControls .ghostBtn,
+.heroSeatControls .primaryBtn {
+  padding: 6px 8px;
+  border-radius: 9px;
+  font-size: 11px;
+}
+
+.raiseBoxInline {
+  grid-column: 1 / -1;
+  grid-template-columns: 54px minmax(0, 1fr);
+  gap: 4px;
+}
+.raiseBoxInline .input {
+  padding: 6px 8px;
+  font-size: 11px;
+  border-radius: 9px;
+}
+
+.heroChipBet {
+  right: calc(100% + 4px);
+  bottom: 16px;
+}
+
+.tableDrawer {
+  position: absolute;
+  top: 12px;
+  width: 132px;
+  max-height: 132px;
+  padding: 6px;
+  border-radius: 12px;
+  background: rgba(4, 9, 13, 0.82);
+  border: 1px solid rgba(255,255,255,.08);
+  z-index: 5;
+  display: grid;
+  gap: 4px;
+}
+
+.tableDrawerLeft { left: 10px; }
+.tableDrawerRight { right: 10px; }
+.tableDrawerTitle { font-size: 10px; font-weight: 800; color: rgba(255,255,255,.82); text-transform: uppercase; }
+.drawerList { display: grid; gap: 4px; overflow: auto; max-height: 110px; }
+.drawerRow {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 4px;
+  align-items: center;
+  padding: 4px 5px;
+  border-radius: 8px;
+  background: rgba(255,255,255,.04);
+  font-size: 9px;
+}
+.drawerRow span:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.drawerRowTurn {
+  background: rgba(224,177,45,.18);
+  border: 1px solid rgba(224,177,45,.3);
+}
+
+.pokerBottomLine {
+  display: grid;
+  grid-template-columns: minmax(0,1fr) auto;
+  gap: 6px;
+  align-items: center;
+  padding: 0 2px;
+}
+.heroActionState { gap: 6px; }
+.heroActionState .metaMuted { font-size: 11px; }
+
+.compactPlayerRail,
+.logList { display: none !important; }
+
+.timerWrap { gap: 6px; }
+.timerRingCompact { width: 32px; height: 32px; }
+.timerRingCompact span { width: 24px; height: 24px; font-size: 9px; }
+
+.shellEmbedded .pokerViewport {
+  width: min(100%, 720px);
+}
+
+.shellEmbedded .pokerTableFrame {
+  aspect-ratio: 16 / 10;
+  padding: 6px 8px 58px;
+}
+
+.shellEmbedded .pokerTableInner {
+  border-width: 6px;
+}
+
+.shellEmbedded .boardCluster {
+  top: 41%;
+  width: min(100%, 250px);
+}
+
+.shellEmbedded .boardCardsCompact .card {
+  width: 30px;
+  height: 42px;
+  padding: 3px;
+}
+.shellEmbedded .boardCardsCompact .cardTop { font-size: 9px; }
+.shellEmbedded .boardCardsCompact .cardSuit { font-size: 13px; }
+
+.shellEmbedded .seatPanel {
+  width: 60px;
+  min-height: 42px;
+  padding: 3px 4px;
+}
+.shellEmbedded .seatPanelMeta strong { font-size: 7px; }
+.shellEmbedded .seatPanelMeta span { font-size: 6px; }
+.shellEmbedded .seatActionPill,
+.shellEmbedded .seatStatePill,
+.shellEmbedded .seatStatusOnline,
+.shellEmbedded .seatStatusOffline { font-size: 5px; }
+
+.shellEmbedded .heroSeatFlat {
+  width: min(300px, calc(100% - 14px));
+  grid-template-columns: auto auto minmax(92px, 1fr);
+  gap: 4px;
+}
+.shellEmbedded .heroSeatCards .card {
+  width: 34px;
+  height: 48px;
+  padding: 4px;
+}
+.shellEmbedded .heroSeatCards .cardTop { font-size: 10px; }
+.shellEmbedded .heroSeatCards .cardSuit { font-size: 14px; }
+.shellEmbedded .heroSeatControls {
+  gap: 3px;
+  padding: 3px;
+}
+.shellEmbedded .heroSeatControls .dangerBtn,
+.shellEmbedded .heroSeatControls .ghostBtn,
+.shellEmbedded .heroSeatControls .primaryBtn {
+  padding: 4px 5px;
+  font-size: 9px;
+}
+.shellEmbedded .raiseBoxInline {
+  grid-template-columns: 40px minmax(0, 1fr);
+}
+.shellEmbedded .raiseBoxInline .input { font-size: 9px; padding: 4px 5px; }
+.shellEmbedded .tableDrawer {
+  width: 108px;
+  max-height: 96px;
+  padding: 5px;
+}
+.shellEmbedded .drawerList { max-height: 78px; }
+.shellEmbedded .drawerRow { font-size: 8px; grid-template-columns: 1fr auto; }
+.shellEmbedded .drawerRow span:last-child { display: none; }
+
+@media (max-width: 900px) {
+  .shell {
+    width: 100%;
+    height: min(86vh, 760px);
+  }
+
+  .lobbyLayout {
+    grid-template-columns: 1fr;
+  }
+
+  .overviewGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .pokerViewport {
+    width: 100%;
+  }
+
+  .pokerTopline,
+  .pokerBottomLine {
+    grid-template-columns: 1fr;
+    display: grid;
+  }
+
+  .pokerTableFrame {
+    aspect-ratio: auto;
+    min-height: 430px;
+    max-height: none;
+  }
+
+  .boardCluster { top: 40%; }
+  .seatPanel { width: 68px; }
+  .seatPosTopLeft { left: 4%; }
+  .seatPosTopRight { right: 4%; }
+  .seatPosLeft { left: 1%; }
+  .seatPosRight { right: 1%; }
+}
+
+@media (max-width: 640px) {
+  .shell {
+    height: min(88vh, 820px);
+  }
+
+  .directoryLayout,
+  .sessionStageLayout,
+  .leftPanel,
+  .rightPanel {
+    padding: 8px;
+  }
+
+  .playerGrid,
+  .overviewGrid,
+  .formGrid,
+  .directoryColumns,
+  .gameCatalogGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .pokerTableFrame {
+    min-height: 390px;
+    padding: 6px 6px 92px;
+  }
+
+  .boardCluster {
+    top: 37%;
+    width: 220px;
+  }
+
+  .seatPanel {
+    width: 58px;
+    min-height: 40px;
+  }
+
+  .seatPosTop { top: 4px; }
+  .seatPosTopLeft { left: 1%; top: 12%; }
+  .seatPosTopRight { right: 1%; top: 12%; }
+  .seatPosLeft { left: -1%; top: 41%; }
+  .seatPosRight { right: -1%; top: 41%; }
+
+  .heroSeatFlat {
+    width: calc(100% - 10px);
+    grid-template-columns: 1fr;
+    gap: 4px;
+    bottom: 5px;
+  }
+
+  .heroSeatCards {
+    justify-content: center;
+  }
+
+  .heroSeatControls {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .tableDrawer {
+    width: 96px;
+    max-height: 82px;
+  }
+}
+
+/* ===== v13 density + cross-browser stabilization ===== */
+.shell,
+.shellEmbedded,
+.stageRoot,
+.sessionMain,
+.pokerViewport,
+.pokerViewport *,
+.lobbyLayout,
+.lobbyLayout * {
+  box-sizing: border-box;
+}
+
+.shell {
+  border-radius: 16px;
+}
+
+.directoryLayout,
+.sessionStageLayout {
+  padding: 8px 10px;
+  gap: 8px;
+}
+
+.directoryHeader,
+.sectionRow,
+.gameHeader {
+  gap: 8px;
+}
+
+.sectionTitle {
+  font-size: 18px;
+  line-height: 1.1;
+}
+
+.metaMuted {
+  font-size: 12px;
+  line-height: 1.25;
+}
+
+.directorySection,
+.groupCard,
+.sessionMain,
+.rulesCard {
+  padding: 10px 12px;
+  border-radius: 14px;
+}
+
+.sessionCard {
+  padding: 8px 10px;
+  gap: 4px;
+  border-radius: 12px;
+}
+
+.sessionCardTop strong,
+.groupSummary {
+  font-size: 13px;
+}
+
+.sessionCardMeta,
+.groupSectionLabel,
+.tabStatus {
+  font-size: 11px;
+}
+
+.catalogTab,
+.sessionTab,
+.primaryBtn,
+.ghostBtn,
+.successBtn,
+.dangerBtn {
+  padding: 7px 10px;
+  border-radius: 10px;
+  font-size: 12px;
+  line-height: 1.1;
+}
+
+.sessionOverviewBar {
+  padding: 8px 10px;
+}
+
+.sessionOverviewBar .sectionTitle {
+  font-size: 14px;
+}
+
+.sessionOverviewBar .metaMuted {
+  font-size: 11px;
+}
+
+.sessionOverviewBar .toolbarRight {
+  gap: 6px;
+}
+
+.overviewGrid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.overviewGrid .rulesCard {
+  padding: 8px 10px;
+}
+
+.overviewGrid .metaLabel {
+  font-size: 10px;
+}
+
+.lobbyLayout {
+  grid-template-columns: minmax(248px, 286px) minmax(0, 1fr);
+  min-height: 0;
+}
+
+.leftPanel,
+.rightPanel {
+  padding: 10px 12px;
+  gap: 8px;
+}
+
+.leftPanel {
+  display: grid;
+  grid-template-rows: auto auto auto minmax(0, 1fr) auto;
+  overflow: hidden;
+}
+
+.rightPanel {
+  overflow: hidden;
+}
+
+.formGrid,
+.formGridCompact {
+  gap: 6px;
+}
+
+.field {
+  gap: 4px;
+}
+
+.field span,
+.metaLabel {
+  font-size: 10px;
+}
+
+.input {
+  padding: 8px 10px;
+  border-radius: 10px;
+  font-size: 13px;
+  line-height: 1.15;
+}
+
+.rulesCard {
+  padding: 8px 10px;
+}
+
+.lobbyActions {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  margin-top: auto;
+  padding-top: 8px;
+  gap: 6px;
+  background: linear-gradient(180deg, rgba(3, 20, 12, 0) 0%, rgba(3, 20, 12, 0.94) 30%);
+}
+
+.playerGrid {
+  grid-template-columns: 1fr;
+  gap: 6px;
+  min-height: 0;
+  overflow: auto;
+  padding-right: 2px;
+}
+
+.playerRow {
+  padding: 8px 10px;
+  gap: 8px;
+  border-radius: 12px;
+}
+
+.playerMeta strong {
+  font-size: 13px;
+}
+
+.playerMeta span {
+  font-size: 11px;
+}
+
+.tag,
+.tagReady,
+.tagMuted,
+.tagWarn {
+  padding: 3px 7px;
+  font-size: 10px;
+}
+
+.gameLayout,
+.gameLayoutCompact {
+  padding: 8px 10px 6px;
+  gap: 6px;
+}
+
+.pokerViewport {
+  width: min(100%, 860px);
+  height: 100%;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: 6px;
+}
+
+.pokerTopline {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+}
+
+.pokerTopMain {
+  min-width: 0;
+}
+
+.pokerHandTitle {
+  font-size: 14px;
+  line-height: 1.05;
+}
+
+.pokerHandMeta {
+  font-size: 11px;
+  line-height: 1.15;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pokerTopAside {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.stageStrip {
+  gap: 4px;
+}
+
+.stagePill {
+  padding: 3px 7px;
+  border-radius: 999px;
+  font-size: 10px;
+}
+
+.pokerTopAside .ghostBtn,
+.pokerTopAside .primaryBtn,
+.pokerTopAside .dangerBtn {
+  padding: 5px 8px;
+  font-size: 11px;
+  border-radius: 9px;
+}
+
+.timerWrap {
+  gap: 4px;
+}
+
+.timerRing,
+.timerRingCompact {
+  width: 34px;
+  height: 34px;
+}
+
+.timerRing span,
+.timerRingCompact span {
+  width: 26px;
+  height: 26px;
+  font-size: 10px;
+}
+
+.pokerTableViewport {
+  min-height: 0;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+
+.pokerTableFrame {
+  width: min(100%, 820px);
+  max-width: 820px;
+  height: min(100%, 470px);
+  max-height: 470px;
+  aspect-ratio: 16 / 10;
+  padding: 8px 10px 76px;
+  border-radius: 18px;
+  overflow: hidden;
+  background: transparent;
+}
+
+.pokerTableInner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-width: 8px;
+  border-radius: 220px;
+  overflow: hidden;
+}
+
+.pokerTableInner::before {
+  inset: 10px;
+}
+
+.boardCluster {
+  position: absolute;
+  left: 50%;
+  top: 42%;
+  transform: translate(-50%, -50%);
+  width: min(320px, 60%);
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  z-index: 3;
+}
+
+.boardHeaderMini,
+.boardFooterMini {
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.boardCardsCompact {
+  justify-content: center;
+  gap: 4px;
+}
+
+.boardCardsCompact .card {
+  width: 40px;
+  height: 56px;
+  padding: 5px;
+  border-radius: 10px;
+}
+
+.boardCardsCompact .cardTop {
+  font-size: 12px;
+}
+
+.boardCardsCompact .cardSuit {
+  font-size: 18px;
+}
+
+.potBadge,
+.boardHeaderMini .infoChip,
+.boardFooterMini .infoChip,
+.inlineLastAction {
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  line-height: 1.1;
+  background: rgba(6, 11, 10, 0.74);
+}
+
+.seatPanel {
+  position: absolute;
+  width: 78px;
+  min-height: 56px;
+  padding: 4px 5px;
+  border-radius: 10px;
+  gap: 2px;
+  z-index: 4;
+}
+
+.seatPanelTurn {
+  box-shadow: 0 0 0 1px rgba(224, 177, 45, 0.9), 0 0 12px rgba(224, 177, 45, 0.24);
+}
+
+.seatPanelFolded {
+  opacity: 0.56;
+}
+
+.seatPanelTop {
+  gap: 4px;
+  align-items: flex-start;
+}
+
+.seatAvatarWrap {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.seatPanelMeta {
+  min-width: 0;
+}
+
+.seatPanelMeta strong,
+.seatPanelMeta span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.seatPanelMeta strong {
+  font-size: 8px;
+}
+
+.seatPanelMeta span {
+  font-size: 7px;
+}
+
+.seatPanelCards {
+  gap: 2px;
+}
+
+.seatPanelBadges {
+  gap: 2px;
+}
+
+.seatActionPill,
+.seatStatePill,
+.seatStatusOnline,
+.seatStatusOffline {
+  padding: 1px 4px;
+  font-size: 6px;
+}
+
+.dealerChip {
+  width: 13px;
+  height: 13px;
+  font-size: 8px;
+}
+
+.seatChipBet,
+.heroChipBet {
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  font-size: 7px;
+}
+
+.seatPosTop {
+  left: 50%;
+  top: 8px;
+  transform: translateX(-50%);
+}
+
+.seatPosTopLeft {
+  left: 7%;
+  top: 14%;
+}
+
+.seatPosTopRight {
+  right: 7%;
+  top: 14%;
+}
+
+.seatPosLeft {
+  left: 2.5%;
+  top: 46%;
+}
+
+.seatPosRight {
+  right: 2.5%;
+  top: 46%;
+}
+
+.heroSeatFlat {
+  position: absolute;
+  left: 50%;
+  bottom: 6px;
+  transform: translateX(-50%);
+  width: min(360px, calc(100% - 18px));
+  display: grid;
+  grid-template-columns: auto auto auto;
+  align-items: end;
+  gap: 4px;
+  z-index: 5;
+}
+
+.heroSeatInfo {
+  min-width: 86px;
+  padding: 4px 6px;
+  border-radius: 10px;
+  gap: 4px;
+  background: rgba(6, 11, 10, 0.88);
+  border: 1px solid rgba(255,255,255,.08);
+}
+
+.heroSeatCards {
+  gap: 4px;
+}
+
+.heroSeatCards .card {
+  width: 42px;
+  height: 58px;
+  padding: 5px;
+  border-radius: 10px;
+}
+
+.heroSeatCards .cardTop {
+  font-size: 12px;
+}
+
+.heroSeatCards .cardSuit {
+  font-size: 18px;
+}
+
+.heroSeatControls {
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.heroSeatControls .dangerBtn,
+.heroSeatControls .ghostBtn,
+.heroSeatControls .primaryBtn {
+  min-width: 56px;
+  padding: 6px 8px;
+  border-radius: 9px;
+  font-size: 11px;
+}
+
+.raiseBoxInline {
+  display: grid;
+  grid-template-columns: 52px auto;
+  gap: 4px;
+  grid-column: auto;
+}
+
+.raiseBoxInline .input {
+  min-width: 52px;
+  padding: 6px 8px;
+  font-size: 11px;
+  border-radius: 9px;
+}
+
+.heroChipBet {
+  right: calc(100% + 4px);
+  bottom: 14px;
+}
+
+.tableDrawer {
+  position: absolute;
+  top: 10px;
+  width: 138px;
+  max-height: 136px;
+  padding: 6px;
+  border-radius: 12px;
+  z-index: 6;
+}
+
+.tableDrawerLeft {
+  left: 10px;
+}
+
+.tableDrawerRight {
+  right: 10px;
+}
+
+.tableDrawerTitle {
+  font-size: 10px;
+}
+
+.drawerList {
+  max-height: 112px;
+}
+
+.drawerRow {
+  font-size: 9px;
+  padding: 4px 5px;
+}
+
+.pokerBottomLine {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 6px;
+  align-items: center;
+  padding: 0 2px;
+  min-height: 18px;
+}
+
+.heroActionState {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.heroActionState .metaMuted,
+.inlineLastAction {
+  font-size: 10px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.compactPlayerRail,
+.logList {
+  display: none !important;
+}
+
+.resultBanner,
+.showdownCard {
+  border-radius: 14px;
+}
+
+.showdownOverlay {
+  padding: 10px;
+}
+
+.showdownCard {
+  max-width: 340px;
+  padding: 10px 12px;
+}
+
+.showdownCard .resultTitle {
+  font-size: 11px;
+}
+
+.showdownCard .resultWinners {
+  font-size: 18px;
+}
+
+.showdownCard .resultPlaces {
+  gap: 6px;
+}
+
+.showdownCard .resultPlace {
+  padding: 6px 8px;
+}
+
+.shellEmbedded .directoryLayout,
+.shellEmbedded .sessionStageLayout {
+  padding: 6px 8px;
+  gap: 6px;
+}
+
+.shellEmbedded .directorySection,
+.shellEmbedded .groupCard,
+.shellEmbedded .sessionMain,
+.shellEmbedded .rulesCard {
+  padding: 8px 10px;
+  border-radius: 12px;
+}
+
+.shellEmbedded .sectionTitle {
+  font-size: 14px;
+}
+
+.shellEmbedded .metaMuted,
+.shellEmbedded .sessionCardMeta,
+.shellEmbedded .sessionCardTop strong {
+  font-size: 10px;
+}
+
+.shellEmbedded .catalogTab,
+.shellEmbedded .sessionTab,
+.shellEmbedded .primaryBtn,
+.shellEmbedded .ghostBtn,
+.shellEmbedded .successBtn,
+.shellEmbedded .dangerBtn {
+  padding: 6px 8px;
+  font-size: 11px;
+  border-radius: 9px;
+}
+
+.shellEmbedded .overviewGrid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.shellEmbedded .lobbyLayout {
+  grid-template-columns: minmax(220px, 252px) minmax(0, 1fr);
+}
+
+.shellEmbedded .leftPanel,
+.shellEmbedded .rightPanel {
+  padding: 8px 10px;
+  gap: 6px;
+}
+
+.shellEmbedded .input {
+  padding: 7px 8px;
+  font-size: 12px;
+}
+
+.shellEmbedded .playerRow {
+  padding: 7px 8px;
+}
+
+.shellEmbedded .playerMeta strong {
+  font-size: 12px;
+}
+
+.shellEmbedded .playerMeta span,
+.shellEmbedded .tag,
+.shellEmbedded .tagReady,
+.shellEmbedded .tagMuted,
+.shellEmbedded .tagWarn {
+  font-size: 9px;
+}
+
+.shellEmbedded .gameLayout,
+.shellEmbedded .gameLayoutCompact {
+  padding: 6px 8px 4px;
+  gap: 4px;
+}
+
+.shellEmbedded .pokerViewport {
+  width: min(100%, 700px);
+}
+
+.shellEmbedded .pokerHandTitle {
+  font-size: 12px;
+}
+
+.shellEmbedded .pokerHandMeta {
+  font-size: 10px;
+}
+
+.shellEmbedded .stagePill {
+  padding: 2px 5px;
+  font-size: 9px;
+}
+
+.shellEmbedded .pokerTopAside .ghostBtn,
+.shellEmbedded .pokerTopAside .primaryBtn,
+.shellEmbedded .pokerTopAside .dangerBtn {
+  padding: 4px 6px;
+  font-size: 10px;
+}
+
+.shellEmbedded .timerRing,
+.shellEmbedded .timerRingCompact {
+  width: 28px;
+  height: 28px;
+}
+
+.shellEmbedded .timerRing span,
+.shellEmbedded .timerRingCompact span {
+  width: 20px;
+  height: 20px;
+  font-size: 8px;
+}
+
+.shellEmbedded .pokerTableFrame {
+  width: min(100%, 700px);
+  max-width: 700px;
+  height: min(100%, 360px);
+  max-height: 360px;
+  padding: 6px 8px 60px;
+}
+
+.shellEmbedded .pokerTableInner {
+  border-width: 6px;
+}
+
+.shellEmbedded .pokerTableInner::before {
+  inset: 8px;
+}
+
+.shellEmbedded .boardCluster {
+  top: 42%;
+  width: min(230px, 56%);
+}
+
+.shellEmbedded .boardCardsCompact .card {
+  width: 30px;
+  height: 42px;
+  padding: 3px;
+}
+
+.shellEmbedded .boardCardsCompact .cardTop {
+  font-size: 9px;
+}
+
+.shellEmbedded .boardCardsCompact .cardSuit {
+  font-size: 13px;
+}
+
+.shellEmbedded .seatPanel {
+  width: 60px;
+  min-height: 42px;
+  padding: 3px 4px;
+  border-radius: 9px;
+}
+
+.shellEmbedded .seatPanelMeta strong {
+  font-size: 7px;
+}
+
+.shellEmbedded .seatPanelMeta span {
+  font-size: 6px;
+}
+
+.shellEmbedded .seatActionPill,
+.shellEmbedded .seatStatePill,
+.shellEmbedded .seatStatusOnline,
+.shellEmbedded .seatStatusOffline {
+  font-size: 5px;
+}
+
+.shellEmbedded .dealerChip {
+  width: 11px;
+  height: 11px;
+  font-size: 7px;
+}
+
+.shellEmbedded .seatChipBet,
+.shellEmbedded .heroChipBet {
+  min-width: 15px;
+  height: 15px;
+  font-size: 6px;
+}
+
+.shellEmbedded .seatPosTop {
+  top: 6px;
+}
+
+.shellEmbedded .seatPosTopLeft {
+  left: 5%;
+  top: 13%;
+}
+
+.shellEmbedded .seatPosTopRight {
+  right: 5%;
+  top: 13%;
+}
+
+.shellEmbedded .seatPosLeft {
+  left: 2%;
+  top: 47%;
+}
+
+.shellEmbedded .seatPosRight {
+  right: 2%;
+  top: 47%;
+}
+
+.shellEmbedded .heroSeatFlat {
+  width: min(280px, calc(100% - 12px));
+  bottom: 4px;
+  gap: 3px;
+}
+
+.shellEmbedded .heroSeatInfo {
+  min-width: 72px;
+  padding: 3px 4px;
+}
+
+.shellEmbedded .heroSeatCards .card {
+  width: 32px;
+  height: 44px;
+  padding: 4px;
+}
+
+.shellEmbedded .heroSeatCards .cardTop {
+  font-size: 10px;
+}
+
+.shellEmbedded .heroSeatCards .cardSuit {
+  font-size: 14px;
+}
+
+.shellEmbedded .heroSeatControls .dangerBtn,
+.shellEmbedded .heroSeatControls .ghostBtn,
+.shellEmbedded .heroSeatControls .primaryBtn {
+  min-width: 42px;
+  padding: 4px 6px;
+  font-size: 9px;
+}
+
+.shellEmbedded .raiseBoxInline {
+  grid-template-columns: 40px auto;
+}
+
+.shellEmbedded .raiseBoxInline .input {
+  padding: 4px 5px;
+  font-size: 9px;
+}
+
+.shellEmbedded .tableDrawer {
+  top: 8px;
+  width: 104px;
+  max-height: 94px;
+  padding: 5px;
+}
+
+.shellEmbedded .drawerList {
+  max-height: 72px;
+}
+
+.shellEmbedded .drawerRow {
+  grid-template-columns: 1fr auto;
+  font-size: 8px;
+}
+
+.shellEmbedded .drawerRow span:last-child {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  .lobbyLayout,
+  .shellEmbedded .lobbyLayout,
+  .overviewGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .pokerTopline,
+  .shellEmbedded .pokerTopline,
+  .pokerBottomLine {
+    grid-template-columns: 1fr;
+  }
+
+  .pokerTopAside {
+    justify-content: flex-start;
+  }
+
+  .pokerTableFrame {
+    height: min(100%, 420px);
+    max-height: 420px;
+  }
+}
+
+@media (max-width: 640px) {
+  .directoryLayout,
+  .sessionStageLayout,
+  .leftPanel,
+  .rightPanel,
+  .shellEmbedded .leftPanel,
+  .shellEmbedded .rightPanel {
+    padding: 6px;
+  }
+
+  .directoryColumns,
+  .playerGrid,
+  .overviewGrid,
+  .formGrid,
+  .gameCatalogGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .pokerTableFrame {
+    height: min(100%, 390px);
+    max-height: 390px;
+    padding: 6px 6px 92px;
+  }
+
+  .boardCluster {
+    width: 220px;
+    top: 39%;
+  }
+
+  .seatPanel {
+    width: 58px;
+    min-height: 40px;
+  }
+
+  .seatPosTopLeft {
+    left: 2%;
+    top: 14%;
+  }
+
+  .seatPosTopRight {
+    right: 2%;
+    top: 14%;
+  }
+
+  .seatPosLeft {
+    left: 0.5%;
+    top: 47%;
+  }
+
+  .seatPosRight {
+    right: 0.5%;
+    top: 47%;
+  }
+
+  .heroSeatFlat {
+    width: calc(100% - 10px);
+    grid-template-columns: 1fr;
+  }
+
+  .heroSeatCards {
+    justify-content: center;
+  }
+
+  .heroSeatControls {
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+}
+
+/* ===== v14 density + stability ===== */
+.directoryLayout,
+.sessionStageLayout {
+  overflow: hidden;
+}
+
+.directoryColumns,
+.sessionStageLayout,
+.sessionMain,
+.directorySection,
+.groupedList,
+.playerGrid,
+.gameCatalogGrid {
+  min-height: 0;
+}
+
+.directorySection {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 10px;
+}
+
+.sessionList,
+.groupedList,
+.playerGrid,
+.gameCatalogGrid {
+  overflow: auto;
+  padding-right: 4px;
+  scrollbar-gutter: stable;
+  align-content: start;
+}
+
+.sessionList {
+  max-height: min(46vh, 420px);
+}
+
+.groupedList {
+  max-height: min(56vh, 560px);
+}
+
+.playerGrid {
+  max-height: min(52vh, 520px);
+}
+
+.gameCatalogGrid {
+  max-height: min(46vh, 420px);
+}
+
+.leftPanel,
+.rightPanel {
+  min-height: 0;
+}
+
+.leftPanel {
+  overflow: auto;
+}
+
+.lobbyActions {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  margin-top: auto;
+  padding-top: 8px;
+  background: linear-gradient(180deg, rgba(3, 16, 11, 0), rgba(3, 16, 11, 0.9) 30%, rgba(3, 16, 11, 0.98));
+}
+
+.lobbyActions .primaryBtn,
+.lobbyActions .ghostBtn,
+.lobbyActions .successBtn,
+.lobbyActions .dangerBtn,
+.sessionOverviewBar .ghostBtn,
+.sessionOverviewBar .dangerBtn,
+.sessionCard,
+.catalogTab,
+.primaryBtn,
+.ghostBtn,
+.successBtn,
+.dangerBtn {
+  padding: 8px 12px;
+  border-radius: 12px;
+}
+
+.input {
+  padding: 10px 12px;
+  border-radius: 12px;
+}
+
+.rulesCard,
+.directorySection,
+.groupCard,
+.sessionMain,
+.sessionCard {
+  border-radius: 16px;
+}
+
+.playerRow {
+  padding: 10px 12px;
+  border-radius: 14px;
+}
+
+.playerMeta strong {
+  font-size: 15px;
+}
+
+.sectionTitle {
+  font-size: 18px;
+}
+
+.metaMuted,
+.field span,
+.metaLabel {
+  font-size: 12px;
+}
+
+.sessionOverviewBar,
+.sessionOverviewBarMinimal {
+  padding: 10px 12px !important;
+  border-radius: 14px !important;
+}
+
+.sessionOverviewBar .sectionTitle,
+.sessionOverviewBarMinimal .sectionTitle {
+  font-size: 15px !important;
+}
+
+.sessionOverviewBar .metaMuted,
+.sessionOverviewBarMinimal .metaMuted {
+  font-size: 11px !important;
+  line-height: 1.25;
+}
+
+.sessionOverviewBar .toolbarRight,
+.sessionOverviewBarMinimal .toolbarRight {
+  gap: 8px !important;
+  flex-wrap: wrap;
+}
+
+.overviewGrid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.overviewGrid .rulesCard {
+  padding: 8px 10px;
+  border-radius: 12px;
+}
+
+.pokerArena,
+.pokerTableFrame {
+  overflow: hidden;
+}
+
+.seatPosHeadsUpRight {
+  right: 8%;
+  top: 14%;
+}
+
+.shellEmbedded .seatPosHeadsUpRight {
+  right: 5%;
+  top: 10%;
+}
+
+@media (max-width: 1180px) {
+  .overviewGrid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 900px) {
+  .sessionList,
+  .groupedList,
+  .playerGrid,
+  .gameCatalogGrid {
+    max-height: none;
+  }
+
+  .overviewGrid {
+    grid-template-columns: 1fr;
+  }
+}
+.pokerArena {
+  height: clamp(420px, 54vh, 580px);
+  min-height: 420px;
+  max-height: 580px;
+}
+
+.shellEmbedded .pokerArena {
+  height: 320px;
+  min-height: 320px;
+  max-height: 320px;
+}
+
+/* v15 flappy + archive/lists scroll */
+.sessionList,
+.playerGrid,
+.gameCatalogGrid,
+.groupedList,
+.rightPanel {
+  scrollbar-width: thin;
+}
+
+.directoryLayout,
+.directoryColumns,
+.directorySection,
+.groupedList {
+  min-height: 0;
+}
+
+.sessionList {
+  max-height: min(52vh, 520px);
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.playerGrid {
+  max-height: min(54vh, 560px);
+  overflow: auto;
+  align-content: start;
+  padding-right: 4px;
+}
+
+.gameCatalogGrid {
+  max-height: min(46vh, 420px);
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.groupedList {
+  max-height: min(66vh, 640px);
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.sectionTitleSm {
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.flappyLayout {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 10px;
+  padding: 10px 12px 12px;
+}
+
+.flappyTopbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.flappyTopStats {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.flappyBody {
+  display: grid;
+  grid-template-columns: minmax(280px, 420px) minmax(220px, 300px);
+  gap: 12px;
+  align-items: start;
+  min-height: 0;
+}
+
+.flappyArenaWrap {
+  position: relative;
+  border-radius: 18px;
+  overflow: hidden;
+  border: 1px solid rgba(214, 177, 75, 0.28);
+  background: var(--surface-1);
+  box-shadow: inset 0 1px 0 var(--surface-1);
+  justify-self: start;
+}
+
+.flappyCanvas {
+  display: block;
+  width: min(100%, 420px);
+  height: auto;
+  cursor: pointer;
+}
+
+.flappyOverlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(2, 11, 8, 0.55);
+  padding: 16px;
+}
+
+.flappyOverlayCard,
+.flappySidebarCard {
+  border-radius: 16px;
+  border: 1px solid var(--stroke);
+  background: rgba(5, 13, 10, 0.84);
+  box-shadow: 0 12px 28px  rgba(92, 54, 18, 0.24);
+}
+
+.flappyOverlayCard {
+  display: grid;
+  gap: 10px;
+  width: min(100%, 300px);
+  padding: 14px;
+}
+
+.flappySidebar {
+  display: grid;
+  gap: 10px;
+  min-height: 0;
+}
+
+.flappySidebarCard {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+}
+
+.flappyKpiGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.statTile {
+  display: grid;
+  gap: 3px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--surface-2);
+}
+
+.statTile span {
+  color: var(--muted);
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
+.statTile strong {
+  font-size: 18px;
+}
+
+.flappyBoardList {
+  display: grid;
+  gap: 6px;
+  max-height: 240px;
+  overflow: auto;
+}
+
+.flappyBoardRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 44px 52px;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--surface-2);
+  font-size: 12px;
+}
+
+@media (max-width: 980px) {
+  .flappyBody {
+    grid-template-columns: 1fr;
+  }
+
+  .flappyArenaWrap {
+    justify-self: center;
+  }
+}
+
+/* v16 compact flappy + creator-only editable lobby */
+.valueField {
+  min-height: 38px;
+  padding: 9px 11px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,.06);
+  background: rgba(255,255,255,.045);
+  color: rgba(255,255,255,.88);
+  display: flex;
+  align-items: center;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.sessionList,
+.playerGrid,
+.gameCatalogGrid,
+.groupedList,
+.flappyBoardList {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,.18) transparent;
+}
+
+.sessionList::-webkit-scrollbar,
+.playerGrid::-webkit-scrollbar,
+.gameCatalogGrid::-webkit-scrollbar,
+.groupedList::-webkit-scrollbar,
+.flappyBoardList::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.sessionList::-webkit-scrollbar-thumb,
+.playerGrid::-webkit-scrollbar-thumb,
+.gameCatalogGrid::-webkit-scrollbar-thumb,
+.groupedList::-webkit-scrollbar-thumb,
+.flappyBoardList::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,.16);
+  border-radius: 999px;
+}
+
+.groupedList {
+  align-content: start;
+}
+
+.groupCard {
+  padding: 12px;
+}
+
+.groupSummary {
+  padding: 2px 0;
+}
+
+.seatPosHeadsUpRight {
+  right: 3%;
+  top: 18%;
+}
+
+.shellEmbedded .seatPosHeadsUpRight {
+  right: 1.5%;
+  top: 15%;
+}
+
+.flappyLayout {
+  grid-template-rows: auto minmax(0,1fr);
+  min-height: 0;
+}
+
+.flappyTopbar {
+  gap: 8px;
+}
+
+.flappyTopStats {
+  gap: 6px;
+}
+
+.flappyBody {
+  display: grid;
+  place-items: center;
+  min-height: 0;
+}
+
+.flappyArenaWrap {
+  position: relative;
+  width: min(100%, 420px);
+  justify-self: center;
+  align-self: center;
+  border-radius: 18px;
+}
+
+.flappyCanvas {
+  width: 100%;
+  max-width: 420px;
+}
+
+.flappyHud {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  right: 8px;
+  z-index: 2;
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.flappyHud .infoChip {
+  padding: 5px 9px;
+  font-size: 11px;
+  background: rgba(5,10,13,.78);
+}
+
+.flappyOverlay {
+  padding: 12px;
+}
+
+.flappyOverlayCard {
+  width: min(100%, 320px);
+  gap: 8px;
+  padding: 12px;
+}
+
+.flappyBoardList {
+  max-height: 168px;
+  overflow: auto;
+  padding-right: 2px;
+}
+
+.flappyBoardRow {
+  grid-template-columns: minmax(0,1fr) 36px 46px;
+  padding: 7px 9px;
+  font-size: 11px;
+}
+
+.flappyBoardRow span:first-child {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.shellEmbedded .flappyArenaWrap {
+  width: min(100%, 300px);
+}
+
+.shellEmbedded .flappyCanvas {
+  max-width: 300px;
+}
+
+.shellEmbedded .flappyOverlayCard {
+  width: min(100%, 260px);
+  padding: 10px;
+}
+
+.shellEmbedded .flappyHud {
+  top: 6px;
+  left: 6px;
+  right: 6px;
+  gap: 4px;
+}
+
+.shellEmbedded .flappyHud .infoChip {
+  padding: 4px 7px;
+  font-size: 10px;
+}
+
+.shellEmbedded .valueField {
+  min-height: 34px;
+  padding: 8px 10px;
+  font-size: 12px;
+}
+
+
+/* redesign overrides */
+.shell { border-radius: 20px; }
+.sessionTabs, .catalogTabs, .toolbarRight, .lobbyActions, .controlMain, .raiseRow { gap: 8px; }
+.sessionTab, .catalogTab { padding: 8px 12px; border-radius: 12px; }
+.leftPanel, .rightPanel { padding: 14px 16px; }
+.sectionTitle { font-size: 18px; }
+.formGrid { gap: 10px; }
+.input { padding: 11px 12px; border-radius: 12px; }
+.rulesCard, .playerRow, .tableCard, .metaCard, .catalogCard, .sessionCard { border-radius: 14px !important; padding: 12px !important; }
+.primaryBtn, .ghostBtn, .successBtn, .dangerBtn { padding: 10px 14px; border-radius: 12px; }
+
+/* unified game frame layer */
+.shell {
+  min-height: 0;
+  height: 100%;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.shellChat {}
+
+.shellCall {}
+
+.frameStage {
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+.frameStageScroll {
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+.frameStageSession {
+  overflow: hidden;
+}
+
+.frameStageSessionConfig {
+  width: 100%;
+  min-height: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.frameStageCall {
+  width: 100%;
+}
+
+.stageRoot {
+  min-height: 0;
+  height: 100%;
+  display: grid;
+  align-content: start;
+  gap: 12px;
+}
+
+.stageRootFullscreen {
+  gap: 14px;
+}
+
+.sessionStageLayout {
+  min-height: 0;
+  height: 100%;
+}
+
+.sessionStageLayoutFullscreen {
+  gap: 12px;
+}
+
+.sessionMain {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.sessionMainCompact,
+.sessionMainFullscreen {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.error,
+.empty {
+  margin: 0;
+}
+
+/* adaptive game surfaces */
+.pokerTableViewport {
+  min-height: 0;
+  width: 100%;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+
+.pokerTableFrame {
+  --poker-scale: 1;
+  --poker-table-width: 820px;
+  --poker-table-height: 470px;
+  width: var(--poker-table-width);
+  max-width: 100%;
+  height: var(--poker-table-height);
+  max-height: 100%;
+  aspect-ratio: auto;
+  padding: calc(8px * var(--poker-scale)) calc(10px * var(--poker-scale)) calc(76px * var(--poker-scale));
+  border-radius: calc(18px * var(--poker-scale));
+}
+
+.pokerTableInner {
+  border-width: calc(8px * var(--poker-scale));
+  border-radius: calc(220px * var(--poker-scale));
+}
+
+.pokerTableInner::before {
+  inset: calc(10px * var(--poker-scale));
+}
+
+.boardCluster {
+  width: min(calc(320px * var(--poker-scale)), 60%);
+  gap: calc(4px * var(--poker-scale));
+}
+
+.boardHeaderMini,
+.boardFooterMini {
+  gap: calc(4px * var(--poker-scale));
+}
+
+.boardCardsCompact {
+  gap: calc(4px * var(--poker-scale));
+}
+
+.boardCardsCompact .card {
+  width: calc(40px * var(--poker-scale));
+  height: calc(56px * var(--poker-scale));
+  padding: calc(5px * var(--poker-scale));
+  border-radius: calc(10px * var(--poker-scale));
+}
+
+.boardCardsCompact .cardTop {
+  font-size: clamp(12px, calc(12px * var(--poker-scale)), 18px);
+}
+
+.boardCardsCompact .cardSuit {
+  font-size: clamp(18px, calc(18px * var(--poker-scale)), 28px);
+}
+
+.potBadge,
+.boardHeaderMini .infoChip,
+.boardFooterMini .infoChip,
+.inlineLastAction {
+  padding: calc(4px * var(--poker-scale)) calc(8px * var(--poker-scale));
+  font-size: clamp(10px, calc(10px * var(--poker-scale)), 14px);
+}
+
+.seatPanel {
+  width: calc(78px * var(--poker-scale));
+  min-height: calc(56px * var(--poker-scale));
+  padding: calc(4px * var(--poker-scale)) calc(5px * var(--poker-scale));
+  border-radius: calc(10px * var(--poker-scale));
+  gap: calc(2px * var(--poker-scale));
+}
+
+.seatPanelTop,
+.seatPanelCards,
+.seatPanelBadges {
+  gap: calc(4px * var(--poker-scale));
+}
+
+.seatPanelMeta strong {
+  font-size: clamp(8px, calc(8px * var(--poker-scale)), 14px);
+}
+
+.seatPanelMeta span {
+  font-size: clamp(7px, calc(7px * var(--poker-scale)), 11px);
+}
+
+.seatActionPill,
+.seatStatePill,
+.seatStatusOnline,
+.seatStatusOffline {
+  padding: calc(1px * var(--poker-scale)) calc(4px * var(--poker-scale));
+  font-size: clamp(6px, calc(6px * var(--poker-scale)), 10px);
+}
+
+.dealerChip {
+  width: calc(13px * var(--poker-scale));
+  height: calc(13px * var(--poker-scale));
+  font-size: clamp(8px, calc(8px * var(--poker-scale)), 12px);
+}
+
+.seatChipBet,
+.heroChipBet {
+  min-width: calc(18px * var(--poker-scale));
+  height: calc(18px * var(--poker-scale));
+  padding: 0 calc(5px * var(--poker-scale));
+  font-size: clamp(7px, calc(7px * var(--poker-scale)), 12px);
+}
+
+.heroSeatFlat {
+  bottom: calc(6px * var(--poker-scale));
+  width: min(calc(360px * var(--poker-scale)), calc(100% - 18px));
+  gap: calc(4px * var(--poker-scale));
+}
+
+.heroSeatInfo {
+  min-width: calc(86px * var(--poker-scale));
+  padding: calc(4px * var(--poker-scale)) calc(6px * var(--poker-scale));
+  border-radius: calc(10px * var(--poker-scale));
+  gap: calc(4px * var(--poker-scale));
+}
+
+.heroSeatCards {
+  gap: calc(4px * var(--poker-scale));
+}
+
+.heroSeatCards .card {
+  width: calc(42px * var(--poker-scale));
+  height: calc(58px * var(--poker-scale));
+  padding: calc(5px * var(--poker-scale));
+  border-radius: calc(10px * var(--poker-scale));
+}
+
+.heroSeatCards .cardTop {
+  font-size: clamp(12px, calc(12px * var(--poker-scale)), 18px);
+}
+
+.heroSeatCards .cardSuit {
+  font-size: clamp(18px, calc(18px * var(--poker-scale)), 28px);
+}
+
+.heroSeatControls {
+  gap: calc(4px * var(--poker-scale));
+}
+
+.heroSeatControls .dangerBtn,
+.heroSeatControls .ghostBtn,
+.heroSeatControls .primaryBtn {
+  min-width: calc(56px * var(--poker-scale));
+  padding: calc(6px * var(--poker-scale)) calc(8px * var(--poker-scale));
+  border-radius: calc(9px * var(--poker-scale));
+  font-size: clamp(10px, calc(11px * var(--poker-scale)), 15px);
+}
+
+.raiseBoxInline {
+  grid-template-columns: calc(52px * var(--poker-scale)) auto;
+  gap: calc(4px * var(--poker-scale));
+}
+
+.raiseBoxInline .input {
+  min-width: calc(52px * var(--poker-scale));
+  padding: calc(6px * var(--poker-scale)) calc(8px * var(--poker-scale));
+  font-size: clamp(10px, calc(11px * var(--poker-scale)), 15px);
+  border-radius: calc(9px * var(--poker-scale));
+}
+
+.tableDrawer {
+  top: calc(10px * var(--poker-scale));
+  width: calc(138px * var(--poker-scale));
+  max-height: calc(136px * var(--poker-scale));
+  padding: calc(6px * var(--poker-scale));
+  border-radius: calc(12px * var(--poker-scale));
+}
+
+.tableDrawerLeft {
+  left: calc(10px * var(--poker-scale));
+}
+
+.tableDrawerRight {
+  right: calc(10px * var(--poker-scale));
+}
+
+.tableDrawerTitle {
+  font-size: clamp(10px, calc(10px * var(--poker-scale)), 14px);
+}
+
+.drawerList {
+  max-height: calc(112px * var(--poker-scale));
+}
+
+.drawerRow {
+  font-size: clamp(9px, calc(9px * var(--poker-scale)), 13px);
+  padding: calc(4px * var(--poker-scale)) calc(5px * var(--poker-scale));
+}
+
+.heroActionState .metaMuted,
+.inlineLastAction {
+  font-size: clamp(10px, calc(10px * var(--poker-scale)), 14px);
+}
+
+.flappyBody {
+  width: 100%;
+  overflow: hidden;
+}
+
+.flappyArenaWrap {
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: 100%;
+}
+
+.flappyCanvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+}
+
+.flappyOverlayCard {
+  width: min(100%, 360px);
+  max-height: calc(100% - 12px);
+  overflow: auto;
+}
+
+.shellEmbedded .flappyArenaWrap,
+.shellEmbedded .flappyCanvas {
+  max-width: none;
+}
+
+@media (max-width: 720px) {
+  .heroSeatFlat {
+    width: calc(100% - 10px);
+  }
+
+  .flappyOverlayCard {
+    width: min(100%, 300px);
+  }
+}
+
+/* revamp shell marker */
+.revampSessionViewport {
+  position: relative;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at top, rgba(84, 146, 255, 0.12), transparent 34%),
+    linear-gradient(180deg, rgba(6, 8, 12, 0.94), rgba(4, 6, 10, 1));
+}
+
+.revampSessionViewportFullscreen {
+  border-radius: 0;
+  background:
+    radial-gradient(circle at top, rgba(84, 146, 255, 0.1), transparent 28%),
+    #04060a;
+}
+
+.revampSessionViewportConfig {
+  height: auto;
+  min-height: 100%;
+  display: grid;
+  align-content: start;
+  overflow: visible;
+  border-radius: 0;
+  background: transparent;
+}
+
+.revampSessionError {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  right: 12px;
+  z-index: 8;
+}
+
+.revampSessionConfig {
+  min-height: 0;
+  height: 100%;
+  overflow: auto;
+  padding: clamp(12px, 1.8vw, 20px);
+}
+
+.revampSessionConfigLobby {
+  position: relative;
+  display: block;
+  width: 100%;
+  min-height: 100%;
+  overflow: visible;
+  padding: 0;
+}
+
+.revampGameViewport {
+  --revamp-hud-side: clamp(14px, 1.8vw, 24px);
+  --revamp-hud-top: 88px;
+  --revamp-hud-bottom: 64px;
+  position: relative;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr);
+  min-height: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.revampGameViewportLandscape {
+  --revamp-hud-top: 96px;
+  --revamp-hud-bottom: 62px;
+}
+
+.revampGameViewportPortrait {
+  --revamp-hud-top: 78px;
+  --revamp-hud-bottom: 18px;
+}
+
+.revampGameViewportCompact {
+  --revamp-hud-top: 74px;
+  --revamp-hud-bottom: 54px;
+}
+
+.revampGameViewportImmersive {
+  --revamp-hud-side: 0px;
+  --revamp-hud-top: 0px;
+  --revamp-hud-bottom: 0px;
+}
+
+.revampStageArea {
+  min-height: 0;
+  width: 100%;
+  height: 100%;
+  display: grid;
+  padding: var(--revamp-hud-top) var(--revamp-hud-side) var(--revamp-hud-bottom);
+}
+
+.revampGameViewportImmersive .revampStageArea {
+  padding: 0;
+}
+
+.revampStageMeasure {
+  min-height: 0;
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+
+.revampGameViewport .pokerTopline,
+.revampGameViewport .pokerBottomLine,
+.revampGameViewport .flappyTopbar {
+  width: auto;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  backdrop-filter: none;
+  box-shadow: none;
+}
+
+.revampGameViewport .pokerTopMain,
+.revampGameViewport .pokerTopAside {
+  min-width: 0;
+}
+
+.revampGameViewport .pokerTopAside,
+.revampGameViewport .flappyTopStats {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.revampGameViewport .pokerBottomLine {
+  width: auto;
+}
+
+.revampGameViewport .heroActionState {
+  gap: 8px;
+}
+
+.revampGameViewport .flappyBody {
+  min-height: 0;
+  width: 100%;
+  height: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+  place-items: center;
+  align-items: center;
+  justify-items: center;
+}
+
+.revampGameViewport .pokerTableViewport,
+.revampGameViewport .flappyBody {
+  align-self: stretch;
+  justify-self: stretch;
+}
+
+.revampGameViewport .flappyArenaWrap {
+  position: relative;
+  justify-self: center;
+  align-self: center;
+}
+
+.revampGameViewportPortrait .revampStageArea {
+  justify-items: center;
+}
+
+.revampGameViewport .flappyTopbar {
+  display: none;
+}
+
+.revampGameViewport .flappyOverlay {
+  padding: 12px;
+}
+
+.revampHudTop,
+.revampHudBottom {
+  position: absolute;
+  left: var(--revamp-hud-side);
+  right: var(--revamp-hud-side);
+  z-index: 4;
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.revampHudTop {
+  top: 12px;
+}
+
+.revampHudBottom {
+  bottom: 12px;
+  align-items: center;
+}
+
+.revampHudLead {
+  min-width: 0;
+  max-width: min(48ch, 54%);
+  display: grid;
+  gap: 6px;
+}
+
+.revampHudEyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.revampHudTitle {
+  font-size: clamp(1.05rem, 1.9vw, 1.34rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: #fff;
+}
+
+.revampHudMeta {
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--text-soft);
+}
+
+.revampHudControls {
+  min-width: 0;
+  display: grid;
+  justify-items: end;
+  gap: 8px;
+}
+
+.revampHudChipRow,
+.revampHudActionRow {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.revampHudChip {
+  min-height: 30px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid var(--stroke);
+  background: rgba(8, 12, 18, 0.78);
+  color: var(--text);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  backdrop-filter: blur(16px);
+  white-space: nowrap;
+  font-size: 12px;
+  line-height: 1;
+}
+
+.revampHudChipStrong {
+  background: rgba(14, 22, 34, 0.92);
+  color: #fff;
+}
+
+.revampHudChipWarn {
+  border-color: rgba(219, 174, 52, 0.38);
+  background: rgba(54, 43, 12, 0.82);
+  color: #f5d87a;
+}
+
+.revampHudStatusGood {
+  border-color: rgba(71, 170, 123, 0.3);
+  background: rgba(12, 50, 34, 0.82);
+  color: #89d8ad;
+}
+
+.revampHudStatusMuted {
+  color: var(--text-soft);
+}
+
+.revampHudBottomMeta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.revampHudBottomTrailing {
+  min-width: 0;
+  max-width: min(48ch, 48%);
+  text-align: right;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.revampSurfaceShadow {
+  filter: drop-shadow(0 28px 56px rgba(0, 0, 0, 0.36));
+}
+
+.revampGameViewportImmersive .revampSurfaceShadow {
+  filter: none;
+}
+
+.revampFlappyStageWrap {
+  border-radius: 28px;
+  overflow: hidden;
+  box-shadow: 0 28px 56px  rgba(92, 54, 18, 0.34);
+}
+
+.revampGameViewportImmersive .revampFlappyStageWrap {
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.revampFlappyHudInline {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  right: 12px;
+  z-index: 3;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  pointer-events: none;
+}
+
+.revampFlappyHudInline > * {
+  pointer-events: auto;
+}
+
+.revampFlappyOverlayCard {
+  width: min(100%, 392px);
+  max-height: calc(100% - 16px);
+  border-radius: 24px;
+  border: 1px solid var(--stroke);
+  background: rgba(5, 12, 9, 0.84);
+  backdrop-filter: blur(18px);
+  box-shadow: 0 22px 44px  rgba(92, 54, 18, 0.28);
+}
+
+.revampRotatePrompt {
+  min-height: 0;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  padding: clamp(18px, 3vw, 32px);
+}
+
+.revampRotateCard {
+  width: min(420px, 100%);
+  display: grid;
+  gap: 12px;
+  justify-items: center;
+  text-align: center;
+  padding: clamp(22px, 4vw, 32px);
+  border-radius: 28px;
+  border: 1px solid var(--stroke);
+  background:
+    radial-gradient(circle at top, rgba(84, 146, 255, 0.16), transparent 42%),
+    rgba(8, 10, 15, 0.92);
+  box-shadow: 0 28px 60px  rgba(92, 54, 18, 0.34);
+}
+
+.revampRotateGlyph {
+  width: 68px;
+  height: 68px;
+  border-radius: 20px;
+  display: grid;
+  place-items: center;
+  font-size: 34px;
+  color: #fff;
+  background: var(--surface-2);
+  border: 1px solid var(--stroke);
+}
+
+.revampRotateTitle {
+  font-size: 1.15rem;
+  font-weight: 800;
+  line-height: 1.2;
+  color: #fff;
+}
+
+.rotatePrompt {
+  min-height: 0;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  padding: clamp(18px, 3vw, 32px);
+}
+
+.rotatePromptCard {
+  width: min(420px, 100%);
+  display: grid;
+  gap: 12px;
+  justify-items: center;
+  text-align: center;
+  padding: clamp(22px, 4vw, 32px);
+  border-radius: 28px;
+  border: 1px solid var(--stroke);
+  background:
+    radial-gradient(circle at top, rgba(84, 146, 255, 0.16), transparent 42%),
+    rgba(8, 10, 15, 0.92);
+  box-shadow: 0 28px 60px  rgba(92, 54, 18, 0.34);
+}
+
+.rotatePromptGlyph {
+  width: 68px;
+  height: 68px;
+  border-radius: 20px;
+  display: grid;
+  place-items: center;
+  font-size: 34px;
+  color: #fff;
+  background: var(--surface-2);
+  border: 1px solid var(--stroke);
+}
+
+.rotatePromptTitle {
+  font-size: 1.15rem;
+  font-weight: 800;
+  line-height: 1.2;
+  color: #fff;
+}
+
+@media (max-width: 1100px) {
+  .revampHudLead {
+    max-width: min(44ch, 62%);
+  }
+}
+
+@media (max-width: 900px) {
+  .revampHudTop,
+  .revampHudBottom {
+    gap: 10px;
+  }
+
+  .revampHudLead {
+    max-width: none;
+  }
+
+  .revampHudTitle {
+    font-size: 1rem;
+  }
+
+  .revampHudMeta,
+  .revampHudChip {
+    font-size: 12px;
+  }
+
+  .revampHudBottomTrailing {
+    max-width: 42%;
+  }
+}
+
+@media (max-width: 720px) {
+  .revampSessionViewport {
+    border-radius: 0;
+  }
+
+  .revampGameViewport {
+    --revamp-hud-side: 10px;
+    --revamp-hud-top: max(14px, env(safe-area-inset-top, 0px));
+    --revamp-hud-bottom: max(10px, env(safe-area-inset-bottom, 0px));
+  }
+
+  .revampStageArea {
+    padding-top: calc(var(--revamp-hud-top) + 6px);
+  }
+
+  .revampHudTop,
+  .revampHudBottom {
+    left: 10px;
+    right: 10px;
+  }
+
+  .revampHudTop {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .revampHudControls {
+    justify-items: stretch;
+  }
+
+  .revampHudChipRow,
+  .revampHudActionRow {
+    justify-content: flex-start;
+  }
+
+  .revampHudBottom {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .revampHudBottomTrailing {
+    max-width: none;
+    text-align: left;
+    white-space: normal;
+  }
+
+  .revampFlappyOverlayCard {
+    width: min(100%, 320px);
+    border-radius: 20px;
+  }
+}
+
+.cardHighlight {
+  border-color: rgba(245, 201, 86, 0.92);
+  box-shadow:
+    0 0 0 1px rgba(255, 226, 132, 0.52),
+    0 10px 22px rgba(0, 0, 0, 0.22),
+    inset 0 0 0 1px rgba(255, 248, 220, 0.72);
+  background:
+    linear-gradient(180deg, rgba(255, 252, 240, 0.98), rgba(255, 239, 198, 0.96));
+  transform: translateY(-2px);
+}
+
+.cardHighlight .cardTop,
+.cardHighlight .cardSuit {
+  text-shadow: 0 1px 0 var(--stroke-strong);
+}
+
+.cardRed.cardHighlight .cardTop,
+.cardRed.cardHighlight .cardSuit {
+  color: #b12016;
+}
+
+.showdownWinningCards {
+  display: grid;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 18px;
+  border: 1px solid rgba(232, 190, 84, 0.2);
+  background:
+    linear-gradient(180deg, rgba(58, 43, 12, 0.34), rgba(19, 15, 9, 0.24)),
+    var(--surface-1);
+}
+
+.showdownWinningGroup {
+  display: grid;
+  gap: 8px;
+}
+
+.showdownWinningLabel {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #f4d98c;
+}
+
+.showdownWinningRow,
+.resultPlaceCards {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.showdownWinningRow .card,
+.resultPlaceCards .card {
+  flex: 0 0 auto;
+}
+
+.resultPlaceWinner {
+  border-color: rgba(238, 196, 86, 0.36);
+  background:
+    linear-gradient(180deg, rgba(58, 43, 12, 0.3), rgba(16, 13, 10, 0.14)),
+    var(--surface-1);
+  box-shadow: inset 0 0 0 1px rgba(255, 224, 132, 0.12);
+}
+
+.resultPlaceAmountWin {
+  color: #ffd976;
+  font-weight: 800;
+}
+
+.revampGameViewport .pokerTableViewport,
+.revampGameViewport .pokerTableFrame,
+.revampGameViewport .pokerTableInner {
+  overflow: visible;
+}
+
+.revampGameViewport .pokerTableViewport {
+  padding:
+    calc(14px * var(--poker-scale, 1))
+    calc(12px * var(--poker-scale, 1))
+    calc(26px * var(--poker-scale, 1));
+}
+
+.revampGameViewport .pokerTableFrame {
+  position: relative;
+}
+
+.revampGameViewport .pokerTableInner {
+  isolation: isolate;
+}
+
+.revampGameViewport .seatPanel {
+  width: clamp(74px, calc(84px * var(--poker-scale, 1)), 124px);
+  min-height: clamp(60px, calc(64px * var(--poker-scale, 1)), 88px);
+  padding: calc(6px * var(--poker-scale, 1));
+  border-radius: calc(14px * var(--poker-scale, 1));
+  box-shadow: 0 14px 28px  rgba(92, 54, 18, 0.28);
+}
+
+.revampGameViewport .seatPanelTop {
+  align-items: center;
+}
+
+.revampGameViewport .heroSeatFlat {
+  z-index: 6;
+}
+
+.revampFlappyStageWrap {
+  position: relative;
+  border: 1px solid var(--stroke);
+  background:
+    radial-gradient(circle at top, var(--stroke-strong), transparent 34%),
+    linear-gradient(180deg, rgba(8, 17, 27, 0.22), rgba(5, 12, 19, 0.34));
+}
+
+.revampFlappyStageWrap::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 1px var(--stroke);
+  pointer-events: none;
+}
+
+.flappyCanvas {
+  display: block;
+  filter: saturate(1.04) contrast(1.03);
+}
+
+.revampFlappyOverlayCard {
+  background:
+    radial-gradient(circle at top, rgba(142, 216, 115, 0.12), transparent 34%),
+    linear-gradient(180deg, rgba(7, 17, 13, 0.92), rgba(4, 10, 8, 0.95));
+}
+
+@media (max-width: 720px) {
+  .directoryLayout,
+  .sessionStageLayout,
+  .revampSessionConfig {
+    padding: 12px;
+    gap: 12px;
+  }
+
+  .directoryHeader,
+  .gameCatalogTop,
+  .sessionOverviewBar,
+  .sessionOverviewBarMinimal {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .directoryColumns,
+  .overviewGrid,
+  .lobbyLayout,
+  .lobbyLayoutCompact,
+  .formGrid,
+  .formGridCompact,
+  .gameCatalogGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .directoryColumns,
+  .lobbyLayout,
+  .lobbyLayoutCompact {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .stageRoot,
+  .directorySection,
+  .groupCard,
+  .leftPanel,
+  .rightPanel,
+  .sessionList,
+  .groupedList,
+  .playerGrid,
+  .gameCatalogGrid {
+    max-height: none;
+    padding-right: 0;
+    overflow: visible;
+  }
+
+  .directorySection,
+  .groupCard,
+  .sessionMain,
+  .rulesCard,
+  .sessionCard,
+  .gameCatalogTile,
+  .playerRow {
+    padding: 14px !important;
+    border-radius: 18px !important;
+  }
+
+  .directorySection,
+  .groupCard {
+    gap: 12px;
+  }
+
+  .directorySection,
+  .groupCard,
+  .leftPanel,
+  .rightPanel {
+    display: flex;
+    flex-direction: column;
+    height: auto;
+    min-height: auto;
+  }
+
+  .directorySection {
+    grid-template-rows: none;
+  }
+
+  .leftPanel,
+  .rightPanel {
+    padding: 14px;
+    border: 1px solid var(--stroke);
+    border-radius: 20px;
+    background: var(--surface-1);
+    gap: 12px;
+  }
+
+  .leftPanel {
+    border-right: 1px solid var(--stroke);
+    grid-template-rows: none;
+  }
+
+  .rightPanel {
+    border-top: 1px solid var(--stroke);
+  }
+
+  .sectionRow {
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  .catalogTabs {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .catalogTab {
+    min-height: 36px;
+    padding: 0 12px;
+  }
+
+  .headerActionRail,
+  .headerActionCluster,
+  .headerSegmentRail,
+  .headerUtilityRow {
+    width: 100%;
+  }
+
+  .headerActionCluster {
+    justify-content: space-between;
+  }
+
+  .headerPrimaryAction {
+    flex: 1 1 auto;
+  }
+
+  .headerUtilityRow {
+    display: grid;
+    grid-template-columns: minmax(0, auto) minmax(0, 1fr);
+    align-items: stretch;
+  }
+
+  .headerUtilityAction {
+    min-height: 38px;
+    padding: 0 12px;
+  }
+
+  .headerUtilityActionPrimary {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .toolbarRight,
+  .sessionOverviewBar .toolbarRight,
+  .sessionOverviewBarMinimal .toolbarRight {
+    width: auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .sectionTitle {
+    font-size: 18px;
+  }
+
+  .metaMuted {
+    font-size: 12px;
+    line-height: 1.4;
+  }
+
+  .sessionCardTop,
+  .sessionCardMeta,
+  .groupSummary {
+    align-items: flex-start;
+  }
+
+  .sessionCardTop,
+  .sessionCardMeta {
+    flex-wrap: wrap;
+  }
+
+  .sessionCardTop strong,
+  .groupSummary {
+    font-size: 14px;
+  }
+
+  .gamePreview {
+    min-height: 88px;
+    font-size: 48px;
+  }
+
+  .field {
+    gap: 6px;
+  }
+
+  .field span,
+  .metaLabel {
+    font-size: 11px;
+  }
+
+  .input,
+  .valueField {
+    min-height: 44px;
+    padding: 11px 12px;
+    border-radius: 12px;
+  }
+
+  .lobbyActions {
+    position: static;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 4px;
+    padding-top: 0;
+    background: none;
+    z-index: auto;
+  }
+
+  .lobbyActions .primaryBtn,
+  .lobbyActions .ghostBtn,
+  .lobbyActions .successBtn,
+  .lobbyActions .dangerBtn {
+    min-height: 38px;
+    padding: 0 12px;
+    justify-content: center;
+  }
+
+  .lobbyActions .dangerBtn {
+    margin-left: auto;
+  }
+
+  .playerGrid {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .playerRow {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .playerMeta {
+    flex: 1 1 180px;
+  }
+
+  .playerMeta strong {
+    font-size: 15px;
+  }
+
+  .playerMeta span {
+    font-size: 12px;
+    line-height: 1.35;
+  }
+
+  .tag,
+  .tagReady,
+  .tagMuted,
+  .tagWarn {
+    min-height: 28px;
+  }
+}
+
+@media (max-width: 520px) {
+  .directoryLayout,
+  .sessionStageLayout,
+  .revampSessionConfig {
+    padding:
+      10px
+      10px
+      calc(10px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .sessionCard,
+  .playerRow,
+  .gameCatalogTile,
+  .directorySection,
+  .groupCard,
+  .rulesCard {
+    padding: 12px !important;
+  }
+
+  .leftPanel,
+  .rightPanel {
+    padding: 12px;
+    border-radius: 18px;
+  }
+
+  .headerUtilityRow {
+    grid-template-columns: 1fr;
+  }
+
+  .headerUtilityActionPrimary,
+  .headerUtilityActionSecondary {
+    width: 100%;
+  }
+
+  .toolbarRight {
+    width: 100%;
+  }
+
+  .lobbyActions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .lobbyActions .dangerBtn {
+    margin-left: 0;
+  }
+
+  .sessionCardTop strong,
+  .groupSummary {
+    font-size: 14px;
+  }
+
+  .sectionTitle {
+    font-size: 18px;
+  }
+
+  .gamePreview {
+    min-height: 84px;
+    font-size: 44px;
+  }
+}
+
+@media (max-width: 720px) {
+  .frameStageScroll {
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
+  }
+
+  .stageRoot {
+    height: auto !important;
+    min-height: 100%;
+    overflow: visible !important;
+  }
+
+  .directoryLayout {
+    display: flex !important;
+    flex-direction: column !important;
+    height: auto !important;
+    min-height: max-content !important;
+    overflow: visible !important;
+  }
+
+  .directoryColumns,
+  .groupedList,
+  .sessionList,
+  .gameCatalogGrid {
+    width: 100%;
+    max-height: none !important;
+    overflow: visible !important;
+    padding-right: 0 !important;
+  }
+
+  .gameCatalogGrid {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    grid-auto-rows: max-content;
+    align-content: start;
+    gap: 12px;
+  }
+
+  .gameCatalogTile,
+  .directorySection,
+  .groupCard {
+    height: auto !important;
+    min-height: auto !important;
+    overflow: visible !important;
+  }
+
+  .revampSessionViewport,
+  .revampSessionConfig {
+    height: auto !important;
+    min-height: 100%;
+    overflow: visible !important;
+  }
+
+  .revampSessionConfig {
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .lobbyLayout,
+  .lobbyLayoutCompact,
+  .leftPanel,
+  .rightPanel {
+    height: auto !important;
+    min-height: auto !important;
+    overflow: visible !important;
+  }
+}
+
+@media (max-width: 520px) {
+  .frameStageScroll,
+  .revampSessionConfig {
+    padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+/* lobby refined */
+.revampSessionConfig {
+  padding: clamp(16px, 2vw, 24px);
+}
+
+.lobbyRefinedShell {
+  display: grid;
+  gap: 0;
+  width: min(1040px, 100%);
+  margin: 0 auto;
+  padding: clamp(22px, 3vw, 30px);
+  color: #2f281f;
+  background: transparent;
+  box-shadow: none;
+}
+
+.lobbyRefinedShellCompact {
+  padding: 18px;
+}
+
+.lobbyRefinedTop,
+.lobbyRefinedMetaCard,
+.lobbyRefinedPlayers,
+.lobbyRefinedFooter {
+  padding: 22px 0;
+  border-top: 1px solid rgba(178, 138, 92, 0.16);
+  background: transparent;
+}
+
+.lobbyRefinedTop {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: 16px 18px;
+  padding-top: 0;
+  border-top: 0;
+}
+
+.lobbyRefinedPreview {
+  width: 88px;
+  height: 88px;
+  flex: 0 0 auto;
+  border-radius: 22px;
+  border: 1px solid rgba(187, 145, 68, 0.16);
+  background:
+    radial-gradient(circle at 28% 22%, rgba(255, 255, 255, 0.72), transparent 36%),
+    linear-gradient(145deg, #f3d48c 0%, #d8a33e 100%);
+  display: grid;
+  place-items: center;
+  color: #2b231a;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+
+.lobbyRefinedPreview span {
+  font-size: 44px;
+  line-height: 1;
+}
+
+.lobbyRefinedFloatingBack {
+  position: absolute;
+  top: clamp(18px, 3vw, 30px);
+  left: clamp(18px, 3vw, 30px);
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+  border-radius: 14px;
+  box-shadow: 0 14px 30px rgba(78, 58, 24, 0.1);
+}
+
+.lobbyRefinedHeading {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.lobbyRefinedTitle {
+  font-size: clamp(1.82rem, 2vw, 2.2rem);
+  line-height: 0.98;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+}
+
+.lobbyRefinedSubtitle {
+  color: #7b6d59;
+  font-size: 15px;
+}
+
+.lobbyRefinedChips {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.lobbyRefinedChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.lobbyRefinedDescription {
+  max-width: 44rem;
+  color: #857662;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.lobbyRefinedMetaRow {
+  display: block;
+}
+
+.lobbyRefinedMetaCard {
+  display: grid;
+  gap: 16px;
+}
+
+.lobbyRefinedSectionTitle {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #272017;
+}
+
+.lobbyRefinedStatGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 12px;
+}
+
+.lobbyRefinedStat {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  padding: 12px 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(162, 130, 79, 0.12);
+  background: rgba(255, 255, 255, 0.56);
+}
+
+.lobbyRefinedStatIcon {
+  width: 44px;
+  height: 44px;
+  flex: 0 0 auto;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+}
+
+.lobbyRefinedStatIcongold {
+  background: rgba(241, 184, 39, 0.14);
+  color: #c37f07;
+}
+
+.lobbyRefinedStatIcongreen {
+  background: rgba(48, 165, 92, 0.14);
+  color: #237547;
+}
+
+.lobbyRefinedStatIconviolet {
+  background: rgba(137, 84, 215, 0.13);
+  color: #7a42c3;
+}
+
+.lobbyRefinedStatIconblue {
+  background: rgba(58, 116, 206, 0.13);
+  color: #2d5c9b;
+}
+
+.lobbyRefinedStatCopy {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.lobbyRefinedStatCopy span {
+  color: #8a7b67;
+  font-size: 12px;
+  line-height: 1.2;
+}
+
+.lobbyRefinedStatCopy strong {
+  color: #261f17;
+  font-size: 1rem;
+  line-height: 1.2;
+}
+
+.lobbyRefinedPlayers {
+  display: grid;
+  gap: 14px;
+}
+
+.lobbyRefinedPlayersHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.lobbyRefinedPlayerCounters {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.lobbyRefinedPlayerGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 12px;
+}
+
+.lobbyRefinedPlayerCard {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-areas:
+    'avatar main state'
+    'avatar tags state';
+  align-items: center;
+  gap: 4px 12px;
+  min-height: 0;
+  padding: 14px 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(160, 129, 80, 0.14);
+  background: rgba(255, 255, 255, 0.58);
+  text-align: left;
+}
+
+.lobbyRefinedPlayerReady {
+  border-color: rgba(44, 181, 109, 0.5);
+  box-shadow: inset 0 0 0 1px rgba(44, 181, 109, 0.18);
+}
+
+.lobbyRefinedPlayerIdle {
+  border-color: rgba(233, 175, 52, 0.48);
+}
+
+.lobbyRefinedPlayerWaiting {
+  background: rgba(238, 232, 223, 0.78);
+  border-color: rgba(150, 142, 129, 0.24);
+}
+
+.lobbyRefinedPlayerAvatar {
+  position: relative;
+  grid-area: avatar;
+}
+
+.lobbyRefinedPresence {
+  position: absolute;
+  right: 2px;
+  bottom: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  border: 2px solid rgba(255, 255, 255, 0.94);
+}
+
+.lobbyRefinedPresenceOnline {
+  background: #2fca63;
+}
+
+.lobbyRefinedPlayerMain {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  grid-area: main;
+}
+
+.lobbyRefinedPlayerMain strong {
+  color: #282118;
+  font-size: 16px;
+  line-height: 1.2;
+}
+
+.lobbyRefinedPlayerMain span {
+  color: #7b6d59;
+  font-size: 13px;
+}
+
+.lobbyRefinedPlayerTags {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  flex-wrap: wrap;
+  grid-area: tags;
+}
+
+.lobbyRefinedPlayerState {
+  position: static;
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  border: 1px solid rgba(39, 171, 100, 0.18);
+  background: rgba(236, 249, 240, 0.98);
+  color: #26a55d;
+  display: grid;
+  place-items: center;
+  grid-area: state;
+  justify-self: end;
+}
+
+.lobbyRefinedPlayerWaiting .lobbyRefinedPlayerState {
+  border-color: rgba(184, 150, 87, 0.16);
+  background: rgba(255, 248, 230, 0.98);
+  color: #896325;
+}
+
+.lobbyRefinedFooter {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  padding-bottom: 0;
+}
+
+.lobbyRefinedFooterNote {
+  color: #7d6f5b;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.lobbyRefinedFooterActions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.lobbyRefinedActionSecondary,
+.lobbyRefinedActionPrimary,
+.lobbyRefinedActionDanger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.lobbyRefinedActionPrimary {
+  min-width: 152px;
+}
+
+.lobbyRefinedActionLeave,
+.lobbyRefinedActionDanger {
+  color: #cf503a;
+  border-color: rgba(207, 80, 58, 0.22);
+  background: rgba(255, 247, 244, 0.96);
+}
+
+.lobbyRefinedActionLeave svg,
+.lobbyRefinedActionDanger svg {
+  color: currentColor;
+}
+
+.lobbyRefinedModalGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 14px;
+}
+
+.lobbyRefinedModalPanel {
+  display: grid;
+  align-content: start;
+  gap: 14px;
+  padding: 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(149, 121, 72, 0.14);
+  background: rgba(255, 251, 245, 0.74);
+}
+
+.lobbyRefinedFieldGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.lobbyRefinedPickerGrid {
+  display: grid;
+  gap: 10px;
+  max-height: 420px;
+  overflow: auto;
+}
+
+.lobbyRefinedPickerCard {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(161, 129, 80, 0.16);
+  background: rgba(255, 255, 255, 0.78);
+  text-align: left;
+  color: #2b241b;
+}
+
+.lobbyRefinedPickerCard:disabled {
+  cursor: default;
+  opacity: 0.92;
+}
+
+.lobbyRefinedPickerCardSelected {
+  border-color: rgba(45, 171, 103, 0.36);
+  background: rgba(239, 250, 243, 0.92);
+}
+
+.lobbyRefinedPickerMeta {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  flex: 1;
+}
+
+.lobbyRefinedPickerMeta strong {
+  color: #281f18;
+}
+
+.lobbyRefinedPickerMeta span {
+  color: #877865;
+  font-size: 13px;
+}
+
+.lobbyRefinedModalFooter {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 1080px) {
+  .lobbyRefinedModalGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 860px) {
+  .lobbyRefinedTop {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 720px) {
+  .revampSessionConfig {
+    padding: 0;
+  }
+
+  .revampSessionConfigLobby {
+    display: block;
+    overflow: visible !important;
+    padding: 0;
+  }
+
+  .lobbyRefinedShell {
+    width: 100%;
+    padding: max(72px, calc(env(safe-area-inset-top, 0px) + 56px)) 16px calc(24px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .lobbyRefinedTop,
+  .lobbyRefinedMetaCard,
+  .lobbyRefinedPlayers,
+  .lobbyRefinedFooter {
+    padding: 16px 0;
+  }
+
+  .lobbyRefinedPreview {
+    width: 64px;
+    height: 64px;
+    border-radius: 18px;
+  }
+
+  .lobbyRefinedPreview span {
+    font-size: 34px;
+  }
+
+  .lobbyRefinedTitle {
+    font-size: 1.6rem;
+  }
+
+  .lobbyRefinedStatGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .lobbyRefinedPlayerGrid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .lobbyRefinedFooter {
+    grid-template-columns: 1fr;
+  }
+
+  .lobbyRefinedFooterActions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+  }
+
+  .lobbyRefinedFloatingBack {
+    top: calc(env(safe-area-inset-top, 0px) + 12px);
+    left: calc(env(safe-area-inset-left, 0px) + 12px);
+  }
+
+  .lobbyRefinedActionPrimary {
+    grid-column: 1 / -1;
+    order: -1;
+    width: 100%;
+  }
+
+  .lobbyRefinedActionDanger {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+
+  .lobbyRefinedActionSecondary {
+    width: 100%;
+  }
+
+  .lobbyRefinedFieldGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 560px) {
+  .lobbyRefinedTop {
+    gap: 14px 12px;
+  }
+
+  .lobbyRefinedDescription {
+    font-size: 13px;
+  }
+
+  .lobbyRefinedStatGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .lobbyRefinedFloatingBack {
+    top: calc(env(safe-area-inset-top, 0px) + 10px);
+    left: calc(env(safe-area-inset-left, 0px) + 10px);
+    width: 40px;
+    min-width: 40px;
+    min-height: 40px;
+    border-radius: 12px;
+  }
+}
+
+/* Sand palette overrides for shared games shell */
+.shell {
+  --bg: #fffaf0;
+  --surface-1: rgba(255, 251, 243, 0.94);
+  --surface-2: rgba(247, 237, 219, 0.88);
+  --stroke: rgba(178, 138, 92, 0.16);
+  --stroke-strong: rgba(222, 187, 121, 0.42);
+  --text: #2f2418;
+  --text-soft: #6b5a44;
+  --muted: #8a755c;
+  --panel-white: #fffdf8;
+  background: #f4ead6;
+  border-color: rgba(185, 146, 98, 0.18);
+  color: var(--text);
+}
+
+.shellEmbedded {
+  background: #f4ead6;
+}
+
+.sessionTab,
+.catalogTab {
+  background: rgba(255, 252, 246, 0.86);
+  color: var(--text);
+}
+
+.catalogTabs {
+  background: rgba(244, 235, 217, 0.86);
+}
+
+.error,
+.empty {
+  background: rgba(255, 241, 237, 0.92);
+  border-color: rgba(212, 124, 108, 0.2);
+  color: #8d5347;
+}
+
+.input {
+  background: rgba(255, 255, 255, 0.82);
+  color: var(--text);
+}
+
+.primaryBtn {
+  background: #ff7a1a;
+  color: #fffdf8;
+}
+
+.ghostBtn {
+  background: rgba(255, 255, 255, 0.82);
+  color: var(--text);
+  border: 1px solid var(--stroke);
+}
+
+.dangerBtn {
+  background: rgba(255, 239, 234, 0.94);
+  color: #cf503a;
+  border: 1px solid rgba(207, 80, 58, 0.18);
+}
+
+.playerRow {
+  color: var(--text);
+}
+
+.tag {
+  background: rgba(255, 255, 255, 0.84);
+  color: var(--text-soft);
+}
+
+.tagReady {
+  background: rgba(38, 179, 107, 0.18);
+  color: #2d8a56;
+}
+
+.tagWarn {
+  background: rgba(236, 184, 58, 0.18);
+  color: #b07512;
+}
+
+.stagePill {
+  background: rgba(255, 255, 255, 0.84);
+}
+
+.stagePillDone {
+  background: rgba(222, 187, 121, 0.34);
+  color: var(--text);
+}
+
+.stagePillCurrent {
+  background: #ffcf78;
+  color: #2f2418;
+}
+
+.resultBanner {
+  background: rgba(255, 244, 219, 0.92);
+  border-color: rgba(219, 177, 96, 0.28);
+}
+
+.resultTitle {
+  color: #b68122;
+}
+
+.resultPlace {
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.sessionCard {
+  background: rgba(255, 251, 244, 0.94);
+  color: var(--text);
+}
+
+.sessionCardArchive {
+  background: rgba(247, 236, 214, 0.92);
+}
+
+.gameCatalogTile {
+  background: rgba(255, 251, 244, 0.94);
+  color: var(--text);
+}
+
+.gameCatalogTileActive {
+  box-shadow: inset 0 0 0 1px #ffb14a;
+}
+
+.gameCatalogTileDisabled {
+  background: rgba(235, 229, 219, 0.86);
+}
+
+.gamePreview {
+  background: radial-gradient(circle at center, rgba(224, 177, 45, 0.2), rgba(255, 255, 255, 0.72));
+}
+
+.foldBlock {
+  border-color: rgba(178, 138, 92, 0.16);
+  background: rgba(255, 251, 243, 0.88);
+}

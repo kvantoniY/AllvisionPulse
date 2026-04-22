@@ -82,6 +82,7 @@ export function ImageGallery({
   fit = 'cover',
   adaptive = false,
   mode = 'default',
+  frame = 'container',
   onActiveImageLoad,
 }: {
   images: GalleryImage[];
@@ -91,6 +92,7 @@ export function ImageGallery({
   fit?: 'cover' | 'contain';
   adaptive?: boolean;
   mode?: 'default' | 'modal';
+  frame?: 'container' | 'image';
   onActiveImageLoad?: (index: number) => void;
 }) {
   const list = images ?? [];
@@ -144,6 +146,7 @@ export function ImageGallery({
           styles.single,
           adaptive ? styles.adaptive : '',
           mode === 'modal' ? styles.modal : '',
+          frame === 'image' ? styles.frameImage : '',
           !rounded ? styles.noRadius : '',
         ].filter(Boolean).join(' ')}
         style={{ ...galleryStyle ?? { aspectRatio: aspect, maxHeight }, position: 'relative' as const }}
@@ -151,7 +154,7 @@ export function ImageGallery({
         <img
           src={img.url}
           alt=""
-          className={[styles.img, fit === 'contain' ? styles.imgContain : '', mode === 'modal' ? styles.imgModal : ''].filter(Boolean).join(' ')}
+          className={[styles.img, fit === 'contain' ? styles.imgContain : '', mode === 'modal' ? styles.imgModal : '', frame === 'image' ? styles.imgFramed : ''].filter(Boolean).join(' ')}
           loading={mode === 'modal' ? 'eager' : 'lazy'}
           decoding="async"
           draggable={false}
@@ -168,7 +171,7 @@ export function ImageGallery({
 
   return (
     <div
-      className={[styles.slider, adaptive ? styles.adaptive : '', mode === 'modal' ? styles.modal : '', !rounded ? styles.noRadius : ''].filter(Boolean).join(' ')}
+      className={[styles.slider, adaptive ? styles.adaptive : '', mode === 'modal' ? styles.modal : '', frame === 'image' ? styles.frameImage : '', !rounded ? styles.noRadius : ''].filter(Boolean).join(' ')}
       style={galleryStyle ?? { aspectRatio: aspect, maxHeight }}
     >
       <div className={styles.track} style={{ transform: `translateX(-${safeIdx * 100}%)` }}>
@@ -177,7 +180,7 @@ export function ImageGallery({
             <img
               src={img.url}
               alt=""
-              className={[styles.img, fit === 'contain' ? styles.imgContain : '', mode === 'modal' ? styles.imgModal : ''].filter(Boolean).join(' ')}
+              className={[styles.img, fit === 'contain' ? styles.imgContain : '', mode === 'modal' ? styles.imgModal : '', frame === 'image' ? styles.imgFramed : ''].filter(Boolean).join(' ')}
               loading={mode === 'modal' ? 'eager' : 'lazy'}
               decoding="async"
               draggable={false}

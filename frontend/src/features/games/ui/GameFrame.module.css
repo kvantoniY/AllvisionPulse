@@ -1,6 +1,6 @@
 .frame {
-  --frame-pad: clamp(12px, 1.5vw, 18px);
-  --frame-header-pad: clamp(12px, 1.4vw, 18px);
+  --frame-pad: clamp(10px, 1vw, 14px);
+  --frame-header-pad: clamp(10px, 1vw, 14px);
   --frame-stage-max-width: 1280px;
   --frame-stage-max-height: 920px;
   --frame-stage-min-width: 280px;
@@ -11,13 +11,11 @@
   min-height: 100%;
   height: 100%;
   min-width: 0;
-  border-radius: 28px;
+  border-radius: 0;
   border: 1px solid var(--stroke);
-  background:
-    radial-gradient(circle at top, rgba(58, 132, 255, 0.12), transparent 36%),
-    linear-gradient(180deg, rgba(11, 13, 18, 0.98), rgba(8, 10, 14, 0.995));
-  box-shadow: 0 24px 60px  rgba(92, 54, 18, 0.34);
-  color: #fff;
+  background: #f4ead6;
+  box-shadow: var(--shadow-lg);
+  color: var(--text);
   overflow: hidden;
 }
 
@@ -50,9 +48,7 @@
   border-radius: 0 !important;
   border: 0 !important;
   box-shadow: none !important;
-  background:
-    radial-gradient(circle at top, rgba(58, 132, 255, 0.15), transparent 30%),
-    linear-gradient(180deg, rgba(6, 8, 12, 0.98), rgba(4, 5, 8, 1));
+  background: #f4ead6;
 }
 
 .browserFullscreen {
@@ -63,11 +59,10 @@
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 16px;
+  gap: 12px;
   padding: var(--frame-header-pad);
   border-bottom: 1px solid var(--stroke);
-  background: linear-gradient(180deg, rgba(6, 8, 12, 0.74), rgba(6, 8, 12, 0.26));
-  backdrop-filter: blur(16px);
+  background: rgba(244, 234, 214, 0.92);
 }
 
 .modeCall .header {
@@ -86,19 +81,18 @@
   min-height: 44px;
   padding: 0 16px;
   border-radius: 16px;
-  border: 1px solid var(--stroke-strong);
-  background: rgba(8, 10, 14, 0.82);
-  color: #fff;
+  border: 1px solid var(--stroke);
+  background: rgba(255, 255, 255, 0.88);
+  color: var(--text);
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  backdrop-filter: blur(16px);
-  box-shadow: 0 18px 42px  rgba(92, 54, 18, 0.28);
+  box-shadow: var(--shadow-md);
   cursor: pointer;
 }
 
 .immersiveExit:hover {
-  background: rgba(16, 19, 26, 0.92);
+  background: var(--panel-white);
 }
 
 .headerMain {
@@ -114,7 +108,7 @@
   line-height: 1;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.54);
+  color: var(--muted);
 }
 
 .titleRow {
@@ -128,13 +122,13 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   flex: 0 0 auto;
-  border-radius: 14px;
-  border: 1px solid var(--stroke-strong);
-  background: var(--surface-2);
-  font-size: 20px;
+  border-radius: 12px;
+  border: 1px solid var(--stroke);
+  background: rgba(248, 242, 228, 0.92);
+  font-size: 18px;
 }
 
 .titleStack {
@@ -144,7 +138,7 @@
 }
 
 .title {
-  font-size: clamp(1rem, 1.8vw, 1.18rem);
+  font-size: clamp(0.98rem, 1.5vw, 1.08rem);
   font-weight: 800;
   letter-spacing: -0.03em;
   white-space: nowrap;
@@ -153,9 +147,9 @@
 }
 
 .subtitle {
-  font-size: 12px;
+  font-size: 11px;
   line-height: 1.45;
-  color: rgba(255, 255, 255, 0.68);
+  color: var(--muted);
 }
 
 .meta {
@@ -169,11 +163,11 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  min-height: 28px;
-  padding: 0 10px;
+  min-height: 26px;
+  padding: 0 9px;
   border-radius: 999px;
   border: 1px solid var(--stroke);
-  background: var(--surface-2);
+  background: rgba(247, 241, 228, 0.88);
   color: var(--text-soft);
   font-size: 12px;
 }
@@ -197,12 +191,12 @@
 }
 
 .fullscreenToggle {
-  min-height: 40px;
-  padding: 0 14px;
+  min-height: 36px;
+  padding: 0 12px;
   border-radius: 14px;
-  border: 1px solid var(--stroke-strong);
-  background: var(--surface-2);
-  color: #fff;
+  border: 1px solid var(--stroke);
+  background: rgba(247, 241, 228, 0.9);
+  color: var(--text);
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -210,7 +204,7 @@
 }
 
 .fullscreenToggle:hover {
-  background: var(--stroke);
+  background: var(--panel-white);
 }
 
 .body {
@@ -239,6 +233,24 @@
   padding: var(--frame-pad);
 }
 
+.viewportFlush {
+  padding: 0;
+}
+
+.viewportFlush .stageViewport {
+  place-items: stretch;
+  overflow: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.viewportFlush .stageSurface {
+  height: auto;
+  min-height: 100%;
+  max-height: none;
+  overflow: visible;
+}
+
 .modeCall .viewport {
   padding: 0;
 }
@@ -250,7 +262,7 @@
 .secondary {
   min-height: 0;
   border-left: 1px solid var(--stroke);
-  background: var(--surface-1);
+  background: rgba(255, 255, 255, 0.62);
   overflow: auto;
 }
 
@@ -293,7 +305,7 @@
 
 @media (max-width: 960px) {
   .frame {
-    border-radius: 22px;
+    border-radius: 0;
   }
 
   .appFullscreen {
@@ -317,7 +329,7 @@
 
 @media (max-width: 720px) {
   .frame {
-    border-radius: 18px;
+    border-radius: 0;
   }
 
   .header {
@@ -408,6 +420,10 @@
 
   .viewport {
     padding: 10px;
+  }
+
+  .viewportFlush {
+    padding: 0;
   }
 
   .titleRow {

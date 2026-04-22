@@ -233,9 +233,9 @@
 }
 
 .cardFlat .mediaSingle {
-  border-radius: 16px;
-  border-color: var(--stroke-soft);
-  background: rgba(255, 255, 255, 0.34);
+  border-radius: 0;
+  border-color: transparent;
+  background: transparent;
 }
 
 .cardFlat .quoteCard {
@@ -292,13 +292,24 @@
 }
 
 .mediaSingle {
-  border-radius: 18px;
-  overflow: hidden;
-  border: 1px solid var(--surface-2);
-  background: var(--surface-1);
+  display: grid;
+  place-items: center;
+  border-radius: 0;
+  overflow: visible;
+  border: none;
+  background: transparent;
 }
 
-.singleImage,
+.singleImage {
+  width: auto;
+  display: block;
+  max-width: 100%;
+  height: auto;
+  object-fit: contain;
+  cursor: zoom-in;
+  background: var(--bg);
+}
+
 .quoteSingleImage {
   width: 100%;
   display: block;
@@ -309,6 +320,14 @@
 
 .singleImage {
   max-height: 760px;
+  border: 1px solid var(--stroke-soft);
+  border-radius: 18px;
+  background: var(--surface-1);
+}
+
+.cardFlat .singleImage {
+  border-color: var(--stroke-soft);
+  background: rgba(255, 255, 255, 0.34);
 }
 
 .quoteCard {
@@ -560,15 +579,15 @@
   }
 
   .cardMobile .mediaSingle {
-    border-radius: 16px;
-    border-left: 1px solid var(--surface-2);
-    border-right: 1px solid var(--surface-2);
-    background: var(--bg);
+    border-radius: 0;
+    border-left: 0;
+    border-right: 0;
+    background: transparent;
   }
 
   .cardMobile .singleImage {
     max-height: 70svh;
-    width: 100%;
+    width: auto;
   }
 
   .cardMobile .actions {

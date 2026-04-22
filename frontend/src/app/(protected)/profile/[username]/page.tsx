@@ -731,7 +731,7 @@ export default function ProfilePage() {
                   onClick={() => { resetProfileDraft(); setProfileEditOpen(true); }}
                 >
                   <Icon name="pencil" size={16} />
-                  Редактировать
+                  {!isMobile ? 'Редактировать' : null}
                 </Button>
               ) : (
                 <>

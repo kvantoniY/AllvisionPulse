@@ -302,7 +302,7 @@ function PostCardComponent({
 
         {!originalPost && images.length > 1 ? (
           <div className={styles.galleryWrap}>
-            <ImageGallery images={images} aspect="4 / 5" maxHeight={isMobile ? 560 : 760} rounded={!isMobile} fit="contain" adaptive />
+            <ImageGallery images={images} aspect="4 / 5" maxHeight={isMobile ? 560 : 760} rounded={!isMobile} fit="contain" adaptive frame="image" />
           </div>
         ) : null}
 

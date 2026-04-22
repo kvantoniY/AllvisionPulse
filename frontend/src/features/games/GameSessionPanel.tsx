@@ -24,6 +24,7 @@ import type { GameKey, GameSession, PokerResult } from '@/shared/types/game';
 import styles from './GameSessionPanel.module.css';
 import { Icon } from '@/shared/ui/Icon/Icon';
 import { Spinner } from '@/shared/ui/Spinner/Spinner';
+import { Modal } from '@/shared/ui/Modal/Modal';
 import { GameFrame } from './ui/GameFrame';
 import { getGamePresentationSpec } from './lib/gamePresentation';
 import type { FullscreenScope, GameViewState } from './lib/useGameFullscreen';
@@ -133,6 +134,47 @@ function gameConfigDefaults(gameKey: GameKey) {
     return { maxAttempts: 5, allowObservers: true };
   }
   return {};
+}
+
+function formatPlayerCount(count: number) {
+  const mod10 = count % 10;
+  const mod100 = count % 100;
+  if (mod10 === 1 && mod100 !== 11) return `${count} игрок`;
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return `${count} игрока`;
+  return `${count} игроков`;
+}
+
+function gameDescription(key: GameKey) {
+  return GAME_CATALOG.find((item) => item.key === key)?.description ?? 'Игровое лобби готово к запуску.';
+}
+
+function lobbyRulesText(gameKey: GameKey) {
+  if (gameKey === 'FLAPPY') {
+    return 'Игроки заходят в лобби и подтверждают готовность. После старта каждый получает ограниченное число попыток.';
+  }
+  return 'Создатель выбирает состав участников. Старт доступен только после того, как все игроки войдут в лобби и подтвердят готовность.';
+}
+
+function lobbySettingItems(session: GameSession) {
+  if (session.gameKey === 'POKER') {
+    return [
+      { label: 'BUY-IN', value: String(session.config?.buyIn ?? 1000), icon: 'sparkles' as const, tone: 'gold' as const },
+      { label: 'Блайнды', value: `${session.config?.smallBlind ?? 10}/${session.config?.bigBlind ?? 20}`, icon: 'repeat' as const, tone: 'green' as const },
+      { label: 'Таймер', value: `${session.config?.timerSec ?? 20} сек`, icon: 'clock' as const, tone: 'violet' as const },
+      { label: 'Макс. игроков', value: String(session.config?.maxPlayers ?? 6), icon: 'users' as const, tone: 'blue' as const },
+    ];
+  }
+
+  if (session.gameKey === 'FLAPPY') {
+    return [
+      { label: 'Попытки', value: String(session.config?.maxAttempts ?? 5), icon: 'play' as const, tone: 'gold' as const },
+      { label: 'Формат', value: 'Лучший результат', icon: 'game' as const, tone: 'green' as const },
+    ];
+  }
+
+  return [
+    { label: 'Статус', value: 'Скоро', icon: 'game' as const, tone: 'gold' as const },
+  ];
 }
 
 type HandEvaluation = {
@@ -679,6 +721,382 @@ function LobbyView({ session, chat, meId, setError, compact = false }: { session
         </div>
       </div>
     </div>
+  );
+}
+
+function LobbyViewRefined({
+  session,
+  chat,
+  meId,
+  setError,
+  onBack,
+  compact = false,
+}: {
+  session: GameSession;
+  chat?: Chat;
+  meId: string;
+  setError: (v: string) => void;
+  onBack: () => void;
+  compact?: boolean;
+}) {
+  const [draftTitle, setDraftTitle] = useState(session.title);
+  const [buyIn, setBuyIn] = useState(Number(session.config?.buyIn ?? 1000));
+  const [smallBlind, setSmallBlind] = useState(Number(session.config?.smallBlind ?? 10));
+  const [bigBlind, setBigBlind] = useState(Number(session.config?.bigBlind ?? 20));
+  const [timerSec, setTimerSec] = useState(Number(session.config?.timerSec ?? 20));
+  const [maxPlayers, setMaxPlayers] = useState(Number(session.config?.maxPlayers ?? 6));
+  const [maxAttempts, setMaxAttempts] = useState(Number(session.config?.maxAttempts ?? 5));
+  const [selectedPlayers, setSelectedPlayers] = useState<string[]>(session.members.filter((member) => member.role === 'player').map((member) => member.userId));
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [updateSession, { isLoading: saving }] = useUpdateGameSessionConfigMutation();
+  const [joinSession] = useJoinGameSessionMutation();
+  const [leaveSession] = useLeaveGameSessionMutation();
+  const [setReady, { isLoading: settingReady }] = useSetGameReadyMutation();
+  const [startSession, { isLoading: starting }] = useStartGameSessionMutation();
+  const [cancelSession, { isLoading: cancelling }] = useCancelGameSessionMutation();
+
+  const meMember = session.members.find((member) => member.userId === meId);
+  const isCreator = session.createdBy === meId;
+  const lobbyPlayers = session.members.filter((member) => member.role === 'player');
+  const joinedCount = lobbyPlayers.filter((member) => member.status === 'joined').length;
+  const readyCount = lobbyPlayers.filter((member) => member.status === 'joined' && member.isReady).length;
+  const pendingJoinCount = lobbyPlayers.filter((member) => member.status !== 'joined').length;
+  const waitingCount = lobbyPlayers.filter((member) => member.status !== 'joined' || !member.isReady).length;
+  const everyoneReady = lobbyPlayers.length >= (session.gameKey === 'FLAPPY' ? 1 : 2) && lobbyPlayers.every((member) => member.status === 'joined' && member.isReady);
+  const settingItems = lobbySettingItems(session);
+
+  useEffect(() => {
+    setDraftTitle(session.title);
+    setBuyIn(Number(session.config?.buyIn ?? 1000));
+    setSmallBlind(Number(session.config?.smallBlind ?? 10));
+    setBigBlind(Number(session.config?.bigBlind ?? 20));
+    setTimerSec(Number(session.config?.timerSec ?? 20));
+    setMaxPlayers(Number(session.config?.maxPlayers ?? 6));
+    setMaxAttempts(Number(session.config?.maxAttempts ?? 5));
+    setSelectedPlayers(session.members.filter((member) => member.role === 'player').map((member) => member.userId));
+  }, [session.updatedAt, session.sessionId, session.title, session.config, session.members]);
+
+  const save = async () => {
+    try {
+      const minPlayers = session.gameKey === 'FLAPPY' ? 1 : 2;
+      if (selectedPlayers.length < minPlayers) {
+        setError(session.gameKey === 'FLAPPY' ? 'Нужно выбрать хотя бы одного игрока.' : 'Нужно выбрать минимум двух игроков.');
+        return;
+      }
+
+      await updateSession({
+        sessionId: session.sessionId,
+        title: draftTitle,
+        participantUserIds: selectedPlayers,
+        config: session.gameKey === 'POKER'
+          ? { buyIn, smallBlind, bigBlind, timerSec, maxPlayers, allowObservers: true }
+          : session.gameKey === 'FLAPPY'
+            ? { maxAttempts, allowObservers: true }
+            : {},
+      }).unwrap();
+
+      setSettingsOpen(false);
+      setError('');
+    } catch (error) {
+      notifyError(setError, 'save-lobby', error);
+    }
+  };
+
+  const handleStart = async () => {
+    try {
+      if (!everyoneReady) {
+        setError('Не все выбранные игроки вошли в лобби и подтвердили готовность.');
+        return;
+      }
+      await startSession({ sessionId: session.sessionId }).unwrap();
+      setError('');
+    } catch (error) {
+      notifyError(setError, 'start-game', error);
+    }
+  };
+
+  const togglePlayer = (userId: string) => {
+    if (!isCreator || userId === session.createdBy) return;
+    setSelectedPlayers((prev) => (
+      prev.includes(userId)
+        ? prev.filter((id) => id !== userId)
+        : [...prev, userId]
+    ));
+  };
+
+  const actionHint = everyoneReady
+    ? 'Все участники готовы, лобби можно запускать.'
+    : pendingJoinCount > 0
+      ? `Ждём ещё ${pendingJoinCount} входов в лобби.`
+      : `Нужно ещё ${Math.max(lobbyPlayers.length - readyCount, 0)} подтверждений готовности.`;
+  const avatarSize = compact ? 56 : 64;
+
+  return (
+    <>
+      <button
+        type="button"
+        className={[styles.ghostBtn, styles.lobbyRefinedFloatingBack].join(' ')}
+        onClick={onBack}
+        aria-label="Назад"
+      >
+        <Icon name="arrowLeft" size={16} />
+      </button>
+
+      <div className={[styles.lobbyRefinedShell, compact ? styles.lobbyRefinedShellCompact : ''].filter(Boolean).join(' ')}>
+        <section className={styles.lobbyRefinedTop}>
+          <div className={styles.lobbyRefinedPreview}>
+            <span>{gamePreview(session.gameKey)}</span>
+          </div>
+
+          <div className={styles.lobbyRefinedHeading}>
+            <div className={styles.lobbyRefinedTitle}>{session.title}</div>
+            <div className={styles.lobbyRefinedSubtitle}>{gameTitle(session.gameKey)} · Лобби</div>
+            <div className={styles.lobbyRefinedChips}>
+              <span className={[styles.tagReady, styles.lobbyRefinedChip].join(' ')}>
+                <Icon name="users" size={14} />
+                {formatPlayerCount(lobbyPlayers.length)}
+              </span>
+              <span className={[styles.tag, styles.lobbyRefinedChip].join(' ')}>{joinedCount} в лобби</span>
+              <span className={[waitingCount ? styles.tagWarn : styles.tagReady, styles.lobbyRefinedChip].join(' ')}>
+                {waitingCount ? `ждём ${waitingCount}` : `${readyCount} готовы`}
+              </span>
+              <span className={[styles.tagMuted, styles.lobbyRefinedChip].join(' ')}>
+                <Icon name="clock" size={14} />
+                {formatSessionClock(session)}
+              </span>
+            </div>
+            <div className={styles.lobbyRefinedDescription}>{gameDescription(session.gameKey)}</div>
+          </div>
+        </section>
+
+        <section className={styles.lobbyRefinedMetaRow}>
+          <div className={styles.lobbyRefinedMetaCard}>
+            <div className={styles.lobbyRefinedSectionTitle}>Параметры стола</div>
+            <div className={styles.lobbyRefinedStatGrid}>
+              {settingItems.map((item) => (
+                <div key={item.label} className={styles.lobbyRefinedStat}>
+                  <span className={[styles.lobbyRefinedStatIcon, styles[`lobbyRefinedStatIcon${item.tone}`]].join(' ')}>
+                    <Icon name={item.icon} size={18} />
+                  </span>
+                  <div className={styles.lobbyRefinedStatCopy}>
+                    <span>{item.label}</span>
+                    <strong>{item.value}</strong>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className={styles.lobbyRefinedPlayers}>
+          <div className={styles.lobbyRefinedPlayersHeader}>
+            <div>
+              <div className={styles.lobbyRefinedSectionTitle}>Участники лобби</div>
+            </div>
+            <div className={styles.lobbyRefinedPlayerCounters}>
+              <span className={styles.tagReady}>{readyCount} готовы</span>
+              <span className={styles.tagMuted}>{Math.max(lobbyPlayers.length - readyCount, 0)} не готовы</span>
+            </div>
+          </div>
+
+          <div className={styles.lobbyRefinedPlayerGrid}>
+            {lobbyPlayers.map((member) => {
+              const user = getUser(chat, member.userId);
+              const isJoined = member.status === 'joined';
+              const isReady = Boolean(member.isReady);
+              const isWaiting = !isJoined;
+              const stateTone = isWaiting
+                ? styles.lobbyRefinedPlayerWaiting
+                : isReady
+                  ? styles.lobbyRefinedPlayerReady
+                  : styles.lobbyRefinedPlayerIdle;
+
+              return (
+                <article
+                  key={member.userId}
+                  className={[styles.lobbyRefinedPlayerCard, stateTone].join(' ')}
+                >
+                  <div className={styles.lobbyRefinedPlayerAvatar}>
+                    <Avatar url={user?.avatarUrl ?? undefined} name={user?.username ?? 'Игрок'} size={avatarSize} />
+                    {isJoined ? (
+                      <span className={[styles.lobbyRefinedPresence, styles.lobbyRefinedPresenceOnline].join(' ')} />
+                    ) : null}
+                  </div>
+
+                  <div className={styles.lobbyRefinedPlayerMain}>
+                    <strong>{user?.username ?? 'Игрок'}</strong>
+                    <span>{isJoined ? `В лобби · ${connectionStatusLabel(member.connectionStatus)}` : 'Ожидаем вход'}</span>
+                  </div>
+
+                  <div className={styles.lobbyRefinedPlayerTags}>
+                    <span className={member.userId === session.createdBy ? styles.tag : styles.tagMuted}>
+                      {member.userId === session.createdBy ? 'Создатель' : 'Игрок'}
+                    </span>
+                    <span className={!isJoined ? styles.tagMuted : isReady ? styles.tagReady : styles.tagWarn}>
+                      {!isJoined ? 'Подключается' : isReady ? 'Готов' : 'Не готов'}
+                    </span>
+                  </div>
+
+                  {!isJoined || isReady ? (
+                    <div className={styles.lobbyRefinedPlayerState}>
+                      {isWaiting ? <Spinner size={16} /> : <Icon name="check" size={18} />}
+                    </div>
+                  ) : null}
+                </article>
+              );
+            })}
+          </div>
+        </section>
+
+        <section className={styles.lobbyRefinedFooter}>
+          <div className={styles.lobbyRefinedFooterNote}>{actionHint}</div>
+          <div className={styles.lobbyRefinedFooterActions}>
+            {isCreator ? (
+              <button className={[styles.ghostBtn, styles.lobbyRefinedActionSecondary].join(' ')} onClick={() => setSettingsOpen(true)}>
+                <Icon name="settings" size={16} />
+                Настроить лобби
+              </button>
+            ) : null}
+
+            {meMember?.status !== 'joined'
+              ? (
+                <button className={[styles.ghostBtn, styles.lobbyRefinedActionSecondary].join(' ')} onClick={() => joinSession({ sessionId: session.sessionId, role: meMember?.role ?? 'player' })}>
+                  Войти
+                </button>
+              ) : (
+                <button className={[styles.ghostBtn, styles.lobbyRefinedActionSecondary, styles.lobbyRefinedActionLeave].join(' ')} onClick={() => leaveSession({ sessionId: session.sessionId })}>
+                  <Icon name="logout" size={16} />
+                  Выйти
+                </button>
+              )}
+
+            {meMember?.role === 'player' && meMember?.status === 'joined' ? (
+              <button
+                className={[meMember.isReady ? styles.ghostBtn : styles.successBtn, styles.lobbyRefinedActionSecondary].join(' ')}
+                disabled={settingReady}
+                onClick={() => setReady({ sessionId: session.sessionId, isReady: !meMember?.isReady })}
+              >
+                {meMember.isReady ? 'Не готов' : 'Готов'}
+              </button>
+            ) : null}
+
+            {isCreator ? (
+              <button className={[styles.primaryBtn, styles.lobbyRefinedActionPrimary].join(' ')} disabled={starting} onClick={handleStart}>
+                <Icon name="play" size={14} />
+                Начать
+              </button>
+            ) : null}
+
+            {isCreator ? (
+              <button className={[styles.dangerBtn, styles.lobbyRefinedActionDanger].join(' ')} disabled={cancelling} onClick={() => cancelSession({ sessionId: session.sessionId })}>
+                <Icon name="close" size={14} />
+                Отменить
+              </button>
+            ) : null}
+          </div>
+        </section>
+      </div>
+
+      {isCreator ? (
+        <Modal
+          open={settingsOpen}
+          onClose={() => setSettingsOpen(false)}
+          title="Настроить лобби"
+          subtitle="Параметры игры и состав участников меняются здесь."
+          size="lg"
+        >
+          <div className={styles.lobbyRefinedModalGrid}>
+            <section className={styles.lobbyRefinedModalPanel}>
+              <div className={styles.sectionTitle}>Параметры лобби</div>
+              <div className={styles.lobbyRefinedFieldGrid}>
+                <label className={styles.field}>
+                  <span>Название</span>
+                  <input value={draftTitle} onChange={(event) => setDraftTitle(event.target.value)} className={styles.input} />
+                </label>
+
+                {session.gameKey === 'POKER' ? (
+                  <>
+                    <label className={styles.field}>
+                      <span>Buy-in</span>
+                      <input className={styles.input} type="number" value={buyIn} onChange={(event) => setBuyIn(Number(event.target.value || 0))} />
+                    </label>
+                    <label className={styles.field}>
+                      <span>SB</span>
+                      <input className={styles.input} type="number" value={smallBlind} onChange={(event) => setSmallBlind(Number(event.target.value || 0))} />
+                    </label>
+                    <label className={styles.field}>
+                      <span>BB</span>
+                      <input className={styles.input} type="number" value={bigBlind} onChange={(event) => setBigBlind(Number(event.target.value || 0))} />
+                    </label>
+                    <label className={styles.field}>
+                      <span>Таймер</span>
+                      <input className={styles.input} type="number" value={timerSec} onChange={(event) => setTimerSec(Number(event.target.value || 0))} />
+                    </label>
+                    <label className={styles.field}>
+                      <span>Макс. игроков</span>
+                      <input className={styles.input} type="number" value={maxPlayers} onChange={(event) => setMaxPlayers(Number(event.target.value || 0))} />
+                    </label>
+                  </>
+                ) : null}
+
+                {session.gameKey === 'FLAPPY' ? (
+                  <label className={styles.field}>
+                    <span>Макс. попыток</span>
+                    <input className={styles.input} type="number" value={maxAttempts} onChange={(event) => setMaxAttempts(Number(event.target.value || 0))} />
+                  </label>
+                ) : null}
+              </div>
+
+              <div className={styles.rulesCard}>
+                <div className={styles.metaLabel}>Условия старта</div>
+                <div className={styles.metaMuted}>{lobbyRulesText(session.gameKey)}</div>
+              </div>
+            </section>
+
+            <section className={styles.lobbyRefinedModalPanel}>
+              <div className={styles.sectionRow}>
+                <div className={styles.sectionTitle}>Состав игроков</div>
+                <span className={styles.tag}>{selectedPlayers.length}</span>
+              </div>
+
+              <div className={styles.lobbyRefinedPickerGrid}>
+                {(chat?.members ?? []).map((member) => {
+                  const sessionMember = session.members.find((item) => item.userId === member.userId);
+                  const selected = selectedPlayers.includes(member.userId);
+                  const locked = member.userId === session.createdBy;
+
+                  return (
+                    <button
+                      type="button"
+                      key={member.userId}
+                      className={[styles.lobbyRefinedPickerCard, selected ? styles.lobbyRefinedPickerCardSelected : ''].filter(Boolean).join(' ')}
+                      onClick={() => togglePlayer(member.userId)}
+                      disabled={locked}
+                    >
+                      <Avatar url={member.user.avatarUrl ?? undefined} name={member.user.username} size={42} />
+                      <div className={styles.lobbyRefinedPickerMeta}>
+                        <strong>{member.user.username}</strong>
+                        <span>{sessionMember?.status === 'joined' ? `В лобби · ${connectionStatusLabel(sessionMember.connectionStatus)}` : 'Вне лобби'}</span>
+                      </div>
+                      <span className={selected ? styles.tagReady : styles.tagMuted}>
+                        {locked ? 'Создатель' : selected ? 'Выбран' : 'Не выбран'}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className={styles.lobbyRefinedModalFooter}>
+                <button className={styles.ghostBtn} onClick={() => setSettingsOpen(false)}>Закрыть</button>
+                <button className={styles.primaryBtn} disabled={saving} onClick={() => void save()}>
+                  {saving ? 'Сохраняем...' : 'Сохранить'}
+                </button>
+              </div>
+            </section>
+          </div>
+        </Modal>
+      ) : null}
+    </>
   );
 }
 
@@ -1608,7 +2026,8 @@ function SessionOverview({
   showHeading?: boolean;
   showActions?: boolean;
 }) {
-  const minimal = compact || session.gameKey === 'POKER' || session.gameKey === 'FLAPPY';
+  const hasInteractiveStage = (session.gameKey === 'POKER' && !!session.poker) || (session.gameKey === 'FLAPPY' && !!session.flappy);
+  const minimal = hasInteractiveStage || (compact && (showHeading || showActions));
   if (!showHeading && !showActions && minimal) return null;
 
   return (
@@ -1619,7 +2038,7 @@ function SessionOverview({
           <div className={styles.metaMuted}>{gameTitle(session.gameKey)} · {sessionStageLabel(session)} · Время {formatSessionClock(session)}</div>
         </div>
         {showActions ? <div className={styles.toolbarRight}>
-          <button className={styles.ghostBtn} onClick={onBack} aria-label="К списку сессий" title="К списку сессий"><Icon name="arrowLeft" size={16} /></button>
+          <button className={styles.ghostBtn} onClick={onBack} aria-label="К списку лобби" title="К списку лобби"><Icon name="arrowLeft" size={16} /></button>
           {(session.status === 'CONFIG' || session.status === 'ACTIVE') ? <button className={styles.dangerBtn} disabled={cancelling} onClick={onCancel}>Завершить</button> : null}
           {(session.status === 'FINISHED' || session.status === 'CANCELLED') ? <button className={styles.dangerBtn} disabled={deleting} onClick={onDelete}>Удалить</button> : null}
         </div> : null}
@@ -1725,6 +2144,16 @@ function GameSessionPanelRevamp({
     setLocalFullscreenScope('app');
   }, [isControlledFullscreen, localFullscreenScope, shouldForceMobileImmersive, view]);
 
+  useEffect(() => {
+    if (view !== 'session' || !session || session.status !== 'CONFIG') return;
+    const activeScope = fullscreenScope ?? localFullscreenScope;
+    if (activeScope === 'none') return;
+    if (!isControlledFullscreen) {
+      setLocalFullscreenScope('none');
+    }
+    onFullscreenScopeChange?.('none');
+  }, [fullscreenScope, isControlledFullscreen, localFullscreenScope, onFullscreenScopeChange, session, view]);
+
   const create = async () => {
     try {
       const chosen = GAME_CATALOG.find((item) => item.key === selectedGame);
@@ -1806,14 +2235,14 @@ function GameSessionPanelRevamp({
   const uiTitle = view === 'session' && session
     ? session.title
     : view === 'create'
-      ? '\u041d\u043e\u0432\u0430\u044f \u0441\u0435\u0441\u0441\u0438\u044f'
-      : '\u0418\u0433\u0440\u044b';
+      ? '\u041d\u043e\u0432\u043e\u0435 \u043b\u043e\u0431\u0431\u0438'
+      : '\u041b\u043e\u0431\u0431\u0438';
 
   const uiSubtitle = view === 'session' && session
     ? `${gameTitle(session.gameKey)} \u00b7 ${sessionStageLabel(session)}`
     : view === 'create'
       ? selectedMeta.description
-      : '\u0415\u0434\u0438\u043d\u0430\u044f \u043e\u0431\u043e\u043b\u043e\u0447\u043a\u0430 \u0434\u043b\u044f \u043a\u0430\u0442\u0430\u043b\u043e\u0433\u0430, \u043b\u043e\u0431\u0431\u0438 \u0438 \u0430\u043a\u0442\u0438\u0432\u043d\u044b\u0445 \u0438\u0433\u0440.';
+      : '\u0410\u043a\u0442\u0438\u0432\u043d\u044b\u0435 \u043b\u043e\u0431\u0431\u0438 \u0438 \u0430\u0440\u0445\u0438\u0432 \u0437\u0430\u0432\u0435\u0440\u0448\u0451\u043d\u043d\u044b\u0445 \u0438\u0433\u0440.';
 
   const uiMeta = view === 'session' && session ? (
     <>
@@ -1827,7 +2256,7 @@ function GameSessionPanelRevamp({
     </>
   ) : (
     <>
-      <span className={styles.tagReady}>{activeSessions.length} {'\u0430\u043a\u0442\u0438\u0432\u043d\u044b\u0445'}</span>
+      <span className={styles.tagReady}>{activeSessions.length} {'\u0430\u043a\u0442\u0438\u0432\u043d\u044b\u0445 \u043b\u043e\u0431\u0431\u0438'}</span>
       <span className={styles.tagMuted}>{archivedSessions.length} {'\u0432 \u0430\u0440\u0445\u0438\u0432\u0435'}</span>
     </>
   );
@@ -1838,12 +2267,12 @@ function GameSessionPanelRevamp({
         <button
           className={[styles.ghostBtn, styles.iconActionBtn].join(' ')}
           onClick={() => setView('directory')}
-          aria-label={'\u041a \u0441\u043f\u0438\u0441\u043a\u0443 \u0441\u0435\u0441\u0441\u0438\u0439'}
-          title={'\u041a \u0441\u043f\u0438\u0441\u043a\u0443 \u0441\u0435\u0441\u0441\u0438\u0439'}
+          aria-label={'\u041a \u0441\u043f\u0438\u0441\u043a\u0443 \u043b\u043e\u0431\u0431\u0438'}
+          title={'\u041a \u0441\u043f\u0438\u0441\u043a\u0443 \u043b\u043e\u0431\u0431\u0438'}
         >
           <Icon name="arrowLeft" size={16} />
         </button>
-        {(session.status === 'CONFIG' || session.status === 'ACTIVE') ? (
+        {session.status === 'ACTIVE' ? (
           <button className={[styles.dangerBtn, styles.headerPrimaryAction].join(' ')} disabled={cancelling} onClick={handleCancel}>
             {'\u0417\u0430\u0432\u0435\u0440\u0448\u0438\u0442\u044c'}
           </button>
@@ -1867,7 +2296,7 @@ function GameSessionPanelRevamp({
           <Icon name="arrowLeft" size={16} />
         </button>
         <button className={[styles.primaryBtn, styles.headerPrimaryAction].join(' ')} disabled={creating || selectedMeta.status === 'development'} onClick={() => void create()}>
-          {creating ? <Spinner size={16} /> : '\u0421\u043e\u0437\u0434\u0430\u0442\u044c \u0441\u0435\u0441\u0441\u0438\u044e'}
+          {creating ? <Spinner size={16} /> : '\u0421\u043e\u0437\u0434\u0430\u0442\u044c \u043b\u043e\u0431\u0431\u0438'}
         </button>
       </div>
     </div>
@@ -1876,7 +2305,7 @@ function GameSessionPanelRevamp({
       <div className={styles.headerSegmentRail}>
         <div className={styles.catalogTabs}>
           <button className={[styles.catalogTab, directoryMode === 'all' ? styles.catalogTabActive : ''].join(' ')} onClick={() => setDirectoryMode('all')}>
-            {'\u0412\u0441\u0435 \u0441\u0435\u0441\u0441\u0438\u0438'}
+            {'\u0412\u0441\u0435 \u043b\u043e\u0431\u0431\u0438'}
           </button>
           <button className={[styles.catalogTab, directoryMode === 'byGame' ? styles.catalogTabActive : ''].join(' ')} onClick={() => setDirectoryMode('byGame')}>
             {'\u041f\u043e \u0438\u0433\u0440\u0430\u043c'}
@@ -1895,7 +2324,7 @@ function GameSessionPanelRevamp({
             setView('create');
           }}
         >
-          {creating ? <Spinner size={16} /> : '\u041d\u043e\u0432\u0430\u044f \u0441\u0435\u0441\u0441\u0438\u044f'}
+          {creating ? <Spinner size={16} /> : '\u041d\u043e\u0432\u043e\u0435 \u043b\u043e\u0431\u0431\u0438'}
         </button>
       </div>
     </div>
@@ -1909,7 +2338,9 @@ function GameSessionPanelRevamp({
       onViewStateChange={onViewStateChange}
       presentation={presentation}
       allowFullscreen={view === 'session' && !!session && session.status !== 'CONFIG'}
-      eyebrow={sourceMode === 'call' ? 'Игры во звонке' : 'Игры в чате'}
+      hideHeader={view === 'session' && !!session && session.status === 'CONFIG'}
+      flushViewport={view === 'session' && !!session && session.status === 'CONFIG'}
+      eyebrow={view === 'session' && session?.status === 'CONFIG' ? undefined : (sourceMode === 'call' ? 'Игры во звонке' : 'Игры в чате')}
       title={uiTitle}
       subtitle={uiSubtitle}
       badge={currentGameKey ? gamePreview(currentGameKey) : undefined}
@@ -1919,12 +2350,16 @@ function GameSessionPanelRevamp({
       stageClassName={[
         styles.frameStage,
         view === 'session' ? styles.frameStageSession : styles.frameStageScroll,
+        view === 'session' && session?.status === 'CONFIG' ? styles.frameStageSessionConfig : '',
         isCallMode ? styles.frameStageCall : '',
       ].filter(Boolean).join(' ')}
     >
       {(frameState) => {
         const compact = frameState.stageSize.availableWidth < 1040 || frameState.stageSize.availableHeight < 760;
         const immersive = frameState.mode === 'fullscreen';
+        const canRenderPokerStage = session?.gameKey === 'POKER' && !!session?.poker;
+        const canRenderFlappyStage = session?.gameKey === 'FLAPPY' && !!session?.flappy;
+        const shouldShowSessionOverview = !!session && !canRenderPokerStage && !canRenderFlappyStage && session.status !== 'ACTIVE';
         const needsRotatePrompt = !!session
           && session.gameKey === 'POKER'
           && session.status !== 'CONFIG'
@@ -1937,26 +2372,45 @@ function GameSessionPanelRevamp({
           );
 
         return view === 'session' && session ? (
-          <div className={[styles.revampSessionViewport, immersive ? styles.revampSessionViewportFullscreen : ''].filter(Boolean).join(' ')}>
+          <div className={[
+            styles.revampSessionViewport,
+            immersive ? styles.revampSessionViewportFullscreen : '',
+            session.status === 'CONFIG' ? styles.revampSessionViewportConfig : '',
+          ].filter(Boolean).join(' ')}>
             {error ? <div className={[styles.error, styles.revampSessionError].join(' ')}>{error}</div> : null}
             {session.status === 'CONFIG' ? (
-              <div className={styles.revampSessionConfig}>
-                <LobbyView session={session} chat={chat} meId={meId} setError={setError} compact={compact} />
+              <div className={[styles.revampSessionConfig, styles.revampSessionConfigLobby].join(' ')}>
+                <LobbyViewRefined session={session} chat={chat} meId={meId} setError={setError} onBack={() => setView('directory')} compact={compact} />
               </div>
             ) : needsRotatePrompt ? (
               <RotateDevicePrompt
                 title="Поверните устройство"
                 description="Для покера нужен горизонтальный экран. В ландшафтной ориентации стол займет всю доступную высоту и ширину без сжатия."
               />
-            ) : session.gameKey === 'POKER' && session.poker ? (
+            ) : canRenderPokerStage ? (
               <PokerView session={session} chat={chat} meId={meId} setError={setError} compact={compact} immersive={immersive} mobileViewport={isPhoneViewport} />
-            ) : session.gameKey === 'FLAPPY' && session.flappy ? (
+            ) : canRenderFlappyStage ? (
               <FlappyView session={session} chat={chat} meId={meId} setError={setError} compact={compact} immersive={immersive} mobileViewport={isPhoneViewport} />
+            ) : shouldShowSessionOverview ? (
+              <div className={styles.revampSessionConfig}>
+                <SessionOverview
+                  session={session}
+                  chat={chat}
+                  onBack={() => setView('directory')}
+                  onDelete={() => void handleDelete()}
+                  onCancel={() => void handleCancel()}
+                  deleting={deleting}
+                  cancelling={cancelling}
+                  compact={compact}
+                  showHeading={false}
+                  showActions={false}
+                />
+              </div>
             ) : (
               <div className={styles.revampRotatePrompt}>
                 <div className={styles.revampRotateCard}>
-                  <div className={styles.revampRotateTitle}>Игра пока недоступна</div>
-                  <div className={styles.metaMuted}>Этот игровой экран еще не подключен к новому адаптивному stage.</div>
+                  <div className={styles.revampRotateTitle}>Не удалось открыть игру</div>
+                  <div className={styles.metaMuted}>Данные игрового экрана ещё не подгрузились. Попробуйте вернуться к списку лобби и открыть его снова.</div>
                 </div>
               </div>
             )}

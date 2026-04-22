@@ -816,7 +816,7 @@
   border-radius: 50%;
   border: 1px solid var(--stroke);
   background: var(--panel);
-  color: white;
+  color: var(--text-soft);
   display: grid;
   place-items: center;
   box-shadow: 0 8px 24px  rgba(92, 54, 18, 0.32);
@@ -2618,14 +2618,40 @@
 }
 
 .bubbleMine {
-  background: var(--accent-muted);
-  border: 1px solid var(--stroke-accent);
+  background: #F1E6C5;
+  border: 1px solid rgba(148, 113, 48, 0.14);
   color: var(--text);
 }
 
 .bubbleTheirs {
-  background: var(--panel-2);
-  border: 1px solid var(--stroke-soft);
+  background: #F1E6C5;
+  border: 1px solid rgba(148, 113, 48, 0.14);
+}
+
+.bubbleAudioBare,
+.bubbleVideoBare {
+  border: 0 !important;
+  background: transparent !important;
+}
+
+.bubbleAudioBare.bubbleMine,
+.bubbleAudioBare.bubbleTheirs,
+.bubbleVideoBare.bubbleMine,
+.bubbleVideoBare.bubbleTheirs {
+  border: 0 !important;
+  background: transparent !important;
+}
+
+.audioBubble {
+  --am-surface: #F1E6C5 !important;
+  --am-border: rgba(148, 113, 48, 0.14) !important;
+}
+
+.audioBubble[data-tone='outgoing'],
+.audioBubble[data-tone='incoming'],
+.audioBubble[data-tone='neutral'] {
+  --am-surface: #F1E6C5 !important;
+  --am-border: rgba(148, 113, 48, 0.14) !important;
 }
 
 .forwardedBlock {

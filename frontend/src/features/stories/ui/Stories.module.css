@@ -200,7 +200,7 @@
 .viewerTop {
   top: 0;
   padding: 14px 14px 0;
-  background: linear-gradient(to bottom, rgba(255, 251, 243, 0.94), rgba(255, 251, 243, 0));
+  background: transparent;
 }
 
 .viewerProgress {
@@ -844,6 +844,8 @@
     width: 100%;
     height: 100%;
     border-radius: 0;
+    border: 0;
+    box-shadow: none;
   }
 
   .creatorHeader {
@@ -1475,6 +1477,13 @@
 
 @media (max-width: 720px) {
   .viewer { padding: 0; }
+  .viewerInner {
+    width: 100%;
+    height: 100%;
+    border-radius: 0;
+    border: 0;
+    box-shadow: none;
+  }
 }
 
 @media (max-width: 640px) {

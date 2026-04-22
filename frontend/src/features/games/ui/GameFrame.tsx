@@ -40,6 +40,8 @@ type GameFrameProps = {
   secondary?: ReactNode;
   secondaryPosition?: 'right' | 'bottom';
   allowFullscreen?: boolean;
+  hideHeader?: boolean;
+  flushViewport?: boolean;
   immersiveExitLabel?: string;
   hideHeaderInFullscreen?: boolean;
   className?: string;
@@ -62,6 +64,8 @@ export function GameFrame({
   secondary,
   secondaryPosition = 'right',
   allowFullscreen = true,
+  hideHeader = false,
+  flushViewport = false,
   immersiveExitLabel = 'Свернуть',
   hideHeaderInFullscreen = true,
   className,
@@ -146,7 +150,11 @@ export function GameFrame({
     secondary && secondaryPosition === 'right' ? styles.bodyWithSecondaryRight : '',
     secondary && secondaryPosition === 'bottom' ? styles.bodyWithSecondaryBottom : '',
   ].filter(Boolean).join(' ');
-  const immersiveMode = viewState.fullscreenScope !== 'none' && hideHeaderInFullscreen;
+  const viewportClassName = [
+    styles.viewport,
+    flushViewport ? styles.viewportFlush : '',
+  ].filter(Boolean).join(' ');
+  const immersiveMode = allowFullscreen && viewState.fullscreenScope !== 'none' && hideHeaderInFullscreen;
 
   return (
     <div
@@ -165,29 +173,31 @@ export function GameFrame({
       ].filter(Boolean).join(' ')}
     >
       {!immersiveMode ? (
-        <div className={styles.header}>
-        <div className={styles.headerMain}>
-          {eyebrow ? <div className={styles.eyebrow}>{eyebrow}</div> : null}
-          <div className={styles.titleRow}>
-            {badge ? <div className={styles.badge}>{badge}</div> : null}
-            <div className={styles.titleStack}>
-              <div className={styles.title}>{title}</div>
-              {subtitle ? <div className={styles.subtitle}>{subtitle}</div> : null}
-              {meta ? <div className={styles.meta}>{meta}</div> : null}
+        hideHeader ? null : (
+          <div className={styles.header}>
+            <div className={styles.headerMain}>
+              {eyebrow ? <div className={styles.eyebrow}>{eyebrow}</div> : null}
+              <div className={styles.titleRow}>
+                {badge ? <div className={styles.badge}>{badge}</div> : null}
+                <div className={styles.titleStack}>
+                  <div className={styles.title}>{title}</div>
+                  {subtitle ? <div className={styles.subtitle}>{subtitle}</div> : null}
+                  {meta ? <div className={styles.meta}>{meta}</div> : null}
+                </div>
+              </div>
+            </div>
+
+            <div className={styles.actions}>
+              {headerActions ? <div className={styles.headerActions}>{headerActions}</div> : null}
+              {allowFullscreen && presentation.allowFullscreen ? (
+                <button type="button" className={styles.fullscreenToggle} onClick={() => void fullscreen.toggleFullscreen()}>
+                  <Icon name={viewState.fullscreenScope === 'none' ? 'arrowUp' : 'arrowDown'} size={16} />
+                  <span>{viewState.fullscreenScope === 'none' ? 'На весь экран' : 'Свернуть'}</span>
+                </button>
+              ) : null}
             </div>
           </div>
-        </div>
-
-        <div className={styles.actions}>
-          {headerActions ? <div className={styles.headerActions}>{headerActions}</div> : null}
-          {allowFullscreen && presentation.allowFullscreen ? (
-            <button type="button" className={styles.fullscreenToggle} onClick={() => void fullscreen.toggleFullscreen()}>
-              <Icon name={viewState.fullscreenScope === 'none' ? 'arrowUp' : 'arrowDown'} size={16} />
-              <span>{viewState.fullscreenScope === 'none' ? 'На весь экран' : 'Свернуть'}</span>
-            </button>
-          ) : null}
-        </div>
-        </div>
+        )
       ) : (
         <button type="button" className={styles.immersiveExit} onClick={() => void fullscreen.exitFullscreen()}>
           <Icon name="arrowDown" size={16} />
@@ -196,7 +206,7 @@ export function GameFrame({
       )}
 
       <div className={bodyClassName}>
-        <div className={styles.viewport}>
+        <div className={viewportClassName}>
           <div ref={stageViewportRef} className={styles.stageViewport}>
             <div className={[styles.stageSurface, stageClassName ?? ''].filter(Boolean).join(' ')}>
               {typeof children === 'function' ? children(renderState) : children}
