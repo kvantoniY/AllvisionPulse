@@ -19,6 +19,7 @@ type IconName =
   | 'comment'
   | 'repeat'
   | 'close'
+  | 'expand'
   | 'plus'
   | 'arrowLeft'
   | 'arrowDown'
@@ -70,6 +71,16 @@ const paths: Record<IconName, ReactNode> = {
   comment: <path d="M5 18.5 3.5 20V6a2.5 2.5 0 0 1 2.5-2.5h12A2.5 2.5 0 0 1 20.5 6v9A2.5 2.5 0 0 1 18 17.5H5Z" {...line} />,
   repeat: <><path d="M8 7h8l-2.6-2.6" {...line} /><path d="M16 7l-2.6 2.6" {...line} /><path d="M16 17H8l2.6 2.6" {...line} /><path d="M8 17l2.6-2.6" {...line} /><path d="M18.5 9.5v2a3.5 3.5 0 0 1-3.5 3.5H8" {...line} /><path d="M5.5 14.5v-2A3.5 3.5 0 0 1 9 9h7" {...line} /></>,
   close: <path d="M6 6 18 18M18 6 6 18" {...line} />,
+  expand: <>
+    <path d="M9 4H4v5" {...line} />
+    <path d="M15 4h5v5" {...line} />
+    <path d="M20 15v5h-5" {...line} />
+    <path d="M4 15v5h5" {...line} />
+    <path d="M9 4 4 9" {...line} />
+    <path d="m15 4 5 5" {...line} />
+    <path d="m20 15-5 5" {...line} />
+    <path d="m4 15 5 5" {...line} />
+  </>,
   plus: <path d="M12 5v14M5 12h14" {...line} />,
   arrowLeft: <path d="M15 18 9 12l6-6M9 12h10" {...line} />,
   arrowDown: <path d="M12 5v14M6 13l6 6 6-6" {...line} />,

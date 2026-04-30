@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { Icon } from '@/shared/ui/Icon/Icon';
 import type { GamePresentationSpec } from '../lib/gamePresentation';
 import {
@@ -42,6 +42,7 @@ type GameFrameProps = {
   allowFullscreen?: boolean;
   hideHeader?: boolean;
   flushViewport?: boolean;
+  viewportKey?: string;
   immersiveExitLabel?: string;
   hideHeaderInFullscreen?: boolean;
   className?: string;
@@ -66,6 +67,7 @@ export function GameFrame({
   allowFullscreen = true,
   hideHeader = false,
   flushViewport = false,
+  viewportKey,
   immersiveExitLabel = 'Свернуть',
   hideHeaderInFullscreen = true,
   className,
@@ -126,7 +128,39 @@ export function GameFrame({
       if (frameId) window.cancelAnimationFrame(frameId);
       observer.disconnect();
     };
-  }, []);
+  }, [viewportKey]);
+
+  useLayoutEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    const viewport = stageViewportRef.current;
+    if (!viewport) return undefined;
+
+    const resetScrollableDescendants = () => {
+      viewport.scrollTop = 0;
+      viewport.scrollLeft = 0;
+
+      const descendants = viewport.querySelectorAll<HTMLElement>('*');
+      descendants.forEach((element) => {
+        const styles = window.getComputedStyle(element);
+        const canScrollY = (styles.overflowY === 'auto' || styles.overflowY === 'scroll') && element.scrollHeight > element.clientHeight;
+        const canScrollX = (styles.overflowX === 'auto' || styles.overflowX === 'scroll') && element.scrollWidth > element.clientWidth;
+
+        if (canScrollY) element.scrollTop = 0;
+        if (canScrollX) element.scrollLeft = 0;
+      });
+    };
+
+    resetScrollableDescendants();
+    const frameId = window.requestAnimationFrame(resetScrollableDescendants);
+    const followUpFrameId = window.requestAnimationFrame(() => window.requestAnimationFrame(resetScrollableDescendants));
+    const timeoutId = window.setTimeout(resetScrollableDescendants, 120);
+
+    return () => {
+      window.cancelAnimationFrame(frameId);
+      window.cancelAnimationFrame(followUpFrameId);
+      window.clearTimeout(timeoutId);
+    };
+  }, [viewportKey]);
 
   const renderState: RenderState = {
     ...viewState,
@@ -190,9 +224,15 @@ export function GameFrame({
             <div className={styles.actions}>
               {headerActions ? <div className={styles.headerActions}>{headerActions}</div> : null}
               {allowFullscreen && presentation.allowFullscreen ? (
-                <button type="button" className={styles.fullscreenToggle} onClick={() => void fullscreen.toggleFullscreen()}>
-                  <Icon name={viewState.fullscreenScope === 'none' ? 'arrowUp' : 'arrowDown'} size={16} />
-                  <span>{viewState.fullscreenScope === 'none' ? 'На весь экран' : 'Свернуть'}</span>
+                <button
+                  type="button"
+                  className={styles.fullscreenToggle}
+                  onClick={() => void fullscreen.toggleFullscreen()}
+                  aria-label={viewState.fullscreenScope === 'none' ? 'На весь экран' : 'Свернуть'}
+                  title={viewState.fullscreenScope === 'none' ? 'На весь экран' : 'Свернуть'}
+                >
+                  <Icon name={viewState.fullscreenScope === 'none' ? 'expand' : 'arrowDown'} size={18} />
+                  <span className={styles.srOnly}>{viewState.fullscreenScope === 'none' ? 'На весь экран' : 'Свернуть'}</span>
                 </button>
               ) : null}
             </div>
@@ -207,7 +247,13 @@ export function GameFrame({
 
       <div className={bodyClassName}>
         <div className={viewportClassName}>
-          <div ref={stageViewportRef} className={styles.stageViewport}>
+          <div
+            key={viewportKey}
+            ref={stageViewportRef}
+            className={styles.stageViewport}
+            data-game-stage-viewport="true"
+            data-flush-viewport={flushViewport ? 'true' : undefined}
+          >
             <div className={[styles.stageSurface, stageClassName ?? ''].filter(Boolean).join(' ')}>
               {typeof children === 'function' ? children(renderState) : children}
             </div>

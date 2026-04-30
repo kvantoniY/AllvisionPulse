@@ -78,11 +78,43 @@ export function useGameFullscreen({
     }
   }, []);
 
+  const enterBrowserFullscreen = useCallback(async () => {
+    const element = rootRef.current as (HTMLDivElement & {
+      requestFullscreen?: (options?: FullscreenOptions) => Promise<void>;
+      webkitRequestFullscreen?: () => Promise<void> | void;
+      msRequestFullscreen?: () => Promise<void> | void;
+    }) | null;
+
+    if (!element) return false;
+
+    try {
+      if (typeof element.requestFullscreen === 'function') {
+        await element.requestFullscreen({ navigationUI: 'hide' });
+        return true;
+      }
+
+      if (typeof element.webkitRequestFullscreen === 'function') {
+        await element.webkitRequestFullscreen();
+        return true;
+      }
+
+      if (typeof element.msRequestFullscreen === 'function') {
+        await element.msRequestFullscreen();
+        return true;
+      }
+    } catch {
+      return false;
+    }
+
+    return false;
+  }, []);
+
   const enterFullscreen = useCallback(async () => {
     if (!enabled) return;
     pushHistoryEntry();
-    applyScope('app');
-  }, [applyScope, enabled, pushHistoryEntry]);
+    const openedInBrowser = await enterBrowserFullscreen();
+    applyScope(openedInBrowser ? 'browser' : 'app');
+  }, [applyScope, enabled, enterBrowserFullscreen, pushHistoryEntry]);
 
   const exitFullscreen = useCallback(async () => {
     await exitBrowserFullscreen();

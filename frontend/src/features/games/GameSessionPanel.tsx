@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { Avatar } from '@/shared/ui/Avatar/Avatar';
 import {
   useCancelGameSessionMutation,
@@ -26,6 +26,7 @@ import { Icon } from '@/shared/ui/Icon/Icon';
 import { Spinner } from '@/shared/ui/Spinner/Spinner';
 import { Modal } from '@/shared/ui/Modal/Modal';
 import { GameFrame } from './ui/GameFrame';
+import { PokerTable } from './ui/PokerTable';
 import { getGamePresentationSpec } from './lib/gamePresentation';
 import type { FullscreenScope, GameViewState } from './lib/useGameFullscreen';
 import { useResponsiveSurfaceSize } from './lib/useResponsiveSurfaceSize';
@@ -69,8 +70,8 @@ const GAME_CATALOG: GameCatalogItem[] = [
   },
 ];
 const STAGES = ['preflop', 'flop', 'turn', 'river', 'showdown'] as const;
-const POKER_TABLE_BASE_WIDTH = 820;
-const POKER_TABLE_BASE_HEIGHT = 470;
+const POKER_TABLE_BASE_WIDTH = 1360;
+const POKER_TABLE_BASE_HEIGHT = 560;
 const FLAPPY_CANVAS_BASE_WIDTH = 420;
 const FLAPPY_CANVAS_BASE_HEIGHT = 720;
 type GameSessionPanelMode = 'chat' | 'call';
@@ -537,8 +538,10 @@ function CreateSessionView({
   showHeader?: boolean;
 }) {
   const selectedMeta = GAME_CATALOG.find((item) => item.key === selectedGame) ?? GAME_CATALOG[0];
+  const availableGames = GAME_CATALOG.filter((item) => item.status !== 'development').length;
+  const upcomingGames = GAME_CATALOG.length - availableGames;
   return (
-    <div className={styles.directoryLayout}>
+    <div className={[styles.directoryLobbyLayout, styles.directoryCreateLayout].join(' ')}>
       {showHeader ? <div className={styles.directoryHeader}>
         <div>
           <div className={styles.sectionTitle}>Новая сессия</div>
@@ -591,6 +594,163 @@ function CreateSessionView({
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+function CreateSessionViewRefined({
+  selectedGame,
+  onSelectGame,
+  onCreate,
+  creating,
+  onBack,
+  showHeader = true,
+}: {
+  selectedGame: GameKey;
+  onSelectGame: (game: GameKey) => void;
+  onCreate: () => void;
+  creating: boolean;
+  onBack: () => void;
+  showHeader?: boolean;
+}) {
+  const selectedMeta = GAME_CATALOG.find((item) => item.key === selectedGame) ?? GAME_CATALOG[0];
+  const availableGames = GAME_CATALOG.filter((item) => item.status !== 'development').length;
+  const upcomingGames = GAME_CATALOG.length - availableGames;
+
+  return (
+    <div className={[styles.directoryLobbyLayout, styles.directoryCreateLayout].join(' ')}>
+      {showHeader ? (
+        <header className={styles.directoryLobbyHero}>
+          <div className={styles.directoryLobbyHeroTop}>
+            <div className={styles.directoryLobbyHeroIntro}>
+              <div className={styles.directoryLobbyHeroBadge}>
+                <span className={styles.directoryCreateHeroGlyph}>{selectedMeta.preview}</span>
+              </div>
+
+              <div className={styles.directoryLobbyHeroCopy}>
+                <h1 className={styles.directoryLobbyHeroTitle}>Новое лобби</h1>
+                <div className={styles.directoryLobbyHeroSubtitle}>
+                  Выберите игру и создайте лобби в той же визуальной системе и с тем же расположением кнопок, что и в каталоге лобби.
+                </div>
+              </div>
+            </div>
+
+            <div className={styles.directoryLobbyHeroActions}>
+              <button
+                type="button"
+                className={[styles.ghostBtn, styles.directoryLobbyIconButton].join(' ')}
+                onClick={onBack}
+                aria-label="Назад к лобби"
+                title="Назад к лобби"
+              >
+                <Icon name="arrowLeft" size={18} />
+              </button>
+
+              <button
+                type="button"
+                className={[styles.primaryBtn, styles.directoryLobbyCreateButton].join(' ')}
+                disabled={creating || selectedMeta.status === 'development'}
+                onClick={onCreate}
+              >
+                {creating ? <Spinner size={16} /> : 'Создать лобби'}
+              </button>
+            </div>
+          </div>
+
+          <div className={styles.directoryLobbyHeroStats}>
+            <span className={[styles.tagReady, styles.directoryLobbyHeroStat].join(' ')}>
+              <span className={styles.directoryLobbyHeroDot} />
+              {availableGames} доступны
+            </span>
+            <span className={[styles.tagMuted, styles.directoryLobbyHeroStat].join(' ')}>
+              <span className={styles.directoryLobbyHeroDotMuted} />
+              {upcomingGames} скоро
+            </span>
+          </div>
+        </header>
+      ) : null}
+
+      <section className={styles.directoryLobbySection}>
+        <div className={styles.directoryLobbySectionHead}>
+          <div className={styles.directoryLobbySectionHeading}>
+            <span className={[styles.directoryLobbySectionIcon, styles.directoryLobbySectionIconActive].join(' ')}>
+              <Icon name="game" size={18} />
+            </span>
+            <div className={styles.directoryLobbySectionCopy}>
+              <div className={styles.directoryLobbySectionTitle}>Выбор игры</div>
+              <div className={styles.directoryLobbySectionText}>
+                Все режимы собраны в едином каталоге, а управляющие действия вынесены в верхнюю правую зону, как на предыдущем экране.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className={[styles.gameCatalogGrid, styles.directoryCreateGrid].join(' ')}>
+          {GAME_CATALOG.map((item) => {
+            const selected = item.key === selectedGame;
+            return (
+              <button
+                type="button"
+                key={item.key}
+                className={[
+                  styles.gameCatalogTile,
+                  styles.directoryCreateTile,
+                  selected ? styles.gameCatalogTileActive : '',
+                  selected ? styles.directoryCreateTileSelected : '',
+                  item.status === 'development' ? styles.gameCatalogTileDisabled : '',
+                  item.status === 'beta' ? styles.gameCatalogTileBeta : '',
+                ].filter(Boolean).join(' ')}
+                onClick={() => onSelectGame(item.key)}
+              >
+                <div className={styles.gameCatalogTop}>
+                  <strong>{item.title}</strong>
+                  <div className={styles.catalogBadgeRow}>
+                    {item.status === 'development' ? <span className={styles.tagMuted}>В разработке</span> : null}
+                    {item.status === 'beta' ? <span className={styles.tagWarn}>Бета версия</span> : null}
+                  </div>
+                </div>
+
+                <div className={[styles.gamePreview, styles.directoryCreatePreview].join(' ')}>{item.preview}</div>
+                <div className={styles.metaMuted}>{item.description}</div>
+              </button>
+            );
+          })}
+        </div>
+      </section>
+
+      <section className={[styles.directoryLobbySection, styles.directoryCreateSummary].join(' ')}>
+        <div className={styles.directoryLobbySectionHead}>
+          <div className={styles.directoryLobbySectionHeading}>
+            <span className={[styles.directoryLobbySectionIcon, styles.directoryLobbySectionIconArchive].join(' ')}>
+              <Icon name="sparkles" size={18} />
+            </span>
+            <div className={styles.directoryLobbySectionCopy}>
+              <div className={styles.directoryLobbySectionTitle}>{selectedMeta.title}</div>
+              <div className={styles.directoryLobbySectionText}>{selectedMeta.description}</div>
+            </div>
+          </div>
+
+          <div className={styles.catalogBadgeRow}>
+            {selectedMeta.status === 'development' ? <span className={styles.tagMuted}>Недоступно</span> : null}
+            {selectedMeta.status === 'beta' ? <span className={styles.tagWarn}>Бета версия</span> : null}
+          </div>
+        </div>
+
+        <div className={styles.directoryCreateSummaryBody}>
+          <div className={styles.directoryCreateSummaryCopy}>
+            <div className={styles.directoryCreateSummaryTitle}>Выбранная игра</div>
+            <div className={styles.metaMuted}>
+              {selectedMeta.status === 'development'
+                ? 'Этот режим ещё в разработке, но уже встроен в общую структуру каталога и не выпадает по стилю.'
+                : 'После создания откроется знакомое лобби с той же композицией, кнопками и плотностью интерфейса.'}
+            </div>
+          </div>
+
+          <div className={styles.directoryCreateSummaryPreview}>
+            <span>{selectedMeta.preview}</span>
+          </div>
+        </div>
+      </section>
     </div>
   );
 }
@@ -832,170 +992,170 @@ function LobbyViewRefined({
   const avatarSize = compact ? 56 : 64;
 
   return (
-    <>
-      <button
-        type="button"
-        className={[styles.ghostBtn, styles.lobbyRefinedFloatingBack].join(' ')}
-        onClick={onBack}
-        aria-label="Назад"
-      >
-        <Icon name="arrowLeft" size={16} />
-      </button>
-
-      <div className={[styles.lobbyRefinedShell, compact ? styles.lobbyRefinedShellCompact : ''].filter(Boolean).join(' ')}>
-        <section className={styles.lobbyRefinedTop}>
-          <div className={styles.lobbyRefinedPreview}>
-            <span>{gamePreview(session.gameKey)}</span>
-          </div>
-
-          <div className={styles.lobbyRefinedHeading}>
-            <div className={styles.lobbyRefinedTitle}>{session.title}</div>
-            <div className={styles.lobbyRefinedSubtitle}>{gameTitle(session.gameKey)} · Лобби</div>
-            <div className={styles.lobbyRefinedChips}>
-              <span className={[styles.tagReady, styles.lobbyRefinedChip].join(' ')}>
-                <Icon name="users" size={14} />
-                {formatPlayerCount(lobbyPlayers.length)}
-              </span>
-              <span className={[styles.tag, styles.lobbyRefinedChip].join(' ')}>{joinedCount} в лобби</span>
-              <span className={[waitingCount ? styles.tagWarn : styles.tagReady, styles.lobbyRefinedChip].join(' ')}>
-                {waitingCount ? `ждём ${waitingCount}` : `${readyCount} готовы`}
-              </span>
-              <span className={[styles.tagMuted, styles.lobbyRefinedChip].join(' ')}>
-                <Icon name="clock" size={14} />
-                {formatSessionClock(session)}
-              </span>
-            </div>
-            <div className={styles.lobbyRefinedDescription}>{gameDescription(session.gameKey)}</div>
-          </div>
-        </section>
-
-        <section className={styles.lobbyRefinedMetaRow}>
-          <div className={styles.lobbyRefinedMetaCard}>
-            <div className={styles.lobbyRefinedSectionTitle}>Параметры стола</div>
-            <div className={styles.lobbyRefinedStatGrid}>
-              {settingItems.map((item) => (
-                <div key={item.label} className={styles.lobbyRefinedStat}>
-                  <span className={[styles.lobbyRefinedStatIcon, styles[`lobbyRefinedStatIcon${item.tone}`]].join(' ')}>
-                    <Icon name={item.icon} size={18} />
-                  </span>
-                  <div className={styles.lobbyRefinedStatCopy}>
-                    <span>{item.label}</span>
-                    <strong>{item.value}</strong>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        <section className={styles.lobbyRefinedPlayers}>
-          <div className={styles.lobbyRefinedPlayersHeader}>
-            <div>
-              <div className={styles.lobbyRefinedSectionTitle}>Участники лобби</div>
-            </div>
-            <div className={styles.lobbyRefinedPlayerCounters}>
-              <span className={styles.tagReady}>{readyCount} готовы</span>
-              <span className={styles.tagMuted}>{Math.max(lobbyPlayers.length - readyCount, 0)} не готовы</span>
-            </div>
-          </div>
-
-          <div className={styles.lobbyRefinedPlayerGrid}>
-            {lobbyPlayers.map((member) => {
-              const user = getUser(chat, member.userId);
-              const isJoined = member.status === 'joined';
-              const isReady = Boolean(member.isReady);
-              const isWaiting = !isJoined;
-              const stateTone = isWaiting
-                ? styles.lobbyRefinedPlayerWaiting
-                : isReady
-                  ? styles.lobbyRefinedPlayerReady
-                  : styles.lobbyRefinedPlayerIdle;
-
-              return (
-                <article
-                  key={member.userId}
-                  className={[styles.lobbyRefinedPlayerCard, stateTone].join(' ')}
-                >
-                  <div className={styles.lobbyRefinedPlayerAvatar}>
-                    <Avatar url={user?.avatarUrl ?? undefined} name={user?.username ?? 'Игрок'} size={avatarSize} />
-                    {isJoined ? (
-                      <span className={[styles.lobbyRefinedPresence, styles.lobbyRefinedPresenceOnline].join(' ')} />
-                    ) : null}
-                  </div>
-
-                  <div className={styles.lobbyRefinedPlayerMain}>
-                    <strong>{user?.username ?? 'Игрок'}</strong>
-                    <span>{isJoined ? `В лобби · ${connectionStatusLabel(member.connectionStatus)}` : 'Ожидаем вход'}</span>
-                  </div>
-
-                  <div className={styles.lobbyRefinedPlayerTags}>
-                    <span className={member.userId === session.createdBy ? styles.tag : styles.tagMuted}>
-                      {member.userId === session.createdBy ? 'Создатель' : 'Игрок'}
-                    </span>
-                    <span className={!isJoined ? styles.tagMuted : isReady ? styles.tagReady : styles.tagWarn}>
-                      {!isJoined ? 'Подключается' : isReady ? 'Готов' : 'Не готов'}
-                    </span>
-                  </div>
-
-                  {!isJoined || isReady ? (
-                    <div className={styles.lobbyRefinedPlayerState}>
-                      {isWaiting ? <Spinner size={16} /> : <Icon name="check" size={18} />}
-                    </div>
-                  ) : null}
-                </article>
-              );
-            })}
-          </div>
-        </section>
-
-        <section className={styles.lobbyRefinedFooter}>
-          <div className={styles.lobbyRefinedFooterNote}>{actionHint}</div>
-          <div className={styles.lobbyRefinedFooterActions}>
-            {isCreator ? (
-              <button className={[styles.ghostBtn, styles.lobbyRefinedActionSecondary].join(' ')} onClick={() => setSettingsOpen(true)}>
-                <Icon name="settings" size={16} />
-                Настроить лобби
-              </button>
-            ) : null}
-
-            {meMember?.status !== 'joined'
-              ? (
-                <button className={[styles.ghostBtn, styles.lobbyRefinedActionSecondary].join(' ')} onClick={() => joinSession({ sessionId: session.sessionId, role: meMember?.role ?? 'player' })}>
-                  Войти
-                </button>
-              ) : (
-                <button className={[styles.ghostBtn, styles.lobbyRefinedActionSecondary, styles.lobbyRefinedActionLeave].join(' ')} onClick={() => leaveSession({ sessionId: session.sessionId })}>
-                  <Icon name="logout" size={16} />
-                  Выйти
-                </button>
-              )}
-
-            {meMember?.role === 'player' && meMember?.status === 'joined' ? (
-              <button
-                className={[meMember.isReady ? styles.ghostBtn : styles.successBtn, styles.lobbyRefinedActionSecondary].join(' ')}
-                disabled={settingReady}
-                onClick={() => setReady({ sessionId: session.sessionId, isReady: !meMember?.isReady })}
-              >
-                {meMember.isReady ? 'Не готов' : 'Готов'}
-              </button>
-            ) : null}
-
-            {isCreator ? (
-              <button className={[styles.primaryBtn, styles.lobbyRefinedActionPrimary].join(' ')} disabled={starting} onClick={handleStart}>
-                <Icon name="play" size={14} />
-                Начать
-              </button>
-            ) : null}
-
-            {isCreator ? (
-              <button className={[styles.dangerBtn, styles.lobbyRefinedActionDanger].join(' ')} disabled={cancelling} onClick={() => cancelSession({ sessionId: session.sessionId })}>
-                <Icon name="close" size={14} />
-                Отменить
-              </button>
-            ) : null}
-          </div>
-        </section>
+    <div className={[styles.lobbyRefinedShell, compact ? styles.lobbyRefinedShellCompact : ''].filter(Boolean).join(' ')}>
+      <div className={styles.lobbyRefinedNav}>
+        <button
+          type="button"
+          className={[styles.ghostBtn, styles.lobbyRefinedFloatingBack].join(' ')}
+          onClick={onBack}
+          aria-label="Назад к лобби"
+        >
+          <Icon name="arrowLeft" size={16} />
+        </button>
+        <span className={styles.lobbyRefinedNavLabel}>К списку лобби</span>
       </div>
+      <section className={styles.lobbyRefinedTop}>
+        <div className={styles.lobbyRefinedPreview}>
+          <span>{gamePreview(session.gameKey)}</span>
+        </div>
+
+        <div className={styles.lobbyRefinedHeading}>
+          <div className={styles.lobbyRefinedTitle}>{session.title}</div>
+          <div className={styles.lobbyRefinedSubtitle}>{gameTitle(session.gameKey)} · Лобби</div>
+          <div className={styles.lobbyRefinedChips}>
+            <span className={[styles.tagReady, styles.lobbyRefinedChip].join(' ')}>
+              <Icon name="users" size={14} />
+              {formatPlayerCount(lobbyPlayers.length)}
+            </span>
+            <span className={[styles.tag, styles.lobbyRefinedChip].join(' ')}>{joinedCount} в лобби</span>
+            <span className={[waitingCount ? styles.tagWarn : styles.tagReady, styles.lobbyRefinedChip].join(' ')}>
+              {waitingCount ? `ждём ${waitingCount}` : `${readyCount} готовы`}
+            </span>
+            <span className={[styles.tagMuted, styles.lobbyRefinedChip].join(' ')}>
+              <Icon name="clock" size={14} />
+              {formatSessionClock(session)}
+            </span>
+          </div>
+          <div className={styles.lobbyRefinedDescription}>{gameDescription(session.gameKey)}</div>
+        </div>
+      </section>
+
+      <section className={styles.lobbyRefinedMetaRow}>
+        <div className={styles.lobbyRefinedMetaCard}>
+          <div className={styles.lobbyRefinedSectionTitle}>Параметры стола</div>
+          <div className={styles.lobbyRefinedStatGrid}>
+            {settingItems.map((item) => (
+              <div key={item.label} className={styles.lobbyRefinedStat}>
+                <span className={[styles.lobbyRefinedStatIcon, styles[`lobbyRefinedStatIcon${item.tone}`]].join(' ')}>
+                  <Icon name={item.icon} size={18} />
+                </span>
+                <div className={styles.lobbyRefinedStatCopy}>
+                  <span>{item.label}</span>
+                  <strong>{item.value}</strong>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className={styles.lobbyRefinedPlayers}>
+        <div className={styles.lobbyRefinedPlayersHeader}>
+          <div>
+            <div className={styles.lobbyRefinedSectionTitle}>Участники лобби</div>
+          </div>
+          <div className={styles.lobbyRefinedPlayerCounters}>
+            <span className={styles.tagReady}>{readyCount} готовы</span>
+            <span className={styles.tagMuted}>{Math.max(lobbyPlayers.length - readyCount, 0)} не готовы</span>
+          </div>
+        </div>
+
+        <div className={styles.lobbyRefinedPlayerGrid}>
+          {lobbyPlayers.map((member) => {
+            const user = getUser(chat, member.userId);
+            const isJoined = member.status === 'joined';
+            const isReady = Boolean(member.isReady);
+            const isWaiting = !isJoined;
+            const stateTone = isWaiting
+              ? styles.lobbyRefinedPlayerWaiting
+              : isReady
+                ? styles.lobbyRefinedPlayerReady
+                : styles.lobbyRefinedPlayerIdle;
+
+            return (
+              <article
+                key={member.userId}
+                className={[styles.lobbyRefinedPlayerCard, stateTone].join(' ')}
+              >
+                <div className={styles.lobbyRefinedPlayerAvatar}>
+                  <Avatar url={user?.avatarUrl ?? undefined} name={user?.username ?? 'Игрок'} size={avatarSize} />
+                  {isJoined ? (
+                    <span className={[styles.lobbyRefinedPresence, styles.lobbyRefinedPresenceOnline].join(' ')} />
+                  ) : null}
+                </div>
+
+                <div className={styles.lobbyRefinedPlayerMain}>
+                  <strong>{user?.username ?? 'Игрок'}</strong>
+                  <span>{isJoined ? `В лобби · ${connectionStatusLabel(member.connectionStatus)}` : 'Ожидаем вход'}</span>
+                </div>
+
+                <div className={styles.lobbyRefinedPlayerTags}>
+                  <span className={member.userId === session.createdBy ? styles.tag : styles.tagMuted}>
+                    {member.userId === session.createdBy ? 'Создатель' : 'Игрок'}
+                  </span>
+                  <span className={!isJoined ? styles.tagMuted : isReady ? styles.tagReady : styles.tagWarn}>
+                    {!isJoined ? 'Подключается' : isReady ? 'Готов' : 'Не готов'}
+                  </span>
+                </div>
+
+                {!isJoined || isReady ? (
+                  <div className={styles.lobbyRefinedPlayerState}>
+                    {isWaiting ? <Spinner size={16} /> : <Icon name="check" size={18} />}
+                  </div>
+                ) : null}
+              </article>
+            );
+          })}
+        </div>
+      </section>
+
+      <section className={styles.lobbyRefinedFooter}>
+        <div className={styles.lobbyRefinedFooterNote}>{actionHint}</div>
+        <div className={styles.lobbyRefinedFooterActions}>
+          {isCreator ? (
+            <button className={[styles.ghostBtn, styles.lobbyRefinedActionSecondary].join(' ')} onClick={() => setSettingsOpen(true)}>
+              <Icon name="settings" size={16} />
+              Настроить лобби
+            </button>
+          ) : null}
+
+          {meMember?.status !== 'joined'
+            ? (
+              <button className={[styles.ghostBtn, styles.lobbyRefinedActionSecondary].join(' ')} onClick={() => joinSession({ sessionId: session.sessionId, role: meMember?.role ?? 'player' })}>
+                Войти
+              </button>
+            ) : (
+              <button className={[styles.ghostBtn, styles.lobbyRefinedActionSecondary, styles.lobbyRefinedActionLeave].join(' ')} onClick={() => leaveSession({ sessionId: session.sessionId })}>
+                <Icon name="logout" size={16} />
+                Выйти
+              </button>
+            )}
+
+          {meMember?.role === 'player' && meMember?.status === 'joined' ? (
+            <button
+              className={[meMember.isReady ? styles.ghostBtn : styles.successBtn, styles.lobbyRefinedActionSecondary].join(' ')}
+              disabled={settingReady}
+              onClick={() => setReady({ sessionId: session.sessionId, isReady: !meMember?.isReady })}
+            >
+              {meMember.isReady ? 'Не готов' : 'Готов'}
+            </button>
+          ) : null}
+
+          {isCreator ? (
+            <button className={[styles.primaryBtn, styles.lobbyRefinedActionPrimary].join(' ')} disabled={starting} onClick={handleStart}>
+              <Icon name="play" size={14} />
+              Начать
+            </button>
+          ) : null}
+
+          {isCreator ? (
+            <button className={[styles.dangerBtn, styles.lobbyRefinedActionDanger].join(' ')} disabled={cancelling} onClick={() => cancelSession({ sessionId: session.sessionId })}>
+              <Icon name="close" size={14} />
+              Отменить
+            </button>
+          ) : null}
+        </div>
+      </section>
 
       {isCreator ? (
         <Modal
@@ -1096,7 +1256,7 @@ function LobbyViewRefined({
           </div>
         </Modal>
       ) : null}
-    </>
+    </div>
   );
 }
 
@@ -1108,6 +1268,10 @@ function PokerView({
   compact = false,
   immersive = false,
   mobileViewport = false,
+  fullscreenActive = false,
+  onToggleFullscreen,
+  onBack,
+  onClose,
 }: {
   session: GameSession;
   chat?: Chat;
@@ -1116,327 +1280,25 @@ function PokerView({
   compact?: boolean;
   immersive?: boolean;
   mobileViewport?: boolean;
+  fullscreenActive?: boolean;
+  onToggleFullscreen: () => Promise<void> | void;
+  onBack: () => void;
+  onClose: () => void;
 }) {
-  const poker = session.poker!;
-  const me = poker.players.find((p) => p.userId === meId);
-  const [amount, setAmount] = useState(Number(session.config?.bigBlind ?? 20));
-  const [showLog, setShowLog] = useState(false);
-  const [showPlayers, setShowPlayers] = useState(false);
-  const [act, { isLoading }] = usePokerActionMutation();
-  const prevStage = useRef<string>('');
-  const prevAction = useRef<string>('');
-
-  useEffect(() => {
-    setAmount(Number(session.config?.bigBlind ?? 20));
-  }, [session.sessionId, session.updatedAt, session.config]);
-
-  useEffect(() => {
-    const akey = `${poker.actionLog?.[0]?.id ?? ''}:${poker.turnUserId ?? ''}`;
-    if (prevStage.current && prevStage.current !== poker.stage) playUiBeep('start');
-    if (prevAction.current && prevAction.current !== akey && poker.turnUserId === meId) playUiBeep('message');
-    prevStage.current = poker.stage ?? '';
-    prevAction.current = akey;
-  }, [poker.turnUserId, poker.stage, poker.actionLog, meId]);
-
-  const toCall = me ? Math.max(0, poker.currentBet - me.roundBet) : 0;
-  const myTurn = poker.turnUserId === meId;
-  const canCheck = toCall === 0;
-  const canBet = poker.currentBet === 0;
-  const bigBlind = Number(session.config?.bigBlind ?? 20);
-  const minRaiseTo = Math.max(bigBlind, poker.currentBet + bigBlind);
-  const latestAction = poker.actionLog?.[0] ?? null;
-  const playersBySeat = [...poker.players].sort((a, b) => a.seat - b.seat);
-  const dealerUserId = playersBySeat[poker.dealerIndex % Math.max(1, playersBySeat.length)]?.userId ?? null;
-  const opponents = playersBySeat.filter((p) => p.userId !== meId);
-  const opponentSeatClasses = useMemo(() => {
-    if (opponents.length <= 1) return [styles.seatPosHeadsUpRight];
-    if (opponents.length === 2) return [styles.seatPosTopLeft, styles.seatPosTopRight];
-    if (opponents.length === 3) return [styles.seatPosTop, styles.seatPosLeftLow, styles.seatPosRightLow];
-    if (opponents.length === 4) return [styles.seatPosTopLeft, styles.seatPosTopRight, styles.seatPosLeftLow, styles.seatPosRightLow];
-    return [styles.seatPosTop, styles.seatPosTopRight, styles.seatPosRight, styles.seatPosLeft, styles.seatPosTopLeft];
-  }, [opponents.length]);
-  const showOverlayResult = poker.stage === 'showdown' || session.status === 'FINISHED' || session.status === 'CANCELLED';
-  const overlayResult = session.status === 'FINISHED' || session.status === 'CANCELLED'
-    ? (session.result ?? poker.result)
-    : (poker.lastCompletedHandResult ?? poker.result);
-  const overlayTitle = session.status === 'CANCELLED'
-    ? 'Игра отменена'
-    : session.status === 'FINISHED'
-      ? 'Победитель игры'
-      : 'Победитель раздачи';
-  const placementByUserId = useMemo(() => new Map((overlayResult?.placements ?? []).map((item) => [item.userId, item])), [overlayResult]);
-  const bestCardsByUserId = useMemo(() => {
-    const next = new Map<string, string[]>();
-    for (const player of poker.players) {
-      const placement = placementByUserId.get(player.userId);
-      if (placement?.bestCards?.length) {
-        next.set(player.userId, placement.bestCards);
-        continue;
-      }
-      if (!player.cards.length || poker.communityCards.length < 3) continue;
-      next.set(player.userId, getBestPokerHand([...player.cards, ...poker.communityCards]).cards);
-    }
-    return next;
-  }, [placementByUserId, poker.communityCards, poker.players]);
-  const winningCards = useMemo(
-    () => new Set((overlayResult?.winners ?? []).flatMap((userId) => bestCardsByUserId.get(userId) ?? [])),
-    [bestCardsByUserId, overlayResult],
-  );
-  const winningPlacements = useMemo(
-    () => (overlayResult?.placements ?? []).filter((item) => overlayResult?.winners.includes(item.userId)),
-    [overlayResult],
-  );
-  const overlayHeadline = !overlayResult?.winners.length
-    ? 'Раздача завершена'
-    : overlayResult.winners.length === 1
-      ? `${getName(chat, overlayResult.winners[0])} забирает банк`
-      : `Сплит-пот: ${overlayResult.winners.map((id) => getName(chat, id)).join(' · ')}`;
-  const overlaySummary = winningPlacements
-    .map((item) => item.handLabel)
-    .filter(Boolean)
-    .filter((label, index, items) => items.indexOf(label) === index)
-    .join(' · ') || poker.showdownMessage || 'Результат раздачи зафиксирован';
-  const { containerRef: pokerViewportRef, size: pokerSurface } = useResponsiveSurfaceSize({
-    aspectRatio: POKER_TABLE_BASE_WIDTH / POKER_TABLE_BASE_HEIGHT,
-    minWidth: 420,
-    minHeight: 240,
-  });
-  const pokerSurfaceWidth = pokerSurface.width || POKER_TABLE_BASE_WIDTH;
-  const pokerSurfaceHeight = pokerSurface.height || POKER_TABLE_BASE_HEIGHT;
-  const pokerScale = Math.max(0.62, Math.min(2.08, pokerSurfaceWidth / POKER_TABLE_BASE_WIDTH));
-  const pokerSurfaceStyle = {
-    ['--poker-scale' as never]: pokerScale,
-    ['--poker-table-width' as never]: `${pokerSurfaceWidth}px`,
-    ['--poker-table-height' as never]: `${pokerSurfaceHeight}px`,
-  } as CSSProperties;
-  const opponentAvatarSize = Math.max(18, Math.min(34, Math.round((compact ? 20 : 22) * pokerScale)));
-  const heroAvatarSize = Math.max(20, Math.min(38, Math.round((compact ? 22 : 24) * pokerScale)));
-
-  useEffect(() => {
-    if (!immersive) return;
-    setShowPlayers(false);
-    setShowLog(false);
-  }, [immersive]);
-
-  const submit = async (type: 'fold' | 'check' | 'call' | 'bet' | 'raise', nextAmount?: number) => {
-    try {
-      setError('');
-      await act({ sessionId: session.sessionId, type, amount: nextAmount, idempotencyKey: globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}` }).unwrap();
-    } catch (e) {
-      notifyError(setError, 'poker-action', e);
-    }
-  };
-
   return (
-    <div
-      className={[
-        styles.revampGameViewport,
-        styles.revampGameViewportLandscape,
-        compact ? styles.revampGameViewportCompact : '',
-        immersive ? styles.revampGameViewportImmersive : '',
-      ].filter(Boolean).join(' ')}
-    >
-      {!immersive && !mobileViewport ? (
-        <div className={[styles.pokerTopline, styles.revampHudTop].join(' ')}>
-          <div className={styles.pokerTopMain}>
-            <div className={styles.pokerHandTitle}>Раздача #{poker.handNumber ?? 1}</div>
-            <div className={styles.pokerHandMeta}>Покер · {formatStage(poker.stage)} · Банк {poker.pot} · Время {formatSessionClock(session)}</div>
-          </div>
-          <div className={styles.pokerTopAside}>
-            <div className={styles.stageStrip}>
-              {STAGES.map((stage) => {
-                const currentIndex = STAGES.indexOf((poker.stage as any) ?? 'preflop');
-                const itemIndex = STAGES.indexOf(stage);
-                return (
-                  <span
-                    key={stage}
-                    className={[
-                      styles.stagePill,
-                      poker.stage === stage ? styles.stagePillCurrent : '',
-                      itemIndex < currentIndex ? styles.stagePillDone : '',
-                    ].filter(Boolean).join(' ')}
-                  >
-                    {compact ? formatStage(stage).slice(0, 1) : formatStage(stage)}
-                  </span>
-                );
-              })}
-            </div>
-            <TurnTimer deadlineAt={poker.actionDeadlineAt} duration={poker.timerSec ?? 20} compact serverNow={session.serverNow} />
-            <button className={styles.ghostBtn} onClick={() => setShowPlayers((v) => !v)}>{showPlayers ? 'Игроки ×' : 'Игроки'}</button>
-            <button className={styles.ghostBtn} onClick={() => setShowLog((v) => !v)}>{showLog ? 'Лог ×' : 'Лог'}</button>
-          </div>
-        </div>
-      ) : null}
-
-      <div className={styles.revampStageArea}>
-        <div ref={pokerViewportRef} className={[styles.pokerTableViewport, styles.revampStageMeasure].join(' ')}>
-          <div className={styles.revampSurfaceShadow}>
-            <div className={styles.pokerTableFrame} style={pokerSurfaceStyle}>
-            <div className={styles.pokerTableInner}>
-              {showPlayers ? (
-                <div className={[styles.tableDrawer, styles.tableDrawerLeft].join(' ')}>
-                  <div className={styles.tableDrawerTitle}>Игроки</div>
-                  <div className={styles.drawerList}>
-                    {playersBySeat.map((player) => {
-                      const member = session.members.find((m) => m.userId === player.userId);
-                      return (
-                        <div key={player.userId} className={[styles.drawerRow, poker.turnUserId === player.userId ? styles.drawerRowTurn : ''].join(' ')}>
-                          <span>{getName(chat, player.userId)}</span>
-                          <span>{player.stack}</span>
-                          <span>{connectionStatusLabel(member?.connectionStatus)}</span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              ) : null}
-
-              {showLog ? (
-                <div className={[styles.tableDrawer, styles.tableDrawerRight].join(' ')}>
-                  <div className={styles.tableDrawerTitle}>Лог</div>
-                  <div className={styles.drawerList}>
-                    {poker.actionLog.slice(0, compact ? 8 : 12).map((item) => (
-                      <div key={item.id} className={styles.drawerRow}>
-                        <span>{getName(chat, item.userId)}</span>
-                        <span>{item.note ?? formatAction(item.type, item.amount)}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ) : null}
-
-              {opponents.map((player, index) => {
-                const member = session.members.find((m) => m.userId === player.userId);
-                return (
-                  <div
-                    key={player.userId}
-                    className={[
-                      styles.seatPanel,
-                      opponentSeatClasses[index] ?? styles.seatPosTop,
-                      poker.turnUserId === player.userId ? styles.seatPanelTurn : '',
-                      player.folded ? styles.seatPanelFolded : '',
-                    ].join(' ')}
-                  >
-                    <div className={styles.seatPanelTop}>
-                      <div className={styles.seatAvatarWrap}>
-                        <Avatar url={getUser(chat, player.userId)?.avatarUrl ?? undefined} name={getName(chat, player.userId)} size={opponentAvatarSize} />
-                        {dealerUserId === player.userId ? <span className={styles.dealerChip}>D</span> : null}
-                      </div>
-                      <div className={styles.seatPanelMeta}>
-                        <strong>{getName(chat, player.userId)}</strong>
-                        <span>{player.stack}</span>
-                      </div>
-                      {poker.turnUserId === player.userId ? <div className={styles.seatTimerMini}><TurnTimer deadlineAt={poker.actionDeadlineAt} duration={poker.timerSec ?? 20} compact serverNow={session.serverNow} /></div> : null}
-                    </div>
-                    <div className={styles.seatPanelCards}>
-                      {player.cards.map((card, i) => <Card key={i} card={card} compact highlight={(bestCardsByUserId.get(player.userId) ?? []).includes(card)} />)}
-                    </div>
-                    <div className={styles.seatPanelBadges}>
-                      <span className={styles.seatActionPill}>{player.lastAction ? formatAction(player.lastAction, player.lastActionAmount) : 'Ждёт'}</span>
-                      {connectionStatusTone(member?.connectionStatus) === 'offline' ? <span className={styles.seatStatusOffline}>offline</span> : connectionStatusTone(member?.connectionStatus) === 'reconnecting' ? <span className={styles.seatStatusOffline}>reconnecting</span> : <span className={styles.seatStatusOnline}>online</span>}
-                    </div>
-                    {player.roundBet > 0 ? <div className={styles.seatChipBet}>{player.roundBet}</div> : null}
-                  </div>
-                );
-              })}
-
-              <div className={styles.boardCluster}>
-                <div className={styles.boardHeaderMini}>
-                  <span className={styles.potBadge}>Банк {poker.pot}</span>
-                  <span className={styles.infoChip}>{poker.turnUserId ? `Ход: ${getName(chat, poker.turnUserId)}` : formatStage(poker.stage)}</span>
-                  {latestAction ? <span className={styles.infoChip}>{latestAction.note ?? `${getName(chat, latestAction.userId)} · ${formatAction(latestAction.type, latestAction.amount)}`}</span> : null}
-                </div>
-                <div className={styles.boardCardsCompact}>
-                  {Array.from({ length: 5 }).map((_, i) => {
-                    const card = poker.communityCards[i] ?? '??';
-                    return <Card key={i} card={card} compact={compact} highlight={card !== '??' && winningCards.has(card)} />;
-                  })}
-                </div>
-                <div className={styles.boardFooterMini}>
-                  <span className={styles.infoChip}>Ставка {poker.currentBet}</span>
-                  <span className={styles.infoChip}>{toCall > 0 ? `К ответу ${toCall}` : 'Можно чекать'}</span>
-                </div>
-              </div>
-
-              <div className={[styles.heroSeatFlat, myTurn ? styles.heroSeatFlatTurn : ''].join(' ')}>
-                <div className={styles.heroSeatInfo}>
-                  <div className={styles.seatAvatarWrap}>
-                    <Avatar url={getUser(chat, meId)?.avatarUrl ?? undefined} name={getName(chat, meId)} size={heroAvatarSize} />
-                    {dealerUserId === meId ? <span className={styles.dealerChip}>D</span> : null}
-                  </div>
-                  <div className={styles.seatPanelMeta}>
-                    <strong>{getName(chat, meId)} · Вы</strong>
-                    <span>{me?.stack ?? 0} фишек</span>
-                  </div>
-                  {myTurn ? <div className={styles.seatTimerMini}><TurnTimer deadlineAt={poker.actionDeadlineAt} duration={poker.timerSec ?? 20} compact serverNow={session.serverNow} /></div> : null}
-                  {me && me.roundBet > 0 ? <div className={styles.heroChipBet}>{me.roundBet}</div> : null}
-                </div>
-                <div className={styles.heroSeatCards}>
-                  {me?.cards.map((card, i) => <Card key={i} card={card} compact={false} highlight={(bestCardsByUserId.get(meId) ?? []).includes(card)} />)}
-                </div>
-                <div className={styles.heroSeatControls}>
-                  <button className={styles.dangerBtn} disabled={!myTurn || isLoading} onClick={() => submit('fold')}>Фолд</button>
-                  <button className={styles.ghostBtn} disabled={!myTurn || isLoading} onClick={() => submit(canCheck ? 'check' : 'call')}>
-                    {canCheck ? 'Чек' : `Колл ${toCall}`}
-                  </button>
-                  <div className={styles.raiseBoxInline}>
-                    <input className={styles.input} type="number" value={amount} min={canBet ? bigBlind : minRaiseTo} onChange={(e) => setAmount(Number(e.target.value || 0))} />
-                    <button className={styles.primaryBtn} disabled={!myTurn || isLoading || amount <= 0} onClick={() => submit(canBet ? 'bet' : 'raise', amount)}>{canBet ? 'Бет' : 'Рейз'}</button>
-                  </div>
-                </div>
-              </div>
-
-              {showOverlayResult && overlayResult ? (
-                <div className={styles.showdownOverlay}>
-                  <div className={styles.showdownCard}>
-                    <div className={styles.resultTitle}>{overlayTitle}</div>
-                    <div className={styles.resultWinners}>{overlayHeadline}</div>
-                    <div className={styles.metaMuted}>{overlaySummary}</div>
-                    {winningPlacements.length ? (
-                      <div className={styles.showdownWinningCards}>
-                        {winningPlacements.slice(0, 2).map((item) => (
-                          <div key={item.userId} className={styles.showdownWinningGroup}>
-                            <span className={styles.showdownWinningLabel}>{getName(chat, item.userId)}</span>
-                            <div className={styles.showdownWinningRow}>
-                              {(bestCardsByUserId.get(item.userId) ?? []).map((card) => <Card key={`${item.userId}-${card}`} card={card} compact highlight />)}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : null}
-                    <div className={styles.resultPlaces}>
-                      {overlayResult.placements.slice(0, compact ? 2 : 4).map((item) => (
-                        <div key={item.userId} className={[styles.resultPlace, overlayResult.winners.includes(item.userId) ? styles.resultPlaceWinner : ''].join(' ')}>
-                          <strong>{getName(chat, item.userId)}</strong>
-                          <span>{item.handLabel ?? '—'}</span>
-                          {(bestCardsByUserId.get(item.userId) ?? []).length ? (
-                            <div className={styles.resultPlaceCards}>
-                              {(bestCardsByUserId.get(item.userId) ?? []).map((card) => <Card key={`${item.userId}-${card}`} card={card} compact highlight={overlayResult.winners.includes(item.userId)} />)}
-                            </div>
-                          ) : null}
-                          <span className={overlayResult.winners.includes(item.userId) ? styles.resultPlaceAmountWin : ''}>{item.amount > 0 ? `+${item.amount}` : '0'}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              ) : null}
-            </div>
-          </div>
-        </div>
-      </div>
-      </div>
-
-      {!immersive && !mobileViewport ? (
-        <div className={[styles.pokerBottomLine, styles.revampHudBottom].join(' ')}>
-          <div className={styles.heroActionState}>
-            <span className={myTurn ? styles.tagReady : styles.tagMuted}>{myTurn ? 'Ваш ход' : 'Ожидание'}</span>
-            <span className={styles.metaMuted}>{toCall > 0 ? `Нужно ответить ${toCall}` : 'Можно сделать check'}</span>
-          </div>
-          {latestAction ? <div className={styles.inlineLastAction}>{getName(chat, latestAction.userId)} · {latestAction.note ?? formatAction(latestAction.type, latestAction.amount)}</div> : <div />}
-        </div>
-      ) : null}
-    </div>
+    <PokerTable
+      session={session}
+      chat={chat}
+      meId={meId}
+      compact={compact}
+      immersive={immersive}
+      mobileViewport={mobileViewport}
+      fullscreenActive={fullscreenActive}
+      onToggleFullscreen={onToggleFullscreen}
+      onBack={onBack}
+      onClose={onClose}
+      onError={setError}
+    />
   );
 }
 
@@ -2003,6 +1865,551 @@ function SessionDirectory({
   );
 }
 
+function directoryPlural(count: number, forms: [string, string, string]) {
+  const mod10 = count % 10;
+  const mod100 = count % 100;
+  if (mod10 === 1 && mod100 !== 11) return forms[0];
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return forms[1];
+  return forms[2];
+}
+
+function directoryLobbyCountText(count: number, scope: 'active' | 'archive') {
+  if (scope === 'active') return `${count} ${directoryPlural(count, ['активное лобби', 'активных лобби', 'активных лобби'])}`;
+  return `${count} в архиве`;
+}
+
+function directorySessionPlayers(session: GameSession) {
+  return session.members.filter((member) => member.role === 'player');
+}
+
+function directorySessionIdentity(chat: Chat | undefined, member: GameSession['members'][number]) {
+  const user = getUser(chat, member.userId);
+  return {
+    name: member.username ?? user?.username ?? 'Игрок',
+    avatarUrl: member.avatarUrl ?? user?.avatarUrl ?? undefined,
+  };
+}
+
+function directorySessionSubtitle(session: GameSession) {
+  if (session.status === 'CONFIG') return `${gameTitle(session.gameKey)} · Ожидание старта`;
+  if (session.status === 'ACTIVE') return `${gameTitle(session.gameKey)} · ${session.poker ? formatStage(session.poker.stage) : 'Игра идёт'}`;
+  if (session.status === 'CANCELLED') return `${gameTitle(session.gameKey)} · Лобби отменено`;
+  return `${gameTitle(session.gameKey)} · Игра завершена`;
+}
+
+function directorySessionStatus(session: GameSession) {
+  const players = directorySessionPlayers(session);
+  const joinedCount = players.filter((member) => member.status === 'joined').length;
+  const readyCount = players.filter((member) => member.status === 'joined' && member.isReady).length;
+
+  if (session.status === 'CONFIG') {
+    if (!players.length) return { label: 'Ждём игроков', tone: 'muted' as const };
+    if (joinedCount < players.length) return { label: 'Ждём вход', tone: 'warn' as const };
+    if (readyCount === players.length) return { label: 'Готово к старту', tone: 'ready' as const };
+    if (readyCount > 0) return { label: 'Ждём подтверждение', tone: 'ready' as const };
+    return { label: 'Собираем состав', tone: 'muted' as const };
+  }
+
+  if (session.status === 'ACTIVE') return { label: 'Игра идёт', tone: 'ready' as const };
+  if (session.status === 'CANCELLED') return { label: 'Отменено', tone: 'warn' as const };
+  return { label: 'Завершено', tone: 'muted' as const };
+}
+
+function directoryFormatDate(value: string) {
+  return new Intl.DateTimeFormat('ru-RU', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  }).format(new Date(value));
+}
+
+function directoryFormatDateTime(value: string) {
+  return new Intl.DateTimeFormat('ru-RU', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(new Date(value));
+}
+
+function DirectoryActiveCard({
+  session,
+  chat,
+  selected,
+  onOpen,
+}: {
+  session: GameSession;
+  chat?: Chat;
+  selected: boolean;
+  onOpen: (sessionId: string) => void;
+}) {
+  const players = directorySessionPlayers(session);
+  const joinedCount = players.filter((member) => member.status === 'joined').length;
+  const readyCount = players.filter((member) => member.status === 'joined' && member.isReady).length;
+  const statusInfo = directorySessionStatus(session);
+  const previewTone = session.gameKey === 'POKER'
+    ? styles.directoryLobbySessionPreviewPoker
+    : session.gameKey === 'FLAPPY'
+      ? styles.directoryLobbySessionPreviewFlappy
+      : styles.directoryLobbySessionPreviewNeutral;
+  const statusTone = statusInfo.tone === 'ready'
+    ? styles.directoryLobbySessionChipSuccess
+    : statusInfo.tone === 'warn'
+      ? styles.directoryLobbySessionChipWarn
+      : styles.directoryLobbySessionChipMuted;
+  const statItems = lobbySettingItems(session).slice(0, 4);
+  const visiblePlayers = players.slice(0, 3);
+  const morePlayers = Math.max(players.length - visiblePlayers.length, 0);
+  const names = visiblePlayers.map((member) => directorySessionIdentity(chat, member).name);
+  const peopleTitle = names.length ? names.join(', ') : 'Состав пока пуст';
+  const peopleMeta = players.length ? `${joinedCount} в лобби · ${readyCount} готовы` : 'Добавьте участников в лобби';
+
+  const handleOpen = () => onOpen(session.sessionId);
+  const handleKeyDown = (event: ReactKeyboardEvent<HTMLElement>) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      handleOpen();
+    }
+  };
+
+  return (
+    <article
+      className={[
+        styles.directoryLobbySessionCard,
+        selected ? styles.directoryLobbySessionCardSelected : '',
+      ].filter(Boolean).join(' ')}
+      role="button"
+      tabIndex={0}
+      onClick={handleOpen}
+      onKeyDown={handleKeyDown}
+    >
+      <div className={[styles.directoryLobbySessionPreview, previewTone].join(' ')}>
+        <span>{gamePreview(session.gameKey)}</span>
+      </div>
+
+      <div className={styles.directoryLobbySessionBody}>
+        <div className={styles.directoryLobbySessionHead}>
+          <div className={styles.directoryLobbySessionTitleBlock}>
+            <h3 className={styles.directoryLobbySessionTitle}>{session.title}</h3>
+            <div className={styles.directoryLobbySessionSubtitle}>{directorySessionSubtitle(session)}</div>
+          </div>
+
+          <div className={styles.directoryLobbySessionChips}>
+            <span className={[styles.directoryLobbySessionChip, styles.directoryLobbySessionChipPrimary].join(' ')}>
+              {sessionStageLabel(session)}
+            </span>
+            <span className={[styles.directoryLobbySessionChip, styles.directoryLobbySessionChipNeutral].join(' ')}>
+              <Icon name="users" size={16} />
+              {formatPlayerCount(players.length)}
+            </span>
+            <span className={[styles.directoryLobbySessionChip, statusTone].join(' ')}>
+              {statusInfo.label}
+            </span>
+          </div>
+        </div>
+
+        <div className={styles.directoryLobbySessionTime}>
+          <Icon name="clock" size={16} />
+          <span>{formatSessionClock(session)}</span>
+        </div>
+
+        <div className={styles.directoryLobbySessionStats}>
+          {statItems.map((item) => (
+            <div key={`${session.sessionId}-${item.label}`} className={styles.directoryLobbySessionStat}>
+              <span>{item.label}</span>
+              <strong>{item.value}</strong>
+            </div>
+          ))}
+        </div>
+
+        <div className={styles.directoryLobbySessionFoot}>
+          <div className={styles.directoryLobbySessionPeople}>
+            <div className={styles.directoryLobbyAvatarStack}>
+              {visiblePlayers.map((member) => {
+                const identity = directorySessionIdentity(chat, member);
+                return (
+                  <Avatar
+                    key={member.userId}
+                    url={identity.avatarUrl}
+                    name={identity.name}
+                    size={40}
+                    status={member.status === 'joined' && connectionStatusTone(member.connectionStatus) === 'online' ? 'online' : 'offline'}
+                    className={styles.directoryLobbyAvatar}
+                  />
+                );
+              })}
+              {morePlayers ? <span className={styles.directoryLobbyAvatarMore}>+{morePlayers}</span> : null}
+            </div>
+
+            <div className={styles.directoryLobbySessionPeopleCopy}>
+              <strong>{peopleTitle}</strong>
+              <span>{peopleMeta}</span>
+            </div>
+          </div>
+
+          <div className={styles.directoryLobbySessionActions}>
+            <button
+              type="button"
+              className={[styles.primaryBtn, styles.directoryLobbyOpenButton].join(' ')}
+              onClick={(event) => {
+                event.stopPropagation();
+                handleOpen();
+              }}
+            >
+              Открыть
+            </button>
+            <button
+              type="button"
+              className={[styles.ghostBtn, styles.directoryLobbyIconButton].join(' ')}
+              onClick={(event) => {
+                event.stopPropagation();
+                handleOpen();
+              }}
+              aria-label="Подробнее"
+            >
+              <Icon name="dots" size={18} />
+            </button>
+          </div>
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function DirectoryArchiveCard({
+  session,
+  selected,
+  onOpen,
+}: {
+  session: GameSession;
+  selected: boolean;
+  onOpen: (sessionId: string) => void;
+}) {
+  const players = directorySessionPlayers(session);
+  const previewTone = session.gameKey === 'POKER'
+    ? styles.directoryLobbySessionPreviewPoker
+    : session.gameKey === 'FLAPPY'
+      ? styles.directoryLobbySessionPreviewFlappy
+      : styles.directoryLobbySessionPreviewNeutral;
+  const stateClassName = session.status === 'CANCELLED' ? styles.tagWarn : styles.tagMuted;
+  const completedAt = session.endedAt ?? session.updatedAt;
+
+  const handleOpen = () => onOpen(session.sessionId);
+  const handleKeyDown = (event: ReactKeyboardEvent<HTMLElement>) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      handleOpen();
+    }
+  };
+
+  return (
+    <article
+      className={[
+        styles.directoryLobbyArchiveCard,
+        selected ? styles.directoryLobbyArchiveCardSelected : '',
+      ].filter(Boolean).join(' ')}
+      role="button"
+      tabIndex={0}
+      onClick={handleOpen}
+      onKeyDown={handleKeyDown}
+    >
+      <div className={[styles.directoryLobbyArchivePreview, previewTone].join(' ')}>
+        <span>{gamePreview(session.gameKey)}</span>
+      </div>
+
+      <div className={styles.directoryLobbyArchiveBody}>
+        <div className={styles.directoryLobbyArchiveHead}>
+          <div className={styles.directoryLobbyArchiveTitleBlock}>
+            <h3 className={styles.directoryLobbyArchiveTitle}>{session.title}</h3>
+            <div className={styles.directoryLobbyArchiveSubtitle}>{directorySessionSubtitle(session)}</div>
+          </div>
+          <span className={stateClassName}>{sessionStageLabel(session)}</span>
+        </div>
+
+        <div className={styles.directoryLobbyArchiveMeta}>
+          <div className={styles.directoryLobbyArchiveMetaItem}>
+            <span>Дата</span>
+            <strong>{directoryFormatDate(completedAt)}</strong>
+          </div>
+          <div className={styles.directoryLobbyArchiveMetaItem}>
+            <span>Игроки</span>
+            <strong>{formatPlayerCount(players.length)}</strong>
+          </div>
+          <div className={styles.directoryLobbyArchiveMetaItem}>
+            <span>Последнее обновление</span>
+            <strong>{directoryFormatDateTime(session.updatedAt)}</strong>
+          </div>
+        </div>
+      </div>
+
+      <div className={styles.directoryLobbyArchiveActions}>
+        <button
+          type="button"
+          className={[styles.ghostBtn, styles.directoryLobbyArchiveOpenButton].join(' ')}
+          onClick={(event) => {
+            event.stopPropagation();
+            handleOpen();
+          }}
+        >
+          Открыть
+        </button>
+        <button
+          type="button"
+          className={[styles.ghostBtn, styles.directoryLobbyIconButton].join(' ')}
+          onClick={(event) => {
+            event.stopPropagation();
+            handleOpen();
+          }}
+          aria-label="Подробнее"
+        >
+          <Icon name="dots" size={18} />
+        </button>
+      </div>
+    </article>
+  );
+}
+
+function SessionDirectoryRefined({
+  sessions,
+  activeSessionId,
+  mode,
+  onModeChange,
+  onOpen,
+  onCreateRequest,
+  onClearArchive,
+  creating,
+  clearing,
+  chat,
+  showHeader = true,
+}: {
+  sessions: GameSession[];
+  activeSessionId: string;
+  mode: 'all' | 'byGame';
+  onModeChange: (mode: 'all' | 'byGame') => void;
+  onOpen: (sessionId: string) => void;
+  onCreateRequest: () => void;
+  onClearArchive: () => void;
+  creating: boolean;
+  clearing: boolean;
+  chat?: Chat;
+  showHeader?: boolean;
+}) {
+  const [archiveExpanded, setArchiveExpanded] = useState(true);
+  const active = sessions.filter((item) => item.status === 'CONFIG' || item.status === 'ACTIVE');
+  const archive = sessions.filter((item) => item.status === 'FINISHED' || item.status === 'CANCELLED');
+  const grouped = GAME_CATALOG.map((game) => ({
+    game,
+    active: active.filter((item) => item.gameKey === game.key),
+    archive: archive.filter((item) => item.gameKey === game.key),
+  })).filter((bucket) => bucket.active.length || bucket.archive.length || bucket.game.status !== 'ready');
+
+  return (
+    <div className={styles.directoryLobbyLayout}>
+      {showHeader ? (
+        <header className={styles.directoryLobbyHero}>
+          <div className={styles.directoryLobbyHeroTop}>
+            <div className={styles.directoryLobbyHeroIntro}>
+              <div className={styles.directoryLobbyHeroBadge}>
+                <Icon name="game" size={30} />
+              </div>
+
+              <div className={styles.directoryLobbyHeroCopy}>
+                <h1 className={styles.directoryLobbyHeroTitle}>Лобби</h1>
+                <div className={styles.directoryLobbyHeroSubtitle}>
+                  Активные игровые лобби и архив завершённых партий.
+                </div>
+              </div>
+            </div>
+
+            <div className={styles.directoryLobbyHeroActions}>
+              <div className={styles.catalogTabs}>
+                <button className={[styles.catalogTab, mode === 'all' ? styles.catalogTabActive : ''].join(' ')} onClick={() => onModeChange('all')}>
+                  Все лобби
+                </button>
+                <button className={[styles.catalogTab, mode === 'byGame' ? styles.catalogTabActive : ''].join(' ')} onClick={() => onModeChange('byGame')}>
+                  По играм
+                </button>
+              </div>
+
+              <button
+                type="button"
+                className={[styles.primaryBtn, styles.directoryLobbyCreateButton].join(' ')}
+                disabled={creating}
+                onClick={onCreateRequest}
+              >
+                {creating ? <Spinner size={16} /> : 'Новое лобби'}
+                {!creating ? <Icon name="plus" size={18} /> : null}
+              </button>
+            </div>
+          </div>
+
+          <div className={styles.directoryLobbyHeroStats}>
+            <span className={[styles.tagReady, styles.directoryLobbyHeroStat].join(' ')}>
+              <span className={styles.directoryLobbyHeroDot} />
+              {directoryLobbyCountText(active.length, 'active')}
+            </span>
+            <span className={[styles.tagMuted, styles.directoryLobbyHeroStat].join(' ')}>
+              <span className={styles.directoryLobbyHeroDotMuted} />
+              {directoryLobbyCountText(archive.length, 'archive')}
+            </span>
+          </div>
+        </header>
+      ) : null}
+
+      {mode === 'all' ? (
+        <>
+          <section className={styles.directoryLobbySection}>
+            <div className={styles.directoryLobbySectionHead}>
+              <div className={styles.directoryLobbySectionHeading}>
+                <span className={[styles.directoryLobbySectionIcon, styles.directoryLobbySectionIconActive].join(' ')}>
+                  <Icon name="pulse" size={18} />
+                </span>
+                <div className={styles.directoryLobbySectionCopy}>
+                  <div className={styles.directoryLobbySectionTitle}>Активные лобби</div>
+                  <div className={styles.directoryLobbySectionText}>
+                    Текущие игровые сессии и лобби в ожидании старта всегда наверху.
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className={styles.directoryLobbySessionStack}>
+              {active.length ? active.map((item) => (
+                <DirectoryActiveCard
+                  key={item.sessionId}
+                  session={item}
+                  chat={chat}
+                  selected={activeSessionId === item.sessionId}
+                  onOpen={onOpen}
+                />
+              )) : <div className={[styles.empty, styles.directoryLobbyEmpty].join(' ')}>Активных лобби пока нет.</div>}
+            </div>
+          </section>
+
+          <section className={[styles.directoryLobbySection, styles.directoryLobbyArchiveSection].join(' ')}>
+            <div className={styles.directoryLobbySectionHead}>
+              <div className={styles.directoryLobbySectionHeading}>
+                <span className={[styles.directoryLobbySectionIcon, styles.directoryLobbySectionIconArchive].join(' ')}>
+                  <Icon name="clock" size={18} />
+                </span>
+                <div className={styles.directoryLobbySectionCopy}>
+                  <div className={styles.directoryLobbySectionTitle}>Архив</div>
+                  <div className={styles.directoryLobbySectionText}>
+                    Завершённые и отменённые лобби можно открыть в любой момент.
+                  </div>
+                </div>
+              </div>
+
+              <div className={styles.directoryLobbyArchiveTools}>
+                {archive.length ? <span className={styles.directoryLobbyArchiveCount}>{archive.length}</span> : null}
+                {archive.length ? (
+                  <button
+                    type="button"
+                    className={[styles.ghostBtn, styles.directoryLobbyArchiveClear].join(' ')}
+                    disabled={clearing}
+                    onClick={onClearArchive}
+                  >
+                    Очистить
+                  </button>
+                ) : null}
+                <button
+                  type="button"
+                  className={[styles.ghostBtn, styles.directoryLobbyIconButton].join(' ')}
+                  onClick={() => setArchiveExpanded((current) => !current)}
+                  aria-label={archiveExpanded ? 'Свернуть архив' : 'Развернуть архив'}
+                >
+                  <Icon name={archiveExpanded ? 'chevronUp' : 'chevronDown'} size={18} />
+                </button>
+              </div>
+            </div>
+
+            {archiveExpanded ? (
+              <div className={styles.directoryLobbyArchiveStack}>
+                {archive.length ? archive.map((item) => (
+                  <DirectoryArchiveCard
+                    key={item.sessionId}
+                    session={item}
+                    selected={activeSessionId === item.sessionId}
+                    onOpen={onOpen}
+                  />
+                )) : <div className={[styles.empty, styles.directoryLobbyEmpty].join(' ')}>Архив пока пуст.</div>}
+              </div>
+            ) : null}
+          </section>
+        </>
+      ) : (
+        <div className={styles.directoryLobbyGroupGrid}>
+          {grouped.map((bucket) => (
+            <section key={bucket.game.key} className={styles.directoryLobbyGroupCard}>
+              <div className={styles.directoryLobbyGroupHead}>
+                <div className={styles.directoryLobbyGroupIntro}>
+                  <div
+                    className={[
+                      styles.directoryLobbyGroupPreview,
+                      bucket.game.key === 'POKER'
+                        ? styles.directoryLobbySessionPreviewPoker
+                        : bucket.game.key === 'FLAPPY'
+                          ? styles.directoryLobbySessionPreviewFlappy
+                          : styles.directoryLobbySessionPreviewNeutral,
+                    ].join(' ')}
+                  >
+                    <span>{bucket.game.preview}</span>
+                  </div>
+
+                  <div className={styles.directoryLobbyGroupCopy}>
+                    <div className={styles.directoryLobbyGroupTitle}>{bucket.game.title}</div>
+                    <div className={styles.directoryLobbyGroupSubtitle}>{bucket.game.description}</div>
+                  </div>
+                </div>
+
+                <div className={styles.directoryLobbyGroupStats}>
+                  <span className={styles.tagReady}>{bucket.active.length} активных</span>
+                  <span className={styles.tagMuted}>{bucket.archive.length} в архиве</span>
+                </div>
+              </div>
+
+              <div className={styles.directoryLobbyGroupBlock}>
+                <div className={styles.directoryLobbyGroupLabel}>Активные</div>
+                <div className={styles.directoryLobbySessionStack}>
+                  {bucket.active.length ? bucket.active.map((item) => (
+                    <DirectoryActiveCard
+                      key={item.sessionId}
+                      session={item}
+                      chat={chat}
+                      selected={activeSessionId === item.sessionId}
+                      onOpen={onOpen}
+                    />
+                  )) : <div className={[styles.empty, styles.directoryLobbyEmpty].join(' ')}>Нет активных лобби.</div>}
+                </div>
+              </div>
+
+              <div className={styles.directoryLobbyGroupBlock}>
+                <div className={styles.directoryLobbyGroupLabel}>Архив</div>
+                <div className={styles.directoryLobbyArchiveStack}>
+                  {bucket.archive.length ? bucket.archive.map((item) => (
+                    <DirectoryArchiveCard
+                      key={item.sessionId}
+                      session={item}
+                      selected={activeSessionId === item.sessionId}
+                      onOpen={onOpen}
+                    />
+                  )) : <div className={[styles.empty, styles.directoryLobbyEmpty].join(' ')}>Архив пуст.</div>}
+                </div>
+              </div>
+            </section>
+          ))}
+        </div>
+      )}
+
+      <div className={styles.directoryLobbyHint}>
+        <Icon name="sparkles" size={16} />
+        <span>Совет: активные лобби отображаются вверху для быстрого доступа.</span>
+      </div>
+    </div>
+  );
+}
+
 function SessionOverview({
   session,
   chat,
@@ -2096,6 +2503,7 @@ function GameSessionPanelRevamp({
   const [cancelSession, { isLoading: cancelling }] = useCancelGameSessionMutation();
   const [localFullscreenScope, setLocalFullscreenScope] = useState<FullscreenScope>('none');
   const [mobileImmersiveDismissed, setMobileImmersiveDismissed] = useState(false);
+  const scrollAnchorRef = useRef<HTMLDivElement | null>(null);
   const isPhoneViewport = useMediaQuery('(max-width: 720px)');
   const isPortraitViewport = useMediaQuery('(orientation: portrait)');
   const isControlledFullscreen = fullscreenScope !== undefined;
@@ -2113,6 +2521,11 @@ function GameSessionPanelRevamp({
   const selectedMeta = GAME_CATALOG.find((item) => item.key === selectedGame) ?? GAME_CATALOG[0];
   const currentGameKey = view === 'session' && session ? session.gameKey : view === 'create' ? selectedGame : null;
   const presentation = getGamePresentationSpec(currentGameKey);
+  const viewportResetKey = view === 'session' && session
+    ? `session:${session.sessionId}:${session.status}`
+    : view === 'create'
+      ? `create:${selectedGame}`
+      : `directory:${directoryMode}`;
   const shouldAutoImmersive = isPhoneViewport && view === 'session' && !!session && session.status !== 'CONFIG';
   const shouldForceMobileImmersive = !isControlledFullscreen && shouldAutoImmersive && !mobileImmersiveDismissed;
   const effectiveFullscreenScope = fullscreenScope ?? (shouldForceMobileImmersive ? 'app' : localFullscreenScope);
@@ -2153,6 +2566,41 @@ function GameSessionPanelRevamp({
     }
     onFullscreenScopeChange?.('none');
   }, [fullscreenScope, isControlledFullscreen, localFullscreenScope, onFullscreenScopeChange, session, view]);
+
+  useLayoutEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    const anchor = scrollAnchorRef.current;
+    if (!anchor) return undefined;
+
+    const resetScroll = () => {
+      anchor.scrollIntoView({ block: 'start', inline: 'nearest' });
+
+      let node: HTMLElement | null = anchor;
+      while (node) {
+        const shouldReset =
+          node.matches('[data-game-stage-viewport="true"]')
+          || node.matches('[data-modal-game-body="true"]');
+
+        if (shouldReset) {
+          node.scrollTop = 0;
+          node.scrollLeft = 0;
+        }
+
+        node = node.parentElement;
+      }
+    };
+
+    resetScroll();
+    const frameId = window.requestAnimationFrame(resetScroll);
+    const followUpFrameId = window.requestAnimationFrame(() => window.requestAnimationFrame(resetScroll));
+    const timeoutId = window.setTimeout(resetScroll, 80);
+
+    return () => {
+      window.cancelAnimationFrame(frameId);
+      window.cancelAnimationFrame(followUpFrameId);
+      window.clearTimeout(timeoutId);
+    };
+  }, [viewportResetKey]);
 
   const create = async () => {
     try {
@@ -2337,9 +2785,20 @@ function GameSessionPanelRevamp({
       onFullscreenScopeChange={handleFullscreenScopeChange}
       onViewStateChange={onViewStateChange}
       presentation={presentation}
+      viewportKey={viewportResetKey}
       allowFullscreen={view === 'session' && !!session && session.status !== 'CONFIG'}
-      hideHeader={view === 'session' && !!session && session.status === 'CONFIG'}
-      flushViewport={view === 'session' && !!session && session.status === 'CONFIG'}
+      hideHeaderInFullscreen={!(view === 'session' && !!session && session.gameKey === 'POKER')}
+      hideHeader={
+        view === 'directory'
+        || view === 'create'
+        || (view === 'session' && !!session && session.status === 'CONFIG')
+        || (view === 'session' && !!session && session.gameKey === 'POKER')
+      }
+      flushViewport={
+        view === 'directory'
+        || view === 'create'
+        || (view === 'session' && !!session && session.status === 'CONFIG')
+      }
       eyebrow={view === 'session' && session?.status === 'CONFIG' ? undefined : (sourceMode === 'call' ? 'Игры во звонке' : 'Игры в чате')}
       title={uiTitle}
       subtitle={uiSubtitle}
@@ -2349,7 +2808,7 @@ function GameSessionPanelRevamp({
       className={[styles.shell, isCallMode ? styles.shellCall : styles.shellChat].filter(Boolean).join(' ')}
       stageClassName={[
         styles.frameStage,
-        view === 'session' ? styles.frameStageSession : styles.frameStageScroll,
+        view === 'session' ? styles.frameStageSession : styles.frameStageRevampScroll,
         view === 'session' && session?.status === 'CONFIG' ? styles.frameStageSessionConfig : '',
         isCallMode ? styles.frameStageCall : '',
       ].filter(Boolean).join(' ')}
@@ -2372,11 +2831,15 @@ function GameSessionPanelRevamp({
           );
 
         return view === 'session' && session ? (
-          <div className={[
+          <div
+            ref={scrollAnchorRef}
+            className={[
             styles.revampSessionViewport,
+            session.gameKey === 'POKER' ? styles.revampSessionViewportPoker : '',
             immersive ? styles.revampSessionViewportFullscreen : '',
             session.status === 'CONFIG' ? styles.revampSessionViewportConfig : '',
-          ].filter(Boolean).join(' ')}>
+          ].filter(Boolean).join(' ')}
+          >
             {error ? <div className={[styles.error, styles.revampSessionError].join(' ')}>{error}</div> : null}
             {session.status === 'CONFIG' ? (
               <div className={[styles.revampSessionConfig, styles.revampSessionConfigLobby].join(' ')}>
@@ -2388,7 +2851,43 @@ function GameSessionPanelRevamp({
                 description="Для покера нужен горизонтальный экран. В ландшафтной ориентации стол займет всю доступную высоту и ширину без сжатия."
               />
             ) : canRenderPokerStage ? (
-              <PokerView session={session} chat={chat} meId={meId} setError={setError} compact={compact} immersive={immersive} mobileViewport={isPhoneViewport} />
+              <PokerView
+                session={session}
+                chat={chat}
+                meId={meId}
+                setError={setError}
+                compact={compact || immersive || frameState.isFullscreen}
+                immersive={immersive}
+                mobileViewport={isPhoneViewport}
+                fullscreenActive={frameState.isFullscreen}
+                onToggleFullscreen={frameState.toggleFullscreen}
+                onBack={() => {
+                  const leaveSession = () => {
+                    setError('');
+                    setView('directory');
+                  };
+
+                  if (frameState.isFullscreen) {
+                    void frameState.exitFullscreen().finally(leaveSession);
+                    return;
+                  }
+
+                  leaveSession();
+                }}
+                onClose={() => {
+                  const leaveSession = () => {
+                    setError('');
+                    setView('directory');
+                  };
+
+                  if (frameState.isFullscreen) {
+                    void frameState.exitFullscreen().finally(leaveSession);
+                    return;
+                  }
+
+                  leaveSession();
+                }}
+              />
             ) : canRenderFlappyStage ? (
               <FlappyView session={session} chat={chat} meId={meId} setError={setError} compact={compact} immersive={immersive} mobileViewport={isPhoneViewport} />
             ) : shouldShowSessionOverview ? (
@@ -2416,19 +2915,19 @@ function GameSessionPanelRevamp({
             )}
           </div>
         ) : (
-          <div className={[styles.stageRoot, immersive ? styles.stageRootFullscreen : ''].filter(Boolean).join(' ')}>
+          <div ref={scrollAnchorRef} className={[styles.revampStageRoot, immersive ? styles.revampStageRootFullscreen : ''].filter(Boolean).join(' ')}>
             {error ? <div className={styles.error}>{error}</div> : null}
             {view === 'create' ? (
-              <CreateSessionView
+              <CreateSessionViewRefined
                 selectedGame={selectedGame}
                 onSelectGame={setSelectedGame}
                 onCreate={create}
                 creating={creating}
                 onBack={() => setView('directory')}
-                showHeader={false}
+                showHeader
               />
             ) : (
-              <SessionDirectory
+              <SessionDirectoryRefined
                 sessions={allSessions}
                 activeSessionId={activeId}
                 mode={directoryMode}
@@ -2441,7 +2940,8 @@ function GameSessionPanelRevamp({
                 onClearArchive={handleClearArchive}
                 creating={creating}
                 clearing={clearing}
-                showHeader={false}
+                chat={chat}
+                showHeader
               />
             )}
           </div>

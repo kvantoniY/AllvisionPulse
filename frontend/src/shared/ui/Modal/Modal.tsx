@@ -17,6 +17,7 @@ type ModalProps = PropsWithChildren<{
   headerActions?: ReactNode;
   appearance?: 'default' | 'pulse';
   hideHeader?: boolean;
+  immersiveActive?: boolean;
 }>;
 
 export function Modal({
@@ -31,22 +32,24 @@ export function Modal({
   headerActions,
   appearance = 'default',
   hideHeader = false,
+  immersiveActive = false,
 }: ModalProps) {
   const [mounted, setMounted] = useState(false);
   const shouldHideHeader = hideHeader || size === 'game';
+  const canCloseFromShell = !immersiveActive;
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open || !canCloseFromShell) return;
     const onKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape') onClose();
     };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
-  }, [open, onClose]);
+  }, [canCloseFromShell, open, onClose]);
 
   useEffect(() => {
     if (!open) return;
@@ -57,10 +60,14 @@ export function Modal({
 
   return createPortal(
     <div
-      className={[styles.backdrop, appearance === 'pulse' ? styles.backdropPulse : ''].filter(Boolean).join(' ')}
+      className={[
+        styles.backdrop,
+        appearance === 'pulse' ? styles.backdropPulse : '',
+        immersiveActive ? styles.backdropImmersive : '',
+      ].filter(Boolean).join(' ')}
       role="dialog"
       aria-modal="true"
-      onMouseDown={onClose}
+      onMouseDown={canCloseFromShell ? onClose : undefined}
     >
       <div
         className={[
@@ -70,14 +77,15 @@ export function Modal({
           size === 'xl' ? styles.modalXl : '',
           size === 'game' ? styles.modalGame : '',
           appearance === 'pulse' ? styles.modalPulse : '',
+          immersiveActive ? styles.modalImmersive : '',
         ].filter(Boolean).join(' ')}
         onMouseDown={(event) => event.stopPropagation()}
       >
-        {shouldHideHeader ? (
+        {shouldHideHeader && canCloseFromShell ? (
           <button type="button" className={[styles.close, styles.closeFloating].join(' ')} onClick={onClose} aria-label="Закрыть">
             <Icon name="close" size={18} />
           </button>
-        ) : (
+        ) : shouldHideHeader ? null : (
           <div className={styles.header}>
             <div className={styles.headerMain}>
               {icon ? <div className={styles.iconWrap}>{icon}</div> : null}
@@ -94,7 +102,10 @@ export function Modal({
             </div>
           </div>
         )}
-        <div className={[styles.body, size === 'game' ? styles.bodyGame : '', bodyClassName].filter(Boolean).join(' ')}>
+        <div
+          className={[styles.body, size === 'game' ? styles.bodyGame : '', immersiveActive ? styles.bodyImmersive : '', bodyClassName].filter(Boolean).join(' ')}
+          data-modal-game-body={size === 'game' ? 'true' : undefined}
+        >
           {children}
         </div>
       </div>

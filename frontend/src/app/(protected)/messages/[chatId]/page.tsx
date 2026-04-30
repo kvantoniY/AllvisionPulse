@@ -44,6 +44,7 @@ import { AdminBadge } from '@/shared/ui/AdminBadge/AdminBadge';
 import { SkeletonText } from '@/shared/ui/Skeleton/Skeleton';
 import { parseGameSystemMessage, gameLabel, gameStatusLabel } from '@/shared/lib/gameMessages';
 import { useGetGameSessionsQuery } from '@/shared/api/gamesApi';
+import type { GameViewState } from '@/features/games/lib/useGameFullscreen';
 import { useIsMobile } from '@/shared/lib/hooks/useIsMobile';
 import { PulseShareCard } from '@/shared/ui/PulseShareCard/PulseShareCard';
 import { getPulseArtifactKindLabel, normalizePulseArtifactToken } from '@/shared/lib/pulseArtifactDisplay';
@@ -509,6 +510,11 @@ export default function ChatPage() {
   const [pulseMediaFrom, setPulseMediaFrom] = useState('');
   const [pulseMediaTo, setPulseMediaTo] = useState('');
   const [gamesOpen, setGamesOpen] = useState(false);
+  const [gameViewState, setGameViewState] = useState<GameViewState>({
+    mode: 'chat',
+    fullscreenScope: 'none',
+    source: 'chat',
+  });
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Message[]>([]);
@@ -2326,8 +2332,21 @@ export default function ChatPage() {
         </div>
       </div>
 
-      <Modal open={gamesOpen} onClose={() => setGamesOpen(false)} title="Игры в чате" size="game">
-        <LazyGameSessionPanel chat={chat} meId={meId ?? ''} mode="chat" />
+      <Modal
+        open={gamesOpen}
+        onClose={() => {
+          setGamesOpen(false);
+          setGameViewState({
+            mode: 'chat',
+            fullscreenScope: 'none',
+            source: 'chat',
+          });
+        }}
+        title="Игры в чате"
+        size="game"
+        immersiveActive={gameViewState.fullscreenScope !== 'none'}
+      >
+        <LazyGameSessionPanel chat={chat} meId={meId ?? ''} mode="chat" onViewStateChange={setGameViewState} />
       </Modal>
 
       <RecordingVideoPreviewModal
