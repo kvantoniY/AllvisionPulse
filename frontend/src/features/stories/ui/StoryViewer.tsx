@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { type CSSProperties, useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   useAddStoryToHighlightMutation,
@@ -40,7 +40,7 @@ function getDurationMs(story: StoryItem | null) {
   return Math.max(1000, end - start);
 }
 
-function getMediaStyle(story: StoryItem | null) {
+function getMediaStyle(story: StoryItem | null): CSSProperties {
   const transform = story?.transformJson ?? {};
   const scale = Number(transform.scale ?? 1);
   const scaleX = Number(transform.scaleX ?? scale);

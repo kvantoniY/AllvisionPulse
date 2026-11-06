@@ -31,7 +31,7 @@ export class HttpError extends Error {
   }
 }
 
-export function asyncHandler(fn: (req: Request, res: Response, next: NextFunction) => Promise<void>) {
+export function asyncHandler(fn: (req: Request, res: Response, next: NextFunction) => Promise<unknown>) {
   return (req: Request, res: Response, next: NextFunction) => {
     fn(req, res, next).catch(next);
   };
@@ -70,4 +70,11 @@ export function errorHandler(err: any, req: Request, res: Response, _next: NextF
       method: req.method,
     },
   });
+}
+
+// Обычные параметры маршрута должны быть строками, в отличие от wildcard-параметров Express 5.
+export function routeParam(req: Request, name: string): string {
+  const value = req.params[name];
+  if (typeof value !== 'string') throw new HttpError(400, 'Invalid route parameter: ' + name);
+  return value;
 }

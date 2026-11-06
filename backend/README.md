@@ -14,9 +14,9 @@ cp .env.example .env
 
 ### 3) Установи зависимости и подготовь БД
 ```bash
-npm i
+npm ci
 npx prisma generate
-npx prisma migrate dev --name init
+npx prisma migrate deploy
 ```
 
 ### 4) Запусти dev-сервер

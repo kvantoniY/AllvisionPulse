@@ -429,8 +429,8 @@ function PokerView({ session, chat, meId, setError, compact = false }: { session
 
   useEffect(() => {
     const akey = `${poker.actionLog?.[0]?.id ?? ''}:${poker.turnUserId ?? ''}`;
-    if (prevStage.current && prevStage.current !== poker.stage) playUiBeep('start');
-    if (prevAction.current && prevAction.current !== akey && poker.turnUserId === meId) playUiBeep('message');
+    if (prevStage.current && prevStage.current !== poker.stage) playUiBeep({ frequency: 660, durationMs: 180 });
+    if (prevAction.current && prevAction.current !== akey && poker.turnUserId === meId) playUiBeep({ frequency: 880, durationMs: 120 });
     prevStage.current = poker.stage ?? '';
     prevAction.current = akey;
   }, [poker.turnUserId, poker.stage, poker.actionLog, meId]);

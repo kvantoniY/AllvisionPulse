@@ -1,3 +1,4 @@
+import { routeParam } from "../utils/http";
 
 import { Router } from "express";
 import { z } from "zod";
@@ -186,7 +187,7 @@ router.get("/search", requireAuth, asyncHandler(async (req: AuthedRequest, res) 
 }));
 
 router.get("/:username/connections", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
-  const username = req.params.username;
+  const username = routeParam(req, 'username');
   const tab = req.query.tab === "followers" ? "followers" : "following";
   const target = await prisma.user.findUnique({
     where: { username },
@@ -236,7 +237,7 @@ router.get("/:username/connections", requireAuth, asyncHandler(async (req: Authe
 }));
 
 router.get("/:username", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
-  const payload = await serializeProfile(req.user!.id, req.params.username, req.user!.role);
+  const payload = await serializeProfile(req.user!.id, routeParam(req, 'username'), req.user!.role);
   res.json(payload);
 }));
 
@@ -302,7 +303,7 @@ router.post("/me/blacklist", requireAuth, asyncHandler(async (req: AuthedRequest
 }));
 
 router.delete("/me/blacklist/:userId", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
-  const userId = req.params.userId;
+  const userId = routeParam(req, 'userId');
   await prisma.blacklist.deleteMany({ where: { blockerId: req.user!.id, blockedId: userId } });
   res.json({ ok: true });
 }));
@@ -380,7 +381,7 @@ router.post("/me/follows", requireAuth, asyncHandler(async (req: AuthedRequest, 
 }));
 
 router.post("/me/follows/:followId/accept", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
-  const id = req.params.followId;
+  const id = routeParam(req, 'followId');
   const follow = await prisma.friendship.findUnique({ where: { id } });
   if (!follow) throw new HttpError(404, "Request not found");
   if (follow.receiverId !== req.user!.id) throw new HttpError(403, "Forbidden");
@@ -396,7 +397,7 @@ router.post("/me/follows/:followId/accept", requireAuth, asyncHandler(async (req
 }));
 
 router.post("/me/follows/:followId/decline", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
-  const id = req.params.followId;
+  const id = routeParam(req, 'followId');
   const follow = await prisma.friendship.findUnique({ where: { id } });
   if (!follow) throw new HttpError(404, "Request not found");
   if (follow.receiverId !== req.user!.id) throw new HttpError(403, "Forbidden");
@@ -405,7 +406,7 @@ router.post("/me/follows/:followId/decline", requireAuth, asyncHandler(async (re
 }));
 
 router.delete("/me/follows/:userId", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
-  const userId = req.params.userId;
+  const userId = routeParam(req, 'userId');
   await prisma.friendship.deleteMany({ where: { senderId: req.user!.id, receiverId: userId } });
   res.json({ ok: true });
 }));
@@ -448,17 +449,17 @@ router.post("/me/friends/request", requireAuth, asyncHandler(async (req: AuthedR
 }));
 
 router.post("/me/friends/:friendshipId/accept", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
-  const friendship = await prisma.friendship.update({ where: { id: req.params.friendshipId }, data: { status: "ACCEPTED" } });
+  const friendship = await prisma.friendship.update({ where: { id: routeParam(req, 'friendshipId') }, data: { status: "ACCEPTED" } });
   res.json({ friendship });
 }));
 
 router.post("/me/friends/:friendshipId/decline", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
-  const friendship = await prisma.friendship.update({ where: { id: req.params.friendshipId }, data: { status: "DECLINED" } });
+  const friendship = await prisma.friendship.update({ where: { id: routeParam(req, 'friendshipId') }, data: { status: "DECLINED" } });
   res.json({ friendship });
 }));
 
 router.delete("/me/friends/:userId", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
-  await prisma.friendship.deleteMany({ where: { senderId: req.user!.id, receiverId: req.params.userId } });
+  await prisma.friendship.deleteMany({ where: { senderId: req.user!.id, receiverId: routeParam(req, 'userId') } });
   res.json({ ok: true });
 }));
 

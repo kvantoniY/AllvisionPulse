@@ -1,3 +1,4 @@
+import { routeParam } from "../utils/http";
 
 import { Router } from "express";
 import { z } from "zod";
@@ -57,7 +58,7 @@ router.post("/", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
 }));
 
 router.patch("/:taskId", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
-  const taskId = req.params.taskId;
+  const taskId = routeParam(req, 'taskId');
   const body = TaskSchema.partial().parse(req.body);
   const existing = await prisma.task.findUnique({ where: { id: taskId } });
   if (!existing || existing.deletedAt) throw new HttpError(404, "Task not found");
@@ -81,7 +82,7 @@ router.patch("/:taskId", requireAuth, asyncHandler(async (req: AuthedRequest, re
 }));
 
 router.post("/:taskId/toggle", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
-  const taskId = req.params.taskId;
+  const taskId = routeParam(req, 'taskId');
   const existing = await prisma.task.findUnique({ where: { id: taskId } });
   if (!existing || existing.deletedAt) throw new HttpError(404, "Task not found");
   if (req.user!.role !== "ADMIN" && existing.userId !== req.user!.id) throw new HttpError(403, "Forbidden");
@@ -90,7 +91,7 @@ router.post("/:taskId/toggle", requireAuth, asyncHandler(async (req: AuthedReque
 }));
 
 router.delete("/:taskId", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
-  const taskId = req.params.taskId;
+  const taskId = routeParam(req, 'taskId');
   const existing = await prisma.task.findUnique({ where: { id: taskId } });
   if (!existing || existing.deletedAt) throw new HttpError(404, "Task not found");
   if (req.user!.role !== "ADMIN" && existing.userId !== req.user!.id) throw new HttpError(403, "Forbidden");

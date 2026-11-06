@@ -114,7 +114,7 @@ export default function ProfilePage() {
 
   useEffect(() => {
     if (!inView || !feedNextCursor || !canViewProfile) return;
-    fetchFeedPage(feedNextCursor).catch(() => null);
+    fetchFeedPage({ cursor: feedNextCursor }).catch(() => null);
   }, [canViewProfile, feedNextCursor, fetchFeedPage, inView]);
 
   const userPosts = useMemo(() => {

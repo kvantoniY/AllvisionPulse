@@ -1,3 +1,4 @@
+import { routeParam } from "../utils/http";
 import { Router } from 'express';
 import { z } from 'zod';
 import { Prisma } from '@prisma/client';
@@ -499,7 +500,7 @@ async function finalizeShowdown(sessionId: string) {
   const state = session.poker;
   if (!state || state.stage !== 'showdown') return;
   state.showdownEndsAt = null;
-  if (session.status === 'FINISHED') {
+  if (isSessionFinished(session)) {
     session.updatedAt = nowIso();
     await saveSession(session.sessionId, session);
     emitGameUpdateDirect(session, 'game_finished_showdown');
@@ -558,7 +559,7 @@ async function performAutoAction(sessionId: string) {
   advancePokerState(session, player.userId);
   scheduleActionTimer(session);
   await saveSession(session.sessionId, session);
-  if (session.status === 'FINISHED') {
+  if (isSessionFinished(session)) {
     await postSystemGameMessage(session.chatId, session.createdBy, buildSessionMessage('SESSION_FINISHED', session, { note: 'Покерная сессия завершена' }));
   }
   emitGameUpdateDirect(session, 'poker_timeout', { userId: player.userId, action });
@@ -1136,7 +1137,7 @@ async function emitGameUpdate(req: AuthedRequest, session: GameSession, event: s
 }
 
 router.get('/chat/:chatId/sessions', requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
-  const { chatId } = req.params;
+  const chatId = routeParam(req, 'chatId');
   await ensureChatAccess(chatId, req.user!.id);
   const rooms = await prisma.gameRoom.findMany({
     where: { roomId: { startsWith: `game:${chatId}:` } },
@@ -1156,16 +1157,16 @@ router.get('/chat/:chatId/sessions', requireAuth, asyncHandler(async (req: Authe
 }));
 
 router.get('/sessions/:sessionId', requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
-  const { session } = await loadSession(req.params.sessionId);
+  const { session } = await loadSession(routeParam(req, 'sessionId'));
   await ensureChatAccess(session.chatId, req.user!.id);
   res.json({ session: toPublicSession(session, req.user!.id) });
 }));
 
 router.post('/chat/:chatId/sessions', requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
   await assertGamesSchemaReady();
-  logGameDebug('create-session:start', { chatId: req.params.chatId, userId: req.user!.id, body: req.body });
+  logGameDebug('create-session:start', { chatId: routeParam(req, 'chatId'), userId: req.user!.id, body: req.body });
 
-  const { chat, meMember } = await ensureChatAccess(req.params.chatId, req.user!.id);
+  const { chat, meMember } = await ensureChatAccess(routeParam(req, 'chatId'), req.user!.id);
 const parsed = CreateSessionSchema.safeParse(req.body);
 
 if (!parsed.success) {
@@ -1227,7 +1228,7 @@ const body = parsed.data;
 
 router.patch('/sessions/:sessionId/config', requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
   const body = UpdateSessionConfigSchema.parse(req.body);
-  const { session } = await loadSession(req.params.sessionId);
+  const { session } = await loadSession(routeParam(req, 'sessionId'));
   const { chat } = await ensureChatAccess(session.chatId, req.user!.id);
   if (session.createdBy !== req.user!.id) throw new HttpError(403, 'Only session creator can update the session');
   if (session.status !== 'CONFIG') throw new HttpError(400, 'Only lobby sessions can be edited');
@@ -1255,7 +1256,7 @@ router.patch('/sessions/:sessionId/config', requireAuth, asyncHandler(async (req
 
 router.post('/sessions/:sessionId/join', requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
   const body = JoinSchema.parse(req.body);
-  const { session } = await loadSession(req.params.sessionId);
+  const { session } = await loadSession(routeParam(req, 'sessionId'));
   await ensureChatAccess(session.chatId, req.user!.id);
   const member = session.members.find((item) => item.userId === req.user!.id);
   if (!member) throw new HttpError(404, 'Session member not found');
@@ -1277,7 +1278,7 @@ router.post('/sessions/:sessionId/join', requireAuth, asyncHandler(async (req: A
 
 router.post('/sessions/:sessionId/ready', requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
   const body = ReadySchema.parse(req.body);
-  const { session } = await loadSession(req.params.sessionId);
+  const { session } = await loadSession(routeParam(req, 'sessionId'));
   await ensureChatAccess(session.chatId, req.user!.id);
   if (session.status !== 'CONFIG') throw new HttpError(400, 'Readiness can only be changed in lobby');
   const member = session.members.find((item) => item.userId === req.user!.id);
@@ -1297,7 +1298,7 @@ router.post('/sessions/:sessionId/ready', requireAuth, asyncHandler(async (req: 
 }));
 
 router.post('/sessions/:sessionId/leave', requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
-  const { session } = await loadSession(req.params.sessionId);
+  const { session } = await loadSession(routeParam(req, 'sessionId'));
   await ensureChatAccess(session.chatId, req.user!.id);
   const member = session.members.find((item) => item.userId === req.user!.id);
   if (!member) throw new HttpError(404, 'Session member not found');
@@ -1321,7 +1322,7 @@ router.post('/sessions/:sessionId/leave', requireAuth, asyncHandler(async (req: 
 }));
 
 router.post('/sessions/:sessionId/start', requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
-  const { session } = await loadSession(req.params.sessionId);
+  const { session } = await loadSession(routeParam(req, 'sessionId'));
   await ensureChatAccess(session.chatId, req.user!.id);
   if (session.createdBy !== req.user!.id) throw new HttpError(403, 'Only session creator can start the game');
   if (session.status !== 'CONFIG') throw new HttpError(400, 'Session already started');
@@ -1344,7 +1345,7 @@ router.post('/sessions/:sessionId/start', requireAuth, asyncHandler(async (req: 
 }));
 
 router.post('/sessions/:sessionId/cancel', requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
-  const { session } = await loadSession(req.params.sessionId);
+  const { session } = await loadSession(routeParam(req, 'sessionId'));
   await ensureChatAccess(session.chatId, req.user!.id);
   if (session.createdBy !== req.user!.id) throw new HttpError(403, 'Only session creator can cancel the game');
   if (session.status === 'FINISHED' || session.status === 'CANCELLED') throw new HttpError(400, 'Session already closed');
@@ -1368,7 +1369,7 @@ router.post('/sessions/:sessionId/cancel', requireAuth, asyncHandler(async (req:
 
 
 router.delete('/sessions/:sessionId', requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
-  const { session } = await loadSession(req.params.sessionId);
+  const { session } = await loadSession(routeParam(req, 'sessionId'));
   await ensureChatAccess(session.chatId, req.user!.id);
   if (session.createdBy !== req.user!.id) throw new HttpError(403, 'Only session creator can delete the session');
   if (session.status === 'ACTIVE' || session.status === 'CONFIG') throw new HttpError(400, 'Delete is only available for closed sessions');
@@ -1385,7 +1386,7 @@ router.delete('/sessions/:sessionId', requireAuth, asyncHandler(async (req: Auth
 }));
 
 router.post('/chat/:chatId/sessions/archive/clear', requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
-  const { chat } = await ensureChatAccess(req.params.chatId, req.user!.id);
+  const { chat } = await ensureChatAccess(routeParam(req, 'chatId'), req.user!.id);
   const rooms = await prisma.gameRoom.findMany({ where: { roomId: { startsWith: `game:${chat.id}:` } } });
   let removed = 0;
   for (const room of rooms) {
@@ -1402,7 +1403,7 @@ router.post('/chat/:chatId/sessions/archive/clear', requireAuth, asyncHandler(as
 
 router.post('/sessions/:sessionId/flappy/attempt', requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
   const body = FlappyAttemptSchema.parse(req.body);
-  const { session } = await loadSession(req.params.sessionId);
+  const { session } = await loadSession(routeParam(req, 'sessionId'));
   await ensureChatAccess(session.chatId, req.user!.id);
   if (session.gameKey !== 'FLAPPY' || !session.flappy) throw new HttpError(400, 'Flappy session is not active');
   if (session.status !== 'ACTIVE') throw new HttpError(400, 'Session is not active');
@@ -1435,7 +1436,7 @@ router.post('/sessions/:sessionId/flappy/attempt', requireAuth, asyncHandler(asy
 
 router.post('/sessions/:sessionId/poker/action', requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
   const body = PokerActionSchema.parse(req.body);
-  const { session } = await loadSession(req.params.sessionId);
+  const { session } = await loadSession(routeParam(req, 'sessionId'));
   await ensureChatAccess(session.chatId, req.user!.id);
   if (session.gameKey !== 'POKER' || !session.poker) throw new HttpError(400, 'Poker session is not active');
   if (session.status !== 'ACTIVE') throw new HttpError(400, 'Session is not active');
@@ -1502,7 +1503,7 @@ router.post('/sessions/:sessionId/poker/action', requireAuth, asyncHandler(async
   advancePokerState(session, req.user!.id);
   scheduleActionTimer(session);
   await saveSession(session.sessionId, session);
-  if (session.status === 'FINISHED') {
+  if (isSessionFinished(session)) {
     await postSystemGameMessage(session.chatId, req.user!.id, buildSessionMessage('SESSION_FINISHED', session, { note: 'Покерная сессия завершена' }));
   }
   await emitGameUpdate(req, session, 'game:update', { reason: 'poker_action', action: body.type, userId: req.user!.id });
@@ -1510,3 +1511,8 @@ router.post('/sessions/:sessionId/poker/action', requireAuth, asyncHandler(async
 }));
 
 export default router;
+
+// Проверяем состояние заново после изменения сессии внутри advancePokerState.
+function isSessionFinished(session: GameSession): boolean {
+  return session.status === 'FINISHED';
+}

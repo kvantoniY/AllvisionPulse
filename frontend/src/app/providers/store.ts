@@ -1,10 +1,10 @@
+import { baseApi } from '@/shared/api/baseApi';
 import { configureStore } from '@reduxjs/toolkit';
 import { authApi } from '@/shared/api/authApi';
 import { usersApi } from '@/shared/api/usersApi';
 import { healthApi } from '@/shared/api/healthApi';
 import { postsApi } from '@/shared/api/postsApi';
 import { friendsApi } from '@/shared/api/friendsApi';
-import { chatsApi } from '@/shared/api/chatsApi';
 import { tasksApi } from '@/shared/api/tasksApi';
 import { pulseApi } from '@/shared/api/pulseApi';
 import { notificationsReducer } from '@/entities/notification';
@@ -14,6 +14,7 @@ import { presenceReducer } from '@/entities/presence';
 export const makeStore = () =>
   configureStore({
     reducer: {
+      [baseApi.reducerPath]: baseApi.reducer,
       notifications: notificationsReducer,
       chatUi: chatUiReducer,
       presence: presenceReducer,
@@ -22,18 +23,17 @@ export const makeStore = () =>
       [healthApi.reducerPath]: healthApi.reducer,
       [postsApi.reducerPath]: postsApi.reducer,
       [friendsApi.reducerPath]: friendsApi.reducer,
-      [chatsApi.reducerPath]: chatsApi.reducer,
       [tasksApi.reducerPath]: tasksApi.reducer,
       [pulseApi.reducerPath]: pulseApi.reducer,
     },
     middleware: (getDefault) =>
       getDefault().concat(
+        baseApi.middleware,
         authApi.middleware,
         usersApi.middleware,
         healthApi.middleware,
         postsApi.middleware,
         friendsApi.middleware,
-        chatsApi.middleware,
         tasksApi.middleware,
         pulseApi.middleware,
       ),

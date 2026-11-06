@@ -1605,7 +1605,7 @@ export default function HealthPage() {
     const current = profile?.currentWeightKg;
     const target = profile?.targetWeightKg;
     const goalDelta = current != null && target != null ? Math.abs(current - target) : null;
-    const goalDirection = goalDelta == null ? 'Цель' : goalDelta === 0 ? 'Поддерживать' : current > target ? 'Сбросить' : 'Набрать';
+    const goalDirection = current == null || target == null ? 'Цель' : goalDelta === 0 ? 'Поддерживать' : current > target ? 'Сбросить' : 'Набрать';
     const goalSuffix = goalDelta == null ? 'заполни профиль' : goalDelta === 0 ? 'цель достигнута' : `ещё ${goalDelta.toFixed(1)} кг`;
     const cards: SummaryCard[] = [];
 
@@ -1737,7 +1737,7 @@ export default function HealthPage() {
       daysOfWeek: taskForm.taskType === 'REGULAR' && taskForm.scheduleType === 'WEEKLY' ? taskForm.daysOfWeek : [],
       daysOfMonth: taskForm.taskType === 'REGULAR' && taskForm.scheduleType === 'MONTHLY' ? taskForm.daysOfMonth : [],
     }).unwrap();
-    setTaskForm({ title: '', notes: '', taskType: 'ONE_TIME', scheduleType: 'NONE', daysOfWeek: [0], daysOfMonth: [parseDate(selectedDate).getDate()] });
+    setTaskForm({ title: '', notes: '', taskType: 'ONE_TIME', scheduleType: 'NONE', daysOfWeek: [0], daysOfMonth: [(parseDate(selectedDate)?.getDate() ?? 1)] });
     setTaskModalOpen(false);
   }
 
@@ -1806,7 +1806,7 @@ export default function HealthPage() {
           }
         : null,
     }).unwrap();
-    setFinanceForm({ title: '', amount: '', type: 'EXPENSE', categoryId: '', notes: '', recurring: false, scheduleType: 'MONTHLY', daysOfWeek: [0], daysOfMonth: [parseDate(selectedDate).getDate()] });
+    setFinanceForm({ title: '', amount: '', type: 'EXPENSE', categoryId: '', notes: '', recurring: false, scheduleType: 'MONTHLY', daysOfWeek: [0], daysOfMonth: [(parseDate(selectedDate)?.getDate() ?? 1)] });
     setFinanceModalOpen(false);
   }
 

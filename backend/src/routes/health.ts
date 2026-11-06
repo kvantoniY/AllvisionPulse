@@ -1,3 +1,5 @@
+import { Prisma } from "@prisma/client";
+import { routeParam } from "../utils/http";
 import { Router } from "express";
 import { z } from "zod";
 import dayjs from "dayjs";
@@ -448,7 +450,7 @@ async function syncFinanceEntryTask(userId: string, entry: any) {
     hasTime: false,
     priority: 3,
     tags: [entry.type === "EXPENSE" ? "finance" : "income"],
-    remindersJson: null,
+    remindersJson: Prisma.DbNull,
     recurrenceJson: {
       taskType: "REGULAR",
       scheduleType: recurrence.scheduleType || "MONTHLY",
@@ -483,7 +485,7 @@ async function syncDebtTask(userId: string, debt: any) {
     hasTime: false,
     priority: 4,
     tags: ["finance", "debt"],
-    remindersJson: null,
+    remindersJson: Prisma.DbNull,
     recurrenceJson: {
       taskType: "REGULAR",
       scheduleType: "MONTHLY",
@@ -729,7 +731,7 @@ router.get("/today", requireAuth, asyncHandler(async (req: AuthedRequest, res) =
 }));
 
 router.get("/day/:date", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
-  const date = parseDateOrToday(req.params.date);
+  const date = parseDateOrToday(routeParam(req, 'date'));
   const day = await prisma.healthDay.findUnique({ where: { userId_date: { userId: req.user!.id, date: date.toDate() } } });
   res.json({ day });
 }));
@@ -746,7 +748,7 @@ router.put("/checkin", requireAuth, asyncHandler(async (req: AuthedRequest, res)
 }));
 
 router.delete("/day/:date", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
-  const date = parseDateOrToday(req.params.date);
+  const date = parseDateOrToday(routeParam(req, 'date'));
   await prisma.healthDay.deleteMany({ where: { userId: req.user!.id, date: date.toDate() } });
   await recomputePulse7(req.user!.id, date);
   res.json({ ok: true });
@@ -908,7 +910,7 @@ router.post("/pulse/nutrition/meals", requireAuth, asyncHandler(async (req: Auth
 
 router.patch("/pulse/nutrition/meals/:mealId", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
   const body = mealSchema.partial().parse(req.body);
-  const meal = await prisma.pulseMeal.findUnique({ where: { id: req.params.mealId } });
+  const meal = await prisma.pulseMeal.findUnique({ where: { id: routeParam(req, 'mealId') } });
   if (!meal || meal.userId !== req.user!.id) throw new HttpError(404, "Meal not found");
   const items = body.items ? (body.items as any[]) : ensureArray<any>(meal.itemsJson as any);
   const totals = mealTotals(items);
@@ -932,7 +934,7 @@ router.patch("/pulse/nutrition/meals/:mealId", requireAuth, asyncHandler(async (
 }));
 
 router.delete("/pulse/nutrition/meals/:mealId", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
-  const meal = await prisma.pulseMeal.findUnique({ where: { id: req.params.mealId } });
+  const meal = await prisma.pulseMeal.findUnique({ where: { id: routeParam(req, 'mealId') } });
   if (!meal || meal.userId !== req.user!.id) throw new HttpError(404, "Meal not found");
   await prisma.pulseMeal.delete({ where: { id: meal.id } });
   res.json({ ok: true });
@@ -1015,7 +1017,7 @@ router.post("/pulse/tasks", requireAuth, asyncHandler(async (req: AuthedRequest,
       completed: false,
       priority: body.priority ?? 2,
       tags: body.tags ?? [],
-      remindersJson: null,
+      remindersJson: Prisma.DbNull,
       recurrenceJson: {
         taskType: body.taskType,
         scheduleType: body.scheduleType,
@@ -1028,7 +1030,7 @@ router.post("/pulse/tasks", requireAuth, asyncHandler(async (req: AuthedRequest,
 }));
 
 router.patch("/pulse/tasks/:taskId", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
-  const existing = await prisma.task.findUnique({ where: { id: req.params.taskId } });
+  const existing = await prisma.task.findUnique({ where: { id: routeParam(req, 'taskId') } });
   if (!existing || existing.userId !== req.user!.id || existing.deletedAt) throw new HttpError(404, "Task not found");
   const body = pulseTaskSchema.partial().parse(req.body);
   const recurrence = { ...(existing.recurrenceJson as any || {}) };
@@ -1052,7 +1054,7 @@ router.patch("/pulse/tasks/:taskId", requireAuth, asyncHandler(async (req: Authe
 
 router.post("/pulse/tasks/:taskId/toggle-date", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
   const date = parseDateOrToday(req.body?.date);
-  const task = await prisma.task.findUnique({ where: { id: req.params.taskId } });
+  const task = await prisma.task.findUnique({ where: { id: routeParam(req, 'taskId') } });
   if (!task || task.userId !== req.user!.id || task.deletedAt) throw new HttpError(404, "Task not found");
   const existing = await prisma.pulseTaskCompletion.findUnique({ where: { taskId_date: { taskId: task.id, date: date.toDate() } } as any }).catch(() => null);
   let completion;
@@ -1069,7 +1071,7 @@ router.post("/pulse/tasks/:taskId/toggle-date", requireAuth, asyncHandler(async 
 }));
 
 router.delete("/pulse/tasks/:taskId", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
-  const task = await prisma.task.findUnique({ where: { id: req.params.taskId } });
+  const task = await prisma.task.findUnique({ where: { id: routeParam(req, 'taskId') } });
   if (!task || task.userId !== req.user!.id || task.deletedAt) throw new HttpError(404, "Task not found");
   await prisma.task.update({ where: { id: task.id }, data: { deletedAt: new Date() } });
   res.json({ ok: true });
@@ -1095,7 +1097,7 @@ router.post("/pulse/tasks/goals", requireAuth, asyncHandler(async (req: AuthedRe
 }));
 
 router.patch("/pulse/tasks/goals/:goalId", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
-  const existing = await prisma.pulseGoal.findUnique({ where: { id: req.params.goalId } });
+  const existing = await prisma.pulseGoal.findUnique({ where: { id: routeParam(req, 'goalId') } });
   if (!existing || existing.userId !== req.user!.id) throw new HttpError(404, "Goal not found");
   const body = goalSchema.partial().parse(req.body);
   const goal = await prisma.pulseGoal.update({
@@ -1111,7 +1113,7 @@ router.patch("/pulse/tasks/goals/:goalId", requireAuth, asyncHandler(async (req:
 }));
 
 router.delete("/pulse/tasks/goals/:goalId", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
-  const existing = await prisma.pulseGoal.findUnique({ where: { id: req.params.goalId } });
+  const existing = await prisma.pulseGoal.findUnique({ where: { id: routeParam(req, 'goalId') } });
   if (!existing || existing.userId !== req.user!.id) throw new HttpError(404, "Goal not found");
   await prisma.pulseGoal.delete({ where: { id: existing.id } });
   res.json({ ok: true });
@@ -1148,7 +1150,7 @@ router.post("/pulse/finance/categories", requireAuth, asyncHandler(async (req: A
 }));
 
 router.patch("/pulse/finance/categories/:categoryId", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
-  const existing = await prisma.pulseFinanceCategory.findUnique({ where: { id: req.params.categoryId } });
+  const existing = await prisma.pulseFinanceCategory.findUnique({ where: { id: routeParam(req, 'categoryId') } });
   if (!existing || existing.userId !== req.user!.id) throw new HttpError(404, "Category not found");
   const body = financeCategorySchema.partial().parse(req.body);
   const category = await prisma.pulseFinanceCategory.update({
@@ -1191,7 +1193,7 @@ router.post("/pulse/finance/entries", requireAuth, asyncHandler(async (req: Auth
 }));
 
 router.patch("/pulse/finance/entries/:entryId", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
-  const existing = await prisma.pulseFinanceEntry.findUnique({ where: { id: req.params.entryId } });
+  const existing = await prisma.pulseFinanceEntry.findUnique({ where: { id: routeParam(req, 'entryId') } });
   if (!existing || existing.userId !== req.user!.id) throw new HttpError(404, "Entry not found");
   const body = financeEntrySchema.partial().parse(req.body);
   const entry = await prisma.pulseFinanceEntry.update({
@@ -1212,7 +1214,7 @@ router.patch("/pulse/finance/entries/:entryId", requireAuth, asyncHandler(async 
 }));
 
 router.delete("/pulse/finance/entries/:entryId", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
-  const existing = await prisma.pulseFinanceEntry.findUnique({ where: { id: req.params.entryId } });
+  const existing = await prisma.pulseFinanceEntry.findUnique({ where: { id: routeParam(req, 'entryId') } });
   if (!existing || existing.userId !== req.user!.id) throw new HttpError(404, "Entry not found");
   await prisma.pulseFinanceEntry.delete({ where: { id: existing.id } });
   if (existing.linkedTaskId) {
@@ -1235,14 +1237,14 @@ router.post("/pulse/finance/goals", requireAuth, asyncHandler(async (req: Authed
       targetAmount: body.targetAmount,
       savedAmount: body.savedAmount ?? 0,
       deadline: body.deadline ? parseDateOrToday(body.deadline).toDate() : null,
-      itemsJson: body.items ?? null,
+      itemsJson: body.items ?? Prisma.DbNull,
     },
   });
   res.json({ goal });
 }));
 
 router.patch("/pulse/finance/goals/:goalId", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
-  const existing = await prisma.pulseSavingsGoal.findUnique({ where: { id: req.params.goalId } });
+  const existing = await prisma.pulseSavingsGoal.findUnique({ where: { id: routeParam(req, 'goalId') } });
   if (!existing || existing.userId !== req.user!.id) throw new HttpError(404, "Goal not found");
   const body = savingsGoalSchema.partial().parse(req.body);
   const goal = await prisma.pulseSavingsGoal.update({
@@ -1259,7 +1261,7 @@ router.patch("/pulse/finance/goals/:goalId", requireAuth, asyncHandler(async (re
 }));
 
 router.delete("/pulse/finance/goals/:goalId", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
-  const existing = await prisma.pulseSavingsGoal.findUnique({ where: { id: req.params.goalId } });
+  const existing = await prisma.pulseSavingsGoal.findUnique({ where: { id: routeParam(req, 'goalId') } });
   if (!existing || existing.userId !== req.user!.id) throw new HttpError(404, "Goal not found");
   await prisma.pulseSavingsGoal.delete({ where: { id: existing.id } });
   res.json({ ok: true });
@@ -1293,7 +1295,7 @@ router.post("/pulse/finance/debts", requireAuth, asyncHandler(async (req: Authed
 }));
 
 router.patch("/pulse/finance/debts/:debtId", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
-  const existing = await prisma.pulseDebt.findUnique({ where: { id: req.params.debtId } });
+  const existing = await prisma.pulseDebt.findUnique({ where: { id: routeParam(req, 'debtId') } });
   if (!existing || existing.userId !== req.user!.id) throw new HttpError(404, "Debt not found");
   const body = debtSchema.partial().parse(req.body);
   const debt = await prisma.pulseDebt.update({
@@ -1317,7 +1319,7 @@ router.patch("/pulse/finance/debts/:debtId", requireAuth, asyncHandler(async (re
 }));
 
 router.delete("/pulse/finance/debts/:debtId", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
-  const existing = await prisma.pulseDebt.findUnique({ where: { id: req.params.debtId } });
+  const existing = await prisma.pulseDebt.findUnique({ where: { id: routeParam(req, 'debtId') } });
   if (!existing || existing.userId !== req.user!.id) throw new HttpError(404, "Debt not found");
   await prisma.pulseDebt.delete({ where: { id: existing.id } });
   await prisma.task.updateMany({ where: { userId: req.user!.id, sourceKey: `debt:${existing.id}` }, data: { deletedAt: new Date() } });

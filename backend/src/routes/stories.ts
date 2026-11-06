@@ -1,3 +1,4 @@
+import { routeParam } from "../utils/http";
 import { Router } from 'express';
 import path from 'path';
 import multer from 'multer';
@@ -164,7 +165,7 @@ router.get('/rail', requireAuth, asyncHandler(async (req: AuthedRequest, res) =>
 
 router.get('/user/:userId', requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
   const meId = req.user!.id;
-  const userId = req.params.userId;
+  const userId = routeParam(req, 'userId');
   const allowed = await ensureStoryAccess(meId, userId, req.user!.role === 'ADMIN');
   if (!allowed) throw new HttpError(403, 'Forbidden');
 
@@ -204,7 +205,7 @@ router.get('/archive', requireAuth, asyncHandler(async (req: AuthedRequest, res)
 
 router.get('/highlights/user/:userId', requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
   const meId = req.user!.id;
-  const userId = req.params.userId;
+  const userId = routeParam(req, 'userId');
   const allowed = await ensureStoryAccess(meId, userId, req.user!.role === 'ADMIN');
   if (!allowed) throw new HttpError(403, 'Forbidden');
 
@@ -254,14 +255,14 @@ router.post('/highlights', requireAuth, asyncHandler(async (req: AuthedRequest, 
 
 router.patch('/highlights/:highlightId', requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
   const body = CreateHighlightSchema.parse(req.body ?? {});
-  const highlight = await prisma.storyHighlight.findFirst({ where: { id: req.params.highlightId, userId: req.user!.id } });
+  const highlight = await prisma.storyHighlight.findFirst({ where: { id: routeParam(req, 'highlightId'), userId: req.user!.id } });
   if (!highlight) throw new HttpError(404, 'Актуальное не найдено');
   const updated = await prisma.storyHighlight.update({ where: { id: highlight.id }, data: { title: body.title } });
   res.json({ highlight: updated });
 }));
 
 router.delete('/highlights/:highlightId', requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
-  const highlight = await prisma.storyHighlight.findFirst({ where: { id: req.params.highlightId, userId: req.user!.id } });
+  const highlight = await prisma.storyHighlight.findFirst({ where: { id: routeParam(req, 'highlightId'), userId: req.user!.id } });
   if (!highlight) throw new HttpError(404, 'Актуальное не найдено');
   await prisma.storyHighlight.delete({ where: { id: highlight.id } });
   res.json({ ok: true });
@@ -269,7 +270,7 @@ router.delete('/highlights/:highlightId', requireAuth, asyncHandler(async (req: 
 
 router.post('/highlights/:highlightId/stories', requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
   const body = z.object({ storyId: z.string().uuid() }).parse(req.body ?? {});
-  const highlight = await prisma.storyHighlight.findFirst({ where: { id: req.params.highlightId, userId: req.user!.id } });
+  const highlight = await prisma.storyHighlight.findFirst({ where: { id: routeParam(req, 'highlightId'), userId: req.user!.id } });
   if (!highlight) throw new HttpError(404, 'Актуальное не найдено');
   const story = await prisma.story.findFirst({ where: { id: body.storyId, authorId: req.user!.id } });
   if (!story) throw new HttpError(404, 'Story not found');
@@ -285,15 +286,15 @@ router.post('/highlights/:highlightId/stories', requireAuth, asyncHandler(async 
 }));
 
 router.delete('/highlights/:highlightId/stories/:storyId', requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
-  const highlight = await prisma.storyHighlight.findFirst({ where: { id: req.params.highlightId, userId: req.user!.id } });
+  const highlight = await prisma.storyHighlight.findFirst({ where: { id: routeParam(req, 'highlightId'), userId: req.user!.id } });
   if (!highlight) throw new HttpError(404, 'Актуальное не найдено');
-  await prisma.storyHighlightItem.deleteMany({ where: { highlightId: highlight.id, storyId: req.params.storyId } });
+  await prisma.storyHighlightItem.deleteMany({ where: { highlightId: highlight.id, storyId: routeParam(req, 'storyId') } });
   await prisma.storyHighlight.update({ where: { id: highlight.id }, data: { updatedAt: new Date() } });
   res.json({ ok: true });
 }));
 
 router.post('/:storyId/highlight', requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
-  const story = await prisma.story.findFirst({ where: { id: req.params.storyId, authorId: req.user!.id } });
+  const story = await prisma.story.findFirst({ where: { id: routeParam(req, 'storyId'), authorId: req.user!.id } });
   if (!story) throw new HttpError(404, 'Story not found');
   const target = HighlightTargetSchema.parse(req.body ?? {});
   const highlight = await resolveHighlightTarget(req.user!.id, target);
@@ -310,9 +311,9 @@ router.post('/:storyId/highlight', requireAuth, asyncHandler(async (req: AuthedR
 }));
 
 router.delete('/:storyId/highlight/:highlightId', requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
-  const story = await prisma.story.findFirst({ where: { id: req.params.storyId, authorId: req.user!.id } });
+  const story = await prisma.story.findFirst({ where: { id: routeParam(req, 'storyId'), authorId: req.user!.id } });
   if (!story) throw new HttpError(404, 'Story not found');
-  const highlight = await prisma.storyHighlight.findFirst({ where: { id: req.params.highlightId, userId: req.user!.id } });
+  const highlight = await prisma.storyHighlight.findFirst({ where: { id: routeParam(req, 'highlightId'), userId: req.user!.id } });
   if (!highlight) throw new HttpError(404, 'Актуальное не найдено');
   await prisma.storyHighlightItem.deleteMany({ where: { highlightId: highlight.id, storyId: story.id } });
   await prisma.storyHighlight.update({ where: { id: highlight.id }, data: { updatedAt: new Date() } });
@@ -392,7 +393,7 @@ router.post('/', requireAuth, storyUpload.array('files', 20), asyncHandler(async
 
 router.post('/:storyId/view', requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
   const meId = req.user!.id;
-  const storyId = req.params.storyId;
+  const storyId = routeParam(req, 'storyId');
   const story = await prisma.story.findUnique({ where: { id: storyId }, select: { id: true, authorId: true, expiresAt: true } });
   if (!story || story.expiresAt <= new Date()) throw new HttpError(404, 'Story not found');
   const allowed = await ensureStoryAccess(meId, story.authorId, req.user!.role === 'ADMIN');
@@ -413,7 +414,7 @@ const StoryReactionSchema = z.object({ emoji: z.string().trim().max(16).nullable
 
 router.post('/:storyId/reaction', requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
   const meId = req.user!.id;
-  const storyId = req.params.storyId;
+  const storyId = routeParam(req, 'storyId');
   const body = StoryReactionSchema.parse(req.body ?? {});
   const story = await prisma.story.findUnique({ where: { id: storyId }, select: { id: true, authorId: true, expiresAt: true } });
   if (!story || story.expiresAt <= new Date()) throw new HttpError(404, 'Story not found');
@@ -431,7 +432,7 @@ router.post('/:storyId/reaction', requireAuth, asyncHandler(async (req: AuthedRe
 }));
 
 router.get('/:storyId/viewers', requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
-  const storyId = req.params.storyId;
+  const storyId = routeParam(req, 'storyId');
   const story = await prisma.story.findUnique({ where: { id: storyId }, select: { id: true, authorId: true } });
   if (!story) throw new HttpError(404, 'Story not found');
   if (req.user!.role !== 'ADMIN' && story.authorId !== req.user!.id) throw new HttpError(403, 'Forbidden');
@@ -451,7 +452,7 @@ router.get('/:storyId/viewers', requireAuth, asyncHandler(async (req: AuthedRequ
 }));
 
 router.delete('/:storyId', requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
-  const storyId = req.params.storyId;
+  const storyId = routeParam(req, 'storyId');
   const story = await prisma.story.findUnique({ where: { id: storyId }, select: { id: true, authorId: true } });
   if (!story) throw new HttpError(404, 'Story not found');
   if (req.user!.role !== 'ADMIN' && story.authorId !== req.user!.id) throw new HttpError(403, 'Forbidden');

@@ -1,3 +1,4 @@
+import { routeParam } from "../utils/http";
 
 import { Router } from "express";
 import { z } from "zod";
@@ -134,7 +135,7 @@ router.get("/sessions", requireAuth, asyncHandler(async (req: AuthedRequest, res
 }));
 
 router.delete("/sessions/:sessionId", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
-  const sessionId = req.params.sessionId;
+  const sessionId = routeParam(req, 'sessionId');
   // user can revoke own sessions; admin can revoke any
   const session = await prisma.session.findUnique({ where: { id: sessionId } });
   if (!session) throw new HttpError(404, "Session not found");

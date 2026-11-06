@@ -1,3 +1,4 @@
+import { routeParam } from "../utils/http";
 
 import { Router } from "express";
 import { prisma } from "../db/prisma";
@@ -18,7 +19,7 @@ router.get("/users", asyncHandler(async (_req, res) => {
 }));
 
 router.get("/users/:userId", asyncHandler(async (req, res) => {
-  const userId = req.params.userId;
+  const userId = routeParam(req, 'userId');
   const user = await prisma.user.findUnique({
     where: { id: userId },
     include: { settings: true, privacy: true, _count: { select: { posts: true, messages: true, healthDays: true, tasks: true } } },
@@ -28,7 +29,7 @@ router.get("/users/:userId", asyncHandler(async (req, res) => {
 }));
 
 router.delete("/users/:userId", asyncHandler(async (req, res) => {
-  const userId = req.params.userId;
+  const userId = routeParam(req, 'userId');
   await prisma.user.delete({ where: { id: userId } });
   res.json({ ok: true });
 }));
@@ -44,12 +45,12 @@ router.get("/posts", asyncHandler(async (_req, res) => {
 }));
 
 router.delete("/posts/:postId", asyncHandler(async (req, res) => {
-  await prisma.post.update({ where: { id: req.params.postId }, data: { deletedAt: new Date() } });
+  await prisma.post.update({ where: { id: routeParam(req, 'postId') }, data: { deletedAt: new Date() } });
   res.json({ ok: true });
 }));
 
 router.delete("/comments/:commentId", asyncHandler(async (req, res) => {
-  await prisma.comment.update({ where: { id: req.params.commentId }, data: { deletedAt: new Date() } });
+  await prisma.comment.update({ where: { id: routeParam(req, 'commentId') }, data: { deletedAt: new Date() } });
   res.json({ ok: true });
 }));
 
@@ -59,12 +60,12 @@ router.get("/chats", asyncHandler(async (_req, res) => {
 }));
 
 router.get("/health/:userId", asyncHandler(async (req, res) => {
-  const rows = await prisma.healthDay.findMany({ where: { userId: req.params.userId }, orderBy: { date: "desc" }, take: 200 });
+  const rows = await prisma.healthDay.findMany({ where: { userId: routeParam(req, 'userId') }, orderBy: { date: "desc" }, take: 200 });
   res.json({ rows });
 }));
 
 router.get("/tasks/:userId", asyncHandler(async (req, res) => {
-  const tasks = await prisma.task.findMany({ where: { userId: req.params.userId, deletedAt: null }, orderBy: { createdAt: "desc" }, take: 200 });
+  const tasks = await prisma.task.findMany({ where: { userId: routeParam(req, 'userId'), deletedAt: null }, orderBy: { createdAt: "desc" }, take: 200 });
   res.json({ tasks });
 }));
 

@@ -1,3 +1,4 @@
+import { routeParam } from "../utils/http";
 
 import { Router } from "express";
 import { z } from "zod";
@@ -74,7 +75,7 @@ router.post("/", requireAuth, upload.array("images", 10), asyncHandler(async (re
 }));
 
 router.get("/:postId", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
-  const postId = req.params.postId;
+  const postId = routeParam(req, 'postId');
   const post = await prisma.post.findFirst({
     where: { id: postId, deletedAt: null },
     include: {
@@ -89,7 +90,7 @@ router.get("/:postId", requireAuth, asyncHandler(async (req: AuthedRequest, res)
 }));
 
 router.delete("/:postId", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
-  const postId = req.params.postId;
+  const postId = routeParam(req, 'postId');
   const post = await prisma.post.findUnique({ where: { id: postId } });
   if (!post || post.deletedAt) throw new HttpError(404, "Post not found");
   if (req.user!.role !== "ADMIN" && post.authorId !== req.user!.id) throw new HttpError(403, "Forbidden");
@@ -99,7 +100,7 @@ router.delete("/:postId", requireAuth, asyncHandler(async (req: AuthedRequest, r
 }));
 
 router.post("/:postId/like", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
-  const postId = req.params.postId;
+  const postId = routeParam(req, 'postId');
   const post = await prisma.post.findUnique({ where: { id: postId }, select: { authorId: true, deletedAt: true } });
   if (!post || post.deletedAt) throw new HttpError(404, "Post not found");
   await prisma.postLike.create({ data: { postId, userId: req.user!.id } }).catch(() => null);
@@ -116,14 +117,14 @@ router.post("/:postId/like", requireAuth, asyncHandler(async (req: AuthedRequest
 }));
 
 router.delete("/:postId/like", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
-  const postId = req.params.postId;
+  const postId = routeParam(req, 'postId');
   await prisma.postLike.deleteMany({ where: { postId, userId: req.user!.id } });
   res.json({ ok: true });
 }));
 
 // --- Comments ---
 router.get("/:postId/comments", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
-  const postId = req.params.postId;
+  const postId = routeParam(req, 'postId');
   const cursor = req.query.cursor?.toString();
   const take = Math.min(Number(req.query.take ?? 30), 100);
 
@@ -146,7 +147,7 @@ router.get("/:postId/comments", requireAuth, asyncHandler(async (req: AuthedRequ
 }));
 
 router.get("/comments/:commentId/replies", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
-  const commentId = req.params.commentId;
+  const commentId = routeParam(req, 'commentId');
   const replies = await prisma.comment.findMany({
     where: { parentId: commentId, deletedAt: null },
     orderBy: { createdAt: "asc" },
@@ -162,7 +163,7 @@ const CreateCommentSchema = z.object({
 });
 
 router.post("/:postId/comments", requireAuth, upload.array("images", 10), asyncHandler(async (req: AuthedRequest, res) => {
-  const postId = req.params.postId;
+  const postId = routeParam(req, 'postId');
   const body = CreateCommentSchema.parse(req.body);
   const files = (req.files as Express.Multer.File[]) ?? [];
 
@@ -198,7 +199,7 @@ router.post("/:postId/comments", requireAuth, upload.array("images", 10), asyncH
 }));
 
 router.delete("/comments/:commentId", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
-  const commentId = req.params.commentId;
+  const commentId = routeParam(req, 'commentId');
   const comment = await prisma.comment.findUnique({ where: { id: commentId } });
   if (!comment || comment.deletedAt) throw new HttpError(404, "Comment not found");
   if (req.user!.role !== "ADMIN" && comment.authorId !== req.user!.id) throw new HttpError(403, "Forbidden");
@@ -207,7 +208,7 @@ router.delete("/comments/:commentId", requireAuth, asyncHandler(async (req: Auth
 }));
 
 router.post("/comments/:commentId/like", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
-  const commentId = req.params.commentId;
+  const commentId = routeParam(req, 'commentId');
   const comment = await prisma.comment.findUnique({ where: { id: commentId }, select: { authorId: true, postId: true, deletedAt: true } });
   if (!comment || comment.deletedAt) throw new HttpError(404, "Comment not found");
   await prisma.commentLike.create({ data: { commentId, userId: req.user!.id } }).catch(() => null);
@@ -224,7 +225,7 @@ router.post("/comments/:commentId/like", requireAuth, asyncHandler(async (req: A
 }));
 
 router.delete("/comments/:commentId/like", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
-  const commentId = req.params.commentId;
+  const commentId = routeParam(req, 'commentId');
   await prisma.commentLike.deleteMany({ where: { commentId, userId: req.user!.id } });
   res.json({ ok: true });
 }));

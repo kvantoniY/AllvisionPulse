@@ -1,3 +1,4 @@
+import { routeParam } from "../utils/http";
 
 import { Router } from "express";
 import { z } from "zod";
@@ -105,7 +106,7 @@ router.post("/group", requireAuth, asyncHandler(async (req: AuthedRequest, res) 
 }));
 
 router.post("/:chatId/members", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
-  const chatId = req.params.chatId;
+  const chatId = routeParam(req, 'chatId');
   const body = z.object({ userId: z.string().uuid() }).parse(req.body);
 
   const me = await prisma.chatMember.findUnique({ where: { chatId_userId: { chatId, userId: req.user!.id } } });
@@ -125,8 +126,8 @@ router.post("/:chatId/members", requireAuth, asyncHandler(async (req: AuthedRequ
 }));
 
 router.delete("/:chatId/members/:userId", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
-  const chatId = req.params.chatId;
-  const userId = req.params.userId;
+  const chatId = routeParam(req, 'chatId');
+  const userId = routeParam(req, 'userId');
 
   const me = await prisma.chatMember.findUnique({ where: { chatId_userId: { chatId, userId: req.user!.id } } });
   if (!me) throw new HttpError(404, "Chat not found");
@@ -144,7 +145,7 @@ router.delete("/:chatId/members/:userId", requireAuth, asyncHandler(async (req: 
 }));
 
 router.get("/:chatId/messages", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
-  const chatId = req.params.chatId;
+  const chatId = routeParam(req, 'chatId');
   const cursor = req.query.cursor?.toString();
   const take = Math.min(Number(req.query.take ?? 50), 100);
 
@@ -182,7 +183,7 @@ const SendMessageSchema = z.object({
 });
 
 router.post("/:chatId/messages", requireAuth, upload.array("files", 10), asyncHandler(async (req: AuthedRequest, res) => {
-  const chatId = req.params.chatId;
+  const chatId = routeParam(req, 'chatId');
   const body = SendMessageSchema.parse(req.body);
   const files = (req.files as Express.Multer.File[]) ?? [];
 
@@ -304,7 +305,7 @@ const SearchMessagesSchema = z.object({
 });
 
 router.get("/:chatId/messages/search", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
-  const chatId = req.params.chatId;
+  const chatId = routeParam(req, 'chatId');
   const body = SearchMessagesSchema.parse(req.query);
 
   const member = await prisma.chatMember.findUnique({ where: { chatId_userId: { chatId, userId: req.user!.id } } });
@@ -335,7 +336,8 @@ const UpdateMessageSchema = z.object({
 });
 
 router.patch("/:chatId/messages/:messageId", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
-  const { chatId, messageId } = req.params;
+  const chatId = routeParam(req, 'chatId');
+  const messageId = routeParam(req, 'messageId');
   const body = UpdateMessageSchema.parse(req.body);
 
   const msg = await prisma.message.findUnique({ where: { id: messageId }, include: { sender: true, attachments: true } });
@@ -371,7 +373,7 @@ const BulkDeleteSchema = z.object({
 });
 
 router.post("/:chatId/messages/bulk-delete", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
-  const { chatId } = req.params;
+  const chatId = routeParam(req, 'chatId');
   const body = BulkDeleteSchema.parse(req.body);
 
   const me = await prisma.chatMember.findUnique({ where: { chatId_userId: { chatId, userId: req.user!.id } } });
@@ -402,7 +404,8 @@ router.post("/:chatId/messages/bulk-delete", requireAuth, asyncHandler(async (re
 }));
 
 router.delete("/:chatId/messages/:messageId", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
-  const { chatId, messageId } = req.params;
+  const chatId = routeParam(req, 'chatId');
+  const messageId = routeParam(req, 'messageId');
   const msg = await prisma.message.findUnique({ where: { id: messageId } });
   if (!msg || msg.chatId !== chatId || msg.deletedAt) throw new HttpError(404, "Message not found");
 
@@ -422,7 +425,8 @@ router.delete("/:chatId/messages/:messageId", requireAuth, asyncHandler(async (r
 const ReactSchema = z.object({ emoji: z.string().min(1).max(12) });
 
 router.post("/:chatId/messages/:messageId/reactions", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
-  const { chatId, messageId } = req.params;
+  const chatId = routeParam(req, 'chatId');
+  const messageId = routeParam(req, 'messageId');
   const body = ReactSchema.parse(req.body);
 
   const member = await prisma.chatMember.findUnique({ where: { chatId_userId: { chatId, userId: req.user!.id } } });
@@ -439,7 +443,8 @@ router.post("/:chatId/messages/:messageId/reactions", requireAuth, asyncHandler(
 }));
 
 router.delete("/:chatId/messages/:messageId/reactions", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
-  const { chatId, messageId } = req.params;
+  const chatId = routeParam(req, 'chatId');
+  const messageId = routeParam(req, 'messageId');
   const emoji = req.query.emoji?.toString();
   if (!emoji) throw new HttpError(400, "emoji required");
 
@@ -457,7 +462,7 @@ router.delete("/:chatId/messages/:messageId/reactions", requireAuth, asyncHandle
 const ReadSchema = z.object({ messageId: z.string().uuid() });
 
 router.post("/:chatId/read", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
-  const chatId = req.params.chatId;
+  const chatId = routeParam(req, 'chatId');
   const body = ReadSchema.parse(req.body);
 
   const member = await prisma.chatMember.findUnique({ where: { chatId_userId: { chatId, userId: req.user!.id } } });
@@ -478,7 +483,7 @@ router.post("/:chatId/read", requireAuth, asyncHandler(async (req: AuthedRequest
 }));
 
 router.get("/:chatId/media", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
-  const chatId = req.params.chatId;
+  const chatId = routeParam(req, 'chatId');
   const member = await prisma.chatMember.findUnique({ where: { chatId_userId: { chatId, userId: req.user!.id } } });
   if (!member) throw new HttpError(404, "Chat not found");
 
@@ -494,7 +499,8 @@ router.get("/:chatId/media", requireAuth, asyncHandler(async (req: AuthedRequest
 
 // Pin message (group only)
 router.post("/:chatId/pin/:messageId", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
-  const { chatId, messageId } = req.params;
+  const chatId = routeParam(req, 'chatId');
+  const messageId = routeParam(req, 'messageId');
   const me = await prisma.chatMember.findUnique({ where: { chatId_userId: { chatId, userId: req.user!.id } }, include: { chat: true } });
   if (!me) throw new HttpError(404, "Chat not found");
   if (me.chat.type !== "GROUP") throw new HttpError(400, "Only group chats support pin");
@@ -509,7 +515,7 @@ router.post("/:chatId/pin/:messageId", requireAuth, asyncHandler(async (req: Aut
 
 // --- FUTURE: chat events scaffold endpoints (create option votes) ---
 router.get("/:chatId/events", requireAuth, asyncHandler(async (req: AuthedRequest, res) => {
-  const chatId = req.params.chatId;
+  const chatId = routeParam(req, 'chatId');
   const events = await prisma.chatEvent.findMany({ where: { chatId }, include: { options: true, votes: true }, orderBy: { createdAt: "desc" } });
   res.json({ items: events });
 }));

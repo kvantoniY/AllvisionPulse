@@ -1,5 +1,5 @@
 export function extractApiError(error: unknown) {
-  const fallback = { message: 'Не удалось выполнить запрос', status: null as number | null, code: null as string | null, raw: error };
+  const fallback = { message: 'Не удалось выполнить запрос', status: null as number | null, code: null as string | null, details: null, meta: null, raw: error };
 
   if (!error || typeof error !== 'object') return fallback;
 
